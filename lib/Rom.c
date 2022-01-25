@@ -1028,17 +1028,19 @@ static void Rom_Build_SetAudioSegment(Rom* rom) {
 	addr[2] = ReadBE(lo);
 	printf_debug_align("SampleRom", "%08X", rom->offset.segment.smplRom);
 	
-	rom->table.dma[3].romStart = rom->table.dma[3].vromStart = ReadBE(rom->offset.segment.fontRom);
-	rom->table.dma[3].vromEnd = ReadBE(rom->offset.segment.seqRom);
-	
-	u32 size = 0x03DFF000;
-	
-	rom->table.dma[4].romStart = rom->table.dma[4].vromStart = ReadBE(rom->offset.segment.seqRom);
-	rom->table.dma[4].vromEnd = size;
-	SwapBE(rom->table.dma[4].vromEnd);
-	
-	rom->table.dma[5].romStart = rom->table.dma[5].vromStart = ReadBE(rom->offset.segment.smplRom);
-	rom->table.dma[5].vromEnd = ReadBE(rom->offset.segment.fontRom);
+	#if 0
+		rom->table.dma[3].romStart = rom->table.dma[3].vromStart = ReadBE(rom->offset.segment.fontRom);
+		rom->table.dma[3].vromEnd = ReadBE(rom->offset.segment.seqRom);
+		
+		u32 size = 0x03DFF000;
+		
+		rom->table.dma[4].romStart = rom->table.dma[4].vromStart = ReadBE(rom->offset.segment.seqRom);
+		rom->table.dma[4].vromEnd = size;
+		SwapBE(rom->table.dma[4].vromEnd);
+		
+		rom->table.dma[5].romStart = rom->table.dma[5].vromStart = ReadBE(rom->offset.segment.smplRom);
+		rom->table.dma[5].vromEnd = ReadBE(rom->offset.segment.fontRom);
+	#endif
 }
 
 static void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {

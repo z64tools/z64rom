@@ -206,6 +206,9 @@ void printf_WinFix();
 void* Lib_MemMem(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize);
 void* Lib_MemMemCase(void* haystack, size_t haystackSize, void* needle, size_t needleSize);
 void* Lib_MemMem16(const void* haystack, size_t haySize, const void* needle, size_t needleSize);
+void* Lib_MemMemU16(void* haystack, size_t haySize, const void* needle, size_t needleSize);
+void* Lib_MemMemU32(void* haystack, size_t haySize, const void* needle, size_t needleSize);
+void* Lib_MemMemU64(void* haystack, size_t haySize, const void* needle, size_t needleSize);
 void* Lib_Malloc(void* data, s32 size);
 void* Lib_Calloc(void* data, s32 size);
 void* Lib_Realloc(void* data, s32 size);
@@ -522,3 +525,4 @@ extern PrintfSuppressLevel gPrintfSuppress;
 	}
 
 #endif /* __EXTLIB_H__ */
+

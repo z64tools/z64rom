@@ -996,6 +996,123 @@ void* Lib_MemMem16(const void* haystack, size_t haySize, const void* needle, siz
 	}
 }
 
+void* Lib_MemMemU16(void* haystack, size_t haySize, const void* needle, size_t needleSize) {
+	u16* hay = haystack;
+	const u16* nee = needle;
+	const u16* neeEnd = nee + needleSize / sizeof(*nee);
+	const u16* hayEnd = hay + ((haySize - needleSize) / sizeof(*hay));
+	
+	/* guarantee alignment */
+	assert((((uPtr)haystack) & 0x1) == 0);
+	assert((((uPtr)needle) & 0x1) == 0);
+	assert((haySize & 0x1) == 0);
+	assert((needleSize & 0x1) == 0);
+	
+	if (haySize == 0 || needleSize == 0)
+		return NULL;
+	
+	if (haystack == NULL || needle == NULL)
+		return NULL;
+	
+	if (haySize < needleSize)
+		return NULL;
+	
+	while (hay <= hayEnd) {
+		const u16* neeNow = nee;
+		const u16* hayNow = hay;
+		
+		while (neeNow != neeEnd) {
+			if (*neeNow != *hayNow)
+				goto L_next;
+			++neeNow;
+			++hayNow;
+		}
+		return hay;
+L_next:
+		++hay;
+	}
+	
+	return 0;
+}
+
+void* Lib_MemMemU32(void* haystack, size_t haySize, const void* needle, size_t needleSize) {
+	u32* hay = haystack;
+	const u32* nee = needle;
+	const u32* neeEnd = nee + needleSize / sizeof(*nee);
+	const u32* hayEnd = hay + ((haySize - needleSize) / sizeof(*hay));
+	
+	/* guarantee alignment */
+	assert((((uPtr)haystack) & 0x3) == 0);
+	assert((((uPtr)needle) & 0x3) == 0);
+	assert((haySize & 0x3) == 0);
+	assert((needleSize & 0x3) == 0);
+	
+	if (haySize == 0 || needleSize == 0)
+		return NULL;
+	
+	if (haystack == NULL || needle == NULL)
+		return NULL;
+	
+	if (haySize < needleSize)
+		return NULL;
+	
+	while (hay <= hayEnd) {
+		const u32* neeNow = nee;
+		const u32* hayNow = hay;
+		
+		while (neeNow != neeEnd) {
+			if (*neeNow != *hayNow)
+				goto L_next;
+			++neeNow;
+			++hayNow;
+		}
+		return hay;
+L_next:
+		++hay;
+	}
+	
+	return 0;
+}
+
+void* Lib_MemMemU64(void* haystack, size_t haySize, const void* needle, size_t needleSize) {
+	u64* hay = haystack;
+	const u64* nee = needle;
+	const u64* neeEnd = nee + needleSize / sizeof(*nee);
+	const u64* hayEnd = hay + ((haySize - needleSize) / sizeof(*hay));
+	
+	/* guarantee alignment */
+	assert((((uPtr)haystack) & 0xf) == 0);
+	assert((((uPtr)needle) & 0xf) == 0);
+	assert((haySize & 0xf) == 0);
+	assert((needleSize & 0xf) == 0);
+	
+	if (haySize == 0 || needleSize == 0)
+		return NULL;
+	
+	if (haystack == NULL || needle == NULL)
+		return NULL;
+	
+	if (haySize < needleSize)
+		return NULL;
+	
+	while (hay <= hayEnd) {
+		const u64* neeNow = nee;
+		const u64* hayNow = hay;
+		
+		while (neeNow != neeEnd) {
+			if (*neeNow != *hayNow)
+				goto L_next;
+			++neeNow;
+			++hayNow;
+		}
+		return hay;
+L_next:
+		++hay;
+	}
+	
+	return 0;
+}
+
 void Lib_ByteSwap(void* src, s32 size) {
 	u32 buffer[64] = { 0 };
 	u8* temp = (u8*)buffer;
@@ -2034,3 +2151,4 @@ f32 Config_GetFloat(MemFile* memFile, char* floatName) {
 	
 	return 0;
 }
+

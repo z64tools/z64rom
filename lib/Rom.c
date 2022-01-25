@@ -1211,11 +1211,11 @@ static void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				confEnv[3].level = Config_GetInt(config, "decay2_level"); SwapBE(confEnv[3].level);
 				
 				instruments.envelope = memEnv.seekPoint;
-				if (!Lib_MemMem16(memEnv.data, memEnv.dataSize, confEnv, 0x10)) {
+				if (!Lib_MemMemU64(memEnv.data, memEnv.dataSize, confEnv, 0x10)) {
 					MemFile_Write(&memEnv, confEnv, 0x10);
 					MemFile_Align(&memEnv, 16);
 				} else {
-					void* ptr = Lib_MemMem16(memEnv.data, memEnv.dataSize, confEnv, 0x10);
+					void* ptr = Lib_MemMemU64(memEnv.data, memEnv.dataSize, confEnv, 0x10);
 					instruments.envelope = (uPtr)ptr - (uPtr)memEnv.data;
 				}
 				
@@ -2049,3 +2049,4 @@ void Rom_Free(Rom* rom) {
 	MemFile_Free(&rom->file);
 	memset(rom, 0, sizeof(struct Rom));
 }
+

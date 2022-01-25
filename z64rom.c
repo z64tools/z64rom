@@ -1,6 +1,6 @@
 #include "lib/z64rom.h"
 
-char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.1.5.1 alpha";
+char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.1.5.2 alpha";
 char* sToolUsage = {
 	EXT_INFO_TITLE("Usage:")
 	EXT_INFO("Dump", 12, "DragNDrop [.z64] to z64rom executable")

@@ -90,33 +90,23 @@ typedef enum SeqPlayer {
 } AttPacked SeqPlayer;
 
 typedef struct AudioEntry {
-	u32 romAddr;
-	u32 size;
-	SampleMedium medium;
-	u8  cachePolicy;
-	s16 shortData1;
-	s16 shortData2;
-	s16 shortData3;
-} AudioEntry;
-
-typedef struct SoundFontEntry {
 	void32       romAddr;
 	u32          size;
 	SampleMedium medium;
 	SeqPlayer    seqPlayer;
-	u8  audioTable1;
-	u8  audioTable2;
+	s8  audioTable1;
+	s8  audioTable2;
 	u8  numInst;
 	u8  numDrum;
 	u16 numSfx;
-} SoundFontEntry;
+} AudioEntry;
 
 typedef struct AudioEntryHead {
 	s16  numEntries;
 	s16  unkMediumParam;
 	u32  romAddr;
 	char pad[0x8];
-	SoundFontEntry entries[];
+	AudioEntry entries[];
 } AudioEntryHead;
 
 typedef struct {

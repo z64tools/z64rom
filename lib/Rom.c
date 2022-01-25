@@ -181,6 +181,29 @@ SampleInfo* sSortedSampleTbl[1024 * 5];
 s32 sDumpID;
 s32 sSortID;
 
+char* sMediumType[] = {
+	"ram",
+	"unk",
+	"cart",
+	"ddrive"
+};
+
+char* sSeqPlayerType[] = {
+	"sfx",
+	"fanfare",
+	"bgm",
+	"demo"
+};
+
+#if 0
+	char* sSeqModeType[] = {
+		"default",
+		"enemy",
+		"still",
+		"ignore"
+	};
+#endif
+
 #define __Config_Sample(wow, sampletype) \
 	Config_WriteVar_Hex(# wow "_sample", ReadBE(sample->sampleAddr) + rom->offset.segment.smplRom + off); \
 	Config_WriteVar_Flo(# wow "_tuning", *f); \
@@ -372,7 +395,7 @@ static void Rom_Config_Sample(Rom* rom, MemFile* config, Sample* sample, char* n
 static void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	AudioEntryHead* head = SegmentedToVirtual(0, rom->offset.table.fontTable);
 	AudioEntryHead* sampHead = SegmentedToVirtual(0, rom->offset.table.sampleTable);
-	SoundFontEntry* entry;
+	AudioEntry* entry;
 	u32 num = ReadBE(head->numEntries);
 	SoundFont* bank;
 	Instrument* instrument;
@@ -403,97 +426,122 @@ static void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		}
 		SetSegment(0x1, bank);
 		
-		Dir_Enter("0x%02X-%s/", i, gBankName[i]);
-		
-		if (entry->numInst) {
-			Dir_Enter("instrument/");
-			
-			#ifndef NDEBUG
-				printf_debug_align("dump", "instruments");
-			#endif
-			
-			for (s32 j = 0; j < entry->numInst; j++) {
-				char* output = Dir_File("%d-Inst.cfg", j);
+		Dir_Enter("0x%02X-%s/", i, gBankName[i]); {
+			if (entry->numInst) {
+				Dir_Enter("instrument/");
 				
 				#ifndef NDEBUG
-					if (gPrintfSuppress == PSL_DEBUG)
-						printf_progress("inst", j + 1, entry->numInst);
+					printf_debug_align("dump", "instruments");
 				#endif
 				
-				if (bank->instruments[j] == 0)
-					instrument = NULL;
-				else
-					instrument = SegmentedToVirtual(0x1, ReadBE(bank->instruments[j]));
-				if (Rom_Config_Instrument(rom, config, instrument, "instrument", output, off)) {
-					strcpy(sBankFiles[sBankNum++], output);
-					Assert(sBankNum < 1024 * 5);
+				for (s32 j = 0; j < entry->numInst; j++) {
+					char* output = Dir_File("%d-Inst.cfg", j);
+					
+					#ifndef NDEBUG
+						if (gPrintfSuppress == PSL_DEBUG)
+							printf_progress("inst", j + 1, entry->numInst);
+					#endif
+					
+					if (bank->instruments[j] == 0)
+						instrument = NULL;
+					else
+						instrument = SegmentedToVirtual(0x1, ReadBE(bank->instruments[j]));
+					if (Rom_Config_Instrument(rom, config, instrument, "instrument", output, off)) {
+						strcpy(sBankFiles[sBankNum++], output);
+						Assert(sBankNum < 1024 * 5);
+					}
 				}
+				
+				Dir_Leave();
 			}
 			
-			Dir_Leave();
-		}
-		
-		if (entry->numSfx) {
-			Dir_Enter("sfx/");
-			
-			#ifndef NDEBUG
-				printf_debug_align("dump", "sfx");
-			#endif
-			
-			for (s32 j = 0; j < ReadBE(entry->numSfx); j++) {
-				char* output = Dir_File("%d-Sfx.cfg", j);
-				sfx = SegmentedToVirtual(0x1, ReadBE(bank->sfx));
+			if (entry->numSfx) {
+				Dir_Enter("sfx/");
 				
 				#ifndef NDEBUG
-					if (gPrintfSuppress == PSL_DEBUG)
-						printf_progress("sfx", j + 1, ReadBE(entry->numSfx));
+					printf_debug_align("dump", "sfx");
 				#endif
 				
-				if (Rom_Config_Sfx(rom, config, &sfx[j], "Sound Effect", output, off)) {
-					strcpy(sBankFiles[sBankNum++], output);
-					Assert(sBankNum < 1024 * 5);
+				for (s32 j = 0; j < ReadBE(entry->numSfx); j++) {
+					char* output = Dir_File("%d-Sfx.cfg", j);
+					sfx = SegmentedToVirtual(0x1, ReadBE(bank->sfx));
+					
+					#ifndef NDEBUG
+						if (gPrintfSuppress == PSL_DEBUG)
+							printf_progress("sfx", j + 1, ReadBE(entry->numSfx));
+					#endif
+					
+					if (Rom_Config_Sfx(rom, config, &sfx[j], "Sound Effect", output, off)) {
+						strcpy(sBankFiles[sBankNum++], output);
+						Assert(sBankNum < 1024 * 5);
+					}
 				}
+				
+				Dir_Leave();
 			}
 			
-			Dir_Leave();
-		}
-		
-		if (entry->numDrum) {
-			Dir_Enter("drum/");
-			
-			#ifndef NDEBUG
-				printf_debug_align("dump", "drums");
-			#endif
-			
-			for (s32 j = 0; j < entry->numDrum; j++) {
-				char* output = Dir_File("%d-Drum.cfg", j);
-				u32* wow = SegmentedToVirtual(0x1, ReadBE(bank->drums));
+			if (entry->numDrum) {
+				Dir_Enter("drum/");
 				
 				#ifndef NDEBUG
-					if (gPrintfSuppress == PSL_DEBUG)
-						printf_progress("drum", j + 1, entry->numDrum);
+					printf_debug_align("dump", "drums");
 				#endif
 				
-				if (Rom_Config_Drum(rom, config, wow[j], "Drum", output, off)) {
-					strcpy(sBankFiles[sBankNum++], output);
-					Assert(sBankNum < 1024 * 5);
+				for (s32 j = 0; j < entry->numDrum; j++) {
+					char* output = Dir_File("%d-Drum.cfg", j);
+					u32* wow = SegmentedToVirtual(0x1, ReadBE(bank->drums));
+					
+					#ifndef NDEBUG
+						if (gPrintfSuppress == PSL_DEBUG)
+							printf_progress("drum", j + 1, entry->numDrum);
+					#endif
+					
+					if (Rom_Config_Drum(rom, config, wow[j], "Drum", output, off)) {
+						strcpy(sBankFiles[sBankNum++], output);
+						Assert(sBankNum < 1024 * 5);
+					}
 				}
+				
+				Dir_Leave();
 			}
 			
-			Dir_Leave();
-		}
-		
-		SetSegment(0x1, NULL);
-		Dir_Leave();
+			MemFile_Clear(config);
+			Config_WriteTitle_Str(gBankName[i]);
+			
+			MemFile_Printf(config, "# Sample Medium types [");
+			for (s32 e = 0; e < ArrayCount(sMediumType); e++) {
+				if (e != 0)
+					MemFile_Printf(config, "/");
+				MemFile_Printf(config, "%s", sMediumType[e]);
+			}
+			MemFile_Printf(config, "]\n");
+			Config_WriteVar_Str("medium_type", sMediumType[entry->medium]);
+			
+			MemFile_Printf(config, "# Sequence Player types [");
+			for (s32 e = 0; e < ArrayCount(sSeqPlayerType); e++) {
+				if (e != 0)
+					MemFile_Printf(config, "/");
+				MemFile_Printf(config, "%s", sSeqPlayerType[e]);
+			}
+			MemFile_Printf(config, "]\n");
+			Config_WriteVar_Str("sequence_player", sSeqPlayerType[entry->seqPlayer]);
+			
+			Config_WriteVar_Int("audio_table_1", entry->audioTable1);
+			Config_WriteVar_Int("audio_table_2", entry->audioTable2);
+			
+			MemFile_SaveFile_String(config, Dir_File("config.cfg"));
+		} Dir_Leave();
 	}
 	Dir_Leave();
+	
+	SetSegment(0x1, NULL);
 }
 
 static void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 	AudioEntryHead* head = SegmentedToVirtual(0x0, rom->offset.table.seqTable);
 	u8* seqFontTable;
 	u16* segFontOffTable;
-	SoundFontEntry* entry;
+	AudioEntry* entry;
 	RomFile romFile;
 	u32 num = ReadBE(head->numEntries);
 	
@@ -524,6 +572,26 @@ static void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 				} else {
 					Config_WriteVar_Hex("seq_pointer", ReadBE(entry->romAddr));
 				}
+				
+				Config_WriteTitle_Str("Entry Data");
+				
+				MemFile_Printf(config, "# Sample Medium types [");
+				for (s32 e = 0; e < ArrayCount(sMediumType); e++) {
+					if (e != 0)
+						MemFile_Printf(config, "/");
+					MemFile_Printf(config, "%s", sMediumType[e]);
+				}
+				MemFile_Printf(config, "]\n");
+				Config_WriteVar_Str("medium_type", sMediumType[entry->medium]);
+				
+				MemFile_Printf(config, "# Sequence Player types [");
+				for (s32 e = 0; e < ArrayCount(sSeqPlayerType); e++) {
+					if (e != 0)
+						MemFile_Printf(config, "/");
+					MemFile_Printf(config, "%s", sSeqPlayerType[e]);
+				}
+				MemFile_Printf(config, "]\n");
+				Config_WriteVar_Str("sequence_player", sSeqPlayerType[entry->seqPlayer]);
 				
 				MemFile_SaveFile_String(config, Dir_File("config.cfg"));
 			} Dir_Leave();
@@ -1024,12 +1092,14 @@ static void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) 
 	
 	AudioEntryHead* head = SegmentedToVirtual(0x0, rom->offset.table.sampleTable);
 	
-	// head->numEntries = 1;
+	head[0] = (AudioEntryHead) { 0 };
+	head->numEntries = 1;
 	SwapBE(head->numEntries);
-	for (s32 i = 0; i < 7 ; i++) {
-		head->entries[i].romAddr = 0;
-		head->entries[i].size = ReadBE(dataFile->dataSize);
-	}
+	head->entries[0] = (AudioEntry) { 0 };
+	head->entries[0].romAddr = 0;
+	head->entries[0].size = ReadBE(dataFile->dataSize);
+	head->entries[0].medium = 2;
+	head->entries[0].seqPlayer = 4;
 	
 	rom->offset.segment.smplRom = rom->file.seekPoint;
 	MemFile_Append(&rom->file, dataFile);
@@ -1073,6 +1143,7 @@ static void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	Rom_ItemList(&itemList, true, true, false);
 	
+	head[0] = (AudioEntryHead) { 0 };
 	head->numEntries = itemList.num;
 	SwapBE(head->numEntries);
 	
@@ -1695,36 +1766,65 @@ static void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				MemFile_Append(&memBank, &memDrum);
 				MemFile_Align(&memBank, 16);
 			}
+			
+			MemFile_Align(&memBank, 16);
+			
+			u32 seekPoint = rom->file.seekPoint - rom->offset.segment.fontRom;
+			u32 med = 0;
+			u32 seq = 0;
+			char* confMed;
+			char* confSeq;
+			MemFile_Append(&rom->file, &memBank);
+			MemFile_Align(&rom->file, 16);
+			
+			MemFile_Clear(config);
+			MemFile_LoadFile_String(config, Dir_File("config.cfg"));
+			confMed = Config_GetString(config, "medium_type");
+			confSeq = Config_GetString(config, "sequence_player");
+			
+			for (;;) {
+				if (med >= ArrayCount(sMediumType))
+					printf_error("medium_type not recognized for SoundFont [0x%02X]", i);
+				if (strcasecmp(sMediumType[med], confMed) == 0)
+					break;
+				med++;
+			}
+			for (;;) {
+				if (seq >= ArrayCount(sSeqPlayerType))
+					printf_error("sequence_player not recognized for SoundFont [0x%02X]", i);
+				if (strcasecmp(sSeqPlayerType[seq], confSeq) == 0)
+					break;
+				seq++;
+			}
+			
+			head->entries[i].romAddr = seekPoint;
+			head->entries[i].size = memBank.dataSize;
+			head->entries[i].medium = med;
+			head->entries[i].seqPlayer = seq;
+			head->entries[i].audioTable1 = 0;
+			head->entries[i].audioTable2 = -1;
+			head->entries[i].numInst = listInst.num;
+			head->entries[i].numDrum = listDrum.num;
+			head->entries[i].numSfx = listSfx.num;
+			SwapBE(head->entries[i].romAddr);
+			SwapBE(head->entries[i].size);
+			SwapBE(head->entries[i].numSfx);
+			
+			#ifndef NDEBUG
+				MemFile_SaveFile(&memBank, Dir_File("0x%02X-Bank.bin", i));
+				Log("Bank%02X:\t"PRNT_CYAN "%s" PRNT_RSET, i, gBankName[i]);
+				if (ReadBE(head->entries[i].size) >= memBank.dataSize)
+					Log("Size:\t" PRNT_DGRY "[%04X]" PRNT_RSET "\t->\t" PRNT_GRAY "[%04X]" PRNT_RSET, ReadBE(head->entries[i].size), memBank.dataSize);
+				else
+					Log("Size:\t" PRNT_GREN "[%04X]" PRNT_RSET "\t->\t" PRNT_YELW "[%04X]" PRNT_RSET, ReadBE(head->entries[i].size), memBank.dataSize);
+				if (ReadBE(head->entries[i].numDrum) != listDrum.num)
+					Log("Drum\t[%04d]\t->\t[%04d]", head->entries[i].numDrum, listDrum.num);
+				if (ReadBE(head->entries[i].numInst) != listInst.num)
+					Log("Inst\t[%04d]\t->\t[%04d]", head->entries[i].numInst, listInst.num);
+				if (ReadBE(head->entries[i].numSfx) != listSfx.num)
+					Log("Sfx \t[%04d]\t->\t[%04d]", head->entries[i].numSfx, listSfx.num);
+			#endif
 		} Dir_Leave();
-		
-		MemFile_Align(&memBank, 16);
-		
-		u32 seekPoint = rom->file.seekPoint - rom->offset.segment.fontRom;
-		MemFile_Append(&rom->file, &memBank);
-		MemFile_Align(&rom->file, 16);
-		
-		#ifndef NDEBUG
-			MemFile_SaveFile(&memBank, Dir_File("0x%02X-Bank.bin", i));
-			Log("Bank%02X:\t"PRNT_CYAN "%s" PRNT_RSET, i, gBankName[i]);
-			if (ReadBE(head->entries[i].size) >= memBank.dataSize)
-				Log("Size:\t" PRNT_DGRY "[%04X]" PRNT_RSET "\t->\t" PRNT_GRAY "[%04X]" PRNT_RSET, ReadBE(head->entries[i].size), memBank.dataSize);
-			else
-				Log("Size:\t" PRNT_GREN "[%04X]" PRNT_RSET "\t->\t" PRNT_YELW "[%04X]" PRNT_RSET, ReadBE(head->entries[i].size), memBank.dataSize);
-			if (ReadBE(head->entries[i].numDrum) != listDrum.num)
-				Log("Drum\t[%04d]\t->\t[%04d]", head->entries[i].numDrum, listDrum.num);
-			if (ReadBE(head->entries[i].numInst) != listInst.num)
-				Log("Inst\t[%04d]\t->\t[%04d]", head->entries[i].numInst, listInst.num);
-			if (ReadBE(head->entries[i].numSfx) != listSfx.num)
-				Log("Sfx \t[%04d]\t->\t[%04d]", head->entries[i].numSfx, listSfx.num);
-		#endif
-		
-		head->entries[i].romAddr = ReadBE(seekPoint);
-		head->entries[i].size = memBank.dataSize;
-		head->entries[i].numDrum = listDrum.num;
-		head->entries[i].numInst = listInst.num;
-		head->entries[i].numSfx = listSfx.num;
-		SwapBE(head->entries[i].size);
-		SwapBE(head->entries[i].numSfx);
 	}
 	
 	MemFile_Free(&memBank);
@@ -1754,33 +1854,65 @@ static void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	Rom_ItemList(&itemList, true, true, false);
 	
+	head[0] = (AudioEntryHead) { 0 };
+	head->numEntries = itemList.num;
+	SwapBE(head->numEntries);
+	
 	for (s32 i = 0; i < itemList.num; i++) {
 		printf_progress("Append Sequences", i + 1, itemList.num);
 		u32 addr;
 		u8 fontNum;
 		
 		Dir_Enter(itemList.item[i]); {
+			u32 med = 0;
+			u32 seq = 0;
+			char* confMed;
+			char* confSeq;
+			
 			MemFile_Clear(dataFile);
 			MemFile_Clear(config);
-			
 			MemFile_LoadFile_String(config, Dir_File("config.cfg"));
+			confMed = Config_GetString(config, "medium_type");
+			confSeq = Config_GetString(config, "sequence_player");
 			
-			if (head->entries[i].size) {
+			for (;; med++) {
+				if (med >= ArrayCount(sMediumType))
+					printf_error("medium_type not recognized for Sequence [0x%02X]", i);
+				if (!strcmp(sMediumType[med], confMed))
+					break;
+			}
+			for (;; seq++) {
+				if (seq >= ArrayCount(sSeqPlayerType))
+					printf_error("sequence_player not recognized for Sequence [0x%02X]", i);
+				if (!strcmp(sSeqPlayerType[seq], confSeq))
+					break;
+			}
+			
+			head->entries[i].medium = med;
+			head->entries[i].seqPlayer = seq;
+			head->entries[i].audioTable1 = 0;
+			head->entries[i].audioTable2 = 0;
+			head->entries[i].numInst = 0;
+			head->entries[i].numDrum = 0;
+			head->entries[i].numSfx = 0;
+			
+			if (!Config_Get(config, "seg_pointer")) {
 				MemFile_LoadFile(dataFile, Dir_File("*.seq"));
 				addr = rom->file.seekPoint - rom->offset.segment.seqRom;
 				MemFile_Append(&rom->file, dataFile);
 				MemFile_Align(&rom->file, 16);
-				head->entries[i].romAddr = ReadBE(addr);
-				head->entries[i].size = ReadBE(dataFile->dataSize);
+				head->entries[i].romAddr = addr;
+				head->entries[i].size = dataFile->dataSize;
 			} else {
 				head->entries[i].romAddr = Config_GetInt(config, "seq_pointer");
 				head->entries[i].size = 0;
-				SwapBE(head->entries[i].romAddr);
 			}
+			
+			SwapBE(head->entries[i].romAddr);
+			SwapBE(head->entries[i].size);
 			
 			u16 offset = memIndexTable.seekPoint;
 			MemFile_Write(&memLookUpTable, &offset, 2);
-			
 			fontNum = Config_GetInt(config, "bank_num");
 			MemFile_Write(&memIndexTable, &fontNum, 1);
 			for (s32 j = 0; j < fontNum; j++) {
@@ -2049,4 +2181,3 @@ void Rom_Free(Rom* rom) {
 	MemFile_Free(&rom->file);
 	memset(rom, 0, sizeof(struct Rom));
 }
-

@@ -109,7 +109,7 @@ typedef struct AudioEntryHead {
 	AudioEntry entries[];
 } AudioEntryHead;
 
-typedef struct {
+typedef struct RomFile {
 	union {
 		void* data;
 		PointerCast cast;

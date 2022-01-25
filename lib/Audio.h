@@ -1,5 +1,7 @@
 #include "ExtLib.h"
 
+struct Rom;
+
 typedef struct AdpcmLoop {
 	u32 start;
 	u32 end;
@@ -67,3 +69,12 @@ typedef struct SoundFont {
 	void32 sfx;
 	void32 instruments[];
 } SoundFont;
+
+void Rom_Dump_SoundFont(struct Rom* rom, MemFile* dataFile, MemFile* config);
+void Rom_Dump_Sequences(struct Rom* rom, MemFile* dataFile, MemFile* config);
+void Rom_Dump_Samples(struct Rom* rom, MemFile* dataFile, MemFile* config);
+
+void Rom_Build_SetAudioSegment(struct Rom* rom);
+void Rom_Build_SampleTable(struct Rom* rom, MemFile* dataFile, MemFile* config);
+void Rom_Build_SoundFont(struct Rom* rom, MemFile* dataFile, MemFile* config);
+void Rom_Build_Sequence(struct Rom* rom, MemFile* dataFile, MemFile* config);

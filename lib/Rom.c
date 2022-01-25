@@ -526,9 +526,6 @@ static void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			MemFile_Printf(config, "]\n");
 			Config_WriteVar_Str("sequence_player", sSeqPlayerType[entry->seqPlayer]);
 			
-			Config_WriteVar_Int("audio_table_1", entry->audioTable1);
-			Config_WriteVar_Int("audio_table_2", entry->audioTable2);
-			
 			MemFile_SaveFile_String(config, Dir_File("config.cfg"));
 		} Dir_Leave();
 	}

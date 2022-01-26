@@ -66,7 +66,7 @@ static s32 Rom_Config_Instrument(Rom* rom, MemFile* config, Instrument* instrume
 		return 0;
 	}
 	
-	MemFile_Clear(config);
+	MemFile_Reset(config);
 	Config_WriteTitle_Str("Instrument");
 	Config_WriteVar_Int("loaded", instrument->loaded);
 	Config_WriteVar_Int("split_lo", instrument->splitLo);
@@ -127,7 +127,7 @@ static s32 Rom_Config_Sfx(Rom* rom, MemFile* config, Sound* sfx, char* name, cha
 		return 0;
 	}
 	
-	MemFile_Clear(config);
+	MemFile_Reset(config);
 	Config_WriteTitle_Str("Sfx");
 	if (sfx->sample != 0) {
 		Sample* sample = SegmentedToVirtual(0x1, ReadBE(sfx->sample));
@@ -161,7 +161,7 @@ static s32 Rom_Config_Drum(Rom* rom, MemFile* config, u32 drumSeg, char* name, c
 		return 0;
 	}
 	
-	MemFile_Clear(config);
+	MemFile_Reset(config);
 	Config_WriteTitle_Str("Drum");
 	Config_WriteVar_Int("loaded", drum->loaded);
 	Config_WriteVar_Int("pan", drum->pan);
@@ -196,7 +196,7 @@ static s32 Rom_Config_Drum(Rom* rom, MemFile* config, u32 drumSeg, char* name, c
 static void Rom_Config_Sample(Rom* rom, MemFile* config, Sample* sample, char* name, char* out) {
 	AdpcmLoop* loop = SegmentedToVirtual(0x0, sample->loop);
 	
-	MemFile_Clear(config);
+	MemFile_Reset(config);
 	Config_WriteTitle_Str(name);
 	Config_WriteVar_Int("codec", ReadBE(sample->data) >> (32 - 4));
 	Config_WriteVar_Int("medium", (ReadBE(sample->data) >> (32 - 6)) & 2);
@@ -251,7 +251,7 @@ static void Rom_Dump_Samples_PatchWavFiles(MemFile* dataFile, MemFile* config) {
 		printf_progress("Update Sample", i + 1, ArrayCount(info));
 		char* file = Dir_File("%s/Sample.wav", info[i].info->name);
 		
-		MemFile_Clear(dataFile);
+		MemFile_Reset(dataFile);
 		MemFile_LoadFile(dataFile, file);
 		instInfo = Lib_MemMem(dataFile->data, dataFile->dataSize, "inst", 4);
 		smplInfo = Lib_MemMem(dataFile->data, dataFile->dataSize, "smpl", 4);
@@ -378,7 +378,7 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				Dir_Leave();
 			}
 			
-			MemFile_Clear(config);
+			MemFile_Reset(config);
 			Config_WriteTitle_Str(gBankName[i]);
 			
 			MemFile_Printf(config, "# Sample Medium types [");
@@ -418,7 +418,7 @@ void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 	Dir_Enter("sequence/.vanilla/");  {
 		SetSegment(0x1, SegmentedToVirtual(0x0, rom->offset.table.seqFontTbl));
 		
-		MemFile_Clear(config);
+		MemFile_Reset(config);
 		for (s32 i = 0; i < num; i++) {
 			Dir_Enter("0x%02X-%s/", i, gSequenceName[i]); {
 				printf_progress("Sequence", i + 1, num);
@@ -427,7 +427,7 @@ void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 				romFile.data = SegmentedToVirtual(0x0, ReadBE(entry->romAddr) + rom->offset.segment.seqRom);
 				romFile.size = ReadBE(entry->size);
 				
-				MemFile_Clear(config);
+				MemFile_Reset(config);
 				Config_WriteTitle_Str(gSequenceName[i]);
 				seqFontTable = SegmentedToVirtual(0x1, ReadBE(segFontOffTable[i]));
 				
@@ -591,7 +591,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 					if (system(sysbuf))
 						printf_error(sysbuf);
 					
-					MemFile_Clear(dataFile);
+					MemFile_Reset(dataFile);
 					s8* instInfo;
 					
 					if (MemFile_LoadFile(dataFile, Dir_File("Sample.wav"))) {
@@ -747,13 +747,14 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile sample = MemFile_Initialize();
 	
 	MemFile_Malloc(&sample, MbToBin(0.25));
-	MemFile_Clear(dataFile);
+	MemFile_Reset(dataFile);
 	Rom_ItemList(&itemList, true, false, false);
 	MemFile_Params(dataFile, MEM_ALIGN, 16, MEM_REALLOC, true, MEM_END);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
-		MemFile_Clear(config);
-		MemFile_Clear(&sample);
+		printf_progress("Append Sample", i + 1, itemList.num);
+		MemFile_Reset(config);
+		MemFile_Reset(&sample);
 		
 		Dir_Enter(itemList.item[i]); {
 			char* file = Dir_File("*.vadpcm.bin");
@@ -762,8 +763,6 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			
 			if (file == NULL)
 				printf_error("Could not locate sample in [%s]", itemList.item[i]);
-			
-			printf_progress("Append Sample", i + 1, itemList.num);
 			
 			if (MemFile_LoadFile(&sample, file))
 				printf_error_align("Failed to load file", "%s", file);
@@ -843,16 +842,16 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		ItemList listSfx = { 0 };
 		ItemList listDrum = { 0 };
 		printf_progress("Build SoundFont", i + 1, itemList.num);
-		MemFile_Clear(&memBank);
-		MemFile_Clear(&memBook);
-		MemFile_Clear(&memLoopBook);
-		MemFile_Clear(&memInst);
-		MemFile_Clear(&memEnv);
-		MemFile_Clear(&memSample);
-		MemFile_Clear(&memSfx);
-		MemFile_Clear(&memDrum);
-		MemFile_Clear(dataFile);
-		MemFile_Clear(config);
+		MemFile_Reset(&memBank);
+		MemFile_Reset(&memBook);
+		MemFile_Reset(&memLoopBook);
+		MemFile_Reset(&memInst);
+		MemFile_Reset(&memEnv);
+		MemFile_Reset(&memSample);
+		MemFile_Reset(&memSfx);
+		MemFile_Reset(&memDrum);
+		MemFile_Reset(dataFile);
+		MemFile_Reset(config);
 		SetSegment(0x4, memBank.data);
 		
 		Dir_Enter(itemList.item[i]); {
@@ -907,7 +906,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					continue;
 				}
 				
-				MemFile_Clear(config);
+				MemFile_Reset(config);
 				MemFile_LoadFile_String(config, Dir_File("instrument/%s", listInst.item[j]));
 				
 				for (s32 soundID = 0; soundID < 3; soundID++) {
@@ -978,7 +977,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 						continue;
 					
 					Dir_Set(sSampleTbl[sampleID].dir);
-					MemFile_Clear(dataFile);
+					MemFile_Reset(dataFile);
 					MemFile_LoadFile(dataFile, Dir_File("config.cfg"));
 					
 					smpl.sampleAddr = ReadBE(sSampleTbl[sampleID].segment);
@@ -998,7 +997,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					SwapBE(loop[2]);
 					SwapBE(loop[3]);
 					if (loop[2]) {
-						MemFile_Clear(dataFile);
+						MemFile_Reset(dataFile);
 						Audio_LoadFile(dataFile, "*.loopbook.bin");
 						for (s32 i = 0; i < 8; i++) {
 							loop[4 + i] = dataFile->cast.u32[i];
@@ -1016,7 +1015,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 						smpl.loop = (uPtr)ptr - (uPtr)memLoopBook.data;
 					}
 					
-					MemFile_Clear(dataFile);
+					MemFile_Reset(dataFile);
 					Audio_LoadFile(dataFile, "*.book.bin");
 					if (!Lib_MemMem16(memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize)) {
 						smpl.book = memBook.seekPoint;
@@ -1056,7 +1055,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					continue;
 				}
 				
-				MemFile_Clear(config);
+				MemFile_Reset(config);
 				MemFile_LoadFile_String(config, Dir_File("sfx/%s", listSfx.item[j]));
 				prim = Config_GetString(config, "prim_sample");
 				
@@ -1083,7 +1082,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					
 					Dir_Set(sSampleTbl[l].dir);
 					
-					MemFile_Clear(config);
+					MemFile_Reset(config);
 					MemFile_LoadFile_String(config, Dir_File("config.cfg"));
 					
 					if (sSampleTbl[l].tuninOverride > 0)
@@ -1107,7 +1106,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					SwapBE(loop[2]);
 					SwapBE(loop[3]);
 					if (loop[2]) {
-						MemFile_Clear(dataFile);
+						MemFile_Reset(dataFile);
 						Audio_LoadFile(dataFile, "*.loopbook.bin");
 						for (s32 i = 0; i < 8; i++) {
 							loop[4 + i] = dataFile->cast.u32[i];
@@ -1125,7 +1124,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 						smpl.loop = (uPtr)ptr - (uPtr)memLoopBook.data;
 					}
 					
-					MemFile_Clear(dataFile);
+					MemFile_Reset(dataFile);
 					Audio_LoadFile(dataFile, "*.book.bin");
 					if (!Lib_MemMem16(memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize)) {
 						smpl.book = memBook.seekPoint;
@@ -1171,7 +1170,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					continue;
 				}
 				
-				MemFile_Clear(config);
+				MemFile_Reset(config);
 				MemFile_LoadFile_String(config, currentConf);
 				prim = Graph_GenStr(Config_GetString(config, "prim_sample"));
 				
@@ -1222,7 +1221,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					}
 					
 					Dir_Set(sSampleTbl[sampleID].dir);
-					MemFile_Clear(config);
+					MemFile_Reset(config);
 					MemFile_LoadFile_String(config, Dir_File("config.cfg"));
 					
 					smpl.sampleAddr = ReadBE(sSampleTbl[sampleID].segment);
@@ -1242,7 +1241,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					SwapBE(loop[2]);
 					SwapBE(loop[3]);
 					if (loop[2]) {
-						MemFile_Clear(dataFile);
+						MemFile_Reset(dataFile);
 						Audio_LoadFile(dataFile, "*.loopbook.bin");
 						for (s32 i = 0; i < 8; i++) {
 							loop[4 + i] = dataFile->cast.u32[i];
@@ -1260,7 +1259,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 						smpl.loop = (uPtr)ptr - (uPtr)memLoopBook.data;
 					}
 					
-					MemFile_Clear(dataFile);
+					MemFile_Reset(dataFile);
 					Audio_LoadFile(dataFile, "*.book.bin");
 					smpl.book = memBook.seekPoint;
 					if (!Lib_MemMem16(memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize)) {
@@ -1280,7 +1279,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 						drum.sound.sample = (uPtr)ptr - (uPtr)memSample.data;
 					}
 					
-					MemFile_Clear(config);
+					MemFile_Reset(config);
 					MemFile_LoadFile_String(config, currentConf);
 				} Dir_Set(restoreDir);
 				
@@ -1405,7 +1404,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			char* confSeq;
 			MemFile_Append(&rom->file, &memBank); MemFile_Align(&rom->file, 16);
 			
-			MemFile_Clear(config);
+			MemFile_Reset(config);
 			MemFile_LoadFile_String(config, Dir_File("config.cfg"));
 			confMed = Config_GetString(config, "medium_type");
 			confSeq = Config_GetString(config, "sequence_player");
@@ -1495,8 +1494,8 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			char* confMed;
 			char* confSeq;
 			
-			MemFile_Clear(dataFile);
-			MemFile_Clear(config);
+			MemFile_Reset(dataFile);
+			MemFile_Reset(config);
 			MemFile_LoadFile_String(config, Dir_File("config.cfg"));
 			confMed = Config_GetString(config, "medium_type");
 			confSeq = Config_GetString(config, "sequence_player");

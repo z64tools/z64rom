@@ -129,7 +129,7 @@ void Log(const char* fmt, ...) {
 void LogPrint() {
 	printf_info("Log");
 	printf("%s\n", (char*)sLog.data);
-	MemFile_Clear(&sLog);
+	MemFile_Reset(&sLog);
 }
 
 // Dir
@@ -871,8 +871,23 @@ void printf_info_align(const char* info, const char* fmt, ...) {
 }
 
 void printf_progress(const char* info, u32 a, u32 b) {
-	if (gPrintfSuppress >= PSL_NO_INFO)
+	if (gPrintfSuppress >= PSL_NO_INFO) {
 		return;
+	}
+	
+	static f32 lstPrcnt;
+	f32 prcnt = (f32)a / (f32)b;
+	
+	if (lstPrcnt > prcnt)
+		lstPrcnt = 0;
+	
+	if (prcnt - lstPrcnt > 0.05) {
+		lstPrcnt = prcnt;
+	} else {
+		if (a != b) {
+			return;
+		}
+	}
 	
 	printf("\r");
 	__printf_call(3);
@@ -1027,6 +1042,7 @@ void* Lib_MemMemU16(void* haystack, size_t haySize, const void* needle, size_t n
 			++neeNow;
 			++hayNow;
 		}
+		
 		return hay;
 L_next:
 		++hay;
@@ -1066,6 +1082,7 @@ void* Lib_MemMemU32(void* haystack, size_t haySize, const void* needle, size_t n
 			++neeNow;
 			++hayNow;
 		}
+		
 		return hay;
 L_next:
 		++hay;
@@ -1105,6 +1122,7 @@ void* Lib_MemMemU64(void* haystack, size_t haySize, const void* needle, size_t n
 			++neeNow;
 			++hayNow;
 		}
+		
 		return hay;
 L_next:
 		++hay;
@@ -1640,9 +1658,14 @@ void MemFile_Free(MemFile* memFile) {
 	}
 }
 
-void MemFile_Clear(MemFile* memFile) {
+void MemFile_Reset(MemFile* memFile) {
 	memFile->dataSize = 0;
 	memFile->seekPoint = 0;
+}
+
+void MemFile_Clear(MemFile* memFile) {
+	memset(memFile->data, 0, memFile->memSize);
+	MemFile_Reset(memFile);
 }
 
 // String
@@ -2151,4 +2174,3 @@ f32 Config_GetFloat(MemFile* memFile, char* floatName) {
 	
 	return 0;
 }
-

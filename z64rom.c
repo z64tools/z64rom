@@ -7,11 +7,9 @@ char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.1.5.3"
 ;
 char* sToolUsage = {
 	EXT_INFO_TITLE("Usage:")
-	EXT_INFO("Dump", 12, "DragNDrop [.z64] to z64rom executable")
+	EXT_INFO("Dump", 12, "Drag and drop a rom on z64rom")
+	EXT_INFO("Build", 12, "Launch z64rom (after dump)")
 	PRNT_NL
-	EXT_INFO_TITLE("Args:")
-	EXT_INFO("--i",  12, "Input")
-	EXT_INFO("--D",  12, "Debug Print")
 };
 s32 gExtractAudio = true;
 s32 gLog;

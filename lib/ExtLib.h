@@ -241,6 +241,7 @@ s32 MemFile_SaveFile_String(MemFile* memFile, char* filepath);
 s32 MemFile_LoadFile_ReqExt(MemFile* memFile, char* filepath, const char* ext);
 s32 MemFile_SaveFile_ReqExt(MemFile* memFile, char* filepath, s32 size, const char* ext);
 void MemFile_Free(MemFile* memFile);
+void MemFile_Reset(MemFile* memFile);
 void MemFile_Clear(MemFile* memFile);
 
 #define String_MemMem(src, comp)     Lib_MemMem(src, strlen(src), comp, strlen(comp))

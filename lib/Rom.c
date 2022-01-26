@@ -100,7 +100,7 @@ void Rom_ItemList(ItemList* list, bool isPath, bool isNum, bool numericalSort) {
 s32 Rom_Extract(MemFile* mem, RomFile rom, char* name) {
 	if (rom.size == 0)
 		return 0;
-	MemFile_Clear(mem);
+	MemFile_Reset(mem);
 	mem->dataSize = rom.size;
 	MemFile_Realloc(mem, rom.size);
 	MemFile_Write(mem, rom.data, rom.size);
@@ -112,7 +112,7 @@ s32 Rom_Extract(MemFile* mem, RomFile rom, char* name) {
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
 
 static void Rom_Config_Actor(MemFile* config, ActorEntry* actorOvl, const char* name, char* out) {
-	MemFile_Clear(config);
+	MemFile_Reset(config);
 	Config_WriteTitle_Str(name);
 	Config_WriteVar_Hex("vram_addr", ReadBE(actorOvl->vramStart));
 	Config_WriteVar_Hex("init_vars", ReadBE(actorOvl->initInfo));
@@ -121,7 +121,7 @@ static void Rom_Config_Actor(MemFile* config, ActorEntry* actorOvl, const char* 
 }
 
 static void Rom_Config_GameState(MemFile* config, GameStateEntry* stateOvl, const char* name, char* out) {
-	MemFile_Clear(config);
+	MemFile_Reset(config);
 	Config_WriteTitle_Str(name);
 	Config_WriteVar_Hex("vram_addr", ReadBE(stateOvl->vramStart));
 	Config_WriteVar_Hex("init_func", ReadBE(stateOvl->init));
@@ -153,7 +153,7 @@ static void Rom_Config_Player(Rom* rom, MemFile* config, KaleidoEntry* player, c
 	dataLo = SegmentedToVirtual(0x0, rom->offset.table.player.draw.lo);
 	draw = ReadBE(dataHi[1]) << 16 | ReadBE(dataLo[1]);
 	
-	MemFile_Clear(config);
+	MemFile_Reset(config);
 	Config_WriteTitle_Str(name);
 	Config_WriteVar_Hex("vram_addr", ReadBE(player->vramStart));
 	Config_WriteVar_Hex("init", init);
@@ -164,7 +164,7 @@ static void Rom_Config_Player(Rom* rom, MemFile* config, KaleidoEntry* player, c
 }
 
 static void Rom_Config_Scene(MemFile* config, SceneEntry* sceneEntry, const char* name, char* out) {
-	MemFile_Clear(config);
+	MemFile_Reset(config);
 	Config_WriteTitle_Str(name);
 	Config_WriteVar_Int("unk_a", ReadBE(sceneEntry->unk_10));
 	Config_WriteVar_Int("unk_b", ReadBE(sceneEntry->unk_12));
@@ -184,7 +184,7 @@ static void Rom_Build_Patch(Rom* rom, MemFile* dataFile, MemFile* config) {
 		u32 injectAddr;
 		char* addrPoint = String_MemMem(list.item[i], "0x");
 		
-		MemFile_Clear(dataFile);
+		MemFile_Reset(dataFile);
 		MemFile_LoadFile(dataFile, list.item[i]);
 		
 		injectAddr = String_GetInt(addrPoint);

@@ -46,15 +46,20 @@ typedef struct Adsr {
 } Adsr; // size = 0x4
 
 typedef struct Instrument {
-	u8     loaded;
-	u8     splitLo;
-	u8     splitHi;
-	u8     release;
+	u8 loaded;
+	u8 splitLo;
+	u8 splitHi;
+	u8 release;
 	void32 envelope; // AdsrEnvelopePoint*
-	Sound  lo;
-	Sound  prim;
-	Sound  hi;
-} Instrument; // size >= 0x20
+	union {
+		struct {
+			Sound lo;
+			Sound prim;
+			Sound hi;
+		};
+		Sound sound[3];
+	};
+}  Instrument; // size >= 0x20
 
 typedef struct Drum {
 	u8     release;

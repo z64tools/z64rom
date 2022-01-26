@@ -1,6 +1,6 @@
 #include "lib/z64rom.h"
 
-char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.1.5.4"
+char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.1.6.0"
 #ifndef NDEBUG
 		PRNT_DGRY " DEBUG BUILD"
 #endif
@@ -16,7 +16,6 @@ s32 gLog;
 s32 gGenericNames;
 s32 sDumpFlag;
 
-void sleep(time_t);
 void z64rom_Args(char* argv[]);
 void z64rom_Config(char** input, Rom* rom, s32 argc, char* argv[]);
 void z64rom_CheckTypes();

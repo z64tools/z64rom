@@ -705,6 +705,9 @@ static void Audio_LoadFile(MemFile* dataFile, char* file) {
 void Rom_Build_SetAudioSegment(Rom* rom) {
 	u16* addr;
 	u16 hi, lo;
+	u16* pHi;
+	u16* pLo;
+	u8* chr;
 	
 	addr = SegmentedToVirtual(0x0, 0xB5A4AE);
 	lo = rom->offset.segment.seqRom;
@@ -727,24 +730,66 @@ void Rom_Build_SetAudioSegment(Rom* rom) {
 	addr[2] = ReadBE(lo);
 	printf_debug_align("SampleRom", "%08X", rom->offset.segment.smplRom);
 	
-	#if 0
-		rom->table.dma[3].romStart = rom->table.dma[3].vromStart = ReadBE(rom->offset.segment.fontRom);
-		rom->table.dma[3].vromEnd = ReadBE(rom->offset.segment.seqRom);
-		
-		u32 size = 0x03DFF000;
-		
-		rom->table.dma[4].romStart = rom->table.dma[4].vromStart = ReadBE(rom->offset.segment.seqRom);
-		rom->table.dma[4].vromEnd = size;
-		SwapBE(rom->table.dma[4].vromEnd);
-		
-		rom->table.dma[5].romStart = rom->table.dma[5].vromStart = ReadBE(rom->offset.segment.smplRom);
-		rom->table.dma[5].vromEnd = ReadBE(rom->offset.segment.fontRom);
-	#endif
+	// RAM 0x800EE9D0
+	// ROM 0x00B65B70
+	// DIF 0x7F588E60
+	
+	MemFile_Seek(&rom->file, 0x00B65B70);
+	
+	rom->offset.table.seqTable = rom->file.seekPoint + 0x7F588E60;
+	pHi = SegmentedToVirtual(0x0, 0xB5A466);
+	pLo = SegmentedToVirtual(0x0, 0xB5A476);
+	chr = SegmentedToVirtual(0x0, 0xB5A476);
+	pLo[0] = rom->offset.table.seqTable;
+	pHi[0] = (rom->offset.table.seqTable >> 16);
+	chr[-2] = 0x35; // ori
+	SwapBE(pHi[0]);
+	SwapBE(pLo[0]);
+	MemFile_Append(&rom->file, &rom->mem.seqTbl);
+	// MemFile_Align(&rom->file, 16);
+	
+	rom->offset.table.fontTable = rom->file.seekPoint + 0x7F588E60;
+	pHi = SegmentedToVirtual(0x0, 0xB5A466 + 4);
+	pLo = SegmentedToVirtual(0x0, 0xB5A476 + 4);
+	chr = SegmentedToVirtual(0x0, 0xB5A476 + 4);
+	pLo[0] = rom->offset.table.fontTable;
+	pHi[0] = (rom->offset.table.seqTable >> 16);
+	chr[-2] = 0x35; // ori
+	SwapBE(pHi[0]);
+	SwapBE(pLo[0]);
+	MemFile_Append(&rom->file, &rom->mem.fontTbl);
+	// MemFile_Align(&rom->file, 16);
+	
+	rom->offset.table.sampleTable = rom->file.seekPoint + 0x7F588E60;
+	pHi = SegmentedToVirtual(0x0, 0xB5A466 + 8);
+	pLo = SegmentedToVirtual(0x0, 0xB5A476 + 8);
+	chr = SegmentedToVirtual(0x0, 0xB5A476 + 8);
+	pLo[0] = rom->offset.table.sampleTable;
+	pHi[0] = (rom->offset.table.seqTable >> 16);
+	chr[-2] = 0x35; // ori
+	SwapBE(pHi[0]);
+	SwapBE(pLo[0]);
+	MemFile_Append(&rom->file, &rom->mem.sampleTbl);
+	// MemFile_Align(&rom->file, 16);
+	
+	rom->offset.table.seqFontTbl = rom->file.seekPoint + 0x7F588E60;
+	pHi = SegmentedToVirtual(0x0, 0xB5A466 + 12);
+	pLo = SegmentedToVirtual(0x0, 0xB5A476 + 12);
+	chr = SegmentedToVirtual(0x0, 0xB5A476 + 12);
+	pLo[0] = rom->offset.table.seqFontTbl;
+	pHi[0] = (rom->offset.table.seqFontTbl >> 16);
+	chr[-2] = 0x35; // ori
+	SwapBE(pHi[0]);
+	SwapBE(pLo[0]);
+	MemFile_Append(&rom->file, &rom->mem.seqFontTbl);
+	// MemFile_Align(&rom->file, 16);
 }
 
 void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	ItemList itemList;
 	MemFile sample = MemFile_Initialize();
+	AudioEntryHead head = { 0 };
+	AudioEntry entry = { 0 };
 	
 	MemFile_Malloc(&sample, MbToBin(0.25));
 	MemFile_Reset(dataFile);
@@ -790,16 +835,14 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 		} Dir_Leave();
 	}
 	
-	AudioEntryHead* head = SegmentedToVirtual(0x0, rom->offset.table.sampleTable);
-	
-	head[0] = (AudioEntryHead) { 0 };
-	head->numEntries = 1;
-	SwapBE(head->numEntries);
-	head->entries[0] = (AudioEntry) { 0 };
-	head->entries[0].romAddr = 0;
-	head->entries[0].size = ReadBE(dataFile->dataSize);
-	head->entries[0].medium = 2;
-	head->entries[0].seqPlayer = 4;
+	head.numEntries = 1;
+	SwapBE(head.numEntries);
+	entry.romAddr = 0;
+	entry.size = ReadBE(dataFile->dataSize);
+	entry.medium = 2;
+	entry.seqPlayer = 4;
+	MemFile_Write(&rom->mem.sampleTbl, &head, 16);
+	MemFile_Write(&rom->mem.sampleTbl, &entry, 16);
 	
 	rom->offset.segment.smplRom = rom->file.seekPoint;
 	MemFile_Append(&rom->file, dataFile);
@@ -818,7 +861,8 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile memSample = MemFile_Initialize();
 	MemFile memSfx = MemFile_Initialize();
 	MemFile memDrum = MemFile_Initialize();
-	AudioEntryHead* head = SegmentedToVirtual(0x0, rom->offset.table.fontTable);
+	AudioEntryHead sfHead = { 0 };
+	AudioEntry sfEntry = { 0 };
 	
 	rom->offset.segment.fontRom = rom->file.seekPoint;
 	
@@ -833,9 +877,9 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	Rom_ItemList(&itemList, true, true, false);
 	
-	head[0] = (AudioEntryHead) { 0 };
-	head->numEntries = itemList.num;
-	SwapBE(head->numEntries);
+	sfHead.numEntries = itemList.num;
+	SwapBE(sfHead.numEntries);
+	MemFile_Write(&rom->mem.fontTbl, &sfHead, 16);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
 		ItemList listInst = { 0 };
@@ -1424,32 +1468,22 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				seq++;
 			}
 			
-			head->entries[i].romAddr = seekPoint;
-			head->entries[i].size = memBank.dataSize;
-			head->entries[i].medium = med;
-			head->entries[i].seqPlayer = seq;
-			head->entries[i].audioTable1 = 0;
-			head->entries[i].audioTable2 = -1;
-			head->entries[i].numInst = listInst.num;
-			head->entries[i].numDrum = listDrum.num;
-			head->entries[i].numSfx = listSfx.num;
-			SwapBE(head->entries[i].romAddr);
-			SwapBE(head->entries[i].size);
-			SwapBE(head->entries[i].numSfx);
+			sfEntry.romAddr = seekPoint;
+			sfEntry.size = memBank.dataSize;
+			sfEntry.medium = med;
+			sfEntry.seqPlayer = seq;
+			sfEntry.audioTable1 = 0;
+			sfEntry.audioTable2 = -1;
+			sfEntry.numInst = listInst.num;
+			sfEntry.numDrum = listDrum.num;
+			sfEntry.numSfx = listSfx.num;
+			SwapBE(sfEntry.romAddr);
+			SwapBE(sfEntry.size);
+			SwapBE(sfEntry.numSfx);
+			MemFile_Write(&rom->mem.fontTbl, &sfEntry, 16);
 			
 			#ifndef NDEBUG
 				MemFile_SaveFile(&memBank, Dir_File("0x%02X-Bank.bin", i));
-				Log("Bank%02X:\t"PRNT_CYAN "%s" PRNT_RSET, i, gBankName[i]);
-				if (ReadBE(head->entries[i].size) >= memBank.dataSize)
-					Log("Size:\t" PRNT_DGRY "[%04X]" PRNT_RSET "\t->\t" PRNT_GRAY "[%04X]" PRNT_RSET, ReadBE(head->entries[i].size), memBank.dataSize);
-				else
-					Log("Size:\t" PRNT_GREN "[%04X]" PRNT_RSET "\t->\t" PRNT_YELW "[%04X]" PRNT_RSET, ReadBE(head->entries[i].size), memBank.dataSize);
-				if (ReadBE(head->entries[i].numDrum) != listDrum.num)
-					Log("Drum\t[%04d]\t->\t[%04d]", head->entries[i].numDrum, listDrum.num);
-				if (ReadBE(head->entries[i].numInst) != listInst.num)
-					Log("Inst\t[%04d]\t->\t[%04d]", head->entries[i].numInst, listInst.num);
-				if (ReadBE(head->entries[i].numSfx) != listSfx.num)
-					Log("Sfx \t[%04d]\t->\t[%04d]", head->entries[i].numSfx, listSfx.num);
 			#endif
 		} Dir_Leave();
 	}
@@ -1465,10 +1499,11 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 
 void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	ItemList itemList;
-	AudioEntryHead* head = SegmentedToVirtual(0x0, rom->offset.table.seqTable);
 	MemFile memIndexTable = MemFile_Initialize();
 	MemFile memLookUpTable = MemFile_Initialize();
 	u8* segFontTable = SegmentedToVirtual(0x0, rom->offset.table.seqFontTbl);
+	AudioEntryHead sqHead = { 0 };
+	AudioEntry sqEntry = { 0 };
 	
 	for (s32 i = 0; i < 0x1C0; i++) {
 		segFontTable[i] = 0;
@@ -1479,9 +1514,9 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Malloc(&memLookUpTable, 0x1C0);
 	Rom_ItemList(&itemList, true, true, false);
 	
-	head[0] = (AudioEntryHead) { 0 };
-	head->numEntries = itemList.num;
-	SwapBE(head->numEntries);
+	sqHead.numEntries = itemList.num;
+	SwapBE(sqHead.numEntries);
+	MemFile_Write(&rom->mem.seqTbl, &sqHead, 16);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
 		printf_progress("Append Sequences", i + 1, itemList.num);
@@ -1513,28 +1548,29 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 					break;
 			}
 			
-			head->entries[i].medium = med;
-			head->entries[i].seqPlayer = seq;
-			head->entries[i].audioTable1 = 0;
-			head->entries[i].audioTable2 = 0;
-			head->entries[i].numInst = 0;
-			head->entries[i].numDrum = 0;
-			head->entries[i].numSfx = 0;
+			sqEntry.medium = med;
+			sqEntry.seqPlayer = seq;
+			sqEntry.audioTable1 = 0;
+			sqEntry.audioTable2 = 0;
+			sqEntry.numInst = 0;
+			sqEntry.numDrum = 0;
+			sqEntry.numSfx = 0;
 			
 			if (Dir_File("*.seq")) {
 				MemFile_LoadFile(dataFile, Dir_File("*.seq"));
 				addr = rom->file.seekPoint - rom->offset.segment.seqRom;
 				MemFile_Append(&rom->file, dataFile);
 				MemFile_Align(&rom->file, 16);
-				head->entries[i].romAddr = addr;
-				head->entries[i].size = dataFile->dataSize;
+				sqEntry.romAddr = addr;
+				sqEntry.size = dataFile->dataSize;
 			} else {
-				head->entries[i].romAddr = Config_GetInt(config, "seq_pointer");
-				head->entries[i].size = 0;
+				sqEntry.romAddr = Config_GetInt(config, "seq_pointer");
+				sqEntry.size = 0;
 			}
 			
-			SwapBE(head->entries[i].romAddr);
-			SwapBE(head->entries[i].size);
+			SwapBE(sqEntry.romAddr);
+			SwapBE(sqEntry.size);
+			MemFile_Write(&rom->mem.seqTbl, &sqEntry, 16);
 			
 			u16 offset = memIndexTable.seekPoint;
 			MemFile_Write(&memLookUpTable, &offset, 2);
@@ -1555,7 +1591,5 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 		SwapBE(memLookUpTable.cast.u16[i]);
 	}
 	MemFile_Append(&memLookUpTable, &memIndexTable);
-	
-	MemFile_Seek(&rom->file, rom->offset.table.seqFontTbl);
-	MemFile_Append(&rom->file, &memLookUpTable);
+	MemFile_Append(&rom->mem.seqFontTbl, &memLookUpTable);
 }

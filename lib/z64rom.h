@@ -73,6 +73,12 @@ typedef struct Rom {
 			u16 kaleido;
 		} num;
 	} table;
+	struct {
+		MemFile sampleTbl;
+		MemFile fontTbl;
+		MemFile seqTbl;
+		MemFile seqFontTbl;
+	} mem;
 	Dma dma[2000];
 } Rom;
 

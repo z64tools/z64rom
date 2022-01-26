@@ -22,8 +22,20 @@ void Rom_ItemList(ItemList* list, bool isPath, bool isNum, bool numericalSort) {
 	list->item = Graph_Alloc(sizeof(u8*) * (listMod.num + listVan.num));
 	
 	if (isNum) {
-		for (s32 i = 0;; i++) {
-			if (posMod >= listMod.num && posVan >= listVan.num) {
+		u32 maxNum = 0;
+		
+		for (s32 i = 0; i < listMod.num; i++) {
+			if (String_GetInt(listMod.item[i]) > maxNum)
+				maxNum = String_GetInt(listMod.item[i]);
+		}
+		
+		for (s32 i = 0; i < listVan.num; i++) {
+			if (String_GetInt(listVan.item[i]) > maxNum)
+				maxNum = String_GetInt(listVan.item[i]);
+		}
+		
+		for (s32 i = 0; i < maxNum + 1; i++) {
+			if (posVan >= listVan.num && posMod >= listMod.num) {
 				break;
 			}
 			
@@ -81,12 +93,12 @@ void Rom_ItemList(ItemList* list, bool isPath, bool isNum, bool numericalSort) {
 	
 	#ifndef NDEBUG
 		if (gPrintfSuppress == PSL_DEBUG) {
-			printf_debugExt("RomList");
+			printf_info("RomList");
 			for (s32 i = 0; i < list->num; i++) {
 				if (i == 0) {
-					printf_debugExt("%s", list->item[i]);
+					printf_info("%s", list->item[i]);
 				} else {
-					printf_debug("%s", list->item[i]);
+					printf_info("%s", list->item[i]);
 				}
 			}
 			printf_warning("Looks OK? [Y/N]");
@@ -531,6 +543,15 @@ void Rom_New(Rom* rom, char* romName) {
 	rom->table.scene = SegmentedToVirtual(0x0, rom->offset.table.sceneTable);
 	rom->table.kaleido = SegmentedToVirtual(0x0, rom->offset.table.kaleidoTable);
 	
+	rom->mem.sampleTbl = MemFile_Initialize();
+	rom->mem.fontTbl = MemFile_Initialize();
+	rom->mem.seqTbl = MemFile_Initialize();
+	rom->mem.seqFontTbl = MemFile_Initialize();
+	MemFile_Malloc(&rom->mem.sampleTbl, MbToBin(0.1));
+	MemFile_Malloc(&rom->mem.fontTbl, MbToBin(0.1));
+	MemFile_Malloc(&rom->mem.seqTbl, MbToBin(0.1));
+	MemFile_Malloc(&rom->mem.seqFontTbl, MbToBin(0.1));
+	
 	#ifdef NDEBUG // rezimodnar ksaM sarojaM esuaceb tsuj tseuQ drihT gnipmud diovA
 		if (rom->offset.segment.seqRom == 0x03F00000 &&
 			rom->offset.segment.fontRom == 0x03E00000 &&
@@ -547,5 +568,9 @@ void Rom_New(Rom* rom, char* romName) {
 
 void Rom_Free(Rom* rom) {
 	MemFile_Free(&rom->file);
+	MemFile_Free(&rom->mem.sampleTbl);
+	MemFile_Free(&rom->mem.fontTbl);
+	MemFile_Free(&rom->mem.seqTbl);
+	MemFile_Free(&rom->mem.seqFontTbl);
 	memset(rom, 0, sizeof(struct Rom));
 }

@@ -28,18 +28,6 @@ typedef struct {
 	void32 name;
 } KaleidoEntry; // size = 0x1C
 
-typedef struct {
-	s16   id;
-	u8    category;
-	u32   flags;
-	s16   objectId;
-	u32   instanceSize;
-	void* init;
-	void* destroy;
-	void* update;
-	void* draw;
-} ActorInit;
-
 typedef struct ActorEntry {
 	u32    vromStart;
 	u32    vromEnd;
@@ -75,39 +63,26 @@ typedef struct SceneEntry {
 	u8  unk_13;
 } SceneEntry;
 
-typedef enum SampleMedium {
-	/* 0 */ MEDIUM_RAM,
-	/* 1 */ MEDIUM_UNK,
-	/* 2 */ MEDIUM_CART,
-	/* 3 */ MEDIUM_DISK_DRIVE
-} AttPacked SampleMedium;
+#define EXT_COMPRESSED(x)     (x << 15)
+#define EXT_PHYSICAL_START(x) (x & 0x7FFFFFFC)
+#define EXT_DMA_PREFIX(x)     (x << 1)
+#define EXT_OVERLAP(x)        (x << 0)
 
-typedef enum SeqPlayer {
-	/* 0 */ SEQPLAY_SFX,
-	/* 1 */ SEQPLAY_FANFARE,
-	/* 2 */ SEQPLAY_BGM,
-	/* 3 */ SEQPLAY_DEMO_SFX
-} AttPacked SeqPlayer;
+typedef struct ExtEntry {
+	u16 dmaIndex;
+} ExtEntry;
 
-typedef struct AudioEntry {
-	void32       romAddr;
-	u32          size;
-	SampleMedium medium;
-	SeqPlayer    seqPlayer;
-	s8  audioTable1;
-	s8  audioTable2;
-	u8  numInst;
-	u8  numDrum;
-	u16 numSfx;
-} AudioEntry;
+typedef struct ExtActor {
+	u16    dmaIndex;
+	u16    allocType;
+	void32 ramAddr;
+} ExtActor;
 
-typedef struct AudioEntryHead {
-	s16  numEntries;
-	s16  unkMediumParam;
-	u32  romAddr;
-	char pad[0x8];
-	AudioEntry entries[];
-} AudioEntryHead;
+typedef struct ExtDma {
+	void32 virtualStart;
+	u32    bitfield;
+	u32    virtualEnd;
+} ExtDma;
 
 typedef struct RomFile {
 	union {
@@ -118,6 +93,25 @@ typedef struct RomFile {
 	u32 romEnd;
 	u32 size;
 } RomFile;
+
+typedef struct DmaPrefix {
+	union {
+		struct {
+			u32 titleVStart;
+			u32 titleVEnd;
+			u8  paramA;
+			u8  sceneFuncId;
+			u8  paramB;
+		} scene;
+		struct {
+			u32 vramStart;
+			u32 vramEnd;
+			u16 allocType;
+			u16 _pad;
+			u32 vinitVar;
+		} actor;
+	};
+} DmaPrefix;
 
 struct Rom;
 

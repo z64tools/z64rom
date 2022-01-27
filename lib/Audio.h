@@ -75,6 +75,40 @@ typedef struct SoundFont {
 	void32 instruments[];
 } SoundFont;
 
+typedef enum SampleMedium {
+	/* 0 */ MEDIUM_RAM,
+	/* 1 */ MEDIUM_UNK,
+	/* 2 */ MEDIUM_CART,
+	/* 3 */ MEDIUM_DISK_DRIVE
+} AttPacked SampleMedium;
+
+typedef enum SeqPlayer {
+	/* 0 */ SEQPLAY_SFX,
+	/* 1 */ SEQPLAY_FANFARE,
+	/* 2 */ SEQPLAY_BGM,
+	/* 3 */ SEQPLAY_DEMO_SFX
+} AttPacked SeqPlayer;
+
+typedef struct AudioEntry {
+	void32       romAddr;
+	u32          size;
+	SampleMedium medium;
+	SeqPlayer    seqPlayer;
+	s8  audioTable1;
+	s8  audioTable2;
+	u8  numInst;
+	u8  numDrum;
+	u16 numSfx;
+} AudioEntry;
+
+typedef struct AudioEntryHead {
+	s16  numEntries;
+	s16  unkMediumParam;
+	u32  romAddr;
+	char pad[0x8];
+	AudioEntry entries[];
+} AudioEntryHead;
+
 void Rom_Dump_SoundFont(struct Rom* rom, MemFile* dataFile, MemFile* config);
 void Rom_Dump_Sequences(struct Rom* rom, MemFile* dataFile, MemFile* config);
 void Rom_Dump_Samples(struct Rom* rom, MemFile* dataFile, MemFile* config);

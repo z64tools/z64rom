@@ -91,7 +91,7 @@ void z64rom_Args(char* argv[]) {
 
 void z64rom_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
 	char* confAu = tprintf("%s%s", CurWorkDir(), "tools/z64audio.cfg");
-	char* confRom = tprintf("%s%s", CurWorkDir(), "rom_config.cfg");
+	char* confRom = tprintf("%s%s", CurWorkDir(), "z64project.cfg");
 	MemFile iWantToBePointer = MemFile_Initialize();
 	MemFile* config = &iWantToBePointer;
 	u32 parArg = 0;

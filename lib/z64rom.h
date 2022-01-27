@@ -6,6 +6,8 @@
 #include "Dma.h"
 #include "Audio.h"
 
+typedef void (* PatchFunc)(struct Rom*, MemFile*, MemFile*, char*);
+
 typedef struct {
 	u32 hi;
 	u32 lo;

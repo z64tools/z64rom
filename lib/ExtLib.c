@@ -115,6 +115,7 @@ void Log(const char* fmt, ...) {
 		MemFile_Malloc(&sLog, BinToMb(1.0));
 		MemFile_Params(&sLog, MEM_REALLOC, true, MEM_END);
 		MemFile_Printf(&sLog, "\n", 1);
+		MemFile_Clear(&sLog);
 	}
 	va_list args;
 	char buffer[512];
@@ -128,7 +129,7 @@ void Log(const char* fmt, ...) {
 
 void LogPrint() {
 	printf_info("Log");
-	printf("%s\n", (char*)sLog.data);
+	printf("%s", (char*)sLog.data);
 	MemFile_Reset(&sLog);
 }
 
@@ -2075,10 +2076,23 @@ char* Config_Get(MemFile* memFile, char* name) {
 	
 	for (s32 i = 0; i < lineCount; i++) {
 		if (!String_IsDiff(String_GetWord(String_GetLine(memFile->data, i), 0), name)) {
-			char* word = String_GetWord(String_Line(memFile->data, i), 2);
+			char* word = String_Word(String_Line(memFile->data, i), 2);
+			char* ret;
 			
-			char* ret = Graph_Alloc(strlen(word));
-			strcpy(ret, word);
+			if (word[0] == '"') {
+				s32 j = 0;
+				for (;; j++) {
+					if (word[j + 1] == '"') {
+						break;
+					}
+				}
+				ret = Graph_Alloc(j);
+				memcpy(ret, &word[1], j);
+			} else {
+				word = String_GetWord(String_Line(memFile->data, i), 2);
+				ret = Graph_Alloc(strlen(word) + 1);
+				strcpy(ret, word);
+			}
 			
 			return ret;
 		}

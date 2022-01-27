@@ -178,31 +178,115 @@ static void Rom_Config_Player(Rom* rom, MemFile* config, KaleidoEntry* player, c
 static void Rom_Config_Scene(MemFile* config, SceneEntry* sceneEntry, const char* name, char* out) {
 	MemFile_Reset(config);
 	Config_WriteTitle_Str(name);
-	Config_WriteVar_Int("unk_a", ReadBE(sceneEntry->unk_10));
-	Config_WriteVar_Int("unk_b", ReadBE(sceneEntry->unk_12));
-	Config_WriteVar_Int("shader", ReadBE(sceneEntry->config));
+	#if 0
+		Config_WriteVar_Int("unk_a", ReadBE(sceneEntry->unk_10));
+		Config_WriteVar_Int("unk_b", ReadBE(sceneEntry->unk_12));
+	#endif
+	Config_WriteVar_Int("scene_func_id", ReadBE(sceneEntry->config));
 	MemFile_SaveFile_String(config, out);
 }
 
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
 
+static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char* file) {
+	s32 lineNum;
+	
+	MemFile_Clear(config);
+	MemFile_LoadFile_String(config, Dir_File(file));
+	lineNum = String_GetLineCount(config->data);
+	
+	for (s32 i = 0; i < lineNum; i++) {
+		char* line = String_Line(config->data, i);
+		char* word = String_Word(line, 2);
+		
+		if (line[0] == '#' || line[0] == '\n')
+			continue;
+		
+		rom->file.seekPoint = String_GetHexInt(String_GetWord(line, 0));
+		
+		if (word[0] == '"') {
+			word = Graph_GenStr(String_GetLine(String_Word(line, 2), 0));
+			word = &word[1];
+			
+			for (s32 c = 0, j = 0; j < strlen(word); j++) {
+				if (word[j] == '"')
+					c = 1;
+				if (c)
+					word[j] = '\0';
+			}
+			
+			Log("Patch-CFG-Str [%08X] [%s]", rom->file.seekPoint, word);
+			
+			MemFile_Printf(&rom->file, word);
+		}
+		if (word[0] == '0' && word[1] == 'x') {
+			word = String_GetLine(word, 0);
+			
+			Log("Patch-CFG-Hex [%08X] [%s]", rom->file.seekPoint, word);
+			
+			for (s32 o = 0, j = 2; j < strlen(word); j++) {
+				u8* data = &rom->file.cast.u8[rom->file.seekPoint];
+				u8 new;
+				char strval[2] = {
+					word[j],
+					'\0'
+				};
+				
+				if (word[j] == '#' || word[j] < ' ')
+					break;
+				
+				if (word[j] == ' ' || (word[j] == '0' && word[j + 1] == 'x') || word[j] == 'x') {
+					continue;
+				}
+				
+				if (o % 2 == 0) {
+					new = data[0] & 0x0F;
+					new |= String_GetHexInt(strval) << 4;
+					data[0] = new;
+				} else {
+					new = data[0] & 0xF0;
+					new |= String_GetHexInt(strval) & 0xF;
+					data[0] = new;
+					rom->file.seekPoint++;
+				}
+				o++;
+			}
+		}
+	}
+}
+
+static void Rom_Patch_Binary(Rom* rom, MemFile* dataFile, MemFile* config, char* file) {
+	char* tmp = String_MemMem(String_GetBasename(file), "_0x");
+	
+	tmp = &tmp[1];
+	rom->file.seekPoint = String_GetHexInt(tmp);
+	MemFile_Reset(dataFile);
+	MemFile_LoadFile(dataFile, Dir_File(file));
+	Log("Patch-Bin-Raw [%08X] [%s]", rom->file.seekPoint, file);
+	MemFile_Append(&rom->file, dataFile);
+}
+
 static void Rom_Build_Patch(Rom* rom, MemFile* dataFile, MemFile* config) {
+	PatchFunc patchFunc[] = {
+		Rom_Patch_Config,
+		Rom_Patch_Binary
+	};
+	char* funcIdent[] = {
+		".cfg",
+		".bin",
+	};
 	ItemList list;
 	
-	Dir_ItemList_Keyword(&list, ".bin");
+	Dir_ItemList(&list, false);
 	
 	for (s32 i = 0; i < list.num; i++) {
 		printf_progress("Applying Patches", i + 1, list.num);
-		u32 injectAddr;
-		char* addrPoint = String_MemMem(list.item[i], "0x");
 		
-		MemFile_Reset(dataFile);
-		MemFile_LoadFile(dataFile, list.item[i]);
-		
-		injectAddr = String_GetInt(addrPoint);
-		
-		MemFile_Seek(&rom->file, injectAddr);
-		MemFile_Append(&rom->file, dataFile);
+		for (s32 j = 0; j < ArrayCount(funcIdent); j++) {
+			if (String_MemMemCase(list.item[i], funcIdent[j])) {
+				patchFunc[j](rom, dataFile, config, list.item[i]);
+			}
+		}
 	}
 }
 
@@ -408,7 +492,7 @@ void Rom_New(Rom* rom, char* romName) {
 	hdr = SegmentedToVirtual(0x0, 0xDB70);
 	
 	if (rom->type == NoRom) {
-		char* confRom = tprintf("%s%s", CurWorkDir(), "rom_config.cfg");
+		char* confRom = tprintf("%s%s", CurWorkDir(), "z64project.cfg");
 		MemFile conf = MemFile_Initialize();
 		MemFile* config = &conf;
 		

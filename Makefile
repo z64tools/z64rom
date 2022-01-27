@@ -53,6 +53,7 @@ tools/z64audio: ../z64audio/z64audio.c
 linux-release: tools/z64audio $(SOURCE_O_RELEASE_LINUX) $(RELEASE_EXECUTABLE_LINUX)
 	@rm -f z64rom-linux.7z
 	@cp -r tools/ bin/release-linux/
+	@cp -r patches/ bin/release-linux/
 	@rm -f bin/release-linux/tools/z64audio.exe
 	@cp bin/release-linux/z64rom z64rom
 	@7z a z64rom-linux.7z ./bin/release-linux/* > /dev/null
@@ -60,6 +61,7 @@ linux-release: tools/z64audio $(SOURCE_O_RELEASE_LINUX) $(RELEASE_EXECUTABLE_LIN
 win32-release: tools/z64audio $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABLE_WIN32)
 	@rm -f z64rom-win32.7z
 	@cp -r tools/ bin/release-win32/
+	@cp -r patches/ bin/release-win32/
 	@rm -f bin/release-win32/tools/z64audio
 	@cp bin/release-win32/z64rom.exe z64rom.exe
 	@7z a z64rom-win32.7z ./bin/release-win32/* > /dev/null

@@ -490,8 +490,6 @@ extern PrintfSuppressLevel gPrintfSuppress;
     #ifndef __EXTLIB_C__
 		#define printf_debug(...)       if (0) {}
 		#define printf_debug_align(...) if (0) {}
-		#define Log(...)                if (0) {}
-		#define LogPrint()              if (0) {}
     #endif
 #endif
 

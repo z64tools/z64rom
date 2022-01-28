@@ -58,14 +58,16 @@ project-files-linux: tools project/tools/z64audio
 	@cp -r project/code             z64rom_linux/
 	@rm -f                          z64rom_linux/code/compile_flags.txt
 	@cp -R project/*                z64rom_linux/
-	@rm -f z64rom_win32/*/*.txt
+	@rm -f                          z64rom_linux/*/*.txt
+	@rm -f                          z64rom_win32/tools/*.c
 
 project-files-win32: tools project/tools/z64audio
 	@cp -r project/patches          z64rom_win32/
 	@cp -r project/code             z64rom_win32/
 	@rm -f                          z64rom_win32/code/compile_flags.txt
 	@cp -R project/*                z64rom_win32/
-	@rm -f z64rom_win32/*/*.txt
+	@rm -f                          z64rom_win32/*/*.txt
+	@rm -f                          z64rom_win32/tools/*.c
 
 project/tools/z64audio: ../z64audio/z64audio.c
 	@cd ../z64audio && make all -j

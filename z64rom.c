@@ -1,6 +1,6 @@
 #include "lib/z64rom.h"
 
-char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.2.0.0"
+char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.2.0.1"
 #ifndef NDEBUG
 		PRNT_DGRY " DEBUG BUILD"
 #endif

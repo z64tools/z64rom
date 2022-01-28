@@ -7,6 +7,9 @@ SOURCE_O_LINUX := $(foreach f,$(SOURCE_C:.c=.o),bin/linux/$f)
 SOURCE_O_RELEASE_WIN32 := $(foreach f,$(SOURCE_C:.c=.o),bin/win32/ndebug/$f)
 SOURCE_O_RELEASE_LINUX := $(foreach f,$(SOURCE_C:.c=.o),bin/linux/ndebug/$f)
 
+PROJECT_TOOLS_C := project/tools/elf2ld
+PROJECT_TOOLS_APP := tools/elf2ld
+
 RELEASE_EXECUTABLE_LINUX := bin/release-linux/z64rom
 RELEASE_EXECUTABLE_WIN32 := bin/release-win32/z64rom.exe
 
@@ -39,7 +42,7 @@ ifeq (,$(wildcard ../z64audio/Makefile))
 	$(shell clone https://github.com/z64tools/z64audio.git ../z64audio)
 endif
 
-.PHONY: copyz64audio clean clean-release default win32 linux all-release linux-release win32-release
+.PHONY: copyz64audio clean tools clean-release default win32 linux all-release linux-release win32-release
 
 default: linux
 all: linux win32
@@ -52,25 +55,25 @@ tools/z64audio: ../z64audio/z64audio.c
 	@cp ../z64audio/z64audio.exe tools/z64audio.exe
 	@cp ../z64audio/z64audio tools/z64audio
 
-linux-release: tools/z64audio $(SOURCE_O_RELEASE_LINUX) $(RELEASE_EXECUTABLE_LINUX)
+linux-release: tools tools/z64audio $(SOURCE_O_RELEASE_LINUX) $(RELEASE_EXECUTABLE_LINUX)
 	@cp tools/z64audio z64rom_linux/tools/
 	@cp tools/z64audio.cfg z64rom_linux/tools/
 	@cp tools/elf2ld z64rom_linux/tools/
 	@cp tools/novl z64rom_linux/tools/
 	@cp project/mips64-binutils.md5 z64rom_linux/tools/
-	@cp project/Makefile.project z64rom_linux/Makefile
+	@cp project/Makefile z64rom_linux/Makefile
 	@mkdir -p z64rom_linux/lib/
 	@cp project/MyLibrary.c z64rom_linux/lib/
 	@cp -r patches z64rom_linux/
 	@cp bin/release-linux/z64rom z64rom_linux/z64rom
 
-win32-release: tools/z64audio.exe $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABLE_WIN32)
+win32-release: tools tools/z64audio.exe $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABLE_WIN32)
 	@cp tools/z64audio.exe z64rom_win32/tools/
 	@cp tools/z64audio.cfg z64rom_win32/tools/
 	@cp tools/elf2ld z64rom_win32/tools/
 	@cp tools/novl z64rom_win32/tools/
 	@cp project/mips64-binutils.md5 z64rom_win32/tools/
-	@cp project/Makefile.project z64rom_win32/Makefile
+	@cp project/Makefile z64rom_win32/Makefile
 	@mkdir -p z64rom_win32/lib/
 	@cp project/MyLibrary.c z64rom_win32/lib/
 	@cp -r patches z64rom_win32/
@@ -89,6 +92,11 @@ clean-release:
 	@rm -f -R z64rom_linux
 	@rm -f -R z64rom_win32
 
+tools: $(PROJECT_TOOLS_APP)
+
+tools/%: project/tools/%.c
+	@echo "$(PRNT_RSET)$(PRNT_RSET)[$(PRNT_CYAN)$(notdir $@)$(PRNT_RSET)]"
+	@gcc -o $@ $< lib/ExtLib.c $(OPT_LINUX) $(CFLAGS) -DNDEBUG
 # LINUX
 bin/linux/ndebug/%.o: %.c %.h $(HEADER)
 	@echo "$(PRNT_RSET)$(PRNT_RSET)[$(PRNT_CYAN)$(notdir $@)$(PRNT_RSET)]"

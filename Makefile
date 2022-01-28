@@ -7,11 +7,13 @@ SOURCE_O_LINUX := $(foreach f,$(SOURCE_C:.c=.o),bin/linux/$f)
 SOURCE_O_RELEASE_WIN32 := $(foreach f,$(SOURCE_C:.c=.o),bin/win32/ndebug/$f)
 SOURCE_O_RELEASE_LINUX := $(foreach f,$(SOURCE_C:.c=.o),bin/linux/ndebug/$f)
 
-PROJECT_TOOLS_C := project/tools/elf2ld
-PROJECT_TOOLS_APP := tools/elf2ld
+PROJECT_TOOLS_C := $(shell find project/tools/* -type f -name '*.c')
+PROJECT_TOOLS_APP := $(foreach f,$(PROJECT_TOOLS_C:.c=),$f)
 
-RELEASE_EXECUTABLE_LINUX := bin/release-linux/z64rom
-RELEASE_EXECUTABLE_WIN32 := bin/release-win32/z64rom.exe
+RELEASE_EXECUTABLE_LINUX := z64rom_linux/z64rom
+RELEASE_EXECUTABLE_WIN32 := z64rom_win32/z64rom.exe
+DEBUG_EXECUTABLE_LINUX   := z64rom_linux/z64rom-debug
+DEBUG_EXECUTABLE_WIN32   := z64rom_win32/z64rom-debug.exe
 
 PRNT_DGRY := \e[90;2m
 PRNT_GRAY := \e[0;90m
@@ -34,67 +36,61 @@ $(shell mkdir -p bin/ $(foreach dir, \
 	$(dir $(RELEASE_EXECUTABLE_WIN32)) \
 	$(dir $(SOURCE_O_RELEASE_WIN32)) \
 	$(dir $(SOURCE_O_RELEASE_LINUX)), $(dir)))
-$(shell mkdir -p tools/)
 $(shell mkdir -p z64rom_win32/tools/)
+$(shell mkdir -p z64rom_win32/lib/)
+$(shell mkdir -p z64rom_win32/code/)
 $(shell mkdir -p z64rom_linux/tools/)
+$(shell mkdir -p z64rom_linux/lib/)
+$(shell mkdir -p z64rom_linux/code/)
 
 ifeq (,$(wildcard ../z64audio/Makefile))
 	$(shell clone https://github.com/z64tools/z64audio.git ../z64audio)
 endif
 
-.PHONY: copyz64audio clean tools clean-release default win32 linux all-release linux-release win32-release
+.PHONY: copyz64audio project-files-linux project-files-win32 clean tools clean-release default win32 linux all-release linux-release win32-release
 
 default: linux
 all: linux win32
-all-release: tools/z64audio linux-release win32-release
-linux: tools/z64audio $(SOURCE_O_LINUX) z64rom
-win32: tools/z64audio $(SOURCE_O_WIN32) bin/icon.o z64rom.exe
+all-release: linux-release win32-release
 
-tools/z64audio: ../z64audio/z64audio.c
+project-files-linux: tools project/tools/z64audio
+	@cp -r project/patches          z64rom_linux/
+	@cp -r project/code             z64rom_linux/
+	@rm -f                          z64rom_linux/code/compile_flags.txt
+	@cp -R project/*                z64rom_linux/
+	@rm -f z64rom_win32/*/*.txt
+
+project-files-win32: tools project/tools/z64audio
+	@cp -r project/patches          z64rom_win32/
+	@cp -r project/code             z64rom_win32/
+	@rm -f                          z64rom_win32/code/compile_flags.txt
+	@cp -R project/*                z64rom_win32/
+	@rm -f z64rom_win32/*/*.txt
+
+project/tools/z64audio: ../z64audio/z64audio.c
 	@cd ../z64audio && make all -j
-	@cp ../z64audio/z64audio.exe tools/z64audio.exe
-	@cp ../z64audio/z64audio tools/z64audio
-
-linux-release: tools tools/z64audio $(SOURCE_O_RELEASE_LINUX) $(RELEASE_EXECUTABLE_LINUX)
-	@cp tools/z64audio z64rom_linux/tools/
-	@cp tools/z64audio.cfg z64rom_linux/tools/
-	@cp tools/elf2ld z64rom_linux/tools/
-	@cp tools/novl z64rom_linux/tools/
-	@cp project/mips64-binutils.md5 z64rom_linux/tools/
-	@cp project/Makefile z64rom_linux/Makefile
-	@mkdir -p z64rom_linux/lib/
-	@cp project/MyLibrary.c z64rom_linux/lib/
-	@cp -r patches z64rom_linux/
-	@cp bin/release-linux/z64rom z64rom_linux/z64rom
-
-win32-release: tools tools/z64audio.exe $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABLE_WIN32)
-	@cp tools/z64audio.exe z64rom_win32/tools/
-	@cp tools/z64audio.cfg z64rom_win32/tools/
-	@cp tools/elf2ld z64rom_win32/tools/
-	@cp tools/novl z64rom_win32/tools/
-	@cp project/mips64-binutils.md5 z64rom_win32/tools/
-	@cp project/Makefile z64rom_win32/Makefile
-	@mkdir -p z64rom_win32/lib/
-	@cp project/MyLibrary.c z64rom_win32/lib/
-	@cp -r patches z64rom_win32/
-	@cp bin/release-win32/z64rom.exe z64rom_win32/z64rom.exe
+	@cp ../z64audio/z64audio.exe project/tools/z64audio.exe
+	@cp ../z64audio/z64audio     project/tools/z64audio
+	
+linux:         project-files-linux $(SOURCE_O_RELEASE_LINUX) $(DEBUG_EXECUTABLE_LINUX)
+linux-release: project-files-linux $(SOURCE_O_RELEASE_LINUX) $(RELEASE_EXECUTABLE_LINUX)
+	
+win32:         project-files-win32 $(SOURCE_O_RELEASE_WIN32) $(DEBUG_EXECUTABLE_WIN32)
+win32-release: project-files-win32 $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABLE_WIN32)
 
 clean:
-	@echo "$(PRNT_RSET)rm $(PRNT_RSET)[$(PRNT_CYAN)$(shell find bin/* -type f)$(PRNT_RSET)]"
-	@rm -f $(shell find bin/* -type f)
-	@echo "$(PRNT_RSET)rm $(PRNT_RSET)[$(PRNT_CYAN)$(shell find z64ro* -type f -not -name '*.c*')$(PRNT_RSET)]"
-	@rm -f $(shell find z64ro* -type f -not -name '*.c')
-	@rm -f -R bin/*
-	@rm -f tools/z64audio
-	@rm -f tools/z64audio.exe
-
-clean-release:
-	@rm -f -R z64rom_linux
-	@rm -f -R z64rom_win32
+	rm -f $(shell find bin/* -type f)
+	rm -f $(shell find z64ro* -type f -not -name '*.c')
+	rm -f -R bin
+	rm -f $(PROJECT_TOOLS_APP)
+	rm -f -R z64rom_linux
+	rm -f -R z64rom_win32
+	rm -f project/tools/z64audio
+	rm -f project/tools/z64audio.exe
 
 tools: $(PROJECT_TOOLS_APP)
 
-tools/%: project/tools/%.c
+project/tools/%: project/tools/%.c
 	@echo "$(PRNT_RSET)$(PRNT_RSET)[$(PRNT_CYAN)$(notdir $@)$(PRNT_RSET)]"
 	@gcc -o $@ $< lib/ExtLib.c $(OPT_LINUX) $(CFLAGS) -DNDEBUG
 # LINUX
@@ -119,7 +115,7 @@ $(RELEASE_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_RELEASE_LINUX)
 	@gcc -o $@ $^ $(OPT_LINUX) $(CFLAGS) -DNDEBUG -lm
 #	@upx -9 --lzma $@ > /dev/null
 
-z64rom: z64rom.c $(SOURCE_O_LINUX)
+$(DEBUG_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX)
 	@echo "$(PRNT_RSET)$(PRNT_RSET)[$(PRNT_CYAN)$(notdir $@)$(PRNT_RSET)] [$(PRNT_CYAN)$(notdir $^)$(PRNT_RSET)]"
 	@gcc -o $@ $^ $(OPT_LINUX) $(CFLAGS) -lm
 
@@ -148,6 +144,6 @@ $(RELEASE_EXECUTABLE_WIN32): z64rom.c bin/icon.o $(SOURCE_O_RELEASE_WIN32)
 	@i686-w64-mingw32.static-gcc -o $@ $^ $(OPT_WIN32) $(CFLAGS) -DNDEBUG -lm -D_WIN32
 #	@upx -9 --lzma $@ > /dev/null
 
-z64rom.exe: z64rom.c bin/icon.o $(SOURCE_O_WIN32)
+$(DEBUG_EXECUTABLE_WIN32): z64rom.c bin/icon.o $(SOURCE_O_WIN32)
 	@echo "$(PRNT_RSET)$(PRNT_RSET)[$(PRNT_CYAN)$(notdir $@)$(PRNT_RSET)] [$(PRNT_CYAN)$(notdir $^)$(PRNT_RSET)]"
 	@i686-w64-mingw32.static-gcc -o $@ $^ $(OPT_WIN32) $(CFLAGS) -lm -D_WIN32

@@ -4,7 +4,6 @@ int main(int argc, char* argv[]) {
 	MemFile inp = MemFile_Initialize();
 	MemFile out = MemFile_Initialize();
 	s32 lineCount;
-	s32 size;
 	char* fileInput, * fileOutput;
 	
 	if (argc != 3) {

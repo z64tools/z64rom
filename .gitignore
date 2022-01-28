@@ -15,8 +15,8 @@ tools/*
 *.exe
 bin/*
 test/*
-!patches/*
+!project/patches/*
 z64rom_*
-!tools/novl
-!tools/elf2ld
-tools/elf2ld
+project/!tools/novl
+project/tools/elf2ld
+!project/tools/z64audio.cfg

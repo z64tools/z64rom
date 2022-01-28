@@ -58,6 +58,7 @@ typedef struct {
 typedef struct Rom {
 	RomType   type;
 	MemFile   file;
+	MemFile   config;
 	RomOffset offset;
 	struct {
 		DmaEntry*       dma;

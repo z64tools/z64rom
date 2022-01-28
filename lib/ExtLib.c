@@ -243,49 +243,61 @@ char* Dir_File(char* fmt, ...) {
 	vsnprintf(argBuf, ArrayCount(argBuf), fmt, args);
 	va_end(args);
 	
-	strcpy(buffer[bufID], tprintf("%s%s", sCurrentPath, argBuf));
-	
-	if (String_MemMem(buffer[bufID], "*")) {
-		ItemList list;
-		char buf[512] = { 0 };
-		char* restorePath = Graph_Alloc(strlen(sCurrentPath));
-		char* search = String_MemMem(fmt, "*");
-		char* posPath = String_GetPath(buffer[bufID]);
-		
-		strcpy(buf, &search[1]);
-		strcpy(restorePath, sCurrentPath);
-		
-		if (strcmp(posPath, restorePath)) {
-			Dir_Set(String_GetPath(buffer[bufID]));
-		}
-		
-		Dir_ItemList(&list, false);
-		
-		if (strcmp(posPath, restorePath)) {
-			Dir_Set(restorePath);
-		}
-		
-		for (s32 i = 0; i < list.num; i++) {
-			if (String_MemMem(list.item[i], buf)) {
-				strcpy(buffer[bufID], tprintf("%s%s", posPath, list.item[i]));
-				
-				return buffer[bufID];
-			}
-		}
-		
-		return NULL;
+	if (String_MemMem(argBuf, "*")) {
+		return Dir_GetWildcard(argBuf);
 	}
+	
+	strcpy(buffer[bufID], tprintf("%s%s", sCurrentPath, argBuf));
 	
 	return buffer[bufID];
 }
 
-s32 Dir_Stat(char* dir) {
+Time Dir_Stat(char* item) {
 	struct stat st = { 0 };
 	
-	if (stat(tprintf("%s%s", sCurrentPath, dir), &st) == -1)
+	if (stat(tprintf("%s%s", sCurrentPath, item), &st) == -1)
 		return 0;
 	
-	return 1;
+	if (st.st_mtime == 0)
+		printf_error("Stat: [%s] time is zero?!", item);
+	
+	return st.st_mtime;
+}
+
+char* Dir_GetWildcard(char* x) {
+	ItemList list;
+	char* sEnd;
+	char* sStart = NULL;
+	char* restorePath;
+	char* search = String_MemMem(x, "*");
+	char* posPath = String_GetPath(tprintf("%s%s", sCurrentPath, x));
+	
+	sEnd = Graph_GenStr(&search[1]);
+	
+	if ((uPtr)search - (uPtr)x > 0) {
+		sStart = Graph_Alloc((uPtr)search - (uPtr)x + 2);
+		memcpy(sStart, x, (uPtr)search - (uPtr)x);
+	}
+	
+	restorePath = Graph_GenStr(sCurrentPath);
+	
+	if (strcmp(posPath, restorePath)) {
+		Dir_Set(posPath);
+	}
+	
+	Dir_ItemList(&list, false);
+	
+	if (strcmp(posPath, restorePath)) {
+		Dir_Set(restorePath);
+	}
+	
+	for (s32 i = 0; i < list.num; i++) {
+		if (String_MemMem(list.item[i], sEnd) && (sStart == NULL || String_MemMem(list.item[i], sStart))) {
+			return Graph_GenStr(tprintf("%s%s", posPath, list.item[i]));
+		}
+	}
+	
+	return NULL;
 }
 
 static bool __isDir(char* path) {
@@ -459,13 +471,16 @@ void Dir_ItemList_Keyword(ItemList* itemList, char* ext) {
 	}
 }
 
-s32 Stat(char* x) {
+Time Stat(char* item) {
 	struct stat st = { 0 };
 	
-	if (stat(x, &st) == -1)
+	if (stat(item, &st) == -1)
 		return 0;
 	
-	return 1;
+	if (st.st_mtime == 0)
+		printf_error("Stat: [%s] time is zero?!", item);
+	
+	return st.st_mtime;
 }
 
 static void __MakeDir(const char* buffer) {
@@ -1731,6 +1746,9 @@ char* String_GetLine(const char* str, s32 line) {
 	s32 i = 0;
 	s32 j = 0;
 	
+	if (str == NULL)
+		return NULL;
+	
 	index++;
 	index = index % 128;
 	
@@ -1766,6 +1784,9 @@ char* String_GetWord(const char* str, s32 word) {
 	s32 i = 0;
 	s32 j = 0;
 	
+	if (str == NULL)
+		return NULL;
+	
 	index++;
 	index = index % 128;
 	
@@ -1800,6 +1821,9 @@ char* String_GetPath(const char* src) {
 	s32 point = 0;
 	s32 slash = 0;
 	
+	if (src == NULL)
+		return NULL;
+	
 	index++;
 	index = index % 128;
 	
@@ -1819,6 +1843,9 @@ char* String_GetBasename(const char* src) {
 	static s32 index;
 	s32 point = 0;
 	s32 slash = 0;
+	
+	if (src == NULL)
+		return NULL;
 	
 	__GetSlashAndPoint(src, &slash, &point);
 	
@@ -1846,6 +1873,9 @@ char* String_GetFilename(const char* src) {
 	s32 point = 0;
 	s32 slash = 0;
 	s32 ext = 0;
+	
+	if (src == NULL)
+		return NULL;
 	
 	__GetSlashAndPoint(src, &slash, &point);
 	
@@ -1888,6 +1918,9 @@ char* String_GetFolder(const char* src, s32 num) {
 	static s32 index;
 	s32 start = -1;
 	s32 end;
+	
+	if (src == NULL)
+		return NULL;
 	
 	index++;
 	index = index % 128;
@@ -1949,6 +1982,9 @@ char* String_Line(char* str, s32 line) {
 	s32 i = 0;
 	s32 j = 0;
 	
+	if (str == NULL)
+		return NULL;
+	
 	while (str[i] != '\0') {
 		j = 0;
 		if (str[i] != '\n') {
@@ -1975,6 +2011,9 @@ char* String_Word(char* str, s32 word) {
 	s32 iWord = -1;
 	s32 i = 0;
 	s32 j = 0;
+	
+	if (str == NULL)
+		return NULL;
 	
 	while (str[i] != '\0') {
 		j = 0;

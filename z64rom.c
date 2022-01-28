@@ -1,6 +1,6 @@
 #include "lib/z64rom.h"
 
-char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.1.6.0"
+char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.2.0.0"
 #ifndef NDEBUG
 		PRNT_DGRY " DEBUG BUILD"
 #endif
@@ -92,9 +92,10 @@ void z64rom_Args(char* argv[]) {
 void z64rom_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
 	char* confAu = tprintf("%s%s", CurWorkDir(), "tools/z64audio.cfg");
 	char* confRom = tprintf("%s%s", CurWorkDir(), "z64project.cfg");
-	MemFile iWantToBePointer = MemFile_Initialize();
-	MemFile* config = &iWantToBePointer;
+	MemFile* config = &rom->config;
 	u32 parArg = 0;
+	
+	*config = MemFile_Initialize();
 	
 	if (!Stat(confAu)) {
 		MemFile config = MemFile_Initialize();
@@ -144,8 +145,6 @@ void z64rom_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
 			printf_error("Could not locate your baserom [%s]", tprintf("%s%s", CurWorkDir(), input[0]));
 		}
 	}
-	
-	MemFile_Free(config);
 }
 
 void z64rom_CheckTypes() {

@@ -25,6 +25,7 @@ typedef double f64;
 typedef uintptr_t uPtr;
 typedef intptr_t sPtr;
 typedef u32 void32;
+typedef time_t Time;
 
 typedef struct {
 	u8 hue;
@@ -129,7 +130,7 @@ typedef struct MemFile {
 	u32 dataSize;
 	u32 seekPoint;
 	struct {
-		f64   age;
+		Time  age;
 		char* name;
 		u32   crc32;
 	} info;
@@ -176,15 +177,17 @@ void Dir_Make(char* dir, ...);
 void Dir_MakeCurrent(void);
 char* Dir_Current(void);
 char* Dir_File(char* fmt, ...);
-s32 Dir_Stat(char* dir);
+Time Dir_Stat(char* item);
 void Dir_ItemList(ItemList* itemList, bool isPath);
 void Dir_ItemList_Not(ItemList* itemList, bool isPath, char* not);
 void Dir_ItemList_Keyword(ItemList* itemList, char* ext);
+
 void MakeDir(const char* dir, ...);
-s32 Stat(char* x);
+Time Stat(char* item);
 char* CurWorkDir(void);
 
 void ItemList_NumericalSort(ItemList* list);
+char* Dir_GetWildcard(char* x);
 
 char* tprintf(char* fmt, ...);
 void printf_SetSuppressLevel(PrintfSuppressLevel lvl);
@@ -524,4 +527,3 @@ extern PrintfSuppressLevel gPrintfSuppress;
 	}
 
 #endif /* __EXTLIB_H__ */
-

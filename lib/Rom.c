@@ -302,7 +302,7 @@ void Rom_Dump(Rom* rom) {
 	printf_info_align("Dump Rom", PRNT_PRPL "%s", rom->file.info.name);
 	Dir_Enter("rom/");
 	#if 1
-		Dir_Enter("actor/"); {
+		Dir_Enter("actor/.vanilla/"); {
 			for (s32 i = 0; i < rom->table.num.actor; i++) {
 				rf = Dma_RomFile_Actor(rom, i);
 				
@@ -317,7 +317,7 @@ void Rom_Dump(Rom* rom) {
 			}
 		} Dir_Leave();
 		
-		Dir_Enter("object/"); {
+		Dir_Enter("object/.vanilla/"); {
 			for (s32 i = 0; i < rom->table.num.obj; i++) {
 				rf = Dma_RomFile_Object(rom, i);
 				
@@ -331,7 +331,7 @@ void Rom_Dump(Rom* rom) {
 			}
 		} Dir_Leave();
 		
-		Dir_Enter("system/"); {
+		Dir_Enter("system/.vanilla/"); {
 			for (s32 i = 0; i < rom->table.num.state; i++) {
 				rf = Dma_RomFile_GameState(rom, i);
 				
@@ -355,7 +355,7 @@ void Rom_Dump(Rom* rom) {
 			} Dir_Leave();
 		} Dir_Leave();
 		
-		Dir_Enter("scene/"); {
+		Dir_Enter("scene/.vanilla/"); {
 			for (s32 i = 0; i < rom->table.num.scene; i++) {
 				rf = Dma_RomFile_Scene(rom, i);
 				
@@ -432,32 +432,37 @@ void Rom_Build(Rom* rom) {
 	printf_info_align("Load Baserom", PRNT_PRPL "%s", rom->file.info.name);
 	printf_info_align("Build Rom", PRNT_PRPL "build.z64");
 	
-	MemFile_Seek(&rom->file, 0x35D0000);
-	
 	Dir_Enter("rom/"); {
+		Dir_Enter("actor/"); {
+			Dir_Leave();
+		}
+		
+		// Audio start
+		MemFile_Seek(&rom->file, 0x35D0000);
 		Dir_Enter("sound/"); {
 			Dir_Enter("sample/"); {
 				Rom_Build_SampleTable(rom, &dataFile, &config);
-			} Dir_Leave();
-			
+				Dir_Leave();
+			}
 			Dir_Enter("soundfont/"); {
 				Rom_Build_SoundFont(rom, &dataFile, &config);
-			} Dir_Leave();
-			
+				Dir_Leave();
+			}
 			Dir_Enter("sequence/"); {
 				Rom_Build_Sequence(rom, &dataFile, &config);
-			} Dir_Leave();
-			Log("Segment_Sample %08X", rom->offset.segment.smplRom);
-			Log("Segment_SoundF %08X", rom->offset.segment.fontRom);
-			Log("Segment_Sequen %08X", rom->offset.segment.seqRom);
-		} Dir_Leave();
-	} Dir_Leave();
+				Dir_Leave();
+			}
+			Dir_Leave();
+		}
+		Dir_Leave();
+	}
 	
 	Dir_SetParam(DIR__MAKE_ON_ENTER);
 	Dir_Enter("patches/"); {
+		Dir_UnsetParam(DIR__MAKE_ON_ENTER);
 		Rom_Build_Patch(rom, &dataFile, &config);
-	} Dir_Leave();
-	Dir_UnsetParam(DIR__MAKE_ON_ENTER);
+		Dir_Leave();
+	}
 	
 	Rom_Build_SetAudioSegment(rom);
 	
@@ -652,6 +657,7 @@ void Rom_New(Rom* rom, char* romName) {
 
 void Rom_Free(Rom* rom) {
 	MemFile_Free(&rom->file);
+	MemFile_Free(&rom->config);
 	MemFile_Free(&rom->mem.sampleTbl);
 	MemFile_Free(&rom->mem.fontTbl);
 	MemFile_Free(&rom->mem.seqTbl);

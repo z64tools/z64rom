@@ -16,3 +16,6 @@ tools/*
 bin/*
 test/*
 !patches/*
+z64rom_*
+!tools/novl
+!tools/elf2ld

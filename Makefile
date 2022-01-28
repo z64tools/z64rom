@@ -32,12 +32,14 @@ $(shell mkdir -p bin/ $(foreach dir, \
 	$(dir $(SOURCE_O_RELEASE_WIN32)) \
 	$(dir $(SOURCE_O_RELEASE_LINUX)), $(dir)))
 $(shell mkdir -p tools/)
+$(shell mkdir -p z64rom_win32/tools/)
+$(shell mkdir -p z64rom_linux/tools/)
 
 ifeq (,$(wildcard ../z64audio/Makefile))
 	$(shell clone https://github.com/z64tools/z64audio.git ../z64audio)
 endif
 
-.PHONY: copyz64audio clean default win32 linux all-release linux-release win32-release
+.PHONY: copyz64audio clean clean-release default win32 linux all-release linux-release win32-release
 
 default: linux
 all: linux win32
@@ -51,25 +53,28 @@ tools/z64audio: ../z64audio/z64audio.c
 	@cp ../z64audio/z64audio tools/z64audio
 
 linux-release: tools/z64audio $(SOURCE_O_RELEASE_LINUX) $(RELEASE_EXECUTABLE_LINUX)
-	@rm -f z64rom-linux.7z
-	@cp -r tools/ bin/release-linux/
-	@cp -r patches/ bin/release-linux/
-	@rm -f bin/release-linux/tools/z64audio.exe
-	@cp bin/release-linux/z64rom z64rom
-	@7z a z64rom-linux.7z ./bin/release-linux/* > /dev/null
+	@cp tools/z64audio z64rom_linux/tools/
+	@cp tools/z64audio.cfg z64rom_linux/tools/
+	@cp tools/elf2ld z64rom_linux/tools/
+	@cp tools/novl z64rom_linux/tools/
+	@cp project/mips64-binutils.md5 z64rom_linux/tools/
+	@cp project/Makefile.project z64rom_linux/Makefile
+	@mkdir -p z64rom_linux/lib/
+	@cp project/MyLibrary.c z64rom_linux/lib/
+	@cp -r patches z64rom_linux/
+	@cp bin/release-linux/z64rom z64rom_linux/z64rom
 
-win32-release: tools/z64audio $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABLE_WIN32)
-	@rm -f z64rom-win32.7z
-	@cp -r tools/ bin/release-win32/
-	@cp -r patches/ bin/release-win32/
-	@rm -f bin/release-win32/tools/z64audio
-	@cp bin/release-win32/z64rom.exe z64rom.exe
-	@7z a z64rom-win32.7z ./bin/release-win32/* > /dev/null
-
-clear:
-	@rm -f -R rom/*
-	@rm -f tools/z64audio
-	@rm -f tools/z64audio.exe
+win32-release: tools/z64audio.exe $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABLE_WIN32)
+	@cp tools/z64audio.exe z64rom_win32/tools/
+	@cp tools/z64audio.cfg z64rom_win32/tools/
+	@cp tools/elf2ld z64rom_win32/tools/
+	@cp tools/novl z64rom_win32/tools/
+	@cp project/mips64-binutils.md5 z64rom_win32/tools/
+	@cp project/Makefile.project z64rom_win32/Makefile
+	@mkdir -p z64rom_win32/lib/
+	@cp project/MyLibrary.c z64rom_win32/lib/
+	@cp -r patches z64rom_win32/
+	@cp bin/release-win32/z64rom.exe z64rom_win32/z64rom.exe
 
 clean:
 	@echo "$(PRNT_RSET)rm $(PRNT_RSET)[$(PRNT_CYAN)$(shell find bin/* -type f)$(PRNT_RSET)]"
@@ -77,7 +82,12 @@ clean:
 	@echo "$(PRNT_RSET)rm $(PRNT_RSET)[$(PRNT_CYAN)$(shell find z64ro* -type f -not -name '*.c*')$(PRNT_RSET)]"
 	@rm -f $(shell find z64ro* -type f -not -name '*.c')
 	@rm -f -R bin/*
-	@rm -f tools/*
+	@rm -f tools/z64audio
+	@rm -f tools/z64audio.exe
+
+clean-release:
+	@rm -f -R z64rom_linux
+	@rm -f -R z64rom_win32
 
 # LINUX
 bin/linux/ndebug/%.o: %.c %.h $(HEADER)

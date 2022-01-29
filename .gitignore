@@ -20,3 +20,5 @@ project/!tools/novl
 project/tools/elf2ld
 !project/tools/z64audio.cfg
 bin/
+project/tools/z64audio
+project/tools/novl

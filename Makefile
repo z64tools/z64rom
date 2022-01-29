@@ -48,6 +48,15 @@ default: linux
 all: linux win32
 all-release: linux-release win32-release
 
+linux:         project-files-linux $(SOURCE_O_LINUX)         $(DEBUG_EXECUTABLE_LINUX)
+linux-release: project-files-linux $(SOURCE_O_RELEASE_LINUX) $(RELEASE_EXECUTABLE_LINUX)
+win32:         project-files-win32 $(SOURCE_O_WIN32)         $(DEBUG_EXECUTABLE_WIN32)
+win32-release: project-files-win32 $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABLE_WIN32)
+
+# # # # # # # # # # # # # # # # # # # #
+# PROJECT                             #
+# # # # # # # # # # # # # # # # # # # #
+
 tools: project/tools/elf2ld project/tools/novl
 
 project-files-linux: tools project/tools/z64audio
@@ -64,10 +73,9 @@ project-files-win32: tools project/tools/z64audio.exe
 	@rm -f                          z64rom_win32/*/*.txt
 	@rm -f                          z64rom_win32/tools/z64audio
 
-linux:         project-files-linux $(SOURCE_O_LINUX)         $(DEBUG_EXECUTABLE_LINUX)
-linux-release: project-files-linux $(SOURCE_O_RELEASE_LINUX) $(RELEASE_EXECUTABLE_LINUX)
-win32:         project-files-win32 $(SOURCE_O_WIN32)         $(DEBUG_EXECUTABLE_WIN32)
-win32-release: project-files-win32 $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABLE_WIN32)
+# # # # # # # # # # # # # # # # # # # #
+# CLEAN                               #
+# # # # # # # # # # # # # # # # # # # #
 
 clean-all: clean-sub clean
 

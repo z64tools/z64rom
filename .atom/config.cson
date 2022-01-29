@@ -1,0 +1,20 @@
+"*":
+  core:
+    ignoredNames: [
+      ".git"
+      ".git*"
+      
+      # Hide non-repo files
+      "*.sh"
+      "*.z64"
+      
+      # Hide submodules
+      "nOVL"
+      "z64audio"
+      
+      # Hide build folder
+      "bin"
+      
+      # Hide readme folder from tree-view
+      "readme"
+    ]

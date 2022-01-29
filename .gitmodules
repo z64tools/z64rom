@@ -1,0 +1,6 @@
+[submodule "tools/nOVL"]
+	path = tools/nOVL
+	url = https://github.com/z64me/nOVL.git
+[submodule "tools/z64audio"]
+	path = tools/z64audio
+	url = https://github.com/z64tools/z64audio.git

@@ -11,7 +11,6 @@ prvFileList
 *.lnk
 *.wav
 *.7z
-tools/*
 *.exe
 bin/*
 test/*

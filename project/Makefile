@@ -48,7 +48,7 @@ $(shell mkdir -p rom/ $(foreach dir, \
 mips64_download = https://cdn.discordapp.com/attachments/889436307758129203/936660603454513162/mips64-binutils.7z
 z64hdr_git      = https://github.com/z64tools/z64hdr.git
 
-.PHONY: all rom clean dist-clean z64rom-clean dist-clean confirm setup actor library code
+.PHONY: all rom clean clean-dist clean-rom clean-dist confirm setup actor library code
 .DEFAULT_GOAL := all
 
 all: library code actor
@@ -61,14 +61,13 @@ clean:
 	@rm -f $(Library_O)
 	@rm -f rom/lib/z_code_lib.bin
 
-dist-clean: clean
+clean-rom:
+	@rm -f -R rom
+
+clean-dist: clean clean-rom
 	@rm -f -R include
 	@rm -f -R tools/mips64-binutils
 	@rm -f -R tools/mips64-binutils.7z
-	@rm -f -R rom
-
-z64rom-clean:
-	@rm -f -R rom
 
 setup:
 	@echo "$(PRNT_GRAY)# $(PRNT_RSET)Setup is going to be downloading files and unpacking them automatically."
@@ -162,10 +161,10 @@ rom/code/%.o: code/%.c code/%.cfg
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
 	@cp $(<:.c=.cfg) $(@:.o=.cfg)
 
-rom/code/%.elf: rom/code/%.o
+rom/code/%.elf: rom/code/%.o $(ElfDep)
 	@echo "$(PRNT_PRPL)Code$(PRNT_RSET):    $(notdir $<)"
 	@mkdir -p $(EntryDir)
 	@printf "ENTRY_POINT = %s;\n" $$(grep 'ram' $(@:.elf=.cfg) | cut -d " " -f 3) > $(EntryDir)/entry.ld
-	@$(mips64_ld) -o $@ $^ -L$(EntryDir)/ $(LdFlags)
+	@$(mips64_ld) -o $@ $< -L$(EntryDir)/ $(LdFlags)
 	@$(mips64_objdump) -drz $@ > $(@:.elf=.s)
 	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $@ $(@:.elf=.bin)

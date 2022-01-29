@@ -1,4 +1,4 @@
-#include "../../lib/ExtLib.h"
+#include "../lib/ExtLib.h"
 
 int main(int argc, char* argv[]) {
 	MemFile inp = MemFile_Initialize();

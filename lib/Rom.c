@@ -191,7 +191,7 @@ static void Rom_Config_Scene(MemFile* config, SceneEntry* sceneEntry, const char
 static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char* file) {
 	s32 lineNum;
 	
-	MemFile_Clear(config);
+	MemFile_Reset(config);
 	MemFile_LoadFile_String(config, Dir_File(file));
 	lineNum = String_GetLineCount(config->data);
 	
@@ -300,7 +300,7 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 		printf_progress("Patching C", i + 1, list.num);
 		
 		MemFile_Reset(dataFile);
-		MemFile_Clear(config);
+		MemFile_Reset(config);
 		
 		if (!Stat(fileCfg))
 			printf_error("Could not find [%s]", fileCfg);

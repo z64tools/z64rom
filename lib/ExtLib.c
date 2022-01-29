@@ -1590,6 +1590,13 @@ s32 MemFile_LoadFile_String(MemFile* memFile, char* filepath) {
 	rewind(file);
 	if (fread(memFile->data, 1, memFile->dataSize, file)) {
 	}
+	if (memFile->dataSize < memFile->memSize) {
+		#ifndef _WIN32
+			memset(&memFile->cast.u8[memFile->dataSize], 0, 1);
+		#else
+			memset(&memFile->cast.u8[memFile->dataSize - 1], 0, 1);
+		#endif
+	}
 	fclose(file);
 	stat(filepath, &sta);
 	memFile->info.age = sta.st_mtime;

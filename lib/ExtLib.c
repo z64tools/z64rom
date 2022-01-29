@@ -1329,16 +1329,12 @@ void MemFile_Params(MemFile* memFile, ...) {
 			break;
 		}
 		
-		if (cmd == MEM_CLEAR) {
-			memset(
-				&memFile->param,
-				0,
-				sizeof(struct MemFile) - ((uPtr) & memFile->param - (uPtr)memFile)
-			);
-			continue;
-		}
-		
 		arg = va_arg(args, uPtr);
+		
+		if (cmd == MEM_CLEAR) {
+			cmd = arg;
+			arg = 0;
+		}
 		
 		if (cmd == MEM_FILENAME) {
 			memFile->param.getName = arg > 0 ? true : false;
@@ -1405,8 +1401,6 @@ s32 MemFile_Write(MemFile* dest, void* src, u32 size) {
 		}
 		
 		MemFile_Realloc(dest, dest->memSize * 2);
-		
-		return 0;
 	}
 	
 	if (dest->seekPoint + size > dest->dataSize) {
@@ -1416,52 +1410,24 @@ s32 MemFile_Write(MemFile* dest, void* src, u32 size) {
 	dest->seekPoint += size;
 	
 	if (dest->param.align) {
-		if (dest->seekPoint % dest->param.align)
-			dest->seekPoint += dest->param.align - (dest->seekPoint % dest->param.align);
-		dest->dataSize = dest->seekPoint;
+		if ((dest->seekPoint % dest->param.align) != 0) {
+			MemFile_Align(dest, dest->param.align);
+		}
 	}
 	
 	return 0;
 }
 
 s32 MemFile_Append(MemFile* dest, MemFile* src) {
-	if (dest->seekPoint + src->dataSize > dest->memSize) {
-		if (!dest->param.realloc) {
-			printf_warning_align(
-				"MemSize exceeded",
-				"%.2fkB / %.2fkB",
-				BinToKb(dest->dataSize),
-				BinToKb(dest->memSize)
-			);
-			
-			return 1;
-		}
-		
-		MemFile_Realloc(dest, dest->memSize * 2);
-		
-		return 0;
-	}
-	
-	if (dest->seekPoint + src->dataSize > dest->dataSize) {
-		dest->dataSize = dest->seekPoint + src->dataSize;
-	}
-	memcpy(&dest->cast.u8[dest->seekPoint], src->data, src->dataSize);
-	dest->seekPoint += src->dataSize;
-	
-	if (dest->param.align) {
-		if (dest->seekPoint % dest->param.align)
-			dest->seekPoint += dest->param.align - (dest->seekPoint % dest->param.align);
-		dest->dataSize = dest->seekPoint;
-	}
-	
-	return 0;
+	return MemFile_Write(dest, src->data, src->dataSize);
 }
 
 void MemFile_Align(MemFile* src, u32 align) {
-	if (src->seekPoint % align) {
-		MemFile_Params(src, MEM_ALIGN, align, MEM_END);
-		MemFile_Write(src, "\0", 1);
-		MemFile_Params(src, MEM_CLEAR, MEM_END);
+	if ((src->seekPoint % align) != 0) {
+		u64 wow[2] = { 0 };
+		u32 size = align - (src->seekPoint % align);
+		
+		MemFile_Write(src, wow, size);
 	}
 }
 
@@ -1588,15 +1554,12 @@ s32 MemFile_LoadFile_String(MemFile* memFile, char* filepath) {
 	}
 	
 	rewind(file);
-	if (fread(memFile->data, 1, memFile->dataSize, file)) {
+	u32 ses;
+	
+	if ((ses = fread(memFile->data, 1, memFile->dataSize, file)) != memFile->dataSize) {
+		memFile->dataSize = ses;
 	}
-	if (memFile->dataSize < memFile->memSize) {
-		#ifndef _WIN32
-			memset(&memFile->cast.u8[memFile->dataSize], 0, 1);
-		#else
-			memset(&memFile->cast.u8[memFile->dataSize - 1], 0, 1);
-		#endif
-	}
+	memFile->cast.u8[memFile->dataSize] = '\0';
 	fclose(file);
 	stat(filepath, &sta);
 	memFile->info.age = sta.st_mtime;
@@ -1648,7 +1611,7 @@ s32 MemFile_SaveFile_String(MemFile* memFile, char* filepath) {
 		return 1;
 	}
 	
-	fwrite(memFile->data, sizeof(char), memFile->dataSize, file);
+	fwrite(memFile->data, sizeof(char), strlen(memFile->data), file);
 	fclose(file);
 	
 	return 0;

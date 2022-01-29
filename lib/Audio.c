@@ -703,86 +703,31 @@ static void Audio_LoadFile(MemFile* dataFile, char* file) {
 }
 
 void Rom_Build_SetAudioSegment(Rom* rom) {
-	u16* addr;
-	u16 hi, lo;
-	u16* pHi;
-	u16* pLo;
-	u8* chr;
+	#define INST_ADDR(x, y) SegmentedToVirtual(0x0, ((x) - 0x7F588E60)), SegmentedToVirtual(0x0, ((y) - 0x7F588E60))
+	#define RAM_ADDR rom->file.seekPoint + 0x7F588E60
 	
-	addr = SegmentedToVirtual(0x0, 0xB5A4AE);
-	lo = rom->offset.segment.seqRom;
-	hi = (rom->offset.segment.seqRom >> 16) + (lo > 0x7FFF);
-	addr[0] = ReadBE(hi);
-	addr[2] = ReadBE(lo);
-	printf_debug_align("SequenceRom", "%08X", rom->offset.segment.seqRom);
-	
-	addr = SegmentedToVirtual(0x0, 0xB5A4C2);
-	lo = rom->offset.segment.fontRom;
-	hi = (rom->offset.segment.fontRom >> 16) + (lo > 0x7FFF);
-	addr[0] = ReadBE(hi);
-	addr[2] = ReadBE(lo);
-	printf_debug_align("FontRom", "%08X", rom->offset.segment.fontRom);
-	
-	addr = SegmentedToVirtual(0x0, 0xB5A4D6);
-	lo = rom->offset.segment.smplRom;
-	hi = (rom->offset.segment.smplRom >> 16) + (lo > 0x7FFF);
-	addr[0] = ReadBE(hi);
-	addr[2] = ReadBE(lo);
-	printf_debug_align("SampleRom", "%08X", rom->offset.segment.smplRom);
-	
-	// RAM 0x800EE9D0
-	// ROM 0x00B65B70
-	// DIF 0x7F588E60
-	
+	MemFile_Params(&rom->file, MEM_ALIGN, 16, MEM_END);
 	MemFile_Seek(&rom->file, 0x00B65B70);
 	
-	rom->offset.table.seqTable = rom->file.seekPoint + 0x7F588E60;
-	pHi = SegmentedToVirtual(0x0, 0xB5A466);
-	pLo = SegmentedToVirtual(0x0, 0xB5A476);
-	chr = SegmentedToVirtual(0x0, 0xB5A476);
-	pLo[0] = rom->offset.table.seqTable;
-	pHi[0] = (rom->offset.table.seqTable >> 16);
-	chr[-2] = 0x35; // ori
-	SwapBE(pHi[0]);
-	SwapBE(pLo[0]);
+	Mips64_SplitLoad(INST_ADDR(0x800E330C, 0x800E3310), MIPS_REG_A1, rom->offset.segment.seqRom);
+	Mips64_SplitLoad(INST_ADDR(0x800E3320, 0x800E3324), MIPS_REG_A1, rom->offset.segment.fontRom);
+	Mips64_SplitLoad(INST_ADDR(0x800E3334, 0x800E3338), MIPS_REG_A1, rom->offset.segment.smplRom);
+	
+	Mips64_SplitLoad(INST_ADDR(0x800E32C4, 0x800E32D4), MIPS_REG_T1, RAM_ADDR);
 	MemFile_Append(&rom->file, &rom->mem.seqTbl);
-	// MemFile_Align(&rom->file, 16);
 	
-	rom->offset.table.fontTable = rom->file.seekPoint + 0x7F588E60;
-	pHi = SegmentedToVirtual(0x0, 0xB5A466 + 4);
-	pLo = SegmentedToVirtual(0x0, 0xB5A476 + 4);
-	chr = SegmentedToVirtual(0x0, 0xB5A476 + 4);
-	pLo[0] = rom->offset.table.fontTable;
-	pHi[0] = (rom->offset.table.seqTable >> 16);
-	chr[-2] = 0x35; // ori
-	SwapBE(pHi[0]);
-	SwapBE(pLo[0]);
+	Mips64_SplitLoad(INST_ADDR(0x800E32C8, 0x800E32D8), MIPS_REG_T2, RAM_ADDR);
 	MemFile_Append(&rom->file, &rom->mem.fontTbl);
-	// MemFile_Align(&rom->file, 16);
 	
-	rom->offset.table.sampleTable = rom->file.seekPoint + 0x7F588E60;
-	pHi = SegmentedToVirtual(0x0, 0xB5A466 + 8);
-	pLo = SegmentedToVirtual(0x0, 0xB5A476 + 8);
-	chr = SegmentedToVirtual(0x0, 0xB5A476 + 8);
-	pLo[0] = rom->offset.table.sampleTable;
-	pHi[0] = (rom->offset.table.seqTable >> 16);
-	chr[-2] = 0x35; // ori
-	SwapBE(pHi[0]);
-	SwapBE(pLo[0]);
+	Mips64_SplitLoad(INST_ADDR(0x800E32CC, 0x800E32DC), MIPS_REG_T3, RAM_ADDR);
 	MemFile_Append(&rom->file, &rom->mem.sampleTbl);
-	// MemFile_Align(&rom->file, 16);
 	
-	rom->offset.table.seqFontTbl = rom->file.seekPoint + 0x7F588E60;
-	pHi = SegmentedToVirtual(0x0, 0xB5A466 + 12);
-	pLo = SegmentedToVirtual(0x0, 0xB5A476 + 12);
-	chr = SegmentedToVirtual(0x0, 0xB5A476 + 12);
-	pLo[0] = rom->offset.table.seqFontTbl;
-	pHi[0] = (rom->offset.table.seqFontTbl >> 16);
-	chr[-2] = 0x35; // ori
-	SwapBE(pHi[0]);
-	SwapBE(pLo[0]);
+	Mips64_SplitLoad(INST_ADDR(0x800E32D0, 0x800E32E0), MIPS_REG_T6, RAM_ADDR);
 	MemFile_Append(&rom->file, &rom->mem.seqFontTbl);
-	// MemFile_Align(&rom->file, 16);
+	
+	MemFile_Params(&rom->file, MEM_ALIGN, 0, MEM_END);
+	#undef INST_ADDR
+	#undef RAM_ADDR
 }
 
 void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
@@ -844,11 +789,9 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Write(&rom->mem.sampleTbl, &head, 16);
 	MemFile_Write(&rom->mem.sampleTbl, &entry, 16);
 	
-	rom->offset.segment.smplRom = rom->file.seekPoint;
-	MemFile_Append(&rom->file, dataFile);
-	MemFile_Align(&rom->file, 16);
+	rom->offset.segment.smplRom = Dma_WriteEntry(rom, -5, dataFile);
 	MemFile_Free(&sample);
-	MemFile_Params(dataFile, MEM_CLEAR, MEM_END);
+	MemFile_Params(dataFile, MEM_ALIGN, 0, MEM_REALLOC, 0, MEM_END);
 }
 
 void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
@@ -864,7 +807,9 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	AudioEntryHead sfHead = { 0 };
 	AudioEntry sfEntry = { 0 };
 	
-	rom->offset.segment.fontRom = rom->file.seekPoint;
+	MemFile soundFontMem = MemFile_Initialize();
+	
+	MemFile_Malloc(&soundFontMem, MbToBin(2.00));
 	
 	MemFile_Malloc(&memBank, MbToBin(0.25));
 	MemFile_Malloc(&memBook, MbToBin(0.25));
@@ -1201,7 +1146,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				char* prim;
 				
 				if (j == 0) {
-					MemFile_Params(&memDrum, MEM_CLEAR, MEM_END);
+					MemFile_Params(&memDrum, MEM_ALIGN, 0, MEM_END);
 					memDrum.seekPoint += 4 * listDrum.num;
 					memset(memDrum.data, 0, memDrum.seekPoint);
 					MemFile_Align(&memDrum, 16);
@@ -1441,12 +1386,12 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				MemFile_Append(&memBank, &memDrum); MemFile_Align(&memBank, 16);
 			}
 			
-			u32 seekPoint = rom->file.seekPoint - rom->offset.segment.fontRom;
+			u32 seekPoint = soundFontMem.seekPoint;
 			u32 med = 0;
 			u32 seq = 0;
 			char* confMed;
 			char* confSeq;
-			MemFile_Append(&rom->file, &memBank); MemFile_Align(&rom->file, 16);
+			MemFile_Append(&soundFontMem, &memBank); MemFile_Align(&soundFontMem, 16);
 			
 			MemFile_Reset(config);
 			MemFile_LoadFile_String(config, Dir_File("config.cfg"));
@@ -1488,6 +1433,10 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		} Dir_Leave();
 	}
 	
+	rom->offset.segment.fontRom = Dma_WriteEntry(rom, -3, &soundFontMem);
+	
+	MemFile_Free(&soundFontMem);
+	
 	MemFile_Free(&memBank);
 	MemFile_Free(&memBook);
 	MemFile_Free(&memInst);
@@ -1501,6 +1450,7 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	ItemList itemList;
 	MemFile memIndexTable = MemFile_Initialize();
 	MemFile memLookUpTable = MemFile_Initialize();
+	MemFile sequenceMem = MemFile_Initialize();
 	u8* segFontTable = SegmentedToVirtual(0x0, rom->offset.table.seqFontTbl);
 	AudioEntryHead sqHead = { 0 };
 	AudioEntry sqEntry = { 0 };
@@ -1509,9 +1459,9 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 		segFontTable[i] = 0;
 	}
 	
-	rom->offset.segment.seqRom = rom->file.seekPoint;
 	MemFile_Malloc(&memIndexTable, 0x1C0);
 	MemFile_Malloc(&memLookUpTable, 0x1C0);
+	MemFile_Malloc(&sequenceMem, MbToBin(1.0));
 	Rom_ItemList(&itemList, true, true, false);
 	
 	sqHead.numEntries = itemList.num;
@@ -1558,9 +1508,9 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			
 			if (Dir_File("*.seq")) {
 				MemFile_LoadFile(dataFile, Dir_File("*.seq"));
-				addr = rom->file.seekPoint - rom->offset.segment.seqRom;
-				MemFile_Append(&rom->file, dataFile);
-				MemFile_Align(&rom->file, 16);
+				addr = sequenceMem.seekPoint;
+				MemFile_Append(&sequenceMem, dataFile);
+				MemFile_Align(&sequenceMem, 16);
 				sqEntry.romAddr = addr;
 				sqEntry.size = dataFile->dataSize;
 			} else {
@@ -1592,4 +1542,10 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	}
 	MemFile_Append(&memLookUpTable, &memIndexTable);
 	MemFile_Append(&rom->mem.seqFontTbl, &memLookUpTable);
+	
+	rom->offset.segment.seqRom = Dma_WriteEntry(rom, -4, &sequenceMem);
+	
+	MemFile_Free(&memIndexTable);
+	MemFile_Free(&memLookUpTable);
+	MemFile_Free(&sequenceMem);
 }

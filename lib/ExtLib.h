@@ -280,15 +280,12 @@ char* Config_GetString(MemFile* memFile, char* stringName);
 f32 Config_GetFloat(MemFile* memFile, char* floatName);
 
 #define Node_Add(head, node) { \
-		OsAssert(node != NULL) \
 		typeof(node) lastNode = head; \
-		s32 __nodePos = 0; \
 		if (lastNode == NULL) { \
 			head = node; \
 		} else { \
 			while (lastNode->next) { \
 				lastNode = lastNode->next; \
-				__nodePos++; \
 			} \
 			lastNode->next = node; \
 			node->prev = lastNode; \
@@ -296,7 +293,6 @@ f32 Config_GetFloat(MemFile* memFile, char* floatName);
 }
 
 #define Node_Kill(head, node) { \
-		OsAssert(node != NULL) \
 		if (node->next) { \
 			node->next->prev = node->prev; \
 		} \
@@ -306,6 +302,18 @@ f32 Config_GetFloat(MemFile* memFile, char* floatName);
 			head = node->next; \
 		} \
 		free(node); \
+		node = NULL; \
+}
+
+#define Node_Remove(head, node) { \
+		if (node->next) { \
+			node->next->prev = node->prev; \
+		} \
+		if (node->prev) { \
+			node->prev->next = node->next; \
+		} else { \
+			head = node->next; \
+		} \
 		node = NULL; \
 }
 

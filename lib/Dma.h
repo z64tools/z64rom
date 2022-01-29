@@ -63,27 +63,6 @@ typedef struct SceneEntry {
 	u8  unk_13;
 } SceneEntry;
 
-#define EXT_COMPRESSED(x)     (x << 15)
-#define EXT_PHYSICAL_START(x) (x & 0x7FFFFFFC)
-#define EXT_DMA_PREFIX(x)     (x << 1)
-#define EXT_OVERLAP(x)        (x << 0)
-
-typedef struct ExtEntry {
-	u16 dmaIndex;
-} ExtEntry;
-
-typedef struct ExtActor {
-	u16    dmaIndex;
-	u16    allocType;
-	void32 ramAddr;
-} ExtActor;
-
-typedef struct ExtDma {
-	void32 virtualStart;
-	u32    bitfield;
-	u32    virtualEnd;
-} ExtDma;
-
 typedef struct RomFile {
 	union {
 		void* data;
@@ -113,6 +92,23 @@ typedef struct DmaPrefix {
 	};
 } DmaPrefix;
 
+typedef struct Slot {
+	struct Slot* prev;
+	struct Slot* next;
+	u32 romStart;
+	u32 romEnd;
+} Slot;
+
+typedef enum {
+	DMA_AUDIO,
+	DMA_ACTOR,
+	DMA_OBJECT,
+	DMA_PLACE_NAME,
+	DMA_BOXTEX,
+	DMA_SCENES,
+	DMA_UNUSED
+} DmaBank;
+
 struct Rom;
 
 #define Dma_RomFile_Proto(name) \
@@ -124,5 +120,14 @@ RomFile Dma_RomFile_Proto(Actor);
 RomFile Dma_RomFile_Proto(DmaEntry);
 RomFile Dma_RomFile_Proto(GameState);
 RomFile Dma_RomFile_Proto(Scene);
+
+void Dma_CombineSlots(void);
+void Dma_PrintfSlots(struct Rom* rom);
+u32 Dma_WriteEntry(struct Rom* rom, s32 id, MemFile* memFile);
+void Dma_FreeEntry(struct Rom* rom, u32 id, u32 dmaAlign);
+void Dma_FreeSegment(struct Rom* rom, u32 romStart, u32 romEnd);
+void Dma_Free(struct Rom* rom, DmaBank type);
+
+extern Slot* gSlotHead;
 
 #endif

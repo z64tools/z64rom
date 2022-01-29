@@ -232,7 +232,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 					'\0'
 				};
 				
-				if (word[j] == '#' || word[j] < ' ')
+				if (word[j] == '#' || word[j] < ' ' || word[j] == '\0')
 					break;
 				
 				if (word[j] == ' ' || (word[j] == '0' && word[j + 1] == 'x') || word[j] == 'x') {
@@ -455,13 +455,15 @@ void Rom_Build(Rom* rom) {
 	printf_info_align("Load Baserom", PRNT_PRPL "%s", rom->file.info.name);
 	printf_info_align("Build Rom", PRNT_PRPL "build.z64");
 	
+	Dma_Free(rom, DMA_AUDIO);
+	Dma_Free(rom, DMA_UNUSED);
+	Dma_PrintfSlots(rom);
+	
 	Dir_Enter("rom/"); {
 		Dir_Enter("actor/"); {
 			Dir_Leave();
 		}
 		
-		// Audio start
-		MemFile_Seek(&rom->file, 0x35D0000);
 		Dir_Enter("sound/"); {
 			Dir_Enter("sample/"); {
 				Rom_Build_SampleTable(rom, &dataFile, &config);

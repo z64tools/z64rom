@@ -44,6 +44,12 @@ tuning          = 0.684600
 In this case `z64rom` will rely on the tuning values inside the `SoundFont instruments`.
 
 ## Credits
-`Zeldaboy14` -  Testing \
-`sklitte22` -  Sample documenting \
-`Sauraen` - Special Thanks, helping with various details
+**Documentation:** \
+sklitte22
+
+**Tester:** \
+Zeldaboy14
+
+**Special Thanks:** \
+Sauraen \
+Tharo

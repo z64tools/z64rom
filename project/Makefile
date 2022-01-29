@@ -65,6 +65,7 @@ dist-clean:
 	@rm -f -R include
 	@rm -f -R tools/mips64-binutils
 	@rm -f -R tools/mips64-binutils.7z
+	@rm -f -R rom
 
 z64rom-clean:
 	@rm -f -R rom

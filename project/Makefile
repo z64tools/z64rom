@@ -56,12 +56,12 @@ rom: all
 	@$(z64rom)
 
 clean:
-	rm -f $(Actor_O)
-	rm -f $(Actor_Elf)
-	rm -f $(Library_O)
-	rm -f rom/lib/z_code_lib.bin
+	@rm -f $(Actor_O)
+	@rm -f $(Actor_Elf)
+	@rm -f $(Library_O)
+	@rm -f rom/lib/z_code_lib.bin
 
-dist-clean:
+dist-clean: clean
 	@rm -f -R include
 	@rm -f -R tools/mips64-binutils
 	@rm -f -R tools/mips64-binutils.7z

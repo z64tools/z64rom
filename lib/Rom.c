@@ -280,13 +280,36 @@ static void Rom_Build_Patch(Rom* rom, MemFile* dataFile, MemFile* config) {
 	Dir_ItemList(&list, false);
 	
 	for (s32 i = 0; i < list.num; i++) {
-		printf_progress("Applying Patches", i + 1, list.num);
+		printf_progress("Patching Bin", i + 1, list.num);
 		
 		for (s32 j = 0; j < ArrayCount(funcIdent); j++) {
 			if (String_MemMemCase(list.item[i], funcIdent[j])) {
 				patchFunc[j](rom, dataFile, config, list.item[i]);
 			}
 		}
+	}
+}
+
+static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
+	ItemList list;
+	
+	Dir_ItemList_Keyword(&list, ".bin");
+	
+	for (s32 i = 0; i < list.num; i++) {
+		char* fileCfg = Dir_File("%s.cfg", String_GetBasename(list.item[i]));
+		printf_progress("Patching C", i + 1, list.num);
+		
+		MemFile_Reset(dataFile);
+		MemFile_Clear(config);
+		
+		if (!Stat(fileCfg))
+			printf_error("Could not find [%s]", fileCfg);
+		
+		if (MemFile_LoadFile(dataFile, Dir_File(list.item[i]))) printf_error("Exiting...");
+		if (MemFile_LoadFile_String(config, fileCfg)) printf_error("Exiting...");
+		
+		rom->file.seekPoint = Config_GetInt(config, "rom");
+		MemFile_Append(&rom->file, dataFile);
 	}
 }
 
@@ -454,12 +477,16 @@ void Rom_Build(Rom* rom) {
 			}
 			Dir_Leave();
 		}
+		
+		Dir_Enter("code/"); {
+			Rom_Build_Code(rom, &dataFile, &config);
+			Dir_Leave();
+		}
+		
 		Dir_Leave();
 	}
 	
-	Dir_SetParam(DIR__MAKE_ON_ENTER);
 	Dir_Enter("patches/"); {
-		Dir_UnsetParam(DIR__MAKE_ON_ENTER);
 		Rom_Build_Patch(rom, &dataFile, &config);
 		Dir_Leave();
 	}

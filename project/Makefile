@@ -154,8 +154,6 @@ rom/lib/z_code_lib.bin: $(Library_O)
 # CODE PATCH                          #
 # # # # # # # # # # # # # # # # # # # #
 
-
-
 code: $(Code_O) $(Code_Elf)
 	
 rom/code/%.o: code/%.c code/%.cfg

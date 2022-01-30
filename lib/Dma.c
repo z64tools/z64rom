@@ -107,7 +107,7 @@ void Dma_PrintfSlots(Rom* rom) {
 			}
 		}
 		printf("" PRNT_RSET " ]" "[%08X - %08X]\n", slot->romStart, slot->romEnd);
-				
+		
 		slot = slot->next;
 	}
 }
@@ -140,13 +140,17 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile) {
 		return start;
 	}
 	
-	memset(dma, 0, sizeof(struct DmaEntry));
-	dma->vromStart = dma->romStart = rom->file.seekPoint = slot->romStart;
+	dma->vromStart = slot->romStart;
+	dma->romStart = slot->romStart;
+	rom->file.seekPoint = slot->romStart;
 	MemFile_Append(&rom->file, memFile);
 	MemFile_Align(&rom->file, 16);
-	dma->vromEnd = ReadBE(rom->file.seekPoint);
-	SwapBE(dma->vromStart);
+	
+	dma->vromEnd = rom->file.seekPoint;
+	dma->romEnd = 0;
 	SwapBE(dma->romStart);
+	SwapBE(dma->vromStart);
+	SwapBE(dma->vromEnd);
 	
 	slot->romStart = rom->file.seekPoint;
 	
@@ -154,7 +158,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile) {
 		Node_Remove(gSlotHead, slot);
 	}
 	
-	return dma->vromStart;
+	return ReadBE(dma->vromStart);
 }
 
 void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
@@ -165,6 +169,9 @@ void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 	
 	slot.romStart = ReadBE(dma->vromStart);
 	slot.romEnd = ReadBE(dma->vromEnd);
+	
+	dma->romStart = dma->romEnd = 0xFFFFFFFF;
+	dma->vromStart = dma->vromEnd = 0;
 	
 	if (dmaAlign) {
 		if ((slot.romEnd % dmaAlign) != 0) {

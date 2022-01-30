@@ -1661,7 +1661,7 @@ u32 String_GetHexInt(char* string) {
 
 s32 String_GetInt(char* string) {
 	if (!memcmp(string, "0x", 2)) {
-		return strtol(string, NULL, 16);
+		return strtoul(string, NULL, 16);
 	} else {
 		return strtol(string, NULL, 10);
 	}

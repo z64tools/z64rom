@@ -25,11 +25,15 @@ void Rom_ItemList(ItemList* list, bool isPath, bool isNum, bool numericalSort) {
 		u32 maxNum = 0;
 		
 		for (s32 i = 0; i < listMod.num; i++) {
+			if (listMod.item[i] == NULL)
+				continue;
 			if (String_GetInt(listMod.item[i]) > maxNum)
 				maxNum = String_GetInt(listMod.item[i]);
 		}
 		
 		for (s32 i = 0; i < listVan.num; i++) {
+			if (listVan.item[i] == NULL)
+				continue;
 			if (String_GetInt(listVan.item[i]) > maxNum)
 				maxNum = String_GetInt(listVan.item[i]);
 		}
@@ -39,7 +43,7 @@ void Rom_ItemList(ItemList* list, bool isPath, bool isNum, bool numericalSort) {
 				break;
 			}
 			
-			if (posMod < listMod.num && String_GetInt(listMod.item[posMod]) == i) {
+			if (posMod < listMod.num && listMod.item[posMod] != NULL && String_GetInt(listMod.item[posMod]) == i) {
 				list->item[list->num] = &list->buffer[list->writePoint];
 				strcpy(list->item[list->num], listMod.item[posMod]);
 				list->writePoint += strlen(listMod.item[posMod]) + 1;
@@ -47,7 +51,7 @@ void Rom_ItemList(ItemList* list, bool isPath, bool isNum, bool numericalSort) {
 				list->num++;
 				posMod++;
 				posVan++;
-			} else if (posVan < listVan.num && String_GetInt(listVan.item[posVan]) == i) {
+			} else if (posVan < listVan.num && listVan.item[posVan] != NULL && String_GetInt(listVan.item[posVan]) == i) {
 				char* item = tprintf(".vanilla/%s", listVan.item[posVan]);
 				
 				list->item[list->num] = &list->buffer[list->writePoint];
@@ -55,6 +59,12 @@ void Rom_ItemList(ItemList* list, bool isPath, bool isNum, bool numericalSort) {
 				list->writePoint += strlen(item) + 1;
 				
 				list->num++;
+				posVan++;
+			} else {
+				list->item[list->num] = NULL;
+				
+				list->num++;
+				posMod++;
 				posVan++;
 			}
 		}
@@ -456,14 +466,11 @@ void Rom_Build(Rom* rom) {
 	printf_info_align("Build Rom", PRNT_PRPL "build.z64");
 	
 	Dma_Free(rom, DMA_AUDIO);
+	Dma_Free(rom, DMA_ACTOR);
 	Dma_Free(rom, DMA_UNUSED);
 	Dma_PrintfSlots(rom);
 	
 	Dir_Enter("rom/"); {
-		Dir_Enter("actor/"); {
-			Dir_Leave();
-		}
-		
 		Dir_Enter("sound/"); {
 			Dir_Enter("sample/"); {
 				Rom_Build_SampleTable(rom, &dataFile, &config);
@@ -477,6 +484,57 @@ void Rom_Build(Rom* rom) {
 				Rom_Build_Sequence(rom, &dataFile, &config);
 				Dir_Leave();
 			}
+			Dir_Leave();
+		}
+		
+		Dir_Enter("actor/"); {
+			ItemList actorList;
+			ActorEntry* entry = rom->table.actor;
+			s32 dmaNum = 0;
+			Rom_ItemList(&actorList, true, true, true);
+			
+			for (s32 i = 0; i < actorList.num; i++) {
+				printf_progress("Actor", i + 1, actorList.num);
+				
+				if (actorList.item[i] == NULL)
+					continue;
+				
+				Dir_Enter(actorList.item[i]); {
+					u32* bssSize;
+					MemFile_Reset(&dataFile);
+					MemFile_Reset(&config);
+					MemFile_LoadFile(&dataFile, Dir_File("*.zovl"));
+					MemFile_LoadFile_String(&config, Dir_File("config.cfg"));
+					
+					SetSegment(0x1, dataFile.data);
+					bssSize = SegmentedToVirtual(0x1, dataFile.dataSize - 4);
+					bssSize = SegmentedToVirtual(0x1, dataFile.dataSize - ReadBE(bssSize[0]));
+					
+					entry[i].allocType = Config_GetInt(&config, "alloc_type");
+					entry[i].initInfo = Config_GetInt(&config, "init_vars");
+					
+					entry[i].vramStart = Config_GetInt(&config, "vram_addr");
+					entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + ReadBE(bssSize[3]);
+					
+					entry[i].vromStart = Dma_WriteEntry(rom, 36 + dmaNum, &dataFile);
+					entry[i].vromEnd = entry[i].vromStart + dataFile.dataSize;
+					
+					SwapBE(entry[i].allocType);
+					SwapBE(entry[i].initInfo);
+					SwapBE(entry[i].vramStart);
+					SwapBE(entry[i].vramEnd);
+					SwapBE(entry[i].vromStart);
+					SwapBE(entry[i].vromEnd);
+					
+					entry[i].loadedRamAddr = 0;
+					entry[i].name = 0;
+					
+					dmaNum++;
+					
+					Dir_Leave();
+				}
+			}
+			
 			Dir_Leave();
 		}
 		

@@ -20,6 +20,8 @@ void z64rom_Args(char* argv[]);
 void z64rom_Config(char** input, Rom* rom, s32 argc, char* argv[]);
 void z64rom_CheckTypes();
 
+void sleep(u32);
+
 s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
 	Rom* rom = Lib_Calloc(0, sizeof(struct Rom));
@@ -39,10 +41,10 @@ s32 Main(s32 argc, char* argv[]) {
 			Rom_New(rom, input);
 			Rom_Dump(rom);
 			Rom_Free(rom);
+			printf_info("Done!");
 			
 			#ifdef _WIN32
-				printf_info("Dump " PRNT_GREN "OK" PRNT_RSET);
-				// sleep(1);
+				sleep(1);
 			#endif
 			
 			return 0;
@@ -51,10 +53,10 @@ s32 Main(s32 argc, char* argv[]) {
 			Rom_New(rom, input);
 			Rom_Build(rom);
 			Rom_Free(rom);
+			printf_info("Done!");
 			
 			#ifdef _WIN32
-				printf_info("Build " PRNT_GREN "OK" PRNT_RSET);
-				// sleep(1);
+				sleep(1);
 			#endif
 			
 			return 0;

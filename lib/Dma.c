@@ -52,6 +52,12 @@ RomFile Dma_RomFile_Func(DmaEntry, table.dma, DmaEntry);
 RomFile Dma_RomFile_Func(GameStateEntry, table.state, GameState);
 RomFile Dma_RomFile_Func(SceneEntry, table.scene, Scene);
 
+struct {
+	struct {
+		s32 writable;
+	} entry[4000];
+} gDma;
+
 static u32 Slot_Size(Slot* slot) {
 	return slot->romEnd - slot->romStart;
 }
@@ -126,10 +132,16 @@ void Dma_PrintfSlots(Rom* rom) {
 	printf("" PRNT_RSET " ]\n");
 }
 
+/**
+ * id < 0, write without assigning DMA entry
+ * id == 0, write to first free entry
+ * id > 0 write to specific entry
+ */
 u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile) {
 	DmaEntry* dma = &rom->table.dma[id];
 	Slot* slot = gSlotHead;
 	u32 size = memFile->dataSize;
+	u32 start;
 	
 	while (slot != NULL) {
 		if (Slot_Size(slot) > size + 0x10)
@@ -154,6 +166,17 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile) {
 		return start;
 	}
 	
+	if (id == 0) {
+		for (s32 i = 0;; i++) {
+			if (gDma.entry[i].writable) {
+				gDma.entry[i].writable = false;
+				dma = &rom->table.dma[i];
+				break;
+			}
+		}
+	}
+	
+	start = slot->romStart;
 	dma->vromStart = slot->romStart;
 	dma->romStart = slot->romStart;
 	rom->file.seekPoint = slot->romStart;
@@ -167,11 +190,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile) {
 	SwapBE(dma->vromEnd);
 	slot->romStart = rom->file.seekPoint;
 	
-	if (Slot_Size(slot) <= 0x10) {
-		Node_Remove(gSlotHead, slot);
-	}
-	
-	return ReadBE(dma->vromStart);
+	return start;
 }
 
 void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
@@ -180,6 +199,13 @@ void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 	Slot* node;
 	Slot* compSlot = gSlotHead;
 	
+	if (gDma.entry[id].writable == true) {
+		printf_warning("Trying to reflag dma id [%d]", id);
+		
+		return;
+	}
+	
+	gDma.entry[id].writable = true;
 	slot.romStart = ReadBE(dma->vromStart);
 	slot.romEnd = ReadBE(dma->vromEnd);
 	
@@ -236,6 +262,10 @@ void Dma_FreeSegment(Rom* rom, u32 romStart, u32 romEnd) {
 	}
 	
 	Node_Add(gSlotHead, slot);
+}
+
+void Dma_ClearSlots() {
+	gSlotHead = NULL;
 }
 
 void Dma_Free(Rom* rom, DmaBank type) {

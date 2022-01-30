@@ -460,22 +460,18 @@ void Rom_Build(Rom* rom) {
 	Dma_Free(rom, DMA_AUDIO);
 	Dma_Free(rom, DMA_ACTOR);
 	Dma_Free(rom, DMA_UNUSED);
-	// Dma_PrintfSlots(rom);
 	
 	Dir_Enter("rom/"); {
 		Dir_Enter("sound/"); {
-			Dir_Enter("sample/"); {
-				Rom_Build_SampleTable(rom, &dataFile, &config);
-				Dir_Leave();
-			}
-			Dir_Enter("soundfont/"); {
-				Rom_Build_SoundFont(rom, &dataFile, &config);
-				Dir_Leave();
-			}
-			Dir_Enter("sequence/"); {
-				Rom_Build_Sequence(rom, &dataFile, &config);
-				Dir_Leave();
-			}
+			Dir_Enter("sample/");
+			Rom_Build_SampleTable(rom, &dataFile, &config);
+			Dir_Leave();
+			Dir_Enter("soundfont/");
+			Rom_Build_SoundFont(rom, &dataFile, &config);
+			Dir_Leave();
+			Dir_Enter("sequence/");
+			Rom_Build_Sequence(rom, &dataFile, &config);
+			Dir_Leave();
 			Dir_Leave();
 		}
 		
@@ -489,7 +485,7 @@ void Rom_Build(Rom* rom) {
 				printf_progress("Actor", i + 1, actorList.num);
 				
 				if (actorList.item[i] == NULL) {
-					// entry[i] = (ActorEntry) { 0 };
+					entry[i] = (ActorEntry) { 0 };
 					continue;
 				}
 				

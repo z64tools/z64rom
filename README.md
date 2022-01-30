@@ -4,6 +4,14 @@
 
 ##### [Download z64rom here!](https://github.com/z64tools/z64rom/releases)
 
+## Requirements
+WSL1 highly recommended for Windows users
+```
+sudo apt-get update
+sudo apt-get install git build-essential p7zip-full
+```
+
+
 ### Build
 
 The first step is to dump the rom. This will be done with drag and dropping the `[.z64]` rom file on to `z64rom` application. After that you can perform build just by opening `z64rom` application.

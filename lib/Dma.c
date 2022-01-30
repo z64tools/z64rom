@@ -82,6 +82,14 @@ void Dma_CombineSlots(void) {
 
 void Dma_PrintfSlots(Rom* rom) {
 	Slot* slot = gSlotHead;
+	char* color[] = {
+		PRNT_REDD,
+		PRNT_GREN,
+		PRNT_YELW,
+		PRNT_BLUE,
+		PRNT_PRPL,
+		PRNT_CYAN,
+	};
 	
 	printf("[ ");
 	for (f32 i = 0; i < rom->file.dataSize; i += MbToBin(1.00)) {
@@ -94,22 +102,28 @@ void Dma_PrintfSlots(Rom* rom) {
 	}
 	printf(" ]\n");
 	
+	f32 i = 0;
+	s32 c = 0;
+	
+	printf("[ ");
 	while (slot != NULL) {
-		printf("[ ");
 		s32 begn = 0;
 		
-		for (f32 i = 0; i < rom->file.dataSize; i += MbToBin(1.00)) {
+		for (; i < rom->file.dataSize; i += MbToBin(1.00)) {
 			if (i >= slot->romStart && (i <= slot->romEnd || begn == 0)) {
-				printf("" PRNT_BLUE "@");
+				printf("" "%s" "@", color[c % ArrayCount(color)]);
 				begn = 1;
+			} else if (i > slot->romEnd) {
+				c++;
+				break;
 			} else {
 				printf("" PRNT_DGRY "O");
 			}
 		}
-		printf("" PRNT_RSET " ]" "[%08X - %08X]\n", slot->romStart, slot->romEnd);
 		
 		slot = slot->next;
 	}
+	printf("" PRNT_RSET " ]\n");
 }
 
 u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile) {
@@ -151,7 +165,6 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile) {
 	SwapBE(dma->romStart);
 	SwapBE(dma->vromStart);
 	SwapBE(dma->vromEnd);
-	
 	slot->romStart = rom->file.seekPoint;
 	
 	if (Slot_Size(slot) <= 0x10) {
@@ -264,8 +277,12 @@ void Dma_Free(Rom* rom, DmaBank type) {
 			}
 			break;
 		case DMA_UNUSED:
-			for (s32 i = 1519; i <= 1530; i++) {
+			for (s32 i = 1518; i <= 1530; i++) {
 				// Unused
+				Dma_FreeEntry(rom, i, 0x1000);
+			}
+			for (s32 i = 1532; i <= 1547; i++) {
+				// Blank
 				Dma_FreeEntry(rom, i, 0x1000);
 			}
 			Dma_FreeSegment(rom, 0x35CE040, 0x4000000);

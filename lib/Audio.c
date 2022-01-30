@@ -1451,13 +1451,8 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile memIndexTable = MemFile_Initialize();
 	MemFile memLookUpTable = MemFile_Initialize();
 	MemFile sequenceMem = MemFile_Initialize();
-	u8* segFontTable = SegmentedToVirtual(0x0, rom->offset.table.seqFontTbl);
 	AudioEntryHead sqHead = { 0 };
 	AudioEntry sqEntry = { 0 };
-	
-	for (s32 i = 0; i < 0x1C0; i++) {
-		segFontTable[i] = 0;
-	}
 	
 	MemFile_Malloc(&memIndexTable, 0x1C0);
 	MemFile_Malloc(&memLookUpTable, 0x1C0);

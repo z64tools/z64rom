@@ -179,6 +179,7 @@ char* Dir_Current(void);
 char* Dir_File(char* fmt, ...);
 Time Dir_Stat(char* item);
 void Dir_ItemList(ItemList* itemList, bool isPath);
+void Dir_ItemList_Recursive(ItemList* target, char* keyword);
 void Dir_ItemList_Not(ItemList* itemList, bool isPath, char* not);
 void Dir_ItemList_Keyword(ItemList* itemList, char* ext);
 
@@ -377,8 +378,8 @@ f32 Config_GetFloat(MemFile* memFile, char* floatName);
 extern PrintfSuppressLevel gPrintfSuppress;
 
 #define PRNT_DGRY "\e[90;2m"
-#define PRNT_GRAY "\e[0;90m"
 #define PRNT_DRED "\e[91;2m"
+#define PRNT_GRAY "\e[0;90m"
 #define PRNT_REDD "\e[0;91m"
 #define PRNT_GREN "\e[0;92m"
 #define PRNT_YELW "\e[0;93m"
@@ -401,10 +402,11 @@ extern PrintfSuppressLevel gPrintfSuppress;
 #define CLAMP_MAX(val, max)  ((val) > (max) ? (max) : (val))
 #define ArrayCount(arr)      (u32)(sizeof(arr) / sizeof(arr[0]))
 
-#define BinToMb(x) ((f32)(x) / (f32)0x100000)
-#define BinToKb(x) ((f32)(x) / (f32)0x400)
-#define MbToBin(x) (u32)(0x100000 * (x))
-#define KbToBin(x) (u32)(0x400 * (x))
+#define BinToMb(x)        ((f32)(x) / (f32)0x100000)
+#define BinToKb(x)        ((f32)(x) / (f32)0x400)
+#define MbToBin(x)        (u32)(0x100000 * (x))
+#define KbToBin(x)        (u32)(0x400 * (x))
+#define Align(var, align) ((((var) % (align)) != 0) ? (var) + (align) - ((var) % (align)) : (var))
 
 // #define strcpy(dst, src)   strcpy(dst, src)
 // #define strcat(dst, src)  strcat(dst, src)

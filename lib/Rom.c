@@ -209,7 +209,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		char* line = String_Line(config->data, i);
 		char* word = String_Word(line, 2);
 		
-		if (line[0] == '#' || line[0] == '\n')
+		if (line[0] != '0' && line[1] != 'x')
 			continue;
 		
 		rom->file.seekPoint = String_GetHexInt(String_GetWord(line, 0));
@@ -225,14 +225,10 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 					word[j] = '\0';
 			}
 			
-			Log("Patch-CFG-Str [%08X] [%s]", rom->file.seekPoint, word);
-			
 			MemFile_Printf(&rom->file, word);
 		}
 		if (word[0] == '0' && word[1] == 'x') {
 			word = String_GetLine(word, 0);
-			
-			Log("Patch-CFG-Hex [%08X] [%s]", rom->file.seekPoint, word);
 			
 			for (s32 o = 0, j = 2; j < strlen(word); j++) {
 				u8* data = &rom->file.cast.u8[rom->file.seekPoint];
@@ -268,45 +264,43 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 static void Rom_Patch_Binary(Rom* rom, MemFile* dataFile, MemFile* config, char* file) {
 	char* tmp = String_MemMem(String_GetBasename(file), "_0x");
 	
+	if (tmp == NULL)
+		return;
+	
 	tmp = &tmp[1];
 	rom->file.seekPoint = String_GetHexInt(tmp);
 	MemFile_Reset(dataFile);
 	MemFile_LoadFile(dataFile, Dir_File(file));
-	Log("Patch-Bin-Raw [%08X] [%s]", rom->file.seekPoint, file);
 	MemFile_Append(&rom->file, dataFile);
 }
 
 static void Rom_Build_Patch(Rom* rom, MemFile* dataFile, MemFile* config) {
-	PatchFunc patchFunc[] = {
-		Rom_Patch_Config,
-		Rom_Patch_Binary
-	};
-	char* funcIdent[] = {
-		".cfg",
-		".bin",
-	};
 	ItemList list;
 	
-	Dir_ItemList(&list, false);
+	Dir_ItemList_Recursive(&list, ".cfg");
+	
+	for (s32 i = 0; i < list.num; i++) {
+		printf_progress("Patching Cfg", i + 1, list.num);
+		
+		Rom_Patch_Binary(rom, dataFile, config, list.item[i]);
+	}
+	
+	Dir_ItemList_Recursive(&list, ".bin");
 	
 	for (s32 i = 0; i < list.num; i++) {
 		printf_progress("Patching Bin", i + 1, list.num);
 		
-		for (s32 j = 0; j < ArrayCount(funcIdent); j++) {
-			if (String_MemMemCase(list.item[i], funcIdent[j])) {
-				patchFunc[j](rom, dataFile, config, list.item[i]);
-			}
-		}
+		Rom_Patch_Config(rom, dataFile, config, list.item[i]);
 	}
 }
 
 static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 	ItemList list;
 	
-	Dir_ItemList_Keyword(&list, ".bin");
+	Dir_ItemList_Recursive(&list, ".bin");
 	
 	for (s32 i = 0; i < list.num; i++) {
-		char* fileCfg = Dir_File("%s.cfg", String_GetBasename(list.item[i]));
+		char* fileCfg = Dir_File("%s%s.cfg", String_GetPath(list.item[i]), String_GetBasename(list.item[i]));
 		printf_progress("Patching C", i + 1, list.num);
 		
 		MemFile_Reset(dataFile);
@@ -487,66 +481,82 @@ void Rom_Build(Rom* rom) {
 			Dir_Leave();
 		}
 		
-		Dir_Enter("actor/"); {
-			ItemList actorList;
-			ActorEntry* entry = rom->table.actor;
-			s32 dmaNum = 0;
-			Rom_ItemList(&actorList, true, true, true);
-			
-			for (s32 i = 0; i < actorList.num; i++) {
-				printf_progress("Actor", i + 1, actorList.num);
+		#if 0
+			Dir_Enter("actor/"); {
+				ItemList actorList;
+				ActorEntry* entry = rom->table.actor;
+				s32 dmaNum = 36;
+				Rom_ItemList(&actorList, true, true, true);
 				
-				if (actorList.item[i] == NULL)
-					continue;
-				
-				Dir_Enter(actorList.item[i]); {
-					u32* bssSize;
-					MemFile_Reset(&dataFile);
-					MemFile_Reset(&config);
-					MemFile_LoadFile(&dataFile, Dir_File("*.zovl"));
-					MemFile_LoadFile_String(&config, Dir_File("config.cfg"));
+				for (s32 i = 1; i < actorList.num; i++) {
+					printf_progress("Actor", i + 1, actorList.num);
 					
-					SetSegment(0x1, dataFile.data);
-					bssSize = SegmentedToVirtual(0x1, dataFile.dataSize - 4);
-					bssSize = SegmentedToVirtual(0x1, dataFile.dataSize - ReadBE(bssSize[0]));
+					if (actorList.item[i] == NULL) {
+						// entry[i] = (ActorEntry) { 0 };
+						continue;
+					}
 					
-					entry[i].allocType = Config_GetInt(&config, "alloc_type");
-					entry[i].initInfo = Config_GetInt(&config, "init_vars");
+					if (dmaNum > 497)
+						printf_error("wow");
 					
-					entry[i].vramStart = Config_GetInt(&config, "vram_addr");
-					entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + ReadBE(bssSize[3]);
-					
-					entry[i].vromStart = Dma_WriteEntry(rom, 36 + dmaNum, &dataFile);
-					entry[i].vromEnd = entry[i].vromStart + dataFile.dataSize;
-					
-					SwapBE(entry[i].allocType);
-					SwapBE(entry[i].initInfo);
-					SwapBE(entry[i].vramStart);
-					SwapBE(entry[i].vramEnd);
-					SwapBE(entry[i].vromStart);
-					SwapBE(entry[i].vromEnd);
-					
-					entry[i].loadedRamAddr = 0;
-					entry[i].name = 0;
-					
-					dmaNum++;
-					
-					Dir_Leave();
+					Dir_Enter(actorList.item[i]); {
+						u32* bssSize;
+						MemFile_Reset(&dataFile);
+						MemFile_Reset(&config);
+						MemFile_LoadFile(&dataFile, Dir_File("*.zovl"));
+						MemFile_LoadFile_String(&config, Dir_File("config.cfg"));
+						
+						SetSegment(0x1, dataFile.data);
+						bssSize = SegmentedToVirtual(0x1, dataFile.dataSize - 4);
+						bssSize = SegmentedToVirtual(0x1, dataFile.dataSize - ReadBE(bssSize[0]));
+						
+						entry[i].allocType = Config_GetInt(&config, "alloc_type");
+						entry[i].initInfo = Config_GetInt(&config, "init_vars");
+						
+						entry[i].vramStart = Config_GetInt(&config, "vram_addr");
+						entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + ReadBE(bssSize[3]);
+						
+						entry[i].vromStart = Dma_WriteEntry(rom, dmaNum, &dataFile);
+						entry[i].vromEnd = entry[i].vromStart + dataFile.dataSize;
+						
+						SwapBE(entry[i].allocType);
+						SwapBE(entry[i].initInfo);
+						SwapBE(entry[i].vramStart);
+						SwapBE(entry[i].vramEnd);
+						SwapBE(entry[i].vromStart);
+						SwapBE(entry[i].vromEnd);
+						
+						// entry[i].loadedRamAddr = 0;
+						// entry[i].name = 0;
+						
+						dmaNum++;
+						
+						Dir_Leave();
+					}
 				}
+				
+				Dir_Leave();
 			}
-			
-			Dir_Leave();
-		}
+		#endif
 		
 		Dir_Enter("code/"); {
 			Rom_Build_Code(rom, &dataFile, &config);
 			Dir_Leave();
 		}
 		
+		Dir_Enter("global_lib/"); {
+			if (Dir_Stat("z_code_lib.bin")) {
+				MemFile_Reset(&dataFile);
+				MemFile_LoadFile(&dataFile, Dir_File("z_code_lib.bin"));
+				Dma_WriteEntry(rom, 1, &dataFile);
+			}
+			Dir_Leave();
+		}
+		
 		Dir_Leave();
 	}
 	
-	Dir_Enter("patches/"); {
+	Dir_Enter("patch/"); {
 		Rom_Build_Patch(rom, &dataFile, &config);
 		Dir_Leave();
 	}

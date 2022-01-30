@@ -2,7 +2,7 @@
 
 void z64rom_LoadCodeLib(void);
 
-asm("gGameStateOverlayTable = 0x8011F830");
+asm ("gGameStateOverlayTable = 0x8011F830");
 
 void Graph_ThreadEntry(void* arg0) {
 	GraphicsContext gfxCtx;
@@ -15,7 +15,23 @@ void Graph_ThreadEntry(void* arg0) {
 	nextOvl = &gGameStateOverlayTable[0];
 	
 	Graph_Init(&gfxCtx);
-	z64rom_LoadCodeLib();
+	{
+		/**
+		 * DmaRequest Dma Entry 1, which will hold the
+		 * global_lib code. This way it can be accessed
+		 * thourgh actors or other code
+		 */
+		u32* entryPoint = (u32*)0x80600000;
+		
+		if (entryPoint[0] != 0)
+			return;
+		
+		DmaMgr_SendRequest0(
+			0x80600000,
+			gDmaDataTable[1].vromStart,
+			gDmaDataTable[1].vromEnd - gDmaDataTable[1].vromStart
+		);
+	}
 	
 	while (nextOvl) {
 		ovl = nextOvl;
@@ -39,17 +55,4 @@ void Graph_ThreadEntry(void* arg0) {
 		Overlay_FreeGameState(ovl);
 	}
 	Graph_Destroy(&gfxCtx);
-}
-
-void z64rom_LoadCodeLib(void) {
-	u64* entryPoint = (u64*)0x80600000;
-	
-	if (entryPoint)
-		return;
-	
-	DmaMgr_SendRequest0(
-		0x80600000,
-		gDmaDataTable[1].vromStart,
-		gDmaDataTable[1].vromEnd - gDmaDataTable[1].vromStart
-	);
 }

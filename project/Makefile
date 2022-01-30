@@ -18,7 +18,7 @@ PRNT_PRPL := \e[0;95m
 PRNT_CYAN := \e[0;96m
 PRNT_RSET := \e[m
 
-ElfDep        = rom/lib/z_code_lib.bin
+ElfDep        = rom/global_lib/z_code_lib.bin
 GccFlags_Warn = -Wall -Wno-builtin-declaration-mismatch -Wno-unused-variable
 GccFlags      = -I$(CURDIR)/include -I$(CURDIR)/include/include -G 0 -O1 -fno-reorder-blocks -std=gnu99 -march=vr4300 -mabi=32 -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division $(GccFlags_Warn)
 GccFlags_Code = $(GccFlags) -mno-gpopt -fomit-frame-pointer
@@ -31,11 +31,11 @@ Actor_C   = $(shell find rom/actor/0x*/* -maxdepth 0 -type f -name '*.c' 2>/dev/
 Actor_O   = $(foreach f,$(Actor_C:.c=.o),$f)
 Actor_Elf = $(foreach f,$(Actor_C:.c=.elf),$f)
 
-Library_C   = $(shell find lib/* -type f -name '*.c' 2>/dev/null)
+Library_C   = $(shell find global_lib/* -type f -name '*.c' 2>/dev/null)
 Library_O   = $(foreach f,$(Library_C:.c=.o),rom/$f)
 Library_Elf = $(foreach f,$(Library_C:.c=.elf),rom/$f)
 
-Code_C   = $(shell find code/* -type f -name '*.c' 2>/dev/null)
+Code_C   = $(shell find code/* -maxdepth 2 -type f -name '*.c' 2>/dev/null)
 Code_O   = $(foreach f,$(Code_C:.c=.o),rom/$f)
 Code_Elf = $(foreach f,$(Code_C:.c=.elf),rom/$f)
 
@@ -59,7 +59,7 @@ clean:
 	@rm -f $(Actor_O)
 	@rm -f $(Actor_Elf)
 	@rm -f $(Library_O)
-	@rm -f rom/lib/z_code_lib.bin
+	@rm -f rom/global_lib/z_code_lib.bin
 
 clean-rom:
 	@rm -f -R rom
@@ -127,20 +127,20 @@ rom/actor/%.elf: rom/actor/%.o $(ElfDep)
 # CODE LIBRARY                        #
 # # # # # # # # # # # # # # # # # # # #
 
-library: $(Library_O) rom/lib/z_code_lib.bin
+library: $(Library_O) rom/global_lib/z_code_lib.bin
 	
-rom/lib/%.o: lib/%.c
+rom/global_lib/%.o: global_lib/%.c
 	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): $(notdir $<)"
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
 
-rom/lib/%.o: lib/%.c lib/%.h
+rom/global_lib/%.o: global_lib/%.c global_lib/%.h
 	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): $(notdir $<)"
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
 
-z_code_lib_elf = rom/lib/z_code_lib.elf
-z_code_lib_s   = rom/lib/z_code_lib.s
+z_code_lib_elf = rom/global_lib/z_code_lib.elf
+z_code_lib_s   = rom/global_lib/z_code_lib.s
 
-rom/lib/z_code_lib.bin: $(Library_O)
+rom/global_lib/z_code_lib.bin: $(Library_O)
 	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): z_code_lib.bin"
 	@printf "ENTRY_POINT = 0x80600000;\n" > $(@D)/entry.ld
 	@$(mips64_ld) -o $(z_code_lib_elf) $^ -L$(@D) $(LdFlags)

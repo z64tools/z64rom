@@ -369,6 +369,57 @@ void Dir_ItemList(ItemList* itemList, bool isPath) {
 	}
 }
 
+static void Dir_ItemList_Recursive_ChildCount(ItemList* target, char* pathTo, char* keyword) {
+	ItemList folder = { 0 };
+	ItemList file = { 0 };
+	
+	Dir_ItemList(&folder, true);
+	Dir_ItemList(&file, false);
+	
+	for (s32 i = 0; i < folder.num; i++) {
+		Dir_Enter(folder.item[i]); {
+			Dir_ItemList_Recursive_ChildCount(target, tprintf("%s%s/", pathTo, folder.item[i]), keyword);
+			Dir_Leave();
+		}
+	}
+	
+	for (s32 i = 0; i < file.num; i++) {
+		if (keyword && !String_MemMemCase(file.item[i], keyword))
+			continue;
+		target->num++;
+	}
+}
+
+static void Dir_ItemList_Recursive_ChildWrite(ItemList* target, char* pathTo, char* keyword) {
+	ItemList folder = { 0 };
+	ItemList file = { 0 };
+	
+	Dir_ItemList(&folder, true);
+	Dir_ItemList(&file, false);
+	
+	for (s32 i = 0; i < folder.num; i++) {
+		Dir_Enter(folder.item[i]); {
+			Dir_ItemList_Recursive_ChildWrite(target, tprintf("%s%s", pathTo, folder.item[i]), keyword);
+			Dir_Leave();
+		}
+	}
+	
+	for (s32 i = 0; i < file.num; i++) {
+		if (keyword && !String_MemMemCase(file.item[i], keyword))
+			continue;
+		target->item[target->num++] = tprintf("%s%s", pathTo, file.item[i]);
+	}
+}
+
+void Dir_ItemList_Recursive(ItemList* target, char* keyword) {
+	memset(target, 0, sizeof(*target));
+	
+	Dir_ItemList_Recursive_ChildCount(target, "", keyword);
+	target->item = Graph_Alloc(sizeof(char*) * target->num);
+	target->num = 0;
+	Dir_ItemList_Recursive_ChildWrite(target, "", keyword);
+}
+
 void Dir_ItemList_Not(ItemList* itemList, bool isPath, char* not) {
 	DIR* dir = opendir(sCurrentPath);
 	u32 bufSize = 0;
@@ -593,18 +644,15 @@ void ItemList_NumericalSort(ItemList* list) {
 
 // printf
 char* tprintf(char* fmt, ...) {
-	static char buffer[128][512];
-	static u32 id;
-	
-	id = (id + 1) % 16;
+	char tempBuf[512 * 2];
 	
 	va_list args;
 	
 	va_start(args, fmt);
-	vsnprintf(buffer[id], ArrayCount(buffer[id]), fmt, args);
+	vsnprintf(tempBuf, ArrayCount(tempBuf), fmt, args);
 	va_end(args);
 	
-	return buffer[id];
+	return Graph_GenStr(tempBuf);
 }
 
 void printf_SetSuppressLevel(PrintfSuppressLevel lvl) {
@@ -1611,7 +1659,7 @@ s32 MemFile_SaveFile_String(MemFile* memFile, char* filepath) {
 		return 1;
 	}
 	
-	fwrite(memFile->data, sizeof(char), strlen(memFile->data), file);
+	fwrite(memFile->data, sizeof(char), memFile->dataSize, file);
 	fclose(file);
 	
 	return 0;
@@ -1656,7 +1704,7 @@ void MemFile_Clear(MemFile* memFile) {
 
 // String
 u32 String_GetHexInt(char* string) {
-	return strtol(string, NULL, 16);
+	return strtoul(string, NULL, 16);
 }
 
 s32 String_GetInt(char* string) {

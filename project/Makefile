@@ -18,7 +18,7 @@ PRNT_PRPL := \e[0;95m
 PRNT_CYAN := \e[0;96m
 PRNT_RSET := \e[m
 
-ElfDep        = rom/global_lib/z_code_lib.bin
+ElfDep        = rom/lib_user/z_code_lib.bin
 GccFlags_Warn = -Wall -Wno-builtin-declaration-mismatch -Wno-unused-variable
 GccFlags      = -I$(CURDIR)/include -I$(CURDIR)/include/include -G 0 -O1 -fno-reorder-blocks -std=gnu99 -march=vr4300 -mabi=32 -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division $(GccFlags_Warn)
 GccFlags_Code = $(GccFlags) -mno-gpopt -fomit-frame-pointer
@@ -27,17 +27,17 @@ nOvlFlags     = -v -c -A
 
 EntryDir = $(@D)/.temp/$(notdir $(basename $<))
 
-Actor_C   = $(shell find rom/actor/0x*/* -maxdepth 0 -type f -name '*.c' 2>/dev/null)
-Actor_O   = $(foreach f,$(Actor_C:.c=.o),$f)
-Actor_Elf = $(foreach f,$(Actor_C:.c=.elf),$f)
+Actor_C   = $(shell cd src && find actor/0x*/* -type f -name '*.c' 2>/dev/null)
+Actor_O   = $(foreach f,$(Actor_C:.c=.o),rom/$(f))
+Actor_Elf = $(foreach f,$(Actor_C:.c=.elf),rom/$(f))
 
-Library_C   = $(shell find global_lib/* -type f -name '*.c' 2>/dev/null)
-Library_O   = $(foreach f,$(Library_C:.c=.o),rom/$f)
-Library_Elf = $(foreach f,$(Library_C:.c=.elf),rom/$f)
+Library_C   = $(shell cd src && find lib_user/* -type f -name '*.c' 2>/dev/null)
+Library_O   = $(foreach f,$(Library_C:.c=.o),rom/$(f))
+Library_Elf = $(foreach f,$(Library_C:.c=.elf),rom/$(f))
 
-Code_C   = $(shell find code/* -maxdepth 2 -type f -name '*.c' 2>/dev/null)
-Code_O   = $(foreach f,$(Code_C:.c=.o),rom/$f)
-Code_Elf = $(foreach f,$(Code_C:.c=.elf),rom/$f)
+Code_C   = $(shell cd src && find lib_code/* -maxdepth 2 -type f -name '*.c' 2>/dev/null)
+Code_O   = $(foreach f,$(Code_C:.c=.o),rom/$(f))
+Code_Elf = $(foreach f,$(Code_C:.c=.elf),rom/$(f))
 
 # Make build directories
 $(shell mkdir -p rom/ $(foreach dir, \
@@ -48,7 +48,7 @@ $(shell mkdir -p rom/ $(foreach dir, \
 mips64_download = https://cdn.discordapp.com/attachments/889436307758129203/936660603454513162/mips64-binutils.7z
 z64hdr_git      = https://github.com/z64tools/z64hdr.git
 
-.PHONY: all rom clean clean-dist clean-rom clean-dist confirm setup actor library code
+.PHONY: all rom clean clean-dist clean-rom clean-dist confirm setup actor library code check
 .DEFAULT_GOAL := all
 
 all: library code actor
@@ -59,7 +59,10 @@ clean:
 	@rm -f $(Actor_O)
 	@rm -f $(Actor_Elf)
 	@rm -f $(Library_O)
-	@rm -f rom/global_lib/z_code_lib.bin
+	@rm -f $(Library_Elf)
+	@rm -f $(Code_O)
+	@rm -f $(Code_Elf)
+	@rm -f rom/lib_user/z_code_lib.bin
 
 clean-rom:
 	@rm -f -R rom
@@ -109,13 +112,13 @@ setup:
 	
 actor: $(Actor_O) $(Actor_Elf)
 	
-rom/actor/%.o: rom/actor/%.c rom/actor/%.h
-	@echo "$(PRNT_CYAN)Actor$(PRNT_RSET):   $(notdir $<)"
+rom/actor/%.o: src/actor/%.c src/actor/%.h
+	@echo "$(PRNT_CYAN)Actor$(PRNT_RSET):   $(notdir $@)"
 	@printf "ENTRY_POINT = 0x80800000;" > $(@D)/entry.ld
 	@$(mips64_gcc) -c $(GccFlags) $< -o $@
 
 rom/actor/%.elf: rom/actor/%.o $(ElfDep)
-	@echo "$(PRNT_CYAN)Actor$(PRNT_RSET):   $(notdir $<)"
+	@echo "$(PRNT_CYAN)Actor$(PRNT_RSET):   $(notdir $@)"
 	@$(mips64_ld) -o $@ $< -L$(@D) $(LdFlags)
 	@$(mips64_objdump) -drz $@ > $(@:.elf=.s)
 	@printf "alloc_type = 0\n" > $(@D)/config.cfg
@@ -127,20 +130,20 @@ rom/actor/%.elf: rom/actor/%.o $(ElfDep)
 # CODE LIBRARY                        #
 # # # # # # # # # # # # # # # # # # # #
 
-library: $(Library_O) rom/global_lib/z_code_lib.bin
+library: $(Library_O) rom/lib_user/z_code_lib.bin
 	
-rom/global_lib/%.o: global_lib/%.c
-	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): $(notdir $<)"
+rom/lib_user/%.o: src/lib_user/%.c
+	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): $(notdir $@)"
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
 
-rom/global_lib/%.o: global_lib/%.c global_lib/%.h
-	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): $(notdir $<)"
+rom/lib_user/%.o: src/lib_user/%.c src/lib_user/%.h
+	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): $(notdir $@)"
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
 
-z_code_lib_elf = rom/global_lib/z_code_lib.elf
-z_code_lib_s   = rom/global_lib/z_code_lib.s
+z_code_lib_elf = rom/lib_user/z_code_lib.elf
+z_code_lib_s   = rom/lib_user/z_code_lib.s
 
-rom/global_lib/z_code_lib.bin: $(Library_O)
+rom/lib_user/z_code_lib.bin: $(Library_O)
 	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): z_code_lib.bin"
 	@printf "ENTRY_POINT = 0x80600000;\n" > $(@D)/entry.ld
 	@$(mips64_ld) -o $(z_code_lib_elf) $^ -L$(@D) $(LdFlags)
@@ -156,13 +159,13 @@ rom/global_lib/z_code_lib.bin: $(Library_O)
 
 code: $(Code_O) $(Code_Elf)
 	
-rom/code/%.o: code/%.c code/%.cfg
-	@echo "$(PRNT_PRPL)Code$(PRNT_RSET):    $(notdir $<)"
+rom/lib_code/%.o: src/lib_code/%.c src/lib_code/%.cfg
+	@echo "$(PRNT_PRPL)Code$(PRNT_RSET):    $(notdir $@)"
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
 	@cp $(<:.c=.cfg) $(@:.o=.cfg)
 
-rom/code/%.elf: rom/code/%.o $(ElfDep)
-	@echo "$(PRNT_PRPL)Code$(PRNT_RSET):    $(notdir $<)"
+rom/lib_code/%.elf: rom/lib_code/%.o $(ElfDep)
+	@echo "$(PRNT_PRPL)Code$(PRNT_RSET):    $(notdir $@)"
 	@mkdir -p $(EntryDir)
 	@printf "ENTRY_POINT = %s;\n" $$(grep 'ram' $(@:.elf=.cfg) | cut -d " " -f 3) > $(EntryDir)/entry.ld
 	@$(mips64_ld) -o $@ $< -L$(EntryDir)/ $(LdFlags)

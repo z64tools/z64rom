@@ -56,18 +56,18 @@ win32-release: project-files-win32 $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABL
 tools: project/tools/elf2ld project/tools/novl
 
 project-files-linux: tools project/tools/z64audio
-	@cp -r project/patch          z64rom_linux/
-	@cp -r project/code             z64rom_linux/
-	@cp -R project/*                z64rom_linux/
-	@rm -f                          z64rom_linux/*/*.txt
-	@rm -f                          z64rom_linux/tools/z64audio.exe
+	@cp -r project/patch  z64rom_linux/
+	@cp -r project/src    z64rom_linux/
+	@cp -R project/*      z64rom_linux/
+	@rm -f                z64rom_linux/*/*/*.txt
+	@rm -f                z64rom_linux/tools/z64audio.exe
 
 project-files-win32: tools project/tools/z64audio.exe
-	@cp -r project/patch          z64rom_win32/
-	@cp -r project/code             z64rom_win32/
-	@cp -R project/*                z64rom_win32/
-	@rm -f                          z64rom_win32/*/*.txt
-	@rm -f                          z64rom_win32/tools/z64audio
+	@cp -r project/patch  z64rom_win32/
+	@cp -r project/src    z64rom_win32/
+	@cp -R project/*      z64rom_win32/
+	@rm -f                z64rom_win32/*/*/*.txt
+	@rm -f                z64rom_win32/tools/z64audio
 
 # # # # # # # # # # # # # # # # # # # #
 # CLEAN                               #

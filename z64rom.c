@@ -1,6 +1,6 @@
 #include "lib/z64rom.h"
 
-char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.3.0.0"
+char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.4.0.0"
 #ifndef NDEBUG
 		PRNT_DGRY " DEBUG BUILD"
 #endif
@@ -25,11 +25,40 @@ void sleep(u32);
 s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
 	Rom* rom = Lib_Calloc(0, sizeof(struct Rom));
+	u32 parArg = 0;
 	
 	#ifdef _WIN32
 		printf_WinFix();
 	#endif
 	printf_SetPrefix("");
+	
+	if (ParArg("--actor")) {
+		u32 id = String_GetInt(argv[parArg]);
+		
+		if (ParArg("--i")) {
+			input = argv[parArg];
+			rom->type = Zelda_OoT_Debug;
+			Rom_New(rom, input);
+			Rom_Debug_ActorEntry(rom, id);
+			Rom_Free(rom);
+		}
+		
+		return 0;
+	}
+	
+	if (ParArg("--dma")) {
+		u32 id = String_GetInt(argv[parArg]);
+		
+		if (ParArg("--i")) {
+			input = argv[parArg];
+			rom->type = Zelda_OoT_Debug;
+			Rom_New(rom, input);
+			Rom_Debug_DmaEntry(rom, id);
+			Rom_Free(rom);
+		}
+		
+		return 0;
+	}
 	
 	z64rom_CheckTypes();
 	z64rom_Args(argv);
@@ -78,11 +107,8 @@ s32 Main(s32 argc, char* argv[]) {
 void z64rom_Args(char* argv[]) {
 	u32 parArg = 0;
 	
-	if (ParArg("--Generic"))
+	if (ParArg("--generic"))
 		gGenericNames = true;
-	
-	if (ParArg("--A"))
-		gExtractAudio = false;
 	
 	if (ParArg("--L"))
 		gLog = true;

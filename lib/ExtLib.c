@@ -601,41 +601,34 @@ void ItemList_NumericalSort(ItemList* list) {
 	ItemList sorted = { 0 };
 	u32 highestNum = 0;
 	
-	if (list->num <= 1)
-		return;
-	
 	for (s32 i = 0; i < list->num; i++) {
 		if (String_GetInt(list->item[i]) > highestNum)
 			highestNum = String_GetInt(list->item[i]);
 	}
 	
-	sorted.buffer = Graph_Alloc(list->writePoint + 0x10);
-	sorted.item = Graph_Alloc(sizeof(char*) * (highestNum + 2));
+	sorted.buffer = NULL;
+	sorted.item = Graph_Alloc(sizeof(char*) * (highestNum + 1));
 	
 	for (s32 i = 0; i <= highestNum; i++) {
 		u32 null = true;
 		
 		for (s32 j = 0; j < list->num; j++) {
 			if (String_GetInt(list->item[j]) == i) {
-				sorted.item[sorted.num] = &sorted.buffer[sorted.writePoint];
-				strcpy(sorted.item[sorted.num], list->item[j]);
-				sorted.writePoint += strlen(list->item[j]) + 1;
-				sorted.num++;
+				sorted.item[sorted.num++] = Graph_GenStr(list->item[j]);
 				null = false;
 				break;
 			}
 		}
 		
 		if (null == true) {
-			sorted.item[sorted.num] = NULL;
-			sorted.num++;
+			sorted.item[sorted.num++] = NULL;
 		}
 	}
 	
 	#ifndef NDEBUG
-		printf_debugExt("sorted, %d -> %d", list->num, sorted.num);
+		printf_info("sorted, %d -> %d", list->num, sorted.num);
 		for (s32 i = 0; i < sorted.num; i++) {
-			printf_debug("%d - %s", i, sorted.item[i]);
+			printf_info("%d - %s", i, sorted.item[i]);
 		}
 	#endif
 	
@@ -1523,7 +1516,7 @@ s32 MemFile_LoadFile(MemFile* memFile, char* filepath) {
 	struct stat sta;
 	
 	if (file == NULL) {
-		printf_debug("Failed to fopen file [%s].", filepath);
+		printf_warning("Failed to open file [%s]", filepath);
 		
 		return 1;
 	}
@@ -1577,7 +1570,7 @@ s32 MemFile_LoadFile_String(MemFile* memFile, char* filepath) {
 	struct stat sta;
 	
 	if (file == NULL) {
-		printf_warning("Failed to fopen file [%s].", filepath);
+		printf_warning("Failed to open file [%s]", filepath);
 		
 		return 1;
 	}

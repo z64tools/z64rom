@@ -738,7 +738,7 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	MemFile_Malloc(&sample, MbToBin(0.25));
 	MemFile_Reset(dataFile);
-	Rom_ItemList(&itemList, true, false, false);
+	Rom_ItemList(&itemList, false);
 	MemFile_Params(dataFile, MEM_ALIGN, 16, MEM_REALLOC, true, MEM_END);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
@@ -820,7 +820,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Malloc(&memSfx, MbToBin(0.25));
 	MemFile_Malloc(&memDrum, MbToBin(0.25));
 	
-	Rom_ItemList(&itemList, true, true, false);
+	Rom_ItemList(&itemList, true);
 	
 	sfHead.numEntries = itemList.num;
 	SwapBE(sfHead.numEntries);
@@ -1457,7 +1457,7 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Malloc(&memIndexTable, 0x1C0);
 	MemFile_Malloc(&memLookUpTable, 0x1C0);
 	MemFile_Malloc(&sequenceMem, MbToBin(1.0));
-	Rom_ItemList(&itemList, true, true, false);
+	Rom_ItemList(&itemList, true);
 	
 	sqHead.numEntries = itemList.num;
 	SwapBE(sqHead.numEntries);

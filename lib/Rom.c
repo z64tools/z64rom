@@ -6,7 +6,9 @@ void Rom_ItemList(ItemList* list, bool isNum) {
 	
 	Dir_Enter(".vanilla/"); {
 		Dir_ItemList(&vanilla, true);
-	} Dir_Leave();
+		
+		Dir_Leave();
+	}
 	Dir_ItemList(&modified, true);
 	
 	if (isNum) {
@@ -280,6 +282,8 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 	}
 }
 
+/* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
+
 void Rom_Dump(Rom* rom) {
 	MemFile dataFile = MemFile_Initialize();
 	MemFile config = MemFile_Initialize();
@@ -290,8 +294,8 @@ void Rom_Dump(Rom* rom) {
 	MemFile_Malloc(&config, 0x25000);
 	
 	printf_info_align("Dump Rom", PRNT_PRPL "%s", rom->file.info.name);
-	Dir_Enter("rom/");
-	#if 1
+	
+	Dir_Enter("rom/"); {
 		Dir_Enter("actor/.vanilla/"); {
 			for (s32 i = 0; i < rom->table.num.actor; i++) {
 				rf = Dma_RomFile_Actor(rom, i);
@@ -303,9 +307,13 @@ void Rom_Dump(Rom* rom) {
 				Dir_Enter("0x%04X-%s/", i, gActorName[i]); {
 					if (Rom_Extract(&dataFile, rf, Dir_File("actor.zovl")))
 						Rom_Config_Actor(&config, &rom->table.actor[i], gActorName[i], Dir_File("config.cfg"));
-				} Dir_Leave();
+					
+					Dir_Leave();
+				}
 			}
-		} Dir_Leave();
+			
+			Dir_Leave();
+		}
 		
 		Dir_Enter("object/.vanilla/"); {
 			for (s32 i = 0; i < rom->table.num.obj; i++) {
@@ -317,9 +325,13 @@ void Rom_Dump(Rom* rom) {
 				printf_progress("Object", i + 1, rom->table.num.obj);
 				Dir_Enter("0x%04X-%s/", i, gObjectName[i]); {
 					Rom_Extract(&dataFile, rf, Dir_File("object.zobj"));
-				} Dir_Leave();
+					
+					Dir_Leave();
+				}
 			}
-		} Dir_Leave();
+			
+			Dir_Leave();
+		}
 		
 		Dir_Enter("system/.vanilla/"); {
 			for (s32 i = 0; i < rom->table.num.state; i++) {
@@ -332,18 +344,23 @@ void Rom_Dump(Rom* rom) {
 				Dir_Enter("GameState_%s/", gStateName[i]); {
 					if (Rom_Extract(&dataFile, rf, Dir_File("state.zovl")))
 						Rom_Config_GameState(&config, &rom->table.state[i], gStateName[i], Dir_File("config.cfg"));
-				} Dir_Leave();
+					
+					Dir_Leave();
+				}
 			}
 			
-			printf_info("Player");
 			Dir_Enter("Player/"); {
 				rf.size = ReadBE(rom->table.kaleido[1].vromEnd) - ReadBE(rom->table.kaleido[1].vromStart);
 				rf.data = SegmentedToVirtual(0x0, ReadBE(rom->table.kaleido[1].vromStart));
 				
 				Rom_Extract(&dataFile, rf, Dir_File("EnPlayer.zovl"));
 				Rom_Config_Player(rom, &config, &rom->table.kaleido[1], "Player", Dir_File("config.cfg"));
-			} Dir_Leave();
-		} Dir_Leave();
+				
+				Dir_Leave();
+			}
+			
+			Dir_Leave();
+		}
 		
 		Dir_Enter("scene/.vanilla/"); {
 			for (s32 i = 0; i < rom->table.num.scene; i++) {
@@ -393,19 +410,24 @@ void Rom_Dump(Rom* rom) {
 							}
 						}
 					}
-				} Dir_Leave();
+					
+					Dir_Leave();
+				}
 			}
-		} Dir_Leave();
-		SetSegment(0x2, NULL);
-	#endif
-	
-	Dir_Enter("sound/"); {
-		Rom_Dump_SoundFont(rom, &dataFile, &config);
-		Rom_Dump_Sequences(rom, &dataFile, &config);
-		Rom_Dump_Samples(rom, &dataFile, &config);
-	} Dir_Leave();
-	
-	Dir_Leave();
+			
+			Dir_Leave();
+		}
+		
+		Dir_Enter("sound/"); {
+			Rom_Dump_SoundFont(rom, &dataFile, &config);
+			Rom_Dump_Sequences(rom, &dataFile, &config);
+			Rom_Dump_Samples(rom, &dataFile, &config);
+			
+			Dir_Leave();
+		}
+		
+		Dir_Leave();
+	}
 	
 	MemFile_Free(&dataFile);
 	MemFile_Free(&config);
@@ -433,17 +455,24 @@ void Rom_Build(Rom* rom) {
 	
 	Dir_Enter("rom/"); {
 		Dir_Enter("sound/"); {
-			Dir_Enter("sample/");
-			Rom_Build_SampleTable(rom, &dataFile, &config);
-			Dir_Leave();
-			Dir_Enter("soundfont/");
-			Rom_Build_SoundFont(rom, &dataFile, &config);
-			Dir_Leave();
-			Dir_Enter("sequence/");
-			Rom_Build_Sequence(rom, &dataFile, &config);
-			Dir_Leave();
-			Dir_Leave();
+			Dir_Enter("sample/"); {
+				Rom_Build_SampleTable(rom, &dataFile, &config);
+				
+				Dir_Leave();
+			}
+			Dir_Enter("soundfont/"); {
+				Rom_Build_SoundFont(rom, &dataFile, &config);
+				
+				Dir_Leave();
+			}
+			Dir_Enter("sequence/"); {
+				Rom_Build_Sequence(rom, &dataFile, &config);
+				
+				Dir_Leave();
+			}
 			Rom_Build_SetAudioSegment(rom);
+			
+			Dir_Leave();
 		}
 		
 		Dir_Enter("actor/"); {
@@ -528,6 +557,7 @@ void Rom_Build(Rom* rom) {
 					Dir_Leave();
 				}
 			}
+			
 			Dir_Leave();
 		}
 		
@@ -652,6 +682,7 @@ void Rom_Build(Rom* rom) {
 		
 		Dir_Enter("lib_code/"); {
 			Rom_Build_Code(rom, &dataFile, &config);
+			
 			Dir_Leave();
 		}
 		
@@ -662,6 +693,7 @@ void Rom_Build(Rom* rom) {
 				MemFile_LoadFile(&dataFile, Dir_File("z_code_lib.bin"));
 				Dma_WriteEntry(rom, 1, &dataFile);
 			}
+			
 			Dir_Leave();
 		}
 		
@@ -671,6 +703,7 @@ void Rom_Build(Rom* rom) {
 	Dir_Enter("patch/"); {
 		printf_info("Applying Patches");
 		Rom_Build_Patch(rom, &dataFile, &config);
+		
 		Dir_Leave();
 	}
 	
@@ -872,6 +905,8 @@ void Rom_Free(Rom* rom) {
 	MemFile_Free(&rom->mem.seqFontTbl);
 	memset(rom, 0, sizeof(struct Rom));
 }
+
+/* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
 
 void Rom_Debug_ActorEntry(Rom* rom, u32 id) {
 	ActorEntry* actorTable = rom->table.actor;

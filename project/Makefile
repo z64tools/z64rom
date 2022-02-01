@@ -39,10 +39,14 @@ Code_C   = $(shell cd src && find lib_code/* -maxdepth 2 -type f -name '*.c' 2>/
 Code_O   = $(foreach f,$(Code_C:.c=.o),rom/$(f))
 Code_Elf = $(foreach f,$(Code_C:.c=.elf),rom/$(f))
 
+Code_S   = $(shell cd src && find lib_code/* -maxdepth 2 -type f -name '*.s' 2>/dev/null)
+Code_SElf = $(foreach f,$(Code_S:.s=.elf),rom/$(f))
+
 # Make build directories
 $(shell mkdir -p rom/ $(foreach dir, \
 	$(dir $(Library_O)) \
 	$(dir $(Code_O)) \
+	$(dir $(Actor_O)) \
 	, $(dir)))
 
 mips64_download = https://cdn.discordapp.com/attachments/889436307758129203/936660603454513162/mips64-binutils.7z
@@ -56,13 +60,9 @@ rom: all
 	@$(z64rom)
 
 clean:
-	@rm -f $(Actor_O)
-	@rm -f $(Actor_Elf)
-	@rm -f $(Library_O)
-	@rm -f $(Library_Elf)
-	@rm -f $(Code_O)
-	@rm -f $(Code_Elf)
-	@rm -f rom/lib_user/z_code_lib.bin
+	@rm -f -R $(dir $(Actor_O))
+	@rm -f -R rom/lib_user
+	@rm -f -R rom/lib_code
 
 clean-rom:
 	@rm -f -R rom
@@ -157,7 +157,7 @@ rom/lib_user/z_code_lib.bin: $(Library_O)
 # CODE PATCH                          #
 # # # # # # # # # # # # # # # # # # # #
 
-code: $(Code_O) $(Code_Elf)
+code: $(Code_O) $(Code_Elf) $(Code_SElf)
 	
 rom/lib_code/%.o: src/lib_code/%.c src/lib_code/%.cfg
 	@echo "$(PRNT_PRPL)Code$(PRNT_RSET):    $(notdir $@)"
@@ -170,4 +170,13 @@ rom/lib_code/%.elf: rom/lib_code/%.o $(ElfDep)
 	@printf "ENTRY_POINT = %s;\n" $$(grep 'ram' $(@:.elf=.cfg) | cut -d " " -f 3) > $(EntryDir)/entry.ld
 	@$(mips64_ld) -o $@ $< -L$(EntryDir)/ $(LdFlags)
 	@$(mips64_objdump) -drz $@ > $(@:.elf=.s)
+	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $@ $(@:.elf=.bin)
+
+rom/lib_code/%.elf: src/lib_code/%.s $(ElfDep)
+	@cp $(<:.s=.cfg) $(@:.elf=.cfg)
+	@echo "$(PRNT_PRPL)Asm$(PRNT_RSET):     $(notdir $@)"
+	@mkdir -p $(EntryDir)
+	@printf "ENTRY_POINT = %s;\n" $$(grep 'ram' $(@:.elf=.cfg) | cut -d " " -f 3) > $(EntryDir)/entry.ld
+	@$(mips64_gcc) -x assembler-with-cpp -c $< -o $(@:.elf=.o) -L$(EntryDir)/ -L$(CURDIR)/include/oot_mq_debug/ -L$(CURDIR)/include/common/ -T z64hdr.ld
+	@$(mips64_ld) -o $@ $(@:.elf=.o) -L$(EntryDir)/ $(LdFlags)
 	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $@ $(@:.elf=.bin)

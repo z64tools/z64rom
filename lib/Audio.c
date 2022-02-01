@@ -400,7 +400,9 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			Config_WriteVar_Str("sequence_player", sSeqPlayerType[entry->seqPlayer]);
 			
 			MemFile_SaveFile_String(config, Dir_File("config.cfg"));
-		} Dir_Leave();
+			
+			Dir_Leave();
+		}
 	}
 	Dir_Leave();
 	
@@ -464,11 +466,15 @@ void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 				Config_WriteVar_Str("sequence_player", sSeqPlayerType[entry->seqPlayer]);
 				
 				MemFile_SaveFile_String(config, Dir_File("config.cfg"));
-			} Dir_Leave();
+				
+				Dir_Leave();
+			}
 		}
 		
 		SetSegment(0x1, NULL);
-	} Dir_Leave();
+		
+		Dir_Leave();
+	}
 }
 
 void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
@@ -610,7 +616,9 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 							printf_warning_align("Audio", "Empty File [%s]", Dir_File("Sample.wav"));
 					}
 				}
-			} Dir_Leave();
+				
+				Dir_Leave();
+			}
 		}
 		
 		for (s32 j = 0; j < sBankNum; j++) {
@@ -678,7 +686,9 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		if (gExtractAudio && !gGenericNames)
 			Rom_Dump_Samples_PatchWavFiles(dataFile, config);
-	} Dir_Leave();
+		
+		Dir_Leave();
+	}
 }
 
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
@@ -777,7 +787,9 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			String_Replace(sSampleTbl[sSampleTblNum].name, "/", "\0");
 			sSampleTblNum++;
 			MemFile_Append(dataFile, &sample);
-		} Dir_Leave();
+			
+			Dir_Leave();
+		}
 	}
 	
 	head.numEntries = 1;
@@ -850,6 +862,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				Dir_Enter("instrument/");
 				Dir_ItemList(&listInst, false);
 				ItemList_NumericalSort(&listInst);
+				
 				Dir_Leave();
 			}
 			
@@ -857,6 +870,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				Dir_Enter("sfx/");
 				Dir_ItemList(&listSfx, false);
 				ItemList_NumericalSort(&listSfx);
+				
 				Dir_Leave();
 			}
 			
@@ -864,6 +878,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				Dir_Enter("drum/");
 				Dir_ItemList(&listDrum, false);
 				ItemList_NumericalSort(&listDrum);
+				
 				Dir_Leave();
 			}
 			
@@ -1430,7 +1445,9 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			#ifndef NDEBUG
 				MemFile_SaveFile(&memBank, Dir_File("0x%02X-Bank.bin", i));
 			#endif
-		} Dir_Leave();
+			
+			Dir_Leave();
+		}
 	}
 	
 	rom->offset.segment.fontRom = Dma_WriteEntry(rom, -3, &soundFontMem);
@@ -1467,6 +1484,10 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 		printf_progress("Append Sequences", i + 1, itemList.num);
 		u32 addr;
 		u8 fontNum;
+		
+		// Skip "hardcoded" entries
+		if (i == 0x7F || i == 0x80)
+			continue;
 		
 		Dir_Enter(itemList.item[i]); {
 			u32 med = 0;
@@ -1526,7 +1547,9 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 				u8 bankId = Config_GetInt(config, title);
 				MemFile_Write(&memIndexTable, &bankId, 1);
 			}
-		} Dir_Leave();
+			
+			Dir_Leave();
+		}
 	}
 	
 	u16 add = memLookUpTable.seekPoint;

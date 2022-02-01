@@ -707,9 +707,11 @@ static void Audio_LoadFile(MemFile* dataFile, char* file) {
 	
 	strcpy(buf, file);
 	String_Replace(buf, "*", "sample");
-	if (MemFile_LoadFile(dataFile, Dir_File(buf)))
-		if (MemFile_LoadFile(dataFile, Dir_File(file)))
-			printf_error("Could not load file [%s]", Dir_File(buf));
+	if (Stat(Dir_File(buf))) {
+		if (MemFile_LoadFile(dataFile, Dir_File(buf))) printf_error("Exiting...");
+	} else {
+		if (MemFile_LoadFile(dataFile, Dir_File(file))) printf_error("Exiting...");
+	}
 }
 
 void Rom_Build_SetAudioSegment(Rom* rom) {

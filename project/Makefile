@@ -18,16 +18,20 @@ PRNT_PRPL := \e[0;95m
 PRNT_CYAN := \e[0;96m
 PRNT_RSET := \e[m
 
-ElfDep        = rom/lib_user/z_code_lib.bin
+Linkers        = include/common/z_code_lib.ld include/common/objects.ld
 GccFlags_Warn = -Wall -Wno-builtin-declaration-mismatch -Wno-unused-variable
-GccFlags      = -I$(CURDIR)/include -I$(CURDIR)/include/include -G 0 -O1 -fno-reorder-blocks -std=gnu99 -march=vr4300 -mabi=32 -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division $(GccFlags_Warn)
+GccFlags      = -I$(CURDIR)/include -I$(CURDIR)/include/include -I$(CURDIR)/src/lib_user -G 0 -O1 -fno-reorder-blocks -std=gnu99 -march=vr4300 -mabi=32 -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division $(GccFlags_Warn)
 GccFlags_Code = $(GccFlags) -mno-gpopt -fomit-frame-pointer
-LdFlags       = -L$(CURDIR)/include/oot_mq_debug/ -L$(CURDIR)/include/common/ -T z64hdr.ld --emit-relocs
+LdFlags       = -L$(CURDIR)/include/oot_mq_debug/ -L$(CURDIR)/include/common/ -T z64hdr.ld -T objects.ld -T z_code_lib.ld --emit-relocs
 nOvlFlags     = -v -c -A
 
 EntryDir = $(@D)/.temp/$(notdir $(basename $<))
 
+Object_objex   = $(shell cd src && find object/0x*/* -type f -name '*.objex' 2>/dev/null)
+Object_zobj   = $(foreach f,$(Object_objex:.objex=.zobj),rom/$(f))
+
 Actor_C   = $(shell cd src && find actor/0x*/* -type f -name '*.c' 2>/dev/null)
+Actor_H   = $(shell find src/actor/0x*/* -maxdepth 0 -type f -name '*.h' '*.c' 2>/dev/null)
 Actor_O   = $(foreach f,$(Actor_C:.c=.o),rom/$(f))
 Actor_Elf = $(foreach f,$(Actor_C:.c=.elf),rom/$(f))
 
@@ -47,20 +51,31 @@ $(shell mkdir -p rom/ $(foreach dir, \
 	$(dir $(Library_O)) \
 	$(dir $(Code_O)) \
 	$(dir $(Actor_O)) \
+	$(dir $(Object_zobj)) \
 	, $(dir)))
 
 mips64_download = https://cdn.discordapp.com/attachments/889436307758129203/936660603454513162/mips64-binutils.7z
 z64hdr_git      = https://github.com/z64tools/z64hdr.git
+incbin_git      = https://github.com/graphitemaster/incbin.git
 
 .PHONY: all rom clean clean-dist clean-rom clean-dist confirm setup actor library code check
 .DEFAULT_GOAL := all
 
-all: library code actor
+all:
+	@$(MAKE) object --no-print-directory -s
+	@$(MAKE) header_depper --no-print-directory -s
+	@$(MAKE) src --no-print-directory -s
+
+src: library code actor
+object: $(Object_zobj)
+
 rom: all
 	@$(z64rom)
 
 clean:
 	@rm -f -R $(dir $(Actor_O))
+	@rm -f -R $(dir $(Object_zobj))
+	@rm -f $(Linkers)
 	@rm -f -R rom/lib_user
 	@rm -f -R rom/lib_code
 
@@ -71,6 +86,10 @@ clean-dist: clean clean-rom
 	@rm -f -R include
 	@rm -f -R tools/mips64-binutils
 	@rm -f -R tools/mips64-binutils.7z
+
+# Update if the included file is newer. Mainly used for object changes
+header_depper: $(Actor_H)
+	@tools/depper $^
 
 setup:
 	@echo "$(PRNT_GRAY)# $(PRNT_RSET)Setup is going to be downloading files and unpacking them automatically."
@@ -107,6 +126,23 @@ setup:
 	fi;
 
 # # # # # # # # # # # # # # # # # # # #
+# CODE OBJECT                         #
+# # # # # # # # # # # # # # # # # # # #
+ObjexSettings = $(shell sed -n 1p $(dir $<)conf.txt)
+
+rom/object/%.zobj: src/object/%.objex
+	@echo "$(PRNT_GREN)Object$(PRNT_RSET):  $(notdir $@)"
+	@mkdir -p include/object/
+	@tools/z64convert --silent --in $< --out $@ $(ObjexSettings) --header include/object/$(notdir $(basename $<))_tmp.h --linker include/object/$(notdir $(basename $<))_tmp.ld
+	@tools/cofi include/object/$(notdir $(basename $<))_tmp.ld include/object/$(notdir $(basename $<)).ld
+	@tools/cofi include/object/$(notdir $(basename $<))_tmp.h include/object/$(notdir $(basename $<)).h
+
+include/common/objects.ld: $(Object_zobj)
+	@echo "$(PRNT_YELW)Linker$(PRNT_RSET):  $(notdir $@)"
+	@cat include/object/*.ld > $(@:.ld=_tmp.ld)
+	tools/cofi $(@:.ld=_tmp.ld) $@
+
+# # # # # # # # # # # # # # # # # # # #
 # CODE ACTOR                          #
 # # # # # # # # # # # # # # # # # # # #
 	
@@ -117,7 +153,7 @@ rom/actor/%.o: src/actor/%.c src/actor/%.h
 	@printf "ENTRY_POINT = 0x80800000;" > $(@D)/entry.ld
 	@$(mips64_gcc) -c $(GccFlags) $< -o $@
 
-rom/actor/%.elf: rom/actor/%.o $(ElfDep)
+rom/actor/%.elf: rom/actor/%.o $(Linkers)
 	@echo "$(PRNT_CYAN)Actor$(PRNT_RSET):   $(notdir $@)"
 	@$(mips64_ld) -o $@ $< -L$(@D) $(LdFlags)
 	@$(mips64_objdump) -drz $@ > $(@:.elf=.s)
@@ -130,28 +166,29 @@ rom/actor/%.elf: rom/actor/%.o $(ElfDep)
 # CODE LIBRARY                        #
 # # # # # # # # # # # # # # # # # # # #
 
-library: $(Library_O) rom/lib_user/z_code_lib.bin
+library: $(Library_O) include/common/z_code_lib.ld
 	
-rom/lib_user/%.o: src/lib_user/%.c
+rom/lib_user/%.o: src/lib_user/%.c include/common/objects.ld
 	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): $(notdir $@)"
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
 
-rom/lib_user/%.o: src/lib_user/%.c src/lib_user/%.h
+rom/lib_user/%.o: src/lib_user/%.c src/lib_user/%.h include/common/objects.ld
 	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): $(notdir $@)"
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
 
 z_code_lib_elf = rom/lib_user/z_code_lib.elf
 z_code_lib_s   = rom/lib_user/z_code_lib.s
+z_code_lib_bin = rom/lib_user/z_code_lib.bin
 
-rom/lib_user/z_code_lib.bin: $(Library_O)
+include/common/z_code_lib.ld: $(Library_O)
 	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): z_code_lib.bin"
-	@printf "ENTRY_POINT = 0x80600000;\n" > $(@D)/entry.ld
-	@$(mips64_ld) -o $(z_code_lib_elf) $^ -L$(@D) $(LdFlags)
+	@printf "ENTRY_POINT = 0x80600000;\n" > rom/lib_user/entry.ld
+	@$(mips64_ld) -o $(z_code_lib_elf) $^ -Lrom/lib_user -L$(CURDIR)/include/oot_mq_debug/ -L$(CURDIR)/include/common/ -T z64hdr.ld -T objects.ld --emit-relocs
 	@$(mips64_objdump) -drz $(z_code_lib_elf) > $(z_code_lib_s)
-	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $(z_code_lib_elf) $@
+	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $(z_code_lib_elf) $(z_code_lib_bin)
 	
-	@$(mips64_objdump) -x -t $(z_code_lib_elf) | grep -E '806.*[O,F].*[r,t,d][o,e,a][d,x,t].*\0000' > include/oot_mq_debug/temp_codelib.ld
-	@$(elf2ld) include/oot_mq_debug/temp_codelib.ld include/oot_mq_debug/z_code_lib.ld
+	@$(mips64_objdump) -x -t $(z_code_lib_elf) | grep -E '806.*[O,F].*[r,t,d,b][o,e,a,s][d,x,t,s].*\0000' > include/common/temp_codelib.ld
+	@$(elf2ld) include/common/temp_codelib.ld include/common/z_code_lib.ld
 
 # # # # # # # # # # # # # # # # # # # #
 # CODE PATCH                          #
@@ -164,7 +201,7 @@ rom/lib_code/%.o: src/lib_code/%.c src/lib_code/%.cfg
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
 	@cp $(<:.c=.cfg) $(@:.o=.cfg)
 
-rom/lib_code/%.elf: rom/lib_code/%.o $(ElfDep)
+rom/lib_code/%.elf: rom/lib_code/%.o $(Linkers)
 	@echo "$(PRNT_PRPL)Code$(PRNT_RSET):    $(notdir $@)"
 	@mkdir -p $(EntryDir)
 	@printf "ENTRY_POINT = %s;\n" $$(grep 'ram' $(@:.elf=.cfg) | cut -d " " -f 3) > $(EntryDir)/entry.ld
@@ -172,11 +209,11 @@ rom/lib_code/%.elf: rom/lib_code/%.o $(ElfDep)
 	@$(mips64_objdump) -drz $@ > $(@:.elf=.s)
 	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $@ $(@:.elf=.bin)
 
-rom/lib_code/%.elf: src/lib_code/%.s $(ElfDep)
+rom/lib_code/%.elf: src/lib_code/%.s $(Linkers)
 	@cp $(<:.s=.cfg) $(@:.elf=.cfg)
 	@echo "$(PRNT_PRPL)Asm$(PRNT_RSET):     $(notdir $@)"
 	@mkdir -p $(EntryDir)
 	@printf "ENTRY_POINT = %s;\n" $$(grep 'ram' $(@:.elf=.cfg) | cut -d " " -f 3) > $(EntryDir)/entry.ld
-	@$(mips64_gcc) -x assembler-with-cpp -c $< -o $(@:.elf=.o) -L$(EntryDir)/ -L$(CURDIR)/include/oot_mq_debug/ -L$(CURDIR)/include/common/ -T z64hdr.ld
+	@$(mips64_gcc) -x assembler-with-cpp -c $< -o $(@:.elf=.o) -L$(EntryDir)/ -L$(CURDIR)/include/oot_mq_debug/ -L$(CURDIR)/include/common/ -T z64hdr.ld -T objects.ld -T z_code_lib.ld
 	@$(mips64_ld) -o $@ $(@:.elf=.o) -L$(EntryDir)/ $(LdFlags)
 	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $@ $(@:.elf=.bin)

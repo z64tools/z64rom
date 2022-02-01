@@ -1964,13 +1964,8 @@ char* String_GetFolder(const char* src, s32 num) {
 }
 
 char* String_GetSpacedArg(char* argv[], s32 cur) {
-	static char buffer[128][512];
-	static s32 index;
 	char tempBuf[512];
 	s32 i = cur + 1;
-	
-	index++;
-	index = index % 128;
 	
 	if (argv[i] && argv[i][0] != '-' && argv[i][1] != '-') {
 		strcpy(tempBuf, argv[cur]);
@@ -1980,9 +1975,7 @@ char* String_GetSpacedArg(char* argv[], s32 cur) {
 			strcat(tempBuf, argv[i++]);
 		}
 		
-		strcpy(buffer[index], tempBuf);
-		
-		return buffer[index];
+		return Graph_GenStr(tempBuf);
 	}
 	
 	return argv[cur];

@@ -23,3 +23,6 @@ bin/
 project/tools/z64audio
 project/tools/novl
 !project/**/*.cfg
+project/tools/cofi
+project/tools/depper
+project/tools/z64convert

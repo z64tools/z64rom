@@ -4,3 +4,7 @@
 [submodule "tools/z64audio"]
 	path = tools/z64audio
 	url = https://github.com/z64tools/z64audio.git
+[submodule "tools/z64convert"]
+	path = tools/z64convert
+	url = https://github.com/turpaan64/z64convert.git
+	branch = document-print

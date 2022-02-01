@@ -11,6 +11,7 @@
       # Hide submodules
       "nOVL"
       "z64audio"
+      "z64convert"
       
       # Hide build folder
       "bin"

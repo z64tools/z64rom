@@ -16,7 +16,6 @@ s32 gLog;
 s32 gGenericNames;
 s32 sDumpFlag;
 
-void z64rom_Args(char* argv[]);
 void z64rom_Config(char** input, Rom* rom, s32 argc, char* argv[]);
 void z64rom_CheckTypes();
 
@@ -60,8 +59,16 @@ s32 Main(s32 argc, char* argv[]) {
 		return 0;
 	}
 	
+	if (ParArg("--generic"))
+		gGenericNames = true;
+	
+	if (ParArg("--L"))
+		gLog = true;
+	
+	if (ParArg("--D"))
+		printf_SetSuppressLevel(PSL_DEBUG);
+	
 	z64rom_CheckTypes();
-	z64rom_Args(argv);
 	z64rom_Config(&input, rom, argc, argv);
 	
 	if (input) {
@@ -104,19 +111,6 @@ s32 Main(s32 argc, char* argv[]) {
 	return 0;
 }
 
-void z64rom_Args(char* argv[]) {
-	u32 parArg = 0;
-	
-	if (ParArg("--generic"))
-		gGenericNames = true;
-	
-	if (ParArg("--L"))
-		gLog = true;
-	
-	if (ParArg("--D"))
-		printf_SetSuppressLevel(PSL_DEBUG);
-}
-
 void z64rom_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
 	char* confAu = tprintf("%s%s", CurWorkDir(), "tools/z64audio.cfg");
 	char* confRom = tprintf("%s%s", CurWorkDir(), "z64project.cfg");
@@ -145,7 +139,7 @@ void z64rom_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
 	}
 	
 	if (Lib_ParseArguments(argv, "--i", &parArg)) {
-		input[0] = argv[parArg];
+		input[0] = String_GetSpacedArg(argv, parArg);
 		sDumpFlag = true;
 	} else {
 		for (s32 i = 0; i < argc; i++) {

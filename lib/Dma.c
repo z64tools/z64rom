@@ -2,6 +2,13 @@
 
 Slot* gSlotHead;
 
+struct {
+	struct {
+		s32 writable;
+	} entry[4000];
+	u32 highest;
+} gDma;
+
 RomFile Rom_GetRomFile(Rom* rom, u32 vromA, u32 vromB) {
 	DmaEntry* dmaTable = rom->table.dma;
 	s32 i;
@@ -46,22 +53,18 @@ RomFile Rom_GetRomFile(Rom* rom, u32 vromA, u32 vromB) {
 		return Rom_GetRomFile(rom, entry->vromStart, entry->vromEnd); \
 	}
 
-RomFile Dma_RomFile_Func(ObjectEntry, table.object, Object);
-RomFile Dma_RomFile_Func(ActorEntry, table.actor, Actor);
-RomFile Dma_RomFile_Func(DmaEntry, table.dma, DmaEntry);
-RomFile Dma_RomFile_Func(GameStateEntry, table.state, GameState);
-RomFile Dma_RomFile_Func(SceneEntry, table.scene, Scene);
-
-struct {
-	struct {
-		s32 writable;
-	} entry[4000];
-	u32 highest;
-} gDma;
+RomFile Dma_RomFile_Func(ObjectEntry, table.object, Object)
+RomFile Dma_RomFile_Func(ActorEntry, table.actor, Actor)
+RomFile Dma_RomFile_Func(EffectEntry, table.effect, Effect)
+RomFile Dma_RomFile_Func(DmaEntry, table.dma, DmaEntry)
+RomFile Dma_RomFile_Func(GameStateEntry, table.state, GameState)
+RomFile Dma_RomFile_Func(SceneEntry, table.scene, Scene)
 
 static u32 Slot_Size(Slot* slot) {
 	return slot->romEnd - slot->romStart;
 }
+
+/* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
 
 /**
  * id < -1, write without assigning DMA entry
@@ -264,7 +267,7 @@ void Dma_Free(Rom* rom, DmaBank type) {
 	Dma_CombineSlots();
 }
 
-/* */
+/* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
 
 void Dma_CombineSlots(void) {
 	Slot* slot = gSlotHead;

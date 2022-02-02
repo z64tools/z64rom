@@ -26,6 +26,7 @@ typedef struct {
 		u32 dmaTable;
 		u32 objTable;
 		u32 actorTable;
+		u32 effectTable;
 		u32 stateTable;
 		u32 sceneTable;
 		u32 kaleidoTable;
@@ -65,6 +66,7 @@ typedef struct Rom {
 		DmaEntry*       dma;
 		ActorEntry*     actor;
 		SceneEntry*     scene;
+		EffectEntry*    effect;
 		ObjectEntry*    object;
 		KaleidoEntry*   kaleido;
 		GameStateEntry* state;
@@ -72,6 +74,7 @@ typedef struct Rom {
 			u16 dma;
 			u16 obj;
 			u16 actor;
+			u16 effect;
 			u16 state;
 			u16 scene;
 			u16 kaleido;
@@ -122,6 +125,7 @@ typedef struct  {
 
 extern const char* gObjectName[];
 extern const char* gActorName[];
+extern const char* gEffectName[];
 extern const char* gStateName[];
 extern const char* gSceneName[];
 extern const char* gBankName[];

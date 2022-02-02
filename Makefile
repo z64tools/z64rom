@@ -7,16 +7,15 @@ SOURCE_O_RELEASE_LINUX := $(foreach f,$(SOURCE_C:.c=.o),bin/linux/ndebug/$f)
 SOURCE_O_WIN32 := $(foreach f,$(SOURCE_C:.c=.o),bin/win32/$f)
 SOURCE_O_RELEASE_WIN32 := $(foreach f,$(SOURCE_C:.c=.o),bin/win32/ndebug/$f)
 
-RELEASE_EXECUTABLE_LINUX := z64rom_linux/z64rom
-DEBUG_EXECUTABLE_LINUX   := z64rom_linux/z64rom-debug
-RELEASE_EXECUTABLE_WIN32 := z64rom_win32/z64rom.exe
-DEBUG_EXECUTABLE_WIN32   := z64rom_win32/z64rom-debug.exe
+RELEASE_EXECUTABLE_LINUX := release_linux/z64rom
+DEBUG_EXECUTABLE_LINUX   := release_linux/z64rom-debug
+RELEASE_EXECUTABLE_WIN32 := release_win32/z64rom.exe
+DEBUG_EXECUTABLE_WIN32   := release_win32/z64rom-debug.exe
 
 SOURCE_nOVL_C            := $(shell find tools/nOVL/src/* -type f -name '*.c')
 
 PRNT_DGRY := \e[90;2m
 PRNT_GRAY := \e[0;90m
-PRNT_DRED := \e[91;2m
 PRNT_REDD := \e[0;91m
 PRNT_GREN := \e[0;92m
 PRNT_YELW := \e[0;93m
@@ -35,8 +34,8 @@ $(shell mkdir -p bin/ $(foreach dir, \
 	$(dir $(SOURCE_O_LINUX)) \
 	$(dir $(RELEASE_EXECUTABLE_LINUX)) \
 	$(dir $(SOURCE_O_RELEASE_LINUX)), $(dir)))
-$(shell mkdir -p z64rom_win32/tools/)
-$(shell mkdir -p z64rom_linux/tools/)
+$(shell mkdir -p release_win32/tools/)
+$(shell mkdir -p release_linux/tools/)
 
 .PHONY: project-files-linux \
 	    project-files-win32 \
@@ -66,22 +65,22 @@ win32-release: project-files-win32 $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABL
 tools: project/tools/elf2ld project/tools/cofi project/tools/novl project/tools/z64convert project/tools/depper
 
 project-files-linux: tools project/tools/z64audio
-	@mkdir -p             z64rom_linux/src/actor
-	@mkdir -p             z64rom_linux/src/object
-	@cp -r project/patch  z64rom_linux/
-	@cp -r project/src    z64rom_linux/
-	@cp -R project/*      z64rom_linux/
-	@rm -f                z64rom_linux/*/*/*.txt
-	@rm -f                z64rom_linux/tools/z64audio.exe
+	@mkdir -p             release_linux/src/actor
+	@mkdir -p             release_linux/src/object
+	@cp -r project/patch  release_linux/
+	@cp -r project/src    release_linux/
+	@cp -R project/*      release_linux/
+	@rm -f                release_linux/*/*/*.txt
+	@rm -f                release_linux/tools/z64audio.exe
 
 project-files-win32: tools project/tools/z64audio.exe
-	@mkdir -p             z64rom_win32/src/actor
-	@mkdir -p             z64rom_win32/src/object
-	@cp -r project/patch  z64rom_win32/
-	@cp -r project/src    z64rom_win32/
-	@cp -R project/*      z64rom_win32/
-	@rm -f                z64rom_win32/*/*/*.txt
-	@rm -f                z64rom_win32/tools/z64audio
+	@mkdir -p             release_win32/src/actor
+	@mkdir -p             release_win32/src/object
+	@cp -r project/patch  release_win32/
+	@cp -r project/src    release_win32/
+	@cp -R project/*      release_win32/
+	@rm -f                release_win32/*/*/*.txt
+	@rm -f                release_win32/tools/z64audio
 
 # # # # # # # # # # # # # # # # # # # #
 # CLEAN                               #
@@ -97,8 +96,8 @@ clean-sub:
 
 clean:
 	@rm -f -R bin
-	@rm -f -R z64rom_linux
-	@rm -f -R z64rom_win32
+	@rm -f -R release_linux
+	@rm -f -R release_win32
 	@rm -f project/tools/elf2ld
 	
 # # # # # # # # # # # # # # # # # # # #

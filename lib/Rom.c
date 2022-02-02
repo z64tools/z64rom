@@ -112,6 +112,14 @@ static void Rom_Config_Actor(MemFile* config, ActorEntry* actorOvl, const char* 
 	MemFile_SaveFile_String(config, out);
 }
 
+static void Rom_Config_Effect(MemFile* config, EffectEntry* actorOvl, const char* name, char* out) {
+	MemFile_Reset(config);
+	Config_WriteTitle_Str(name);
+	Config_WriteVar_Hex("vram_addr", ReadBE(actorOvl->vramStart));
+	Config_WriteVar_Hex("init_vars", ReadBE(actorOvl->initInfo));
+	MemFile_SaveFile_String(config, out);
+}
+
 static void Rom_Config_GameState(MemFile* config, GameStateEntry* stateOvl, const char* name, char* out) {
 	MemFile_Reset(config);
 	Config_WriteTitle_Str(name);
@@ -314,6 +322,24 @@ void Rom_Dump(Rom* rom) {
 			
 			Dir_Leave();
 		}
+		Dir_Enter("effect/.vanilla/"); {
+			for (s32 i = 0; i < rom->table.num.effect; i++) {
+				rf = Dma_RomFile_Effect(rom, i);
+				
+				if (rf.size == 0)
+					continue;
+				
+				printf_progress("Effect", i + 1, rom->table.num.effect);
+				Dir_Enter("0x%04X-%s/", i, gEffectName[i]); {
+					if (Rom_Extract(&dataFile, rf, Dir_File("effect.zovl")))
+						Rom_Config_Effect(&config, &rom->table.effect[i], gEffectName[i], Dir_File("config.cfg"));
+					
+					Dir_Leave();
+				}
+			}
+			
+			Dir_Leave();
+		}
 		
 		Dir_Enter("object/.vanilla/"); {
 			for (s32 i = 0; i < rom->table.num.obj; i++) {
@@ -446,6 +472,7 @@ void Rom_Build(Rom* rom) {
 	
 	Dma_Free(rom, DMA_AUDIO);
 	Dma_Free(rom, DMA_ACTOR);
+	Dma_Free(rom, DMA_EFFECT);
 	Dma_Free(rom, DMA_OBJECT);
 	Dma_Free(rom, DMA_SCENES);
 	Dma_Free(rom, DMA_UNUSED);
@@ -522,6 +549,56 @@ void Rom_Build(Rom* rom) {
 					
 					entry[i].loadedRamAddr = 0;
 					entry[i].name = 0;
+					
+					Dir_Leave();
+				}
+			}
+			
+			Dir_Leave();
+		}
+		
+		Dir_Enter("effect/"); {
+			ItemList effectList;
+			EffectEntry* entry = rom->table.effect;
+			Rom_ItemList(&effectList, true);
+			
+			for (s32 i = 0; i < effectList.num; i++) {
+				if (effectList.item[i] == NULL) {
+					entry[i] = (EffectEntry) { 0 };
+					continue;
+				}
+				
+				if (i >= 471) {
+					printf_warning("Illegal action! Can't have more than " PRNT_REDD "0x01D6" PRNT_RSET " actors!", i);
+					break;
+				} else
+					printf_progress("Effect", i + 1, effectList.num);
+				
+				Dir_Enter(effectList.item[i]); {
+					u32* bssSize;
+					MemFile_Reset(&dataFile);
+					MemFile_Reset(&config);
+					MemFile_LoadFile(&dataFile, Dir_File("*.zovl"));
+					MemFile_LoadFile_String(&config, Dir_File("config.cfg"));
+					
+					SetSegment(0x1, dataFile.data);
+					bssSize = SegmentedToVirtual(0x1, dataFile.dataSize - 4);
+					bssSize = SegmentedToVirtual(0x1, dataFile.dataSize - ReadBE(bssSize[0]));
+					
+					entry[i].initInfo = Config_GetInt(&config, "init_vars");
+					
+					entry[i].vramStart = Config_GetInt(&config, "vram_addr");
+					entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + ReadBE(bssSize[3]);
+					
+					entry[i].vromStart = Dma_WriteEntry(rom, -1, &dataFile);
+					entry[i].vromEnd = entry[i].vromStart + dataFile.dataSize;
+					
+					SwapBE(entry[i].initInfo);
+					SwapBE(entry[i].vramStart);
+					SwapBE(entry[i].vramEnd);
+					SwapBE(entry[i].vromStart);
+					SwapBE(entry[i].vromEnd);
+					entry[i].loadedRamAddr = 0;
 					
 					Dir_Leave();
 				}
@@ -680,31 +757,37 @@ void Rom_Build(Rom* rom) {
 			Dir_Leave();
 		}
 		
-		Dir_Enter("lib_code/"); {
-			Rom_Build_Code(rom, &dataFile, &config);
-			
-			Dir_Leave();
+		if (Dir_Stat("lib_code/")) {
+			Dir_Enter("lib_code/"); {
+				Rom_Build_Code(rom, &dataFile, &config);
+				
+				Dir_Leave();
+			}
 		}
 		
-		Dir_Enter("lib_user/"); {
-			if (Dir_Stat("z_code_lib.bin")) {
-				Dma_MarkWritable(1, true);
-				MemFile_Reset(&dataFile);
-				MemFile_LoadFile(&dataFile, Dir_File("z_code_lib.bin"));
-				Dma_WriteEntry(rom, 1, &dataFile);
+		if (Dir_Stat("lib_user/")) {
+			Dir_Enter("lib_user/"); {
+				if (Dir_Stat("z_code_lib.bin")) {
+					Dma_MarkWritable(1, true);
+					MemFile_Reset(&dataFile);
+					MemFile_LoadFile(&dataFile, Dir_File("z_code_lib.bin"));
+					Dma_WriteEntry(rom, 1, &dataFile);
+				}
+				
+				Dir_Leave();
 			}
-			
-			Dir_Leave();
 		}
 		
 		Dir_Leave();
 	}
 	
-	Dir_Enter("patch/"); {
-		printf_info("Applying Patches");
-		Rom_Build_Patch(rom, &dataFile, &config);
-		
-		Dir_Leave();
+	if (Dir_Stat("patch/")) {
+		Dir_Enter("patch/"); {
+			printf_info("Applying Patches");
+			Rom_Build_Patch(rom, &dataFile, &config);
+			
+			Dir_Leave();
+		}
 	}
 	
 	fix_crc(rom->file.data);
@@ -739,14 +822,11 @@ void Rom_New(Rom* rom, char* romName) {
 	
 	if (rom->type == NoRom) {
 		char* confRom = tprintf("%s%s", CurWorkDir(), "z64project.cfg");
-		MemFile conf = MemFile_Initialize();
-		MemFile* config = &conf;
+		MemFile* config = &rom->config;
 		
-		MemFile_Malloc(config, 0x1000);
-		MemFile_LoadFile_String(&conf, confRom);
-		conf.seekPoint = strlen(conf.data);
+		rom->config.seekPoint = strlen(rom->config.data);
 		
-		if (!Config_Get(config, "z_rom_type")) {
+		if (!Config_Get(&rom->config, "z_rom_type")) {
 			if (hdr[0] != 0) {
 				rom->type = Zelda_OoT_Debug;
 				Config_WriteVar_Str("z_rom_type", "oot_debug # [oot_debug/oot_u10]");
@@ -754,9 +834,9 @@ void Rom_New(Rom* rom, char* romName) {
 				rom->type = Zelda_OoT_1_0;
 				Config_WriteVar_Str("z_rom_type", "oot_u10 # [oot_debug/oot_u10]");
 			}
-			MemFile_SaveFile_String(config, confRom);
+			MemFile_SaveFile_String(&rom->config, confRom);
 		} else {
-			char* romType = Config_GetString(config, "z_rom_type");
+			char* romType = Config_GetString(&rom->config, "z_rom_type");
 			
 			if (!strcmp(romType, "oot_debug")) {
 				rom->type = Zelda_OoT_Debug;
@@ -766,7 +846,7 @@ void Rom_New(Rom* rom, char* romName) {
 				rom->type = NoRom;
 			}
 		}
-		MemFile_Free(config);
+		MemFile_Free(&rom->config);
 	}
 	
 	switch (rom->type) {
@@ -774,6 +854,7 @@ void Rom_New(Rom* rom, char* romName) {
 			rom->offset.table.dmaTable = 0x012F70;
 			rom->offset.table.objTable = 0xB9E6C8;
 			rom->offset.table.actorTable = 0xB8D440;
+			rom->offset.table.effectTable = 0xB8CB50;
 			rom->offset.table.stateTable = 0xB969D0;
 			rom->offset.table.sceneTable = 0xBA0BB0;
 			rom->offset.table.kaleidoTable = 0xBA4340;
@@ -804,6 +885,7 @@ void Rom_New(Rom* rom, char* romName) {
 			rom->table.num.dma = 1548;
 			rom->table.num.obj = 402;
 			rom->table.num.actor = 471;
+			rom->table.num.effect = 37;
 			rom->table.num.state = 6;
 			rom->table.num.scene = 110;
 			rom->table.num.kaleido = 2;
@@ -825,6 +907,8 @@ void Rom_New(Rom* rom, char* romName) {
 			rom->offset.table.dmaTable = 0x00007430;
 			rom->offset.table.objTable = 0x00B6EF58;
 			rom->offset.table.actorTable = 0x00B5E490;
+			rom->offset.table.effectTable = 0x0;
+			printf_error("effectTable is zero, fix me [%s] [%d]", __FILE__, __LINE__);
 			rom->offset.table.stateTable = 0x00B672A0;
 			rom->offset.table.sceneTable = 0x00B71440;
 			rom->offset.table.kaleidoTable = 0x00B743E0;
@@ -842,6 +926,7 @@ void Rom_New(Rom* rom, char* romName) {
 			rom->table.num.dma = 1526;
 			rom->table.num.obj = 402;
 			rom->table.num.actor = 471;
+			rom->table.num.effect = 37;
 			rom->table.num.state = 6;
 			rom->table.num.scene = 101;
 			rom->table.num.kaleido = 2;
@@ -869,6 +954,7 @@ void Rom_New(Rom* rom, char* romName) {
 	rom->table.dma = SegmentedToVirtual(0x0, rom->offset.table.dmaTable);
 	rom->table.object = SegmentedToVirtual(0x0, rom->offset.table.objTable);
 	rom->table.actor = SegmentedToVirtual(0x0, rom->offset.table.actorTable);
+	rom->table.effect = SegmentedToVirtual(0x0, rom->offset.table.effectTable);
 	rom->table.state = SegmentedToVirtual(0x0, rom->offset.table.stateTable);
 	rom->table.scene = SegmentedToVirtual(0x0, rom->offset.table.sceneTable);
 	rom->table.kaleido = SegmentedToVirtual(0x0, rom->offset.table.kaleidoTable);

@@ -2,7 +2,6 @@
   core:
     ignoredNames: [
       ".git"
-      ".git*"
       
       # Hide non-repo files
       "*.sh"

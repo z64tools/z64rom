@@ -4,41 +4,51 @@
 #include "ExtLib.h"
 
 typedef struct {
-	void32 loadedRamAddr;
-	u32    vromStart;
-	u32    vromEnd;
-	void32 vramStart;
-	void32 vramEnd;
-	void32 unk_14;
-	void32 init;
-	void32 destroy;
-	void32 unk_20;
-	void32 unk_24;
-	s32    unk_28;
-	u32    instanceSize;
+	u32 loadedRamAddr;
+	u32 vromStart;
+	u32 vromEnd;
+	u32 vramStart;
+	u32 vramEnd;
+	u32 unk_14;
+	u32 init;
+	u32 destroy;
+	u32 unk_20;
+	u32 unk_24;
+	s32 unk_28;
+	u32 instanceSize;
 } GameStateEntry;
 
 typedef struct {
-	void32 loadedRamAddr;
-	u32    vromStart;
-	u32    vromEnd;
-	void32 vramStart;
-	void32 vramEnd;
-	u32    offset; // loadedRamAddr - vramStart
-	void32 name;
+	u32 loadedRamAddr;
+	u32 vromStart;
+	u32 vromEnd;
+	u32 vramStart;
+	u32 vramEnd;
+	u32 offset; // loadedRamAddr - vramStart
+	u32 name;
 } KaleidoEntry; // size = 0x1C
 
 typedef struct ActorEntry {
-	u32    vromStart;
-	u32    vromEnd;
-	void32 vramStart;
-	void32 vramEnd;
-	void32 loadedRamAddr;
-	void32 initInfo;
-	void32 name;
-	u16    allocType;
-	s8 numLoaded;
+	u32 vromStart;
+	u32 vromEnd;
+	u32 vramStart;
+	u32 vramEnd;
+	u32 loadedRamAddr;
+	u32 initInfo;
+	u32 name;
+	u16 allocType;
+	s8  numLoaded;
 } ActorEntry;
+
+typedef struct EffectEntry {
+	u32 vromStart;
+	u32 vromEnd;
+	u32 vramStart;
+	u32 vramEnd;
+	u32 loadedRamAddr;
+	u32 initInfo;
+	u8  unk_18;
+} EffectEntry;
 
 typedef struct DmaEntry {
 	u32 vromStart;
@@ -118,6 +128,7 @@ struct Rom;
 RomFile Rom_GetRomFile(struct Rom* rom, u32 vromA, u32 vromB);
 RomFile Dma_RomFile_Proto(Object);
 RomFile Dma_RomFile_Proto(Actor);
+RomFile Dma_RomFile_Proto(Effect);
 RomFile Dma_RomFile_Proto(DmaEntry);
 RomFile Dma_RomFile_Proto(GameState);
 RomFile Dma_RomFile_Proto(Scene);

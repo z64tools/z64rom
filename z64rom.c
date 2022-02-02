@@ -74,28 +74,22 @@ s32 Main(s32 argc, char* argv[]) {
 	if (input) {
 		if (sDumpFlag) {
 			printf_toolinfo(sToolName, "\n");
+			
 			Rom_New(rom, input);
 			Rom_Dump(rom);
 			Rom_Free(rom);
 			printf_info("Done!");
 			
-			#ifdef _WIN32
-				sleep(1);
-			#endif
-			
-			return 0;
+			exit(0);
 		} else {
 			printf_toolinfo(sToolName, "\n");
+			
 			Rom_New(rom, input);
 			Rom_Build(rom);
 			Rom_Free(rom);
 			printf_info("Done!");
 			
-			#ifdef _WIN32
-				sleep(1);
-			#endif
-			
-			return 0;
+			exit(0);
 		}
 	}
 	
@@ -112,53 +106,33 @@ s32 Main(s32 argc, char* argv[]) {
 }
 
 void z64rom_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
-	char* confAu = tprintf("%s%s", CurWorkDir(), "tools/z64audio.cfg");
 	char* confRom = tprintf("%s%s", CurWorkDir(), "z64project.cfg");
 	MemFile* config = &rom->config;
 	u32 parArg = 0;
 	
 	*config = MemFile_Initialize();
 	
-	if (!Stat(confAu)) {
-		MemFile config = MemFile_Initialize();
-		#ifndef _WIN32
-			if (system("./tools/z64audio --GenCfg --S")) {
-			}
-		#else
-			if (system("tools\\z64audio.exe --GenCfg --S")) {
-			}
-		#endif
-		
-		if (MemFile_LoadFile_String(&config, confAu))
-			printf_error("Could not locate [tools/config.cfg]");
-		
-		String_Replace(config.data, "zaudio_z64rom_mode = false", "zaudio_z64rom_mode = true");
-		config.dataSize = strlen(config.data);
-		MemFile_SaveFile_String(&config, "tools/z64audio.cfg");
-		MemFile_Free(&config);
-	}
-	
 	if (Lib_ParseArguments(argv, "--i", &parArg)) {
 		input[0] = String_GetSpacedArg(argv, parArg);
 		sDumpFlag = true;
-	} else {
-		for (s32 i = 0; i < argc; i++) {
-			if (String_MemMemCase(argv[i], ".z64")) {
-				input[0] = argv[i];
-				sDumpFlag = true;
-				break;
-			}
+	} else if (argc > 1) {
+		input[0] = String_GetSpacedArg(argv, 1);
+		
+		if (String_MemMemCase(input[0], ".z64")) {
+			sDumpFlag = true;
+		} else {
+			input[0] = NULL;
 		}
 	}
 	
 	if (sDumpFlag) {
+		MemFile_Reset(config);
 		MemFile_Malloc(config, MbToBin(0.1));
 		
-		Config_WriteTitle_Str("Project Settings");
-		Config_WriteVar_Str("z_baserom", String_GetFilename(input[0]));
-		
-		MemFile_SaveFile_String(config, confRom);
+		MemFile_Printf(config, "# Project Settings\n");
+		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", String_GetFilename(input[0]));
 	} else if (Stat(confRom)) {
+		MemFile_Reset(config);
 		MemFile_LoadFile_String(config, confRom);
 		
 		input[0] = Config_GetString(config, "z_baserom");

@@ -5,9 +5,12 @@
 ##### [Download z64rom here!](https://github.com/z64tools/z64rom/releases)
 
 ## Requirements
-WSL1 highly recommended for Windows users
+
+### z64rom
+No requirements so far
+
+### z64rom-dev
 ```
-sudo apt-get update
 sudo apt-get install git build-essential p7zip-full
 ```
 

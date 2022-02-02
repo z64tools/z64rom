@@ -8,7 +8,14 @@ elf2ld         = tools/elf2ld
 z64rom         = $(shell find ./ -type f -name 'z64ro*')
 setup_rom      = $(shell find ./ -type f -name '*.z64' -not -name 'build.z64')
 
-PRNT_DGRY := \e[90;2m
+PRDR_GRAY := \e[90;0m
+PRDR_REDD := \e[91;0m
+PRDR_GREN := \e[92;0m
+PRDR_YELW := \e[93;0m
+PRDR_BLUE := \e[94;0m
+PRDR_PRPL := \e[95;0m
+PRDR_CYAN := \e[96;0m
+
 PRNT_GRAY := \e[0;90m
 PRNT_REDD := \e[0;91m
 PRNT_GREN := \e[0;92m
@@ -16,6 +23,7 @@ PRNT_YELW := \e[0;93m
 PRNT_BLUE := \e[0;94m
 PRNT_PRPL := \e[0;95m
 PRNT_CYAN := \e[0;96m
+
 PRNT_RSET := \e[m
 
 Linkers        = include/common/z_code_lib.ld include/common/objects.ld
@@ -57,7 +65,7 @@ $(shell mkdir -p rom/ $(foreach dir, \
 mips64_download = https://cdn.discordapp.com/attachments/889436307758129203/936660603454513162/mips64-binutils.7z
 z64hdr_git      = https://github.com/z64tools/z64hdr.git
 
-.PHONY: all rom clean clean-dist clean-rom clean-dist confirm setup actor library code check object
+.PHONY: all rom update clean clean-dist clean-rom clean-dist confirm setup actor library code check object
 .DEFAULT_GOAL := all
 
 all:
@@ -104,9 +112,7 @@ setup:
 setup-no-ask:
 	@touch tools/.permission
 	@if [ -f "tools/mips64-binutils.7z" ]; then \
-		if md5sum --status -c tools/mips64-binutils.md5; then \
-			echo "$(PRNT_REDD)Skipping$(PRNT_RSET):     Download mips64-binutils.7z"; \
-		else \
+		if ! md5sum --status -c tools/mips64-binutils.md5; then \
 			rm -f tools/mips64-binutils.7z; \
 			echo "$(PRNT_YELW)Redownload$(PRNT_RSET):   mips64-binutils.7z"; \
 			wget -O tools/mips64-binutils.7z $(mips64_download) -q --show-progress; \
@@ -115,26 +121,22 @@ setup-no-ask:
 		echo "$(PRNT_GREN)Download$(PRNT_RSET):     mips64-binutils.7z"; \
 		wget -O tools/mips64-binutils.7z $(mips64_download) -q --show-progress; \
 	fi; \
-	if [ -d "tools/mips64-binutils/bin/" ]; then \
-		echo "$(PRNT_REDD)Skipping$(PRNT_RSET):     Unpack mips64-binutils.7z"; \
-	else \
+	if [ ! -d "tools/mips64-binutils/bin/" ]; then \
 		mkdir -p tools/mips64-binutils; \
 		echo "$(PRNT_GREN)Unpack$(PRNT_RSET):       mips64-binutils.7z"; \
 		7z x tools/mips64-binutils.7z -otools/mips64-binutils/ -aos > /dev/null 2>&1; \
 	fi; \
-	if [ -d "include/" ]; then \
-		echo "$(PRNT_BLUE)Update$(PRNT_RSET):       z64hdr"; \
-		cd include && git pull --quiet; \
-		cd ..; \
-	else \
+	if [ ! -d "include/" ]; then \
 		echo "$(PRNT_GREN)Download$(PRNT_RSET):     z64hdr"; \
 		git clone $(z64hdr_git) include --quiet; \
 	fi; \
-	if [ -d "rom/actor/" ]; then \
-		echo "$(PRNT_REDD)Skipping$(PRNT_RSET):     dump"; \
-	else \
+	if [ ! -d "rom/actor/" ]; then \
 		$(z64rom) $(setup_rom); \
 	fi; \
+
+update:
+	@echo "$(PRNT_YELW)Update$(PRNT_RSET):       z64hdr"
+	@cd include && git pull --quiet
 
 # # # # # # # # # # # # # # # # # # # #
 # CODE OBJECT                         #
@@ -169,7 +171,7 @@ rom/actor/%.o: src/actor/%.c src/actor/%.h
 	@$(mips64_gcc) -c $(GccFlags) $< -o $@
 
 rom/actor/%.elf: rom/actor/%.o $(Linkers)
-	@echo "$(PRNT_CYAN)Actor$(PRNT_RSET):   $(notdir $@)"
+	@echo "$(PRNT_BLUE)Actor$(PRNT_RSET):   $(notdir $@)"
 	@$(mips64_ld) -o $@ $< -L$(@D) $(LdFlags)
 	@$(mips64_objdump) -drz $@ > $(@:.elf=.s)
 	@printf "alloc_type = 0\n" > $(@D)/config.cfg
@@ -178,17 +180,17 @@ rom/actor/%.elf: rom/actor/%.o $(Linkers)
 	@$(novl) $(nOvlFlags) 0x80800000 -o $(@D)/actor.zovl $@ -s
 
 # # # # # # # # # # # # # # # # # # # #
-# CODE LIBRARY                        #
+# LIB_USER                            #
 # # # # # # # # # # # # # # # # # # # #
 
 library: $(Library_O) include/common/z_code_lib.ld
 
 rom/lib_user/%.o: src/lib_user/%.c include/common/objects.ld
-	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): $(notdir $@)"
+	@echo "$(PRNT_CYAN)Library$(PRNT_RSET): $(notdir $@)"
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
 
 rom/lib_user/%.o: src/lib_user/%.c src/lib_user/%.h include/common/objects.ld
-	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): $(notdir $@)"
+	@echo "$(PRNT_CYAN)Library$(PRNT_RSET): $(notdir $@)"
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
 
 z_code_lib_elf = rom/lib_user/z_code_lib.elf
@@ -196,7 +198,7 @@ z_code_lib_s   = rom/lib_user/z_code_lib.s
 z_code_lib_bin = rom/lib_user/z_code_lib.bin
 
 include/common/z_code_lib.ld: $(Library_O)
-	@echo "$(PRNT_PRPL)Library$(PRNT_RSET): z_code_lib.bin"
+	@echo "$(PRNT_YELW)Linker$(PRNT_RSET):  $(notdir $@)"
 	@printf "ENTRY_POINT = 0x80600000;\n" > rom/lib_user/entry.ld
 	@$(mips64_ld) -o $(z_code_lib_elf) $^ -Lrom/lib_user -Linclude/oot_mq_debug/ -Linclude/common/ -T z64hdr.ld -T objects.ld --emit-relocs
 	@$(mips64_objdump) -drz $(z_code_lib_elf) > $(z_code_lib_s)
@@ -206,18 +208,18 @@ include/common/z_code_lib.ld: $(Library_O)
 	@$(elf2ld) include/common/temp_codelib.ld include/common/z_code_lib.ld
 
 # # # # # # # # # # # # # # # # # # # #
-# CODE PATCH                          #
+# LIB_CODE                            #
 # # # # # # # # # # # # # # # # # # # #
 
 code: $(Code_O) $(Code_Elf) $(Code_SElf)
 
 rom/lib_code/%.o: src/lib_code/%.c src/lib_code/%.cfg
-	@echo "$(PRNT_PRPL)Code$(PRNT_RSET):    $(notdir $@)"
+	@echo "$(PRNT_CYAN)Code$(PRNT_RSET):    $(notdir $@)"
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
 	@cp $(<:.c=.cfg) $(@:.o=.cfg)
 
 rom/lib_code/%.elf: rom/lib_code/%.o $(Linkers)
-	@echo "$(PRNT_PRPL)Code$(PRNT_RSET):    $(notdir $@)"
+	@echo "$(PRNT_BLUE)Code$(PRNT_RSET):    $(notdir $@)"
 	@mkdir -p $(EntryDir)
 	@printf "ENTRY_POINT = %s;\n" $$(grep 'ram' $(@:.elf=.cfg) | cut -d " " -f 3) > $(EntryDir)/entry.ld
 	@$(mips64_ld) -o $@ $< -L$(EntryDir)/ $(LdFlags)
@@ -226,7 +228,7 @@ rom/lib_code/%.elf: rom/lib_code/%.o $(Linkers)
 
 rom/lib_code/%.elf: src/lib_code/%.s $(Linkers)
 	@cp $(<:.s=.cfg) $(@:.elf=.cfg)
-	@echo "$(PRNT_PRPL)Asm$(PRNT_RSET):     $(notdir $@)"
+	@echo "$(PRNT_BLUE)Asm$(PRNT_RSET):     $(notdir $@)"
 	@mkdir -p $(EntryDir)
 	@printf "ENTRY_POINT = %s;\n" $$(grep 'ram' $(@:.elf=.cfg) | cut -d " " -f 3) > $(EntryDir)/entry.ld
 	@$(mips64_gcc) -x assembler-with-cpp -c $< -o $(@:.elf=.o) -L$(EntryDir)/ -Linclude/oot_mq_debug/ -Linclude/common/ -T z64hdr.ld -T objects.ld -T z_code_lib.ld

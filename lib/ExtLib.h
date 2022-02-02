@@ -168,6 +168,9 @@ char* Graph_GenStr(char* str);
 void Log(const char* fmt, ...);
 void LogPrint();
 
+void Time_Start(void);
+f32 Time_Get(void);
+
 void Dir_SetParam(DirParam w);
 void Dir_UnsetParam(DirParam w);
 void Dir_Set(char* path, ...);

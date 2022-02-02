@@ -133,6 +133,19 @@ void LogPrint() {
 	MemFile_Reset(&sLog);
 }
 
+struct timeval sTimeStart, sTimeStop;
+void gettimeofday(struct timeval*, void*);
+
+void Time_Start(void) {
+	gettimeofday(&sTimeStart, NULL);
+}
+
+f32 Time_Get(void) {
+	gettimeofday(&sTimeStop, NULL);
+	
+	return (sTimeStop.tv_sec - sTimeStart.tv_sec) + (f32)(sTimeStop.tv_usec - sTimeStart.tv_usec) / 1000000;
+}
+
 // Dir
 struct {
 	struct {
@@ -181,10 +194,6 @@ void Dir_Enter(char* fmt, ...) {
 			sDir.swap[sDir.swapId].enterCount[sDir.swap[sDir.swapId].pos]++;
 	}
 	
-	#ifndef NDEBUG
-		printf_debugExt("ENT [%s] -> [%s]", sCurrentPath, buffer);
-	#endif
-	
 	strcat(sCurrentPath, buffer);
 	
 	if (sDir.param & DIR__MAKE_ON_ENTER) {
@@ -203,10 +212,6 @@ void Dir_Leave(void) {
 		
 		sCurrentPath[strlen(sCurrentPath) - 1] = '\0';
 		strcpy(sCurrentPath, String_GetPath(sCurrentPath));
-		
-		#ifndef NDEBUG
-			printf_debugExt("LEA [%s] -> [%s]", compBuffer, sCurrentPath);
-		#endif
 	}
 	sDir.swap[sDir.swapId].pos--;
 }
@@ -938,7 +943,7 @@ void printf_progress(const char* info, u32 a, u32 b) {
 	if (lstPrcnt > prcnt)
 		lstPrcnt = 0;
 	
-	if (prcnt - lstPrcnt > 0.05) {
+	if (prcnt - lstPrcnt > 0.125) {
 		lstPrcnt = prcnt;
 	} else {
 		if (a != b) {
@@ -1323,8 +1328,6 @@ void* File_Load(void* destSize, char* filepath) {
 void File_Save(char* filepath, void* src, s32 size) {
 	FILE* file = fopen(filepath, "w");
 	
-	printf_debugExt_align("Save", "%s", filepath);
-	
 	if (file == NULL) {
 		printf_error("Failed to fopen file [%s].", filepath);
 	}
@@ -1407,10 +1410,6 @@ void MemFile_Realloc(MemFile* memFile, u32 size) {
 	if (memFile->memSize > size)
 		return;
 	
-	#ifndef NDEBUG
-		printf_debugExt_align("memSize", "%08X", memFile->memSize);
-		printf_debug_align("reqSize", "%08X", size);
-	#endif
 	// Make sure to have enough space
 	if (size < memFile->memSize + 0x10000) {
 		size += 0x10000;
@@ -1418,10 +1417,6 @@ void MemFile_Realloc(MemFile* memFile, u32 size) {
 	
 	memFile->data = realloc(memFile->data, size);
 	memFile->memSize = size;
-	
-	#ifndef NDEBUG
-		printf_debug_align("newSize", "%08X", size);
-	#endif
 }
 
 void MemFile_Rewind(MemFile* memFile) {
@@ -1490,10 +1485,6 @@ s32 MemFile_Printf(MemFile* dest, const char* fmt, ...) {
 
 s32 MemFile_Read(MemFile* src, void* dest, u32 size) {
 	if (src->seekPoint + size > src->dataSize) {
-		#ifndef NDEBUG
-			printf_debugExt("Extended dataSize");
-		#endif
-		
 		return 1;
 	}
 	
@@ -1520,8 +1511,6 @@ s32 MemFile_LoadFile(MemFile* memFile, char* filepath) {
 		
 		return 1;
 	}
-	
-	printf_debugExt_align("File", "%s", filepath);
 	
 	fseek(file, 0, SEEK_END);
 	tempSize = ftell(file);
@@ -1556,11 +1545,6 @@ s32 MemFile_LoadFile(MemFile* memFile, char* filepath) {
 		memFile->info.crc32 = Lib_Crc32(memFile->data, memFile->dataSize);
 	}
 	
-	#ifndef NDEBUG
-		printf_debug_align("Ptr", "%08X", memFile->data);
-		printf_debug_align("Size", "%08X", memFile->dataSize);
-	#endif
-	
 	return 0;
 }
 
@@ -1574,8 +1558,6 @@ s32 MemFile_LoadFile_String(MemFile* memFile, char* filepath) {
 		
 		return 1;
 	}
-	
-	printf_debugExt_align("File", "%s", filepath);
 	
 	fseek(file, 0, SEEK_END);
 	tempSize = ftell(file);
@@ -1614,18 +1596,10 @@ s32 MemFile_LoadFile_String(MemFile* memFile, char* filepath) {
 		memFile->info.crc32 = Lib_Crc32(memFile->data, memFile->dataSize);
 	}
 	
-	#ifndef NDEBUG
-		printf_debug_align("Ptr", "%08X", memFile->data);
-		printf_debug_align("Size", "%08X", memFile->dataSize);
-	#endif
-	
 	return 0;
 }
 
 s32 MemFile_SaveFile(MemFile* memFile, char* filepath) {
-	#ifndef NDEBUG
-		printf_debugExt_align("File", "%s", filepath);
-	#endif
 	FILE* file = fopen(filepath, "wb");
 	
 	if (file == NULL) {
@@ -1641,9 +1615,6 @@ s32 MemFile_SaveFile(MemFile* memFile, char* filepath) {
 }
 
 s32 MemFile_SaveFile_String(MemFile* memFile, char* filepath) {
-	#ifndef NDEBUG
-		printf_debugExt_align("File", "%s", filepath);
-	#endif
 	FILE* file = fopen(filepath, "w");
 	
 	if (file == NULL) {

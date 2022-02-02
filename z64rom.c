@@ -26,9 +26,7 @@ s32 Main(s32 argc, char* argv[]) {
 	Rom* rom = Lib_Calloc(0, sizeof(struct Rom));
 	u32 parArg = 0;
 	
-	#ifdef _WIN32
-		printf_WinFix();
-	#endif
+	printf_WinFix();
 	printf_SetPrefix("");
 	
 	if (ParArg("--actor")) {

@@ -322,6 +322,7 @@ void Rom_Dump(Rom* rom) {
 			
 			Dir_Leave();
 		}
+		
 		Dir_Enter("effect/.vanilla/"); {
 			for (s32 i = 0; i < rom->table.num.effect; i++) {
 				rf = Dma_RomFile_Effect(rom, i);
@@ -427,7 +428,6 @@ void Rom_Dump(Rom* rom) {
 								char* out = Dir_File("room_%d.zroom", j);
 								
 								vromSeg = SegmentedToVirtual(0x2, roomListSeg + 8 * j);
-								printf_debugExt_align("Room Extract", "Scene Segment %X", VirtualToSegmented(0x2, vromSeg));
 								Rom_Extract(
 									&dataFile,
 									Rom_GetRomFile(rom, vromSeg[0], vromSeg[1]),
@@ -868,19 +868,16 @@ void Rom_New(Rom* rom, char* romName) {
 			rom->offset.segment.seqRom = (ReadBE(addr[0]) - (ReadBE(addr[2]) > 0x7FFF)) << 16;
 			rom->offset.segment.seqRom |= ReadBE(addr[2]);
 			// rom->offset.segment.seqRom = 0x44DF0;
-			printf_debug_align("SequenceRom", "%08X", rom->offset.segment.seqRom);
 			
 			addr = SegmentedToVirtual(0x0, 0xB5A4C2);
 			rom->offset.segment.fontRom = (ReadBE(addr[0]) - (ReadBE(addr[2]) > 0x7FFF)) << 16;
 			rom->offset.segment.fontRom |= ReadBE(addr[2]);
 			// rom->offset.segment.fontRom = 0x19030;
-			printf_debug_align("FontRom", "%08X", rom->offset.segment.fontRom);
 			
 			addr = SegmentedToVirtual(0x0, 0xB5A4D6);
 			rom->offset.segment.smplRom = (ReadBE(addr[0]) - (ReadBE(addr[2]) > 0x7FFF)) << 16;
 			rom->offset.segment.smplRom |= ReadBE(addr[2]);
 			// rom->offset.segment.smplRom = 0x94870;
-			printf_debug_align("SampleRom", "%08X", rom->offset.segment.smplRom);
 			
 			rom->table.num.dma = 1548;
 			rom->table.num.obj = 402;

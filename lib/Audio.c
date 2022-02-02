@@ -275,21 +275,11 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	Sound* sfx;
 	u32 off = 0;
 	
-	printf_debugExt_align("Entry Num", "%d", num);
-	
 	Dir_Enter("soundfont/.vanilla/");
 	for (s32 i = 0; i < num; i++) {
 		printf_progress("SoundFont", i + 1, num);
 		
 		entry = &head->entries[i];
-		
-		#ifndef NDEBUG
-			printf_debug_align("numInst", "%d", ReadBE(entry->numInst));
-			printf_debug_align("numSfx", "%d", ReadBE(entry->numSfx));
-			printf_debug_align("numDrum", "%d", ReadBE(entry->numDrum));
-			printf_debug_align("bank", "%08X", ReadBE(entry->romAddr) + rom->offset.segment.fontRom);
-			printf_debug_align("size", "%08X", ReadBE(entry->size));
-		#endif
 		
 		bank = SegmentedToVirtual(0x0, ReadBE(entry->romAddr) + rom->offset.segment.fontRom);
 		off = ReadBE(sampHead->entries[entry->audioTable1].romAddr);
@@ -302,10 +292,6 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		Dir_Enter("0x%02X-%s/", i, gBankName[i]); {
 			if (entry->numInst) {
 				Dir_Enter("instrument/");
-				
-				#ifndef NDEBUG
-					printf_debug_align("dump", "instruments");
-				#endif
 				
 				for (s32 j = 0; j < entry->numInst; j++) {
 					char* output = Dir_File("%d-Inst.cfg", j);
@@ -331,10 +317,6 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			if (entry->numSfx) {
 				Dir_Enter("sfx/");
 				
-				#ifndef NDEBUG
-					printf_debug_align("dump", "sfx");
-				#endif
-				
 				for (s32 j = 0; j < ReadBE(entry->numSfx); j++) {
 					char* output = Dir_File("%d-Sfx.cfg", j);
 					sfx = SegmentedToVirtual(0x1, ReadBE(bank->sfx));
@@ -355,10 +337,6 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			
 			if (entry->numDrum) {
 				Dir_Enter("drum/");
-				
-				#ifndef NDEBUG
-					printf_debug_align("dump", "drums");
-				#endif
 				
 				for (s32 j = 0; j < entry->numDrum; j++) {
 					char* output = Dir_File("%d-Drum.cfg", j);
@@ -489,8 +467,6 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 	u32 sampRate;
 	char sysbuf[256 * 2];
 	
-	printf_debug("sort I");
-	
 	for (s32 i = 0; i < sDumpID; i++) {
 		if (smallest->sampleAddr > sUnsortedSampleTbl[i].sampleAddr) {
 			smallest = &sUnsortedSampleTbl[i];
@@ -500,7 +476,6 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 		}
 	}
 	sSortedSampleTbl[sSortID++] = smallest;
-	printf_debug("sort II");
 	
 	while (1) {
 		smallest = largest;
@@ -516,7 +491,6 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 		if (smallest->sampleAddr == largest->sampleAddr)
 			break;
 	}
-	printf_debug("sort OK");
 	
 	tbl = sSortedSampleTbl;
 	
@@ -540,10 +514,6 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 			Dir_Enter("%s/", name); {
 				book = SegmentedToVirtual(0x0, tbl[i]->book);
 				loop = SegmentedToVirtual(0x0, tbl[i]->loop);
-				
-				printf_debug("Book %08X", tbl[i]->book);
-				printf_debug("Loop %08X", tbl[i]->book);
-				printf_debug("Smpl %08X", tbl[i]->sampleAddr);
 				
 				rf.size = ReadBE(tbl[i]->data) & 0x00FFFFFF;
 				rf.data = SegmentedToVirtual(0x0, tbl[i]->sampleAddr);
@@ -646,12 +616,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 			// Rename SFX To their samples
 			if (String_MemMem(sBankFiles[j], "-Sfx")) {
 				char* tempName = tprintf("%s%d-%s.cfg", String_GetPath(sBankFiles[j]), String_GetInt(String_GetBasename(sBankFiles[j])), replacedName);
-				printf_debug_align(
-					"Rename",
-					"[%s] -> [%s]",
-					sBankFiles[j],
-					tempName
-				);
+				
 				renamer_remove(sBankFiles[j], tempName);
 			}
 			
@@ -674,12 +639,6 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 				
 				tempName = tprintf("%s%d-%s.cfg", String_GetPath(sBankFiles[j]), String_GetInt(String_GetBasename(sBankFiles[j])), instName);
 				
-				printf_debug_align(
-					"Rename",
-					"[%s] -> [%s]",
-					sBankFiles[j],
-					tempName
-				);
 				renamer_remove(sBankFiles[j], tempName);
 			}
 		}
@@ -888,7 +847,6 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			MemFile_Write(&memBank, "\0\0\0\0\0\0\0\0", 8);
 			
 			for (s32 j = 0; j < listInst.num; j++) {
-				printf_debugExt(PRNT_REDD "INSTRUMENT");
 				char* restoreDir = Graph_GenStr(Dir_Current());
 				Instrument instrument = { 0 };
 				Adsr confEnv[4];
@@ -1051,7 +1009,6 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			}
 			
 			for (s32 j = 0; j < listSfx.num; j++) {
-				printf_debugExt(PRNT_REDD "SFX");
 				char* restoreDir = Graph_GenStr(Dir_Current());
 				Sound sfx = { 0 };
 				char* prim;
@@ -1155,7 +1112,6 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			}
 			
 			for (s32 j = 0; j < listDrum.num; j++) {
-				printf_debugExt(PRNT_REDD "DRUM");
 				char* restoreDir = Graph_GenStr(Dir_Current());
 				Drum drum = { 0 };
 				Adsr confEnv[4] = { 0 };
@@ -1443,10 +1399,6 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			SwapBE(sfEntry.size);
 			SwapBE(sfEntry.numSfx);
 			MemFile_Write(&rom->mem.fontTbl, &sfEntry, 16);
-			
-			#ifndef NDEBUG
-				MemFile_SaveFile(&memBank, Dir_File("0x%02X-Bank.bin", i));
-			#endif
 			
 			Dir_Leave();
 		}

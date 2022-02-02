@@ -69,7 +69,7 @@ project-files-linux: tools project/tools/z64audio
 	@mkdir -p             release_linux/src/object
 	@cp -r project/patch  release_linux/
 	@cp -r project/src    release_linux/
-	@cp -R project/*      release_linux/
+	@cp -r project/.[^.]* release_linux/
 	@rm -f                release_linux/*/*/*.txt
 	@rm -f                release_linux/tools/z64audio.exe
 
@@ -78,7 +78,7 @@ project-files-win32: tools project/tools/z64audio.exe
 	@mkdir -p             release_win32/src/object
 	@cp -r project/patch  release_win32/
 	@cp -r project/src    release_win32/
-	@cp -R project/*      release_win32/
+	@cp -r project/.[^.]* release_win32/
 	@rm -f                release_win32/*/*/*.txt
 	@rm -f                release_win32/tools/z64audio
 

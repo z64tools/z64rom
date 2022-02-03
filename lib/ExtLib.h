@@ -171,6 +171,11 @@ void LogPrint();
 void Time_Start(void);
 f32 Time_Get(void);
 
+enum {
+	SORT_NONE,
+	SORT_NUMERICAL
+} DirEnum;
+
 void Dir_SetParam(DirParam w);
 void Dir_UnsetParam(DirParam w);
 void Dir_Set(char* path, ...);
@@ -211,7 +216,7 @@ s32 printf_get_answer(void);
 void printf_WinFix();
 
 void* Lib_MemMem(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize);
-void* Lib_MemMemCase(void* haystack, size_t haystackSize, void* needle, size_t needleSize);
+void* Lib_MemMemCase(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize);
 void* Lib_MemMem16(const void* haystack, size_t haySize, const void* needle, size_t needleSize);
 void* Lib_MemMemU16(void* haystack, size_t haySize, const void* needle, size_t needleSize);
 void* Lib_MemMemU32(void* haystack, size_t haySize, const void* needle, size_t needleSize);

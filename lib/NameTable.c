@@ -926,6 +926,11 @@ const char* gStateName[] = {
 	"FileChoose"
 };
 
+const char* gKaleidoName[] = {
+	"PauseMenu",
+	"Player",
+};
+
 const char* gSceneName[] = {
 	"Ydan",
 	"Ddan",

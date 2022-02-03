@@ -100,19 +100,19 @@ header_depper: $(Actor_H)
 	@tools/depper $^
 
 setup:
-	@if [ -f "tools/.permission" ]; then \
+	@ if [ -f "tools/.download-permission" ]; then \
 		make setup-no-ask --no-print-directory -s; \
 	else \
 		echo "$(PRNT_GRAY)# $(PRNT_RSET)Setup is going to be downloading files and unpacking them automatically."; \
 		echo "$(PRNT_GRAY)# $(PRNT_RSET)You can check the links used for downloading in the $(PRNT_REDD)Makefile$(PRNT_RSET) by searching $(PRNT_REDD)mips64_download$(PRNT_RSET) and $(PRNT_REDD)z64hdr_git$(PRNT_RSET)"; \
 		echo -n "$(PRNT_GRAY)# $(PRNT_RSET)Are you sure you want to continue? $(PRNT_GRAY)[y/n]$(PRNT_RSET) " && read ans && if [ $${ans:-N} = y ]; then \
+			touch tools/.download-permission; \
 			make setup-no-ask --no-print-directory -s; \
 		fi; \
 	fi; \
 
 setup-no-ask:
-	@touch tools/.permission
-	@if [ -f "tools/mips64-binutils.7z" ]; then \
+	@ if [ -f "tools/mips64-binutils.7z" ]; then \
 		if ! md5sum --status -c tools/mips64-binutils.md5; then \
 			rm -f tools/mips64-binutils.7z; \
 			echo "$(PRNT_YELW)Redownload$(PRNT_RSET):   mips64-binutils.7z"; \

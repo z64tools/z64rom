@@ -762,7 +762,7 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Write(&rom->mem.sampleTbl, &head, 16);
 	MemFile_Write(&rom->mem.sampleTbl, &entry, 16);
 	
-	rom->offset.segment.smplRom = Dma_WriteEntry(rom, -5, dataFile);
+	rom->offset.segment.smplRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, dataFile);
 	MemFile_Free(&sample);
 	MemFile_Params(dataFile, MEM_ALIGN, 0, MEM_REALLOC, 0, MEM_END);
 }
@@ -1404,7 +1404,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		}
 	}
 	
-	rom->offset.segment.fontRom = Dma_WriteEntry(rom, -3, &soundFontMem);
+	rom->offset.segment.fontRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, &soundFontMem);
 	
 	MemFile_Free(&soundFontMem);
 	
@@ -1515,7 +1515,7 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Append(&memLookUpTable, &memIndexTable);
 	MemFile_Append(&rom->mem.seqFontTbl, &memLookUpTable);
 	
-	rom->offset.segment.seqRom = Dma_WriteEntry(rom, -4, &sequenceMem);
+	rom->offset.segment.seqRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, &sequenceMem);
 	
 	MemFile_Free(&memIndexTable);
 	MemFile_Free(&memLookUpTable);

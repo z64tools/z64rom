@@ -133,6 +133,11 @@ RomFile Dma_RomFile_Proto(DmaEntry);
 RomFile Dma_RomFile_Proto(GameState);
 RomFile Dma_RomFile_Proto(Scene);
 
+enum {
+	DMA_FIND_FREE = -1,
+	DMA_NO_ENTRY  = -2,
+} DmaParam;
+
 u32 Dma_WriteEntry(struct Rom* rom, s32 id, MemFile* memFile);
 void Dma_FreeEntry(struct Rom* rom, u32 id, u32 dmaAlign);
 void Dma_FreeSegment(struct Rom* rom, u32 romStart, u32 romEnd);

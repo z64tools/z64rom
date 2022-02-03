@@ -41,6 +41,10 @@ typedef struct {
 			HiLo updt;
 			HiLo draw;
 		} player;
+		struct {
+			HiLo init;
+			HiLo updt;
+		} pauseMenu;
 	} table;
 	struct {
 		u32 seqRom;
@@ -126,7 +130,8 @@ typedef struct  {
 extern const char* gObjectName[];
 extern const char* gActorName[];
 extern const char* gEffectName[];
-extern const char* gStateName[];
+extern const char* gStateName[6];
+extern const char* gKaleidoName[2];
 extern const char* gSceneName[];
 extern const char* gBankName[];
 extern const char* gSequenceName[];

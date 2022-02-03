@@ -101,6 +101,16 @@ s32 Rom_Extract(MemFile* mem, RomFile rom, char* name) {
 	return 1;
 }
 
+u32 Rom_Ovl_GetBssSize(MemFile* dataFile) {
+	u32* bssSize;
+	
+	SetSegment(0x1, dataFile->data);
+	bssSize = SegmentedToVirtual(0x1, dataFile->dataSize - 4);
+	bssSize = SegmentedToVirtual(0x1, dataFile->dataSize - ReadBE(bssSize[0]));
+	
+	return ReadBE(bssSize[3]);
+}
+
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
 
 static void Rom_Config_Actor(MemFile* config, ActorEntry* actorOvl, const char* name, char* out) {
@@ -129,7 +139,8 @@ static void Rom_Config_GameState(MemFile* config, GameStateEntry* stateOvl, cons
 	MemFile_SaveFile_String(config, out);
 }
 
-static void Rom_Config_Player(Rom* rom, MemFile* config, KaleidoEntry* player, const char* name, char* out) {
+static void Rom_Config_Kaleido(Rom* rom, MemFile* config, u32 id, const char* name, char* out) {
+	KaleidoEntry* entry = &rom->table.kaleido[id];
 	u16* dataHi;
 	u16* dataLo;
 	u32 init;
@@ -137,29 +148,44 @@ static void Rom_Config_Player(Rom* rom, MemFile* config, KaleidoEntry* player, c
 	u32 updt;
 	u32 draw;
 	
-	dataHi = SegmentedToVirtual(0x0, rom->offset.table.player.init.hi);
-	dataLo = SegmentedToVirtual(0x0, rom->offset.table.player.init.lo);
-	init = ReadBE(dataHi[1]) << 16 | ReadBE(dataLo[1]);
-	
-	dataHi = SegmentedToVirtual(0x0, rom->offset.table.player.dest.hi);
-	dataLo = SegmentedToVirtual(0x0, rom->offset.table.player.dest.lo);
-	dest = ReadBE(dataHi[1]) << 16 | ReadBE(dataLo[1]);
-	
-	dataHi = SegmentedToVirtual(0x0, rom->offset.table.player.updt.hi);
-	dataLo = SegmentedToVirtual(0x0, rom->offset.table.player.updt.lo);
-	updt = ReadBE(dataHi[1]) << 16 | ReadBE(dataLo[1]);
-	
-	dataHi = SegmentedToVirtual(0x0, rom->offset.table.player.draw.hi);
-	dataLo = SegmentedToVirtual(0x0, rom->offset.table.player.draw.lo);
-	draw = ReadBE(dataHi[1]) << 16 | ReadBE(dataLo[1]);
-	
 	MemFile_Reset(config);
 	Config_WriteTitle_Str(name);
-	Config_WriteVar_Hex("vram_addr", ReadBE(player->vramStart));
-	Config_WriteVar_Hex("init", init);
-	Config_WriteVar_Hex("dest", dest);
-	Config_WriteVar_Hex("updt", updt);
-	Config_WriteVar_Hex("draw", draw);
+	Config_WriteVar_Hex("vram_addr", ReadBE(entry->vramStart));
+	
+	if (id == 1) { // PLAYER
+		dataLo = SegmentedToVirtual(0x0, rom->offset.table.player.init.lo);
+		dataHi = SegmentedToVirtual(0x0, rom->offset.table.player.init.hi);
+		init = (ReadBE(dataHi[1]) - ((s16)ReadBE(dataLo[1]) < 0)) << 16 | ReadBE(dataLo[1]);
+		
+		dataLo = SegmentedToVirtual(0x0, rom->offset.table.player.dest.lo);
+		dataHi = SegmentedToVirtual(0x0, rom->offset.table.player.dest.hi);
+		dest = (ReadBE(dataHi[1]) - ((s16)ReadBE(dataLo[1]) < 0)) << 16 | ReadBE(dataLo[1]);
+		
+		dataLo = SegmentedToVirtual(0x0, rom->offset.table.player.updt.lo);
+		dataHi = SegmentedToVirtual(0x0, rom->offset.table.player.updt.hi);
+		updt = (ReadBE(dataHi[1]) - ((s16)ReadBE(dataLo[1]) < 0)) << 16 | ReadBE(dataLo[1]);
+		
+		dataLo = SegmentedToVirtual(0x0, rom->offset.table.player.draw.lo);
+		dataHi = SegmentedToVirtual(0x0, rom->offset.table.player.draw.hi);
+		draw = (ReadBE(dataHi[1]) - ((s16)ReadBE(dataLo[1]) < 0)) << 16 | ReadBE(dataLo[1]);
+		
+		Config_WriteVar_Hex("init", init);
+		Config_WriteVar_Hex("dest", dest);
+		Config_WriteVar_Hex("updt", updt);
+		Config_WriteVar_Hex("draw", draw);
+	} else { // PAUSE_MENU
+		dataHi = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.init.hi);
+		dataLo = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.init.lo);
+		init = ReadBE(dataHi[1]) << 16 | ReadBE(dataLo[1]);
+		
+		dataHi = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.updt.hi);
+		dataLo = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.updt.lo);
+		updt = ReadBE(dataHi[1]) << 16 | ReadBE(dataLo[1]);
+		
+		Config_WriteVar_Hex("init", init);
+		Config_WriteVar_Hex("updt", updt);
+	}
+	
 	MemFile_SaveFile_String(config, out);
 }
 
@@ -376,14 +402,16 @@ void Rom_Dump(Rom* rom) {
 				}
 			}
 			
-			Dir_Enter("Player/"); {
-				rf.size = ReadBE(rom->table.kaleido[1].vromEnd) - ReadBE(rom->table.kaleido[1].vromStart);
-				rf.data = SegmentedToVirtual(0x0, ReadBE(rom->table.kaleido[1].vromStart));
-				
-				Rom_Extract(&dataFile, rf, Dir_File("EnPlayer.zovl"));
-				Rom_Config_Player(rom, &config, &rom->table.kaleido[1], "Player", Dir_File("config.cfg"));
-				
-				Dir_Leave();
+			for (s32 i = 0; i < rom->table.num.kaleido; i++) {
+				Dir_Enter("Kaleido_%s/", gKaleidoName[i]); {
+					rf.size = ReadBE(rom->table.kaleido[i].vromEnd) - ReadBE(rom->table.kaleido[i].vromStart);
+					rf.data = SegmentedToVirtual(0x0, ReadBE(rom->table.kaleido[i].vromStart));
+					
+					Rom_Extract(&dataFile, rf, Dir_File("overlay.zovl"));
+					Rom_Config_Kaleido(rom, &config, i, gKaleidoName[i], Dir_File("config.cfg"));
+					
+					Dir_Leave();
+				}
 			}
 			
 			Dir_Leave();
@@ -505,7 +533,7 @@ void Rom_Build(Rom* rom) {
 		Dir_Enter("actor/"); {
 			ItemList actorList;
 			ActorEntry* entry = rom->table.actor;
-			Rom_ItemList(&actorList, true);
+			Rom_ItemList(&actorList, SORT_NUMERICAL);
 			
 			for (s32 i = 0; i < actorList.num; i++) {
 				if (actorList.item[i] == NULL) {
@@ -521,23 +549,18 @@ void Rom_Build(Rom* rom) {
 					printf_progress("Actor", i + 1, actorList.num);
 				
 				Dir_Enter(actorList.item[i]); {
-					u32* bssSize;
 					MemFile_Reset(&dataFile);
 					MemFile_Reset(&config);
 					MemFile_LoadFile(&dataFile, Dir_File("*.zovl"));
 					MemFile_LoadFile_String(&config, Dir_File("config.cfg"));
 					
-					SetSegment(0x1, dataFile.data);
-					bssSize = SegmentedToVirtual(0x1, dataFile.dataSize - 4);
-					bssSize = SegmentedToVirtual(0x1, dataFile.dataSize - ReadBE(bssSize[0]));
-					
 					entry[i].allocType = Config_GetInt(&config, "alloc_type");
 					entry[i].initInfo = Config_GetInt(&config, "init_vars");
 					
 					entry[i].vramStart = Config_GetInt(&config, "vram_addr");
-					entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + ReadBE(bssSize[3]);
+					entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
 					
-					entry[i].vromStart = Dma_WriteEntry(rom, -1, &dataFile);
+					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile);
 					entry[i].vromEnd = entry[i].vromStart + dataFile.dataSize;
 					
 					SwapBE(entry[i].allocType);
@@ -560,7 +583,7 @@ void Rom_Build(Rom* rom) {
 		Dir_Enter("effect/"); {
 			ItemList effectList;
 			EffectEntry* entry = rom->table.effect;
-			Rom_ItemList(&effectList, true);
+			Rom_ItemList(&effectList, SORT_NUMERICAL);
 			
 			for (s32 i = 0; i < effectList.num; i++) {
 				if (effectList.item[i] == NULL) {
@@ -575,22 +598,17 @@ void Rom_Build(Rom* rom) {
 					printf_progress("Effect", i + 1, effectList.num);
 				
 				Dir_Enter(effectList.item[i]); {
-					u32* bssSize;
 					MemFile_Reset(&dataFile);
 					MemFile_Reset(&config);
 					MemFile_LoadFile(&dataFile, Dir_File("*.zovl"));
 					MemFile_LoadFile_String(&config, Dir_File("config.cfg"));
 					
-					SetSegment(0x1, dataFile.data);
-					bssSize = SegmentedToVirtual(0x1, dataFile.dataSize - 4);
-					bssSize = SegmentedToVirtual(0x1, dataFile.dataSize - ReadBE(bssSize[0]));
-					
 					entry[i].initInfo = Config_GetInt(&config, "init_vars");
 					
 					entry[i].vramStart = Config_GetInt(&config, "vram_addr");
-					entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + ReadBE(bssSize[3]);
+					entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
 					
-					entry[i].vromStart = Dma_WriteEntry(rom, -1, &dataFile);
+					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile);
 					entry[i].vromEnd = entry[i].vromStart + dataFile.dataSize;
 					
 					SwapBE(entry[i].initInfo);
@@ -610,7 +628,7 @@ void Rom_Build(Rom* rom) {
 		Dir_Enter("object/"); {
 			ItemList objectList;
 			ObjectEntry* entry = rom->table.object;
-			Rom_ItemList(&objectList, true);
+			Rom_ItemList(&objectList, SORT_NUMERICAL);
 			
 			for (s32 i = 0; i < objectList.num; i++) {
 				if (objectList.item[i] == NULL) {
@@ -626,7 +644,7 @@ void Rom_Build(Rom* rom) {
 					MemFile_Reset(&dataFile);
 					MemFile_LoadFile(&dataFile, Dir_File("*.zobj"));
 					
-					entry[i].vromStart = Dma_WriteEntry(rom, -1, &dataFile);
+					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile);
 					entry[i].vromEnd = entry[i].vromStart + dataFile.dataSize;
 					SwapBE(entry[i].vromStart);
 					SwapBE(entry[i].vromEnd);
@@ -644,7 +662,7 @@ void Rom_Build(Rom* rom) {
 			SceneEntry* entry = rom->table.scene;
 			
 			MemFile_Malloc(&memRoom, MbToBin(2));
-			Rom_ItemList(&sceneList, true);
+			Rom_ItemList(&sceneList, SORT_NUMERICAL);
 			
 			for (s32 i = 0; i < sceneList.num; i++) {
 				if (sceneList.item[i] == NULL) {
@@ -691,7 +709,7 @@ void Rom_Build(Rom* rom) {
 						} else if (MemFile_LoadFile(&memRoom, Dir_File("room_%d.zmap", j)))
 							printf_error("Exiting...");
 						
-						vromSeg[id + 0] = Dma_WriteEntry(rom, -1, &memRoom);
+						vromSeg[id + 0] = Dma_WriteEntry(rom, DMA_FIND_FREE, &memRoom);
 						vromSeg[id + 1] = vromSeg[id + 0] + memRoom.dataSize;
 						SwapBE(vromSeg[id + 0]);
 						SwapBE(vromSeg[id + 1]);
@@ -743,7 +761,7 @@ void Rom_Build(Rom* rom) {
 					}
 					
 					entry[i].config = Config_GetInt(&config, "scene_func_id");
-					entry[i].vromStart = Dma_WriteEntry(rom, -1, &dataFile);
+					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile);
 					entry[i].vromEnd = entry[i].vromStart + dataFile.dataSize;
 					SwapBE(entry[i].vromStart);
 					SwapBE(entry[i].vromEnd);
@@ -757,6 +775,159 @@ void Rom_Build(Rom* rom) {
 			Dir_Leave();
 		}
 		
+		Dir_Enter("system/"); {
+			ItemList gameSysList;
+			
+			Rom_ItemList(&gameSysList, SORT_NONE);
+			
+			for (s32 i = 0; i < gameSysList.num; i++) {
+				s32 id = 0;
+				
+				printf_progress("System", i + 1, gameSysList.num);
+				
+				// Get id based on name
+				for (;; id++) {
+					if (id >= ArrayCount(gStateName)) {
+						id = 0;
+						break;
+					}
+					if (String_MemMem(gameSysList.item[i], gStateName[id])) {
+						id++;
+						break;
+					}
+				}
+				
+				if (id == 0) {
+					for (;; id--) {
+						if (ABS(id) >= ArrayCount(gStateName)) {
+							id = 0;
+							break;
+						}
+						if (String_MemMem(gameSysList.item[i], gKaleidoName[ABS(id)])) {
+							id--;
+							break;
+						}
+					}
+				}
+				
+				// GameState
+				if (id > 0) {
+					id--;
+					printf_info("%s", gameSysList.item[i]);
+					Dir_Enter(gameSysList.item[i]); {
+						GameStateEntry* entry = rom->table.state;
+						MemFile_Reset(&config);
+						MemFile_Reset(&dataFile);
+						
+						if (MemFile_LoadFile_String(&config, Dir_File("config.cfg")))
+							printf_error("Exiting");
+						if (MemFile_LoadFile(&dataFile, Dir_File("*.zovl")))
+							printf_error("Exiting");
+						
+						entry[id].init = Config_GetInt(&config, "init_func");
+						entry[id].destroy = Config_GetInt(&config, "dest_func");
+						
+						entry[id].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile);
+						entry[id].vromEnd = entry[id].vromStart + dataFile.dataSize;
+						
+						entry[id].vramStart = Config_GetInt(&config, "vram_addr");
+						entry[id].vramEnd = entry[id].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
+						
+						SwapBE(entry[id].init);
+						SwapBE(entry[id].destroy);
+						SwapBE(entry[id].vromStart);
+						SwapBE(entry[id].vromEnd);
+						SwapBE(entry[id].vramStart);
+						SwapBE(entry[id].vramEnd);
+						
+						Dir_Leave();
+					}
+				} else if (id < 0) {
+					id = ABS(id) - 1;
+					printf_info("%s", gameSysList.item[i]);
+					Dir_Enter(gameSysList.item[i]); {
+						KaleidoEntry* entry = rom->table.kaleido;
+						RomOffset* romOff = &rom->offset;
+						MemFile_Reset(&config);
+						MemFile_Reset(&dataFile);
+						
+						if (MemFile_LoadFile_String(&config, Dir_File("config.cfg")))
+							printf_error("Exiting");
+						if (MemFile_LoadFile(&dataFile, Dir_File("*.zovl")))
+							printf_error("Exiting");
+						
+						entry[id].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile);
+						entry[id].vromEnd = entry[id].vromStart + dataFile.dataSize;
+						
+						entry[id].vramStart = Config_GetInt(&config, "vram_addr");
+						entry[id].vramEnd = entry[id].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
+						
+						SwapBE(entry[id].vromStart);
+						SwapBE(entry[id].vromEnd);
+						SwapBE(entry[id].vramStart);
+						SwapBE(entry[id].vramEnd);
+						
+						if (id == 1) { // PLAYER
+							Mips64_SplitLoad(
+								SegmentedToVirtual(0x0, romOff->table.player.init.hi),
+								SegmentedToVirtual(0x0, romOff->table.player.init.lo),
+								MIPS_REG_A0,
+								Config_GetInt(&config, "init")
+							);
+							Mips64_SplitLoad(
+								SegmentedToVirtual(0x0, romOff->table.player.dest.hi),
+								SegmentedToVirtual(0x0, romOff->table.player.dest.lo),
+								MIPS_REG_A0,
+								Config_GetInt(&config, "dest")
+							);
+							Mips64_SplitLoad(
+								SegmentedToVirtual(0x0, romOff->table.player.updt.hi),
+								SegmentedToVirtual(0x0, romOff->table.player.updt.lo),
+								MIPS_REG_A0,
+								Config_GetInt(&config, "updt")
+							);
+							Mips64_SplitLoad(
+								SegmentedToVirtual(0x0, romOff->table.player.draw.hi),
+								SegmentedToVirtual(0x0, romOff->table.player.draw.lo),
+								MIPS_REG_A0,
+								Config_GetInt(&config, "draw")
+							);
+						} else { // PAUSE_MENU
+							Mips64_SplitLoad(
+								SegmentedToVirtual(0x0, romOff->table.pauseMenu.init.hi),
+								SegmentedToVirtual(0x0, romOff->table.pauseMenu.init.lo),
+								MIPS_REG_A0,
+								Config_GetInt(&config, "init")
+							);
+							Mips64_SplitLoad(
+								SegmentedToVirtual(0x0, romOff->table.pauseMenu.updt.hi),
+								SegmentedToVirtual(0x0, romOff->table.pauseMenu.updt.lo),
+								MIPS_REG_A0,
+								Config_GetInt(&config, "updt")
+							);
+						}
+						
+						Dir_Leave();
+					}
+				}
+			}
+			
+			Dir_Leave();
+		}
+		
+		Dir_Leave();
+	}
+	
+	if (Dir_Stat("patch/")) {
+		Dir_Enter("patch/"); {
+			printf_info("Applying Patches");
+			Rom_Build_Patch(rom, &dataFile, &config);
+			
+			Dir_Leave();
+		}
+	}
+	
+	Dir_Enter("rom/"); {
 		if (Dir_Stat("lib_code/")) {
 			Dir_Enter("lib_code/"); {
 				Rom_Build_Code(rom, &dataFile, &config);
@@ -779,15 +950,6 @@ void Rom_Build(Rom* rom) {
 		}
 		
 		Dir_Leave();
-	}
-	
-	if (Dir_Stat("patch/")) {
-		Dir_Enter("patch/"); {
-			printf_info("Applying Patches");
-			Rom_Build_Patch(rom, &dataFile, &config);
-			
-			Dir_Leave();
-		}
 	}
 	
 	fix_crc(rom->file.data);
@@ -898,6 +1060,13 @@ void Rom_New(Rom* rom, char* romName) {
 			};
 			rom->offset.table.player.draw = (HiLo) {
 				0x00B28930, 0x00B2893C
+			};
+			
+			rom->offset.table.pauseMenu.init = (HiLo) {
+				0x00B33208, 0x00B3320C
+			};
+			rom->offset.table.pauseMenu.updt = (HiLo) {
+				0x00B33218, 0x00B33220
 			};
 			break;
 		case Zelda_OoT_1_0:

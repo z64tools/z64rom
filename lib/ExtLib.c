@@ -1017,7 +1017,7 @@ void* Lib_MemMem(const void* haystack, size_t haystackSize, const void* needle, 
 	return NULL;
 }
 
-void* Lib_MemMemCase(void* haystack, size_t haystackSize, void* needle, size_t needleSize) {
+void* Lib_MemMemCase(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize) {
 	if (haystack == NULL || needle == NULL)
 		return NULL;
 	register char* cur, * last;

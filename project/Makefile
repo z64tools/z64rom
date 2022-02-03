@@ -156,7 +156,7 @@ rom/object/%.zobj: src/object/%.objex
 include/objects.ld: $(Object_zobj)
 	@echo "$(PRNT_YELW)Linker$(PRNT_RSET):  $(notdir $@)"
 	@-cat include/object/*.ld > $(@:.ld=_tmp.ld);
-	@tools/cofi __temp__include/objects.ld $@;
+	@-tools/cofi __temp__include/objects.ld $@;
 	@if [ ! -f "include/objects.ld" ]; then \
 		touch include/objects.ld; \
 	fi; \

@@ -111,6 +111,69 @@ u32 Rom_Ovl_GetBssSize(MemFile* dataFile) {
 	return ReadBE(bssSize[3]);
 }
 
+RestrictionFlag* Rom_GetRestrictionFlags(Rom* rom, u32 sceneIndex) {
+	RestrictionFlag* flagList = rom->table.restrictionFlags;
+	
+	while (flagList->sceneIndex != 0xFF) {
+		if (flagList->sceneIndex == sceneIndex)
+			return flagList;
+		
+		flagList++;
+	}
+	
+	return NULL;
+}
+
+void Rom_WriteRestrictionFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
+	char* flags = Config_Get(config, "restriction_flags");
+	RestrictionFlag* rf = Rom_GetRestrictionFlags(rom, sceneIndex);
+	
+	if (flags == NULL || rf == NULL)
+		return;
+	
+	memset(rf, 0, sizeof(RestrictionFlag));
+	rf[0].sceneIndex = sceneIndex;
+	
+	if (String_MemMem(flags, "BOTTLES")) {
+		rf->bottles = 3;
+	}
+	if (String_MemMem(flags, "A_BUTTON")) {
+		rf->aButton = 3;
+	}
+	if (String_MemMem(flags, "B_BUTTON")) {
+		rf->bButton = 3;
+	}
+	
+	if (String_MemMem(flags, "WARP_SONG")) {
+		rf->warpSong = 3;
+	}
+	if (String_MemMem(flags, "OCARINA")) {
+		rf->ocarina = 3;
+	}
+	if (String_MemMem(flags, "HOOKSHOT")) {
+		rf->hookshot = 3;
+	}
+	if (String_MemMem(flags, "TRADE_ITEM")) {
+		rf->tradeItem = 3;
+	}
+	
+	if (String_MemMem(flags, "ALL")) {
+		rf->all = 3;
+	}
+	if (String_MemMem(flags, "DINS_FIRE")) {
+		rf->din = 1;
+	}
+	if (String_MemMem(flags, "NAYRUS_LOVE")) {
+		rf->nayry = 1;
+	}
+	if (String_MemMem(flags, "FARORES_WIND")) {
+		rf->farore = 3;
+	}
+	if (String_MemMem(flags, "SUN_SONG")) {
+		rf->sunSong = 3;
+	}
+}
+
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
 
 static void Rom_Config_Actor(MemFile* config, ActorEntry* actorOvl, const char* name, char* out) {
@@ -189,7 +252,15 @@ static void Rom_Config_Kaleido(Rom* rom, MemFile* config, u32 id, const char* na
 	MemFile_SaveFile_String(config, out);
 }
 
-static void Rom_Config_Scene(MemFile* config, SceneEntry* sceneEntry, const char* name, char* out) {
+static void Rom_Config_Scene(Rom* rom, MemFile* config, u32 id, const char* name, char* out) {
+	#define FIWI \
+		if (firstWritten > 0) { \
+			MemFile_Printf(config, " | "); \
+		} firstWritten++;
+	
+	SceneEntry* sceneEntry = &rom->table.scene[id];
+	RestrictionFlag* rf = Rom_GetRestrictionFlags(rom, id);
+	
 	MemFile_Reset(config);
 	Config_WriteTitle_Str(name);
 	#if 0
@@ -197,7 +268,72 @@ static void Rom_Config_Scene(MemFile* config, SceneEntry* sceneEntry, const char
 		Config_WriteVar_Int("unk_b", ReadBE(sceneEntry->unk_12));
 	#endif
 	Config_WriteVar_Int("scene_func_id", ReadBE(sceneEntry->config));
+	
+	if (rf) {
+		s32 firstWritten = 0;
+		MemFile_Printf(config, "# [ BOTTLES / A_BUTTON / B_BUTTON / WARP_SONG / OCARINA / HOOKSHOT ]\n");
+		MemFile_Printf(config, "# [ TRADE_ITEM / ALL / DINS_FIRE / NAYRUS_LOVE / FARORES_WIND / SUN_SONG ]\n");
+		MemFile_Printf(config, "%-15s = \"", "restriction_flags");
+		
+		if (rf->bottles) {
+			MemFile_Printf(config, "BOTTLES", "restriction_flags");
+		}
+		if (rf->aButton) {
+			FIWI;
+			MemFile_Printf(config, "A_BUTTON", "restriction_flags");
+		}
+		if (rf->bButton) {
+			FIWI;
+			MemFile_Printf(config, "B_BUTTON", "restriction_flags");
+		}
+		
+		if (rf->warpSong) {
+			FIWI;
+			MemFile_Printf(config, "WARP_SONG", "restriction_flags");
+		}
+		if (rf->ocarina) {
+			FIWI;
+			MemFile_Printf(config, "OCARINA", "restriction_flags");
+		}
+		if (rf->hookshot) {
+			FIWI;
+			MemFile_Printf(config, "HOOKSHOT", "restriction_flags");
+		}
+		if (rf->tradeItem) {
+			FIWI;
+			MemFile_Printf(config, "TRADE_ITEM", "restriction_flags");
+		}
+		
+		if (rf->all) {
+			FIWI;
+			MemFile_Printf(config, "ALL", "restriction_flags");
+		}
+		if (rf->din) {
+			FIWI;
+			MemFile_Printf(config, "DINS_FIRE", "restriction_flags");
+		}
+		if (rf->nayry) {
+			FIWI;
+			MemFile_Printf(config, "NAYRUS_LOVE", "restriction_flags");
+		}
+		if (rf->farore) {
+			FIWI;
+			MemFile_Printf(config, "FARORES_WIND", "restriction_flags");
+		}
+		if (rf->sunSong) {
+			FIWI;
+			MemFile_Printf(config, "SUN_SONG", "restriction_flags");
+		}
+		
+		if (firstWritten == 0) {
+			MemFile_Printf(config, "nothing\"\n");
+		} else {
+			MemFile_Printf(config, "\"\n");
+		}
+	}
+	
 	MemFile_SaveFile_String(config, out);
+	#undef FIWI
 }
 
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
@@ -432,7 +568,7 @@ void Rom_Dump(Rom* rom) {
 						u32 roomListSeg;
 						u32* vromSeg;
 						
-						Rom_Config_Scene(&config, &rom->table.scene[i], gSceneName[i], Dir_File("config.cfg"));
+						Rom_Config_Scene(rom, &config, i, gSceneName[i], Dir_File("config.cfg"));
 						SetSegment(0x2, rf.data);
 						seg = dataFile.data;
 						
@@ -684,6 +820,8 @@ void Rom_Build(Rom* rom) {
 					SetSegment(0x1, dataFile.data);
 					seg = SegmentedToVirtual(0x1, 0);
 					
+					Rom_WriteRestrictionFlags(rom, &config, i);
+					
 					for (;;) {
 						if ((seg[0] & 0xFF) == 0x04) {
 							break;
@@ -813,7 +951,7 @@ void Rom_Build(Rom* rom) {
 				// GameState
 				if (id > 0) {
 					id--;
-					printf_info("%s", gameSysList.item[i]);
+					
 					Dir_Enter(gameSysList.item[i]); {
 						GameStateEntry* entry = rom->table.state;
 						MemFile_Reset(&config);
@@ -844,7 +982,7 @@ void Rom_Build(Rom* rom) {
 					}
 				} else if (id < 0) {
 					id = ABS(id) - 1;
-					printf_info("%s", gameSysList.item[i]);
+					
 					Dir_Enter(gameSysList.item[i]); {
 						KaleidoEntry* entry = rom->table.kaleido;
 						RomOffset* romOff = &rom->offset;
@@ -1026,6 +1164,8 @@ void Rom_New(Rom* rom, char* romName) {
 			rom->offset.table.fontTable = 0xBCC270;
 			rom->offset.table.sampleTable = 0xBCCD90;
 			
+			rom->offset.table.restrictionFlags = 0x00B9CA10;
+			
 			addr = SegmentedToVirtual(0x0, 0xB5A4AE);
 			rom->offset.segment.seqRom = (ReadBE(addr[0]) - (ReadBE(addr[2]) > 0x7FFF)) << 16;
 			rom->offset.segment.seqRom |= ReadBE(addr[2]);
@@ -1089,6 +1229,8 @@ void Rom_New(Rom* rom, char* romName) {
 			rom->offset.segment.fontRom = 0x0000D390;
 			rom->offset.segment.smplRom = 0x00079470;
 			
+			rom->offset.table.restrictionFlags = 0x00B6D2B0;
+			
 			rom->table.num.dma = 1526;
 			rom->table.num.obj = 402;
 			rom->table.num.actor = 471;
@@ -1124,6 +1266,8 @@ void Rom_New(Rom* rom, char* romName) {
 	rom->table.state = SegmentedToVirtual(0x0, rom->offset.table.stateTable);
 	rom->table.scene = SegmentedToVirtual(0x0, rom->offset.table.sceneTable);
 	rom->table.kaleido = SegmentedToVirtual(0x0, rom->offset.table.kaleidoTable);
+	
+	rom->table.restrictionFlags = SegmentedToVirtual(0x0, rom->offset.table.restrictionFlags);
 	
 	rom->mem.sampleTbl = MemFile_Initialize();
 	rom->mem.fontTbl = MemFile_Initialize();

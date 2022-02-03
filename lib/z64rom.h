@@ -14,6 +14,29 @@ typedef struct {
 	u32 lo;
 } HiLo;
 
+typedef struct {
+	u8 sceneIndex;
+	struct {
+		u8 bottles : 2;
+		u8 aButton : 2;
+		u8 bButton : 2;
+		u8 unused  : 2;
+	};
+	struct {
+		u8 warpSong  : 2;
+		u8 ocarina   : 2;
+		u8 hookshot  : 2;
+		u8 tradeItem : 2;
+	};
+	struct {
+		u8 all     : 2;
+		u8 din     : 1;
+		u8 nayry   : 1;
+		u8 farore  : 2;
+		u8 sunSong : 2;
+	};
+} RestrictionFlag;
+
 typedef enum {
 	NoRom = 0,
 	Zelda_OoT_Debug,
@@ -35,6 +58,8 @@ typedef struct {
 		u32 seqTable;
 		u32 fontTable;
 		u32 sampleTable;
+		
+		u32 restrictionFlags;
 		struct {
 			HiLo init;
 			HiLo dest;
@@ -67,13 +92,15 @@ typedef struct Rom {
 	MemFile   config;
 	RomOffset offset;
 	struct {
-		DmaEntry*       dma;
-		ActorEntry*     actor;
-		SceneEntry*     scene;
-		EffectEntry*    effect;
-		ObjectEntry*    object;
-		KaleidoEntry*   kaleido;
-		GameStateEntry* state;
+		DmaEntry*        dma;
+		ActorEntry*      actor;
+		SceneEntry*      scene;
+		EffectEntry*     effect;
+		ObjectEntry*     object;
+		KaleidoEntry*    kaleido;
+		GameStateEntry*  state;
+		
+		RestrictionFlag* restrictionFlags;
 		struct {
 			u16 dma;
 			u16 obj;

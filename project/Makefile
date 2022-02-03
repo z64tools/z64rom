@@ -5,7 +5,7 @@ mips64_objcopy = tools/mips64-binutils/bin/mips64-objcopy
 mips64_ar      = tools/mips64-binutils/bin/mips64-ar
 novl           = tools/novl
 elf2ld         = tools/elf2ld
-z64rom         = $(shell find ./ -type f -name 'z64ro*')
+z64rom         = ./z64rom.exe
 setup_rom      = $(shell find ./ -type f -name '*.z64' -not -name 'build.z64')
 
 PRDR_GRAY := \e[90;0m

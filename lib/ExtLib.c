@@ -19,7 +19,7 @@ char* sPrintfPrefix = "ExtLib";
 u8 sPrintfType = 1;
 u8 gPrintfProgressing;
 u8* sSegment[255];
-char sCurrentPath[512];
+char sCurrentPath[2048];
 char* sPrintfPreType[][4] = {
 	{
 		NULL,
@@ -34,8 +34,8 @@ char* sPrintfPreType[][4] = {
 		">"
 	}
 };
-u8 sGraphBuffer[MbToBin(128)];
-u32 sGraphSize = 0x10;
+u8 sBuffer_Temp[MbToBin(64)];
+u32 sSeek_Temp = 0;
 time_t sTime;
 MemFile sLog;
 
@@ -55,60 +55,49 @@ void32 VirtualToSegmented(const u8 id, void* ptr) {
 	return (uPtr)ptr - (uPtr)sSegment[id];
 }
 
-// Graph
-void* Graph_Alloc(u32 size) {
+// Static Memory
+void* Tmp_Alloc(u32 size) {
 	u8* ret;
-	u32* param;
 	
-	if (size >= MbToBin(32))
+	if (size >= sizeof(sBuffer_Temp) / 2)
 		printf_error("Can't fit %fMb into the GraphBuffer", BinToMb(size));
 	
 	if (size == 0)
 		return NULL;
 	
-	if (sGraphSize + size + 0x20 > MbToBin(128)) {
-		printf_warning("GrapRound");
-		getchar();
-		sGraphSize = 0x10;
+	if (sSeek_Temp + size + 0x10 > sizeof(sBuffer_Temp)) {
+		printf_warning_align("Tmp_Alloc:", "rewind\a");
+		sSeek_Temp = 0;
 	}
 	
-	param = (u32*)&sGraphBuffer[sGraphSize];
-	param[-1] = size;
-	
-	ret = &sGraphBuffer[sGraphSize];
-	memset(ret, 0, size);
-	sGraphSize += size + 0x10;
-	
-	// align
-	if (sGraphSize % 4)
-		sGraphSize += 4 - (sGraphSize % 4);
+	ret = &sBuffer_Temp[sSeek_Temp];
+	memset(ret, 0, size + 1);
+	sSeek_Temp = sSeek_Temp + size + 1;
 	
 	return ret;
 }
 
-void* Graph_Realloc(void* ptr, u32 size) {
-	u8* ret = Graph_Alloc(size);
-	u32* param = ptr;
-	
-	memcpy(ret, ptr, param[-1]);
-	
-	return ret;
-}
-
-char* Graph_GenStr(char* str) {
-	char* ret = Graph_Alloc(strlen(str));
+char* Tmp_String(char* str) {
+	char* ret = Tmp_Alloc(strlen(str));
 	
 	strcpy(ret, str);
 	
 	return ret;
 }
 
-u32 Graph_GetSize(void* ptr) {
-	u32* val = ptr;
+char* Tmp_Printf(char* fmt, ...) {
+	char tempBuf[512 * 2];
 	
-	return val[-1];
+	va_list args;
+	
+	va_start(args, fmt);
+	vsnprintf(tempBuf, ArrayCount(tempBuf), fmt, args);
+	va_end(args);
+	
+	return Tmp_String(tempBuf);
 }
 
+// Log
 void Log(const char* fmt, ...) {
 	if (sLog.param.initKey == 0) {
 		sLog = MemFile_Initialize();
@@ -224,7 +213,7 @@ void Dir_Make(char* dir, ...) {
 	vsnprintf(argBuf, ArrayCount(argBuf), dir, args);
 	va_end(args);
 	
-	MakeDir(tprintf("%s%s", sCurrentPath, argBuf));
+	MakeDir(Tmp_Printf("%s%s", sCurrentPath, argBuf));
 }
 
 void Dir_MakeCurrent(void) {
@@ -236,13 +225,9 @@ char* Dir_Current(void) {
 }
 
 char* Dir_File(char* fmt, ...) {
-	static char buffer[128][512];
-	static u32 bufID;
+	char* buffer;
 	char argBuf[512];
 	va_list args;
-	
-	bufID++;
-	bufID = bufID % 128;
 	
 	va_start(args, fmt);
 	vsnprintf(argBuf, ArrayCount(argBuf), fmt, args);
@@ -252,15 +237,15 @@ char* Dir_File(char* fmt, ...) {
 		return Dir_GetWildcard(argBuf);
 	}
 	
-	strcpy(buffer[bufID], tprintf("%s%s", sCurrentPath, argBuf));
+	buffer = Tmp_Printf("%s%s", sCurrentPath, argBuf);
 	
-	return buffer[bufID];
+	return buffer;
 }
 
 Time Dir_Stat(char* item) {
 	struct stat st = { 0 };
 	
-	if (stat(tprintf("%s%s", sCurrentPath, item), &st) == -1)
+	if (stat(Tmp_Printf("%s%s", sCurrentPath, item), &st) == -1)
 		return 0;
 	
 	if (st.st_mtime == 0)
@@ -275,16 +260,16 @@ char* Dir_GetWildcard(char* x) {
 	char* sStart = NULL;
 	char* restorePath;
 	char* search = String_MemMem(x, "*");
-	char* posPath = String_GetPath(tprintf("%s%s", sCurrentPath, x));
+	char* posPath = String_GetPath(Tmp_Printf("%s%s", sCurrentPath, x));
 	
-	sEnd = Graph_GenStr(&search[1]);
+	sEnd = Tmp_String(&search[1]);
 	
 	if ((uPtr)search - (uPtr)x > 0) {
-		sStart = Graph_Alloc((uPtr)search - (uPtr)x + 2);
+		sStart = Tmp_Alloc((uPtr)search - (uPtr)x + 2);
 		memcpy(sStart, x, (uPtr)search - (uPtr)x);
 	}
 	
-	restorePath = Graph_GenStr(sCurrentPath);
+	restorePath = Tmp_String(sCurrentPath);
 	
 	if (strcmp(posPath, restorePath)) {
 		Dir_Set(posPath);
@@ -298,7 +283,7 @@ char* Dir_GetWildcard(char* x) {
 	
 	for (s32 i = 0; i < list.num; i++) {
 		if (String_MemMem(list.item[i], sEnd) && (sStart == NULL || String_MemMem(list.item[i], sStart))) {
-			return Graph_GenStr(tprintf("%s%s", posPath, list.item[i]));
+			return Tmp_Printf("%s%s", posPath, list.item[i]);
 		}
 	}
 	
@@ -348,22 +333,22 @@ void Dir_ItemList(ItemList* itemList, bool isPath) {
 	if (itemList->num) {
 		u32 i = 0;
 		dir = opendir(sCurrentPath);
-		itemList->buffer = Graph_Alloc(bufSize);
-		itemList->item = Graph_Alloc(sizeof(char*) * itemList->num);
+		itemList->buffer = Tmp_Alloc(bufSize);
+		itemList->item = Tmp_Alloc(sizeof(char*) * itemList->num);
 		
 		while ((entry = readdir(dir)) != NULL) {
 			if (isPath) {
 				if (__isDir(Dir_File(entry->d_name))) {
 					if (entry->d_name[0] == '.')
 						continue;
-					strcpy(&itemList->buffer[itemList->writePoint], tprintf("%s/", entry->d_name));
+					strcpy(&itemList->buffer[itemList->writePoint], Tmp_Printf("%s/", entry->d_name));
 					itemList->item[i] = &itemList->buffer[itemList->writePoint];
 					itemList->writePoint += strlen(itemList->item[i]) + 1;
 					i++;
 				}
 			} else {
 				if (!__isDir(Dir_File(entry->d_name))) {
-					strcpy(&itemList->buffer[itemList->writePoint], tprintf("%s", entry->d_name));
+					strcpy(&itemList->buffer[itemList->writePoint], Tmp_Printf("%s", entry->d_name));
 					itemList->item[i] = &itemList->buffer[itemList->writePoint];
 					itemList->writePoint += strlen(itemList->item[i]) + 1;
 					i++;
@@ -383,7 +368,7 @@ static void Dir_ItemList_Recursive_ChildCount(ItemList* target, char* pathTo, ch
 	
 	for (s32 i = 0; i < folder.num; i++) {
 		Dir_Enter(folder.item[i]); {
-			Dir_ItemList_Recursive_ChildCount(target, tprintf("%s%s/", pathTo, folder.item[i]), keyword);
+			Dir_ItemList_Recursive_ChildCount(target, Tmp_Printf("%s%s/", pathTo, folder.item[i]), keyword);
 			Dir_Leave();
 		}
 	}
@@ -404,7 +389,7 @@ static void Dir_ItemList_Recursive_ChildWrite(ItemList* target, char* pathTo, ch
 	
 	for (s32 i = 0; i < folder.num; i++) {
 		Dir_Enter(folder.item[i]); {
-			Dir_ItemList_Recursive_ChildWrite(target, tprintf("%s%s", pathTo, folder.item[i]), keyword);
+			Dir_ItemList_Recursive_ChildWrite(target, Tmp_Printf("%s%s", pathTo, folder.item[i]), keyword);
 			Dir_Leave();
 		}
 	}
@@ -412,7 +397,7 @@ static void Dir_ItemList_Recursive_ChildWrite(ItemList* target, char* pathTo, ch
 	for (s32 i = 0; i < file.num; i++) {
 		if (keyword && !String_MemMemCase(file.item[i], keyword))
 			continue;
-		target->item[target->num++] = tprintf("%s%s", pathTo, file.item[i]);
+		target->item[target->num++] = Tmp_Printf("%s%s", pathTo, file.item[i]);
 	}
 }
 
@@ -420,7 +405,7 @@ void Dir_ItemList_Recursive(ItemList* target, char* keyword) {
 	memset(target, 0, sizeof(*target));
 	
 	Dir_ItemList_Recursive_ChildCount(target, "", keyword);
-	target->item = Graph_Alloc(sizeof(char*) * target->num);
+	target->item = Tmp_Alloc(sizeof(char*) * target->num);
 	target->num = 0;
 	Dir_ItemList_Recursive_ChildWrite(target, "", keyword);
 }
@@ -458,8 +443,8 @@ void Dir_ItemList_Not(ItemList* itemList, bool isPath, char* not) {
 	if (itemList->num) {
 		u32 i = 0;
 		dir = opendir(sCurrentPath);
-		itemList->buffer = Graph_Alloc(bufSize);
-		itemList->item = Graph_Alloc(sizeof(char*) * itemList->num);
+		itemList->buffer = Tmp_Alloc(bufSize);
+		itemList->item = Tmp_Alloc(sizeof(char*) * itemList->num);
 		
 		while ((entry = readdir(dir)) != NULL) {
 			if (isPath) {
@@ -468,14 +453,14 @@ void Dir_ItemList_Not(ItemList* itemList, bool isPath, char* not) {
 						continue;
 					if (strcmp(entry->d_name, not) == 0)
 						continue;
-					strcpy(&itemList->buffer[itemList->writePoint], tprintf("%s/", entry->d_name));
+					strcpy(&itemList->buffer[itemList->writePoint], Tmp_Printf("%s/", entry->d_name));
 					itemList->item[i] = &itemList->buffer[itemList->writePoint];
 					itemList->writePoint += strlen(itemList->item[i]) + 1;
 					i++;
 				}
 			} else {
 				if (!__isDir(Dir_File(entry->d_name))) {
-					strcpy(&itemList->buffer[itemList->writePoint], tprintf("%s", entry->d_name));
+					strcpy(&itemList->buffer[itemList->writePoint], Tmp_Printf("%s", entry->d_name));
 					itemList->item[i] = &itemList->buffer[itemList->writePoint];
 					itemList->writePoint += strlen(itemList->item[i]) + 1;
 					i++;
@@ -510,14 +495,14 @@ void Dir_ItemList_Keyword(ItemList* itemList, char* ext) {
 	if (itemList->num) {
 		u32 i = 0;
 		dir = opendir(sCurrentPath);
-		itemList->buffer = Graph_Alloc(bufSize);
-		itemList->item = Graph_Alloc(sizeof(char*) * itemList->num);
+		itemList->buffer = Tmp_Alloc(bufSize);
+		itemList->item = Tmp_Alloc(sizeof(char*) * itemList->num);
 		
 		while ((entry = readdir(dir)) != NULL) {
 			if (!__isDir(Dir_File(entry->d_name))) {
 				if (!String_MemMem(entry->d_name, ext))
 					continue;
-				strcpy(&itemList->buffer[itemList->writePoint], tprintf("%s", entry->d_name));
+				strcpy(&itemList->buffer[itemList->writePoint], Tmp_Printf("%s", entry->d_name));
 				itemList->item[i] = &itemList->buffer[itemList->writePoint];
 				itemList->writePoint += strlen(itemList->item[i]) + 1;
 				i++;
@@ -612,14 +597,14 @@ void ItemList_NumericalSort(ItemList* list) {
 	}
 	
 	sorted.buffer = NULL;
-	sorted.item = Graph_Alloc(sizeof(char*) * (highestNum + 1));
+	sorted.item = Tmp_Alloc(sizeof(char*) * (highestNum + 1));
 	
 	for (s32 i = 0; i <= highestNum; i++) {
 		u32 null = true;
 		
 		for (s32 j = 0; j < list->num; j++) {
 			if (String_GetInt(list->item[j]) == i) {
-				sorted.item[sorted.num++] = Graph_GenStr(list->item[j]);
+				sorted.item[sorted.num++] = Tmp_String(list->item[j]);
 				null = false;
 				break;
 			}
@@ -638,19 +623,6 @@ void ItemList_NumericalSort(ItemList* list) {
 	#endif
 	
 	*list = sorted;
-}
-
-// printf
-char* tprintf(char* fmt, ...) {
-	char tempBuf[512 * 2];
-	
-	va_list args;
-	
-	va_start(args, fmt);
-	vsnprintf(tempBuf, ArrayCount(tempBuf), fmt, args);
-	va_end(args);
-	
-	return Graph_GenStr(tempBuf);
 }
 
 void printf_SetSuppressLevel(PrintfSuppressLevel lvl) {
@@ -1537,7 +1509,7 @@ s32 MemFile_LoadFile(MemFile* memFile, char* filepath) {
 	memFile->info.age = sta.st_mtime;
 	
 	if (memFile->param.getName != 0) {
-		memFile->info.name = Graph_Alloc(strlen(filepath));
+		memFile->info.name = Tmp_Alloc(strlen(filepath));
 		strcpy(memFile->info.name, filepath);
 	}
 	
@@ -1588,7 +1560,7 @@ s32 MemFile_LoadFile_String(MemFile* memFile, char* filepath) {
 	memFile->info.age = sta.st_mtime;
 	
 	if (memFile->param.getName != 0) {
-		memFile->info.name = Graph_Alloc(strlen(filepath));
+		memFile->info.name = Tmp_Alloc(strlen(filepath));
 		strcpy(memFile->info.name, filepath);
 	}
 	
@@ -1722,17 +1694,13 @@ static void __GetSlashAndPoint(const char* src, s32* slash, s32* point) {
 }
 
 char* String_GetLine(const char* str, s32 line) {
-	static char buffer[128][512];
-	static s32 index;
+	char* buffer;
 	s32 iLine = -1;
 	s32 i = 0;
 	s32 j = 0;
 	
 	if (str == NULL)
 		return NULL;
-	
-	index++;
-	index = index % 128;
 	
 	while (str[i] != '\0') {
 		j = 0;
@@ -1753,24 +1721,22 @@ char* String_GetLine(const char* str, s32 line) {
 		}
 	}
 	
-	memcpy(buffer[index], &str[i], j);
-	buffer[index][j] = '\0';
+	buffer = Tmp_Alloc(j + 1);
 	
-	return buffer[index];
+	memcpy(buffer, &str[i], j);
+	buffer[j] = '\0';
+	
+	return buffer;
 }
 
 char* String_GetWord(const char* str, s32 word) {
-	static char buffer[128][512];
-	static s32 index;
+	char* buffer;
 	s32 iWord = -1;
 	s32 i = 0;
 	s32 j = 0;
 	
 	if (str == NULL)
 		return NULL;
-	
-	index++;
-	index = index % 128;
 	
 	while (str[i] != '\0') {
 		j = 0;
@@ -1791,38 +1757,37 @@ char* String_GetWord(const char* str, s32 word) {
 		}
 	}
 	
-	memcpy(buffer[index], &str[i], j);
-	buffer[index][j] = '\0';
+	buffer = Tmp_Alloc(j + 1);
 	
-	return buffer[index];
+	memcpy(buffer, &str[i], j);
+	buffer[j] = '\0';
+	
+	return buffer;
 }
 
 char* String_GetPath(const char* src) {
-	static char buffer[128][512];
-	static s32 index;
+	char* buffer;
 	s32 point = 0;
 	s32 slash = 0;
 	
 	if (src == NULL)
 		return NULL;
-	
-	index++;
-	index = index % 128;
 	
 	__GetSlashAndPoint(src, &slash, &point);
 	
 	if (slash == 0)
 		slash = -1;
 	
-	memcpy(buffer[index], src, slash + 1);
-	buffer[index][slash + 1] = '\0';
+	buffer = Tmp_Alloc(slash + 1 + 1);
 	
-	return buffer[index];
+	memcpy(buffer, src, slash + 1);
+	buffer[slash + 1] = '\0';
+	
+	return buffer;
 }
 
 char* String_GetBasename(const char* src) {
-	static char buffer[128][512];
-	static s32 index;
+	char* buffer;
 	s32 point = 0;
 	s32 slash = 0;
 	
@@ -1830,9 +1795,6 @@ char* String_GetBasename(const char* src) {
 		return NULL;
 	
 	__GetSlashAndPoint(src, &slash, &point);
-	
-	index++;
-	index = index % 128;
 	
 	// Offset away from the slash
 	if (slash > 0)
@@ -1843,15 +1805,16 @@ char* String_GetBasename(const char* src) {
 		while (src[point] > ' ') point++;
 	}
 	
-	memcpy(buffer[index], &src[slash], point - slash);
-	buffer[index][point - slash] = '\0';
+	buffer = Tmp_Alloc(point - slash + 1);
 	
-	return buffer[index];
+	memcpy(buffer, &src[slash], point - slash);
+	buffer[point - slash] = '\0';
+	
+	return buffer;
 }
 
 char* String_GetFilename(const char* src) {
-	static char buffer[128][512];
-	static s32 index;
+	char* buffer;
 	s32 point = 0;
 	s32 slash = 0;
 	s32 ext = 0;
@@ -1860,9 +1823,6 @@ char* String_GetFilename(const char* src) {
 		return NULL;
 	
 	__GetSlashAndPoint(src, &slash, &point);
-	
-	index++;
-	index = index % 128;
 	
 	// Offset away from the slash
 	if (slash > 0)
@@ -1878,10 +1838,12 @@ char* String_GetFilename(const char* src) {
 		while (src[point] > ' ') point++;
 	}
 	
-	memcpy(buffer[index], &src[slash], point - slash + ext);
-	buffer[index][point - slash + ext] = '\0';
+	buffer = Tmp_Alloc(point - slash + ext + 1);
 	
-	return buffer[index];
+	memcpy(buffer, &src[slash], point - slash + ext);
+	buffer[point - slash + ext] = '\0';
+	
+	return buffer;
 }
 
 s32 String_GetPathNum(const char* src) {
@@ -1896,16 +1858,12 @@ s32 String_GetPathNum(const char* src) {
 }
 
 char* String_GetFolder(const char* src, s32 num) {
-	static char buffer[128][512];
-	static s32 index;
+	char* buffer;
 	s32 start = -1;
 	s32 end;
 	
 	if (src == NULL)
 		return NULL;
-	
-	index++;
-	index = index % 128;
 	
 	if (num < 0) {
 		num = String_GetPathNum(src) - 1;
@@ -1928,10 +1886,12 @@ char* String_GetFolder(const char* src, s32 num) {
 	}
 	end++;
 	
-	memcpy(buffer[index], &src[start], end - start);
-	buffer[index][end - start] = '\0';
+	buffer = Tmp_Alloc(end - start + 1);
 	
-	return buffer[index];
+	memcpy(buffer, &src[start], end - start);
+	buffer[end - start] = '\0';
+	
+	return buffer;
 }
 
 char* String_GetSpacedArg(char* argv[], s32 cur) {
@@ -1946,7 +1906,7 @@ char* String_GetSpacedArg(char* argv[], s32 cur) {
 			strcat(tempBuf, argv[i++]);
 		}
 		
-		return Graph_GenStr(tempBuf);
+		return Tmp_String(tempBuf);
 	}
 	
 	return argv[cur];
@@ -2100,11 +2060,11 @@ char* Config_Get(MemFile* memFile, char* name) {
 						break;
 					}
 				}
-				ret = Graph_Alloc(j);
+				ret = Tmp_Alloc(j);
 				memcpy(ret, &word[1], j);
 			} else {
 				word = String_GetWord(String_Line(memFile->data, i), 2);
-				ret = Graph_Alloc(strlen(word) + 1);
+				ret = Tmp_Alloc(strlen(word) + 1);
 				strcpy(ret, word);
 			}
 			

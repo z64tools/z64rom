@@ -17,7 +17,7 @@ void Rom_ItemList(ItemList* list, bool isNum) {
 	}
 	
 	*list = (ItemList) { 0 };
-	list->item = Graph_Alloc(sizeof(u8*) * (modified.num + vanilla.num));
+	list->item = Tmp_Alloc(sizeof(u8*) * (modified.num + vanilla.num));
 	
 	if (isNum) {
 		u32 maxNum = 0;
@@ -39,9 +39,9 @@ void Rom_ItemList(ItemList* list, bool isNum) {
 		
 		for (s32 i = 0; i < maxNum + 1; i++) {
 			if (i < modified.num && modified.item[i] && String_GetInt(modified.item[i]) == i) {
-				list->item[list->num] = Graph_GenStr(modified.item[i]);
+				list->item[list->num] = Tmp_String(modified.item[i]);
 			} else if (i < vanilla.num && vanilla.item[i] && String_GetInt(vanilla.item[i]) == i) {
-				list->item[list->num] = tprintf(".vanilla/%s", vanilla.item[i]);
+				list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
 			} else {
 				list->item[list->num] = NULL;
 			}
@@ -51,7 +51,7 @@ void Rom_ItemList(ItemList* list, bool isNum) {
 		u32 i = 0;
 		
 		while (i < modified.num) {
-			list->item[list->num] = Graph_GenStr(modified.item[i]);
+			list->item[list->num] = Tmp_String(modified.item[i]);
 			list->num++;
 			i++;
 		}
@@ -69,7 +69,7 @@ void Rom_ItemList(ItemList* list, bool isNum) {
 			
 			if (cont) continue;
 			
-			list->item[list->num] = tprintf(".vanilla/%s", vanilla.item[i]);
+			list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
 			list->num++;
 			i++;
 		}
@@ -336,6 +336,10 @@ static void Rom_Config_Scene(Rom* rom, MemFile* config, u32 id, const char* name
 	#undef FIWI
 }
 
+static void Rom_System_Dump(Rom* rom, MemFile* config, MemFile* dataFile) {
+	
+}
+
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
 
 static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char* file) {
@@ -355,7 +359,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		rom->file.seekPoint = String_GetHexInt(String_GetWord(line, 0));
 		
 		if (word[0] == '"') {
-			word = Graph_GenStr(String_GetLine(String_Word(line, 2), 0));
+			word = Tmp_String(String_GetLine(String_Word(line, 2), 0));
 			word = &word[1];
 			
 			for (s32 c = 0, j = 0; j < strlen(word); j++) {
@@ -522,37 +526,6 @@ void Rom_Dump(Rom* rom) {
 			Dir_Leave();
 		}
 		
-		Dir_Enter("system/.vanilla/"); {
-			for (s32 i = 0; i < rom->table.num.state; i++) {
-				rf = Dma_RomFile_GameState(rom, i);
-				
-				if (rf.size == 0)
-					continue;
-				
-				printf_progress("System", i + 1, rom->table.num.state);
-				Dir_Enter("GameState_%s/", gStateName[i]); {
-					if (Rom_Extract(&dataFile, rf, Dir_File("state.zovl")))
-						Rom_Config_GameState(&config, &rom->table.state[i], gStateName[i], Dir_File("config.cfg"));
-					
-					Dir_Leave();
-				}
-			}
-			
-			for (s32 i = 0; i < rom->table.num.kaleido; i++) {
-				Dir_Enter("Kaleido_%s/", gKaleidoName[i]); {
-					rf.size = ReadBE(rom->table.kaleido[i].vromEnd) - ReadBE(rom->table.kaleido[i].vromStart);
-					rf.data = SegmentedToVirtual(0x0, ReadBE(rom->table.kaleido[i].vromStart));
-					
-					Rom_Extract(&dataFile, rf, Dir_File("overlay.zovl"));
-					Rom_Config_Kaleido(rom, &config, i, gKaleidoName[i], Dir_File("config.cfg"));
-					
-					Dir_Leave();
-				}
-			}
-			
-			Dir_Leave();
-		}
-		
 		Dir_Enter("scene/.vanilla/"); {
 			for (s32 i = 0; i < rom->table.num.scene; i++) {
 				rf = Dma_RomFile_Scene(rom, i);
@@ -608,6 +581,39 @@ void Rom_Dump(Rom* rom) {
 			Dir_Leave();
 		}
 		
+		Dir_Enter("system/.vanilla/"); {
+			for (s32 i = 0; i < rom->table.num.state; i++) {
+				rf = Dma_RomFile_GameState(rom, i);
+				
+				if (rf.size == 0)
+					continue;
+				
+				printf_progress("System", i + 1, rom->table.num.state);
+				Dir_Enter("GameState_%s/", gStateName[i]); {
+					if (Rom_Extract(&dataFile, rf, Dir_File("state.zovl")))
+						Rom_Config_GameState(&config, &rom->table.state[i], gStateName[i], Dir_File("config.cfg"));
+					
+					Dir_Leave();
+				}
+			}
+			
+			for (s32 i = 0; i < rom->table.num.kaleido; i++) {
+				Dir_Enter("Kaleido_%s/", gKaleidoName[i]); {
+					rf.size = ReadBE(rom->table.kaleido[i].vromEnd) - ReadBE(rom->table.kaleido[i].vromStart);
+					rf.data = SegmentedToVirtual(0x0, ReadBE(rom->table.kaleido[i].vromStart));
+					
+					Rom_Extract(&dataFile, rf, Dir_File("overlay.zovl"));
+					Rom_Config_Kaleido(rom, &config, i, gKaleidoName[i], Dir_File("config.cfg"));
+					
+					Dir_Leave();
+				}
+			}
+			
+			Rom_System_Dump(rom, &config, &dataFile);
+			
+			Dir_Leave();
+		}
+		
 		Dir_Enter("sound/"); {
 			Rom_Dump_SoundFont(rom, &dataFile, &config);
 			Rom_Dump_Sequences(rom, &dataFile, &config);
@@ -634,8 +640,8 @@ void Rom_Build(Rom* rom) {
 	printf_info_align("Load Baserom", PRNT_PRPL "%s", rom->file.info.name);
 	printf_info_align("Build Rom", PRNT_PRPL "build.z64");
 	
-	Dma_Free(rom, DMA_AUDIO);
 	Dma_Free(rom, DMA_ACTOR);
+	// Dma_Free(rom, DMA_SYSTEM);
 	Dma_Free(rom, DMA_EFFECT);
 	Dma_Free(rom, DMA_OBJECT);
 	Dma_Free(rom, DMA_SCENES);
@@ -1121,7 +1127,7 @@ void Rom_New(Rom* rom, char* romName) {
 	hdr = SegmentedToVirtual(0x0, 0xDB70);
 	
 	if (rom->type == NoRom) {
-		char* confRom = tprintf("%s%s", CurWorkDir(), "z64project.cfg");
+		char* confRom = Tmp_Printf("%s%s", CurWorkDir(), "z64project.cfg");
 		MemFile* config = &rom->config;
 		
 		rom->config.seekPoint = strlen(rom->config.data);

@@ -177,14 +177,14 @@ void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 		compSlot = compSlot->next;
 	}
 	
-	node = Graph_Alloc(sizeof(struct Slot));
+	node = Tmp_Alloc(sizeof(struct Slot));
 	
 	memcpy(node, &slot, sizeof(struct Slot));
 	Node_Add(gSlotHead, node);
 }
 
 void Dma_FreeSegment(Rom* rom, u32 romStart, u32 romEnd) {
-	Slot* slot = Graph_Alloc(sizeof(struct Slot));
+	Slot* slot = Tmp_Alloc(sizeof(struct Slot));
 	Slot* compSlot = gSlotHead;
 	
 	slot->romStart = romStart;
@@ -206,12 +206,6 @@ void Dma_FreeSegment(Rom* rom, u32 romStart, u32 romEnd) {
 
 void Dma_Free(Rom* rom, DmaBank type) {
 	switch (type) {
-		case DMA_AUDIO:
-			for (s32 i = 3; i <= 5; i++) {
-				// Audio Entries
-				Dma_FreeEntry(rom, i, 0x10);
-			}
-			break;
 		case DMA_ACTOR:
 			for (s32 i = 36; i <= 198; i++) {
 				// Actor Entries
@@ -222,6 +216,11 @@ void Dma_Free(Rom* rom, DmaBank type) {
 				Dma_FreeEntry(rom, i, 0x10);
 			}
 			break;
+		case DMA_SYSTEM:
+			for (s32 i = 1; i <= 35; i++) {
+				// Actor Entries
+				Dma_FreeEntry(rom, i, 0x10);
+			}
 		case DMA_EFFECT:
 			for (s32 i = 199; i <= 234; i++) {
 				// Effect Entries

@@ -160,10 +160,9 @@ void SetSegment(const u8 id, void* segment);
 void* SegmentedToVirtual(const u8 id, void32 ptr);
 void32 VirtualToSegmented(const u8 id, void* ptr);
 
-void* Graph_Alloc(u32 size);
-void* Graph_Realloc(void* ptr, u32 size);
-u32 Graph_GetSize(void* ptr);
-char* Graph_GenStr(char* str);
+void* Tmp_Alloc(u32 size);
+char* Tmp_String(char* str);
+char* Tmp_Printf(char* fmt, ...);
 
 void Log(const char* fmt, ...);
 void LogPrint();
@@ -198,7 +197,6 @@ char* CurWorkDir(void);
 void ItemList_NumericalSort(ItemList* list);
 char* Dir_GetWildcard(char* x);
 
-char* tprintf(char* fmt, ...);
 void printf_SetSuppressLevel(PrintfSuppressLevel lvl);
 void printf_SetPrefix(char* fmt);
 void printf_SetPrintfTypes(const char* d, const char* w, const char* e, const char* i);

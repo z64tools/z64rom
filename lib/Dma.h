@@ -110,8 +110,8 @@ typedef struct Slot {
 } Slot;
 
 typedef enum {
-	DMA_AUDIO,
 	DMA_ACTOR,
+	DMA_SYSTEM,
 	DMA_EFFECT,
 	DMA_OBJECT,
 	DMA_PLACE_NAME,

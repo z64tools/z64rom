@@ -163,6 +163,7 @@ extern const char* gSceneName[];
 extern const char* gBankName[];
 extern const char* gSequenceName[];
 extern const N64AudioInfo gSampleInfo[];
+extern const char* gSystemName[];
 
 extern s32 gExtractAudio;
 extern s32 gLog;

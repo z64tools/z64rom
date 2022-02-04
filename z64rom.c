@@ -107,7 +107,7 @@ s32 Main(s32 argc, char* argv[]) {
 }
 
 void z64rom_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
-	char* confRom = tprintf("%s%s", CurWorkDir(), "z64project.cfg");
+	char* confRom = Tmp_Printf("%s%s", CurWorkDir(), "z64project.cfg");
 	MemFile* config = &rom->config;
 	u32 parArg = 0;
 	
@@ -138,8 +138,8 @@ void z64rom_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
 		
 		input[0] = Config_GetString(config, "z_baserom");
 		
-		if (!Stat(tprintf("%s%s", CurWorkDir(), input[0]))) {
-			printf_error("Could not locate your baserom [%s]", tprintf("%s%s", CurWorkDir(), input[0]));
+		if (!Stat(Tmp_Printf("%s%s", CurWorkDir(), input[0]))) {
+			printf_error("Could not locate your baserom [%s]", Tmp_Printf("%s%s", CurWorkDir(), input[0]));
 		}
 	}
 }

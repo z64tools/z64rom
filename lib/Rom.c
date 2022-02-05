@@ -337,7 +337,6 @@ static void Rom_Config_Scene(Rom* rom, MemFile* config, u32 id, const char* name
 }
 
 static void Rom_System_Dump(Rom* rom, MemFile* config, MemFile* dataFile) {
-	
 }
 
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */

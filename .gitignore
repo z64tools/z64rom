@@ -3,10 +3,7 @@ compile_flags.txt
 rom/*
 *.z64
 *.sh
-z64rom
 !z64rom.c
-!*/z64ro*
-*.cfg
 prvFileList
 *.lnk
 *.wav
@@ -23,4 +20,3 @@ project/tools/z64convert
 project/tools/z64audio
 project/tools/novl
 project/tools/elf2ld
-!project/tools/z64audio.cfg

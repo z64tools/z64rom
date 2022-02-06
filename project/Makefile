@@ -26,11 +26,11 @@ PRNT_CYAN := \e[0;96m
 
 PRNT_RSET := \e[m
 
-Linkers        = include/z_code_lib.ld include/objects.ld
+Linkers        = include/z_lib_user.ld include/objects.ld
 GccFlags_Warn = -Wall -Wno-builtin-declaration-mismatch -Wno-unused-variable
-GccFlags      = -Iinclude/z64hdr -Iinclude/z64hdr/include -Iinclude/ -G 0 -O1 -fno-reorder-blocks -std=gnu99 -march=vr4300 -mabi=32 -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division $(GccFlags_Warn)
+GccFlags      = -Iinclude/z64hdr -Iinclude/z64hdr/include -Iinclude/ -Isrc/lib_user -G 0 -O1 -fno-reorder-blocks -std=gnu99 -march=vr4300 -mabi=32 -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division $(GccFlags_Warn)
 GccFlags_Code = $(GccFlags) -mno-gpopt -fomit-frame-pointer
-LdFlags       = -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld -T z_code_lib.ld --emit-relocs
+LdFlags       = -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld -T z_lib_user.ld --emit-relocs
 nOvlFlags     = -v -c -A
 
 EntryDir = $(@D)/.temp/$(notdir $(basename $<))
@@ -185,7 +185,7 @@ rom/actor/%.elf: rom/actor/%.o $(Linkers)
 # LIB_USER                            #
 # # # # # # # # # # # # # # # # # # # #
 
-library: $(Library_O) include/z_code_lib.ld
+library: $(Library_O) include/z_lib_user.ld
 
 rom/lib_user/%.o: src/lib_user/%.c include/objects.ld
 	@echo "$(PRNT_CYAN)Library$(PRNT_RSET): $(notdir $@)"
@@ -195,11 +195,11 @@ rom/lib_user/%.o: src/lib_user/%.c src/lib_user/%.h include/objects.ld
 	@echo "$(PRNT_CYAN)Library$(PRNT_RSET): $(notdir $@)"
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
 
-z_code_lib_elf = rom/lib_user/z_code_lib.elf
-z_code_lib_s   = rom/lib_user/z_code_lib.s
-z_code_lib_bin = rom/lib_user/z_code_lib.bin
+z_code_lib_elf = rom/lib_user/z_lib_user.elf
+z_code_lib_s   = rom/lib_user/z_lib_user.s
+z_code_lib_bin = rom/lib_user/z_lib_user.bin
 
-include/z_code_lib.ld: $(Library_O)
+include/z_lib_user.ld: $(Library_O)
 	@echo "$(PRNT_YELW)Linker$(PRNT_RSET):  $(notdir $@)"
 	@printf "ENTRY_POINT = 0x80600000;\n" > rom/lib_user/entry.ld
 	@$(mips64_ld) -o $(z_code_lib_elf) $^ -Lrom/lib_user -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld --emit-relocs
@@ -207,7 +207,7 @@ include/z_code_lib.ld: $(Library_O)
 	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $(z_code_lib_elf) $(z_code_lib_bin)
 	
 	@$(mips64_objdump) -x -t $(z_code_lib_elf) | grep -E '806.*[O,F].*[r,t,d,b][o,e,a,s][d,x,t,s].*\0000' > include/__temp__z_code_lib.ld
-	@$(elf2ld) include/__temp__z_code_lib.ld include/z_code_lib.ld
+	@$(elf2ld) include/__temp__z_code_lib.ld include/z_lib_user.ld
 
 # # # # # # # # # # # # # # # # # # # #
 # LIB_CODE                            #
@@ -233,6 +233,6 @@ rom/lib_code/%.elf: src/lib_code/%.s $(Linkers)
 	@echo "$(PRNT_BLUE)Asm$(PRNT_RSET):     $(notdir $@)"
 	@mkdir -p $(EntryDir)
 	@printf "ENTRY_POINT = %s;\n" $$(grep 'ram' $(@:.elf=.cfg) | cut -d " " -f 3) > $(EntryDir)/entry.ld
-	@$(mips64_gcc) -x assembler-with-cpp -c $< -o $(@:.elf=.o) -L$(EntryDir)/ -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld -T z_code_lib.ld
+	@$(mips64_gcc) -x assembler-with-cpp -c $< -o $(@:.elf=.o) -L$(EntryDir)/ -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld -T z_lib_user.ld
 	@$(mips64_ld) -o $@ $(@:.elf=.o) -L$(EntryDir)/ $(LdFlags)
 	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $@ $(@:.elf=.bin)

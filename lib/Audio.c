@@ -709,7 +709,7 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	MemFile_Malloc(&sample, MbToBin(0.25));
 	MemFile_Reset(dataFile);
-	Rom_ItemList(&itemList, false);
+	Rom_ItemList(&itemList, SORT_NO, IS_DIR);
 	MemFile_Params(dataFile, MEM_ALIGN, 16, MEM_REALLOC, true, MEM_END);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
@@ -793,7 +793,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Malloc(&memSfx, MbToBin(0.25));
 	MemFile_Malloc(&memDrum, MbToBin(0.25));
 	
-	Rom_ItemList(&itemList, true);
+	Rom_ItemList(&itemList, SORT_NUMERICAL, IS_DIR);
 	
 	sfHead.numEntries = itemList.num;
 	SwapBE(sfHead.numEntries);
@@ -875,7 +875,9 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				
 				for (s32 soundID = 0; soundID < 3; soundID++) {
 					sampleName[soundID] = Config_GetString(config, confSample[soundID]);
-					if (!memcmp(sampleName[soundID], "NULL", 4)) {
+					if (sampleName[soundID] == NULL)
+						sampleName[soundID] = NULL;
+					else if (!memcmp(sampleName[soundID], "NULL", 4)) {
 						sampleName[soundID] = NULL;
 					}
 				}
@@ -912,6 +914,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				instrument.loaded = Config_GetInt(config, "loaded");
 				instrument.splitLo = Config_GetInt(config, "split_lo");
 				instrument.splitHi = Config_GetInt(config, "split_hi");
+				if (instrument.splitHi == 0) instrument.splitHi = 127;
 				instrument.release = Config_GetInt(config, "release");
 				confEnv[0].rate = Config_GetInt(config, "attack_rate"); SwapBE(confEnv[0].rate);
 				confEnv[0].level = Config_GetInt(config, "attack_level"); SwapBE(confEnv[0].level);
@@ -1425,10 +1428,10 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	AudioEntryHead sqHead = { 0 };
 	AudioEntry sqEntry = { 0 };
 	
-	MemFile_Malloc(&memIndexTable, 0x1C0);
-	MemFile_Malloc(&memLookUpTable, 0x1C0);
+	MemFile_Malloc(&memIndexTable, 0x800);
+	MemFile_Malloc(&memLookUpTable, 0x800);
 	MemFile_Malloc(&sequenceMem, MbToBin(1.0));
-	Rom_ItemList(&itemList, true);
+	Rom_ItemList(&itemList, SORT_NUMERICAL, IS_DIR);
 	
 	sqHead.numEntries = itemList.num;
 	SwapBE(sqHead.numEntries);
@@ -1440,8 +1443,19 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 		u8 fontNum;
 		
 		// Skip "hardcoded" entries
-		if (i == 0x7F || i == 0x80)
+		if (i == 0x7F || i == 0x80) {
+			sqEntry = (AudioEntry) { 0 };
+			MemFile_Write(&memLookUpTable, "\xFF\xFF", 2);
+			MemFile_Write(&rom->mem.seqTbl, &sqEntry, 16);
 			continue;
+		}
+		
+		if (itemList.item[i] == NULL) {
+			sqEntry = (AudioEntry) { 0 };
+			MemFile_Write(&memLookUpTable, "\xFF\xFF", 2);
+			MemFile_Write(&rom->mem.seqTbl, &sqEntry, 16);
+			continue;
+		}
 		
 		Dir_Enter(itemList.item[i]); {
 			u32 med = 0;
@@ -1509,7 +1523,8 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	u16 add = memLookUpTable.seekPoint;
 	
 	for (s32 i = 0; i < itemList.num; i++) {
-		memLookUpTable.cast.u16[i] += add;
+		if (memLookUpTable.cast.u16[i] != 0xFFFF)
+			memLookUpTable.cast.u16[i] += add;
 		SwapBE(memLookUpTable.cast.u16[i]);
 	}
 	MemFile_Append(&memLookUpTable, &memIndexTable);

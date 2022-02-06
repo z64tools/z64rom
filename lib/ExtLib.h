@@ -28,17 +28,17 @@ typedef u32 void32;
 typedef time_t Time;
 
 typedef struct {
-	u8 hue;
-	u8 saturation;
-	u8 luminance;
-} HLS8;
+	f32 h;
+	f32 s;
+	f32 l;
+} HSL8;
 
 typedef struct {
-	u8 hue;
-	u8 saturation;
-	u8 luminance;
-	u8 alpha;
-} HLSA8;
+	f32 h;
+	f32 s;
+	f32 l;
+	u8  alpha;
+} HSLA8;
 
 typedef struct {
 	union {
@@ -171,8 +171,10 @@ void Time_Start(void);
 f32 Time_Get(void);
 
 enum {
-	SORT_NONE,
-	SORT_NUMERICAL
+	SORT_NO      = 0,
+	SORT_NUMERICAL = 1,
+	NOT_DIR        = 0,
+	IS_DIR         = 1,
 } DirEnum;
 
 void Dir_SetParam(DirParam w);
@@ -227,6 +229,11 @@ s32 Lib_Touch(char* file);
 void Lib_ByteSwap(void* src, s32 size);
 s32 Lib_ParseArguments(char* argv[], char* arg, u32* parArg);
 u32 Lib_Crc32(u8* s, u32 n);
+
+f32 Math_MaxF(f32 a, f32 b);
+f32 Math_MinF(f32 a, f32 b);
+void Color_ToHSL(HSL8* hsl, RGB8* rgb);
+void Color_ToRGB(RGB8* rgb, HSL8* hsl);
 
 void* File_Load(void* destSize, char* filepath);
 void File_Save(char* filepath, void* src, s32 size);

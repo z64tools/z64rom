@@ -1,6 +1,6 @@
 #include "lib/z64rom.h"
 
-char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.4.5.2"
+char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.4.8.0"
 #ifndef NDEBUG
 		PRNT_DGRY " DEBUG BUILD"
 #endif
@@ -28,6 +28,55 @@ s32 Main(s32 argc, char* argv[]) {
 	
 	printf_WinFix();
 	printf_SetPrefix("");
+	
+	if (ParArg("--base") && ParArg("--mod")) {
+		MemFile memBase = MemFile_Initialize();
+		MemFile memMod = MemFile_Initialize();
+		MemFile patch = MemFile_Initialize();
+		char* base;
+		char* mod;
+		s32 cont = 0;
+		s32 first = 0;
+		
+		ParArg("--base");
+		base = argv[parArg];
+		ParArg("--mod");
+		mod = argv[parArg];
+		
+		MemFile_Malloc(&patch, MbToBin(32.0));
+		MemFile_LoadFile(&memBase, base);
+		MemFile_LoadFile(&memMod, mod);
+		
+		for (s32 i = 0x40; i < (u32)Math_MinF(memBase.dataSize, memMod.dataSize); i++) {
+			if (memBase.cast.u8[i] == memMod.cast.u8[i]) {
+				cont = 0;
+				continue;
+			}
+			
+			if (cont == 0) {
+				if (first)
+					MemFile_Printf(&patch, "\n");
+				MemFile_Printf(&patch, "0x%08X = 0x", i);
+				first = 1;
+			}
+			
+			if (MemFile_Printf(&patch, "%02X", memMod.cast.u8[i])) {
+				printf_error("Size exceeded %.0f MB. Exiting...", BinToMb(patch.memSize));
+			}
+			
+			cont = 1;
+		}
+		
+		if (patch.dataSize > 0) {
+			// printf("%s\n", (char*)patch.data);
+			MemFile_SaveFile_String(&patch, "PatchOutput.cfg");
+		}
+		MemFile_Free(&patch);
+		MemFile_Free(&memBase);
+		MemFile_Free(&memMod);
+		
+		return 0;
+	}
 	
 	if (ParArg("--actor")) {
 		u32 id = String_GetInt(argv[parArg]);

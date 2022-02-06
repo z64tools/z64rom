@@ -115,7 +115,7 @@ typedef enum {
 	DMA_EFFECT,
 	DMA_OBJECT,
 	DMA_PLACE_NAME,
-	DMA_BOXTEX,
+	DMA_SKYBOX_TEXEL,
 	DMA_SCENES,
 	DMA_UNUSED
 } DmaBank;
@@ -145,7 +145,7 @@ void Dma_Free(struct Rom* rom, DmaBank type);
 
 void Dma_CombineSlots(void);
 void Dma_PrintfSlots(struct Rom* rom);
-void Dma_MarkWritable(u32 id, bool value);
+void Dma_WriteFlag(u32 id, bool value);
 void Dma_ClearSlots();
 
 extern Slot* gSlotHead;

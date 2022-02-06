@@ -79,8 +79,8 @@ asm ("Environment_LerpWeight = 0x8006F93C");
 void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skyboxId) {
 	u32 size;
 	s16 i;
-	u8 sp41 = 0; // imageIdx
-	u8 sp40 = 0; // imageIdx2
+	u8 imageIdx1 = 0;
+	u8 imageIdx2 = 0;
 	u32 start;
 	s32 phi_v1;
 	
@@ -110,8 +110,8 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 				if (gSaveContext.skyboxTime >= D_8011FC1C[phi_v1][i].startTime &&
 					(gSaveContext.skyboxTime < D_8011FC1C[phi_v1][i].endTime ||
 					D_8011FC1C[phi_v1][i].endTime == 0xFFFF)) {
-					globalCtx->envCtx_skybox1Index = sp41 = D_8011FC1C[phi_v1][i].skybox1Index;
-					globalCtx->envCtx_skybox2Index = sp40 = D_8011FC1C[phi_v1][i].skybox2Index;
+					globalCtx->envCtx_skybox1Index = imageIdx1 = D_8011FC1C[phi_v1][i].skybox1Index;
+					globalCtx->envCtx_skybox2Index = imageIdx2 = D_8011FC1C[phi_v1][i].skybox2Index;
 					if (D_8011FC1C[phi_v1][i].blend != 0) {
 						globalCtx->envCtx.skyboxBlend =
 							Environment_LerpWeight(
@@ -127,62 +127,62 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 				}
 			}
 			
-			size = gSkyboxFiles[sp41].file->vromEnd - gSkyboxFiles[sp41].file->vromStart;
+			size = gSkyboxFiles[imageIdx1].file->vromEnd - gSkyboxFiles[imageIdx1].file->vromStart;
 			skyboxCtx->staticSegments[0] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(
 				skyboxCtx->staticSegments[0],
-				gSkyboxFiles[sp41].file->vromStart,
+				gSkyboxFiles[imageIdx1].file->vromStart,
 				size,
 				"Skybox_Setup",
 				__LINE__
 			);
 			
-			size = gSkyboxFiles[sp40].file->vromEnd - gSkyboxFiles[sp40].file->vromStart;
+			size = gSkyboxFiles[imageIdx2].file->vromEnd - gSkyboxFiles[imageIdx2].file->vromStart;
 			skyboxCtx->staticSegments[1] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(
 				skyboxCtx->staticSegments[1],
-				gSkyboxFiles[sp40].file->vromStart,
+				gSkyboxFiles[imageIdx2].file->vromStart,
 				size,
 				"Skybox_Setup",
 				__LINE__
 			);
 			
-			if ((sp41 & 1) ^ ((sp41 & 4) >> 2)) {
-				size = gSkyboxFiles[sp41].palette->vromEnd - gSkyboxFiles[sp41].palette->vromStart;
+			if ((imageIdx1 & 1) ^ ((imageIdx1 & 4) >> 2)) {
+				size = gSkyboxFiles[imageIdx1].palette->vromEnd - gSkyboxFiles[imageIdx1].palette->vromStart;
 				
 				skyboxCtx->palettes = GameState_Alloc(&globalCtx->state, size * 2, "Skybox_Setup", __LINE__);
 				
 				DmaMgr_SendRequest1(
 					skyboxCtx->palettes,
-					gSkyboxFiles[sp41].palette->vromStart,
+					gSkyboxFiles[imageIdx1].palette->vromStart,
 					size,
 					"Skybox_Setup",
 					__LINE__
 				);
 				DmaMgr_SendRequest1(
 					(void*)((u32)skyboxCtx->palettes + size),
-					gSkyboxFiles[sp40].palette->vromStart,
+					gSkyboxFiles[imageIdx2].palette->vromStart,
 					size,
 					"Skybox_Setup",
 					__LINE__
 				);
 			} else {
-				size = gSkyboxFiles[sp41].palette->vromEnd - gSkyboxFiles[sp41].palette->vromStart;
+				size = gSkyboxFiles[imageIdx1].palette->vromEnd - gSkyboxFiles[imageIdx1].palette->vromStart;
 				
 				skyboxCtx->palettes = GameState_Alloc(&globalCtx->state, size * 2, "Skybox_Setup", __LINE__);
 				
 				DmaMgr_SendRequest1(
 					skyboxCtx->palettes,
-					gSkyboxFiles[sp40].palette->vromStart,
+					gSkyboxFiles[imageIdx2].palette->vromStart,
 					size,
 					"Skybox_Setup",
 					__LINE__
 				);
 				DmaMgr_SendRequest1(
 					(void*)((u32)skyboxCtx->palettes + size),
-					gSkyboxFiles[sp41].palette->vromStart,
+					gSkyboxFiles[imageIdx1].palette->vromStart,
 					size,
 					"Skybox_Setup",
 					__LINE__

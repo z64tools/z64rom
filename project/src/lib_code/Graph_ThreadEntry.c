@@ -1,7 +1,8 @@
 #include <oot_mq_debug/z64hdr.h>
+#include <SceneRender/SceneRender.h>
 
-void z64rom_LoadCodeLib(void);
-
+extern void* sSceneDrawHandlers[53];
+asm ("sSceneDrawHandlers = 0x8012A3A4");
 asm ("gGameStateOverlayTable = 0x8011F830");
 
 void Graph_ThreadEntry(void* arg0) {
@@ -31,6 +32,7 @@ void Graph_ThreadEntry(void* arg0) {
 			gDmaDataTable[1].vromStart,
 			gDmaDataTable[1].vromEnd - gDmaDataTable[1].vromStart
 		);
+		sSceneDrawHandlers[4] = SceneAnim_Update;
 	}
 	
 	while (nextOvl) {

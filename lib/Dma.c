@@ -111,10 +111,6 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile) {
 			if (i > gDma.highest)
 				printf_error("Coult not find free dma entry");
 		}
-	} else {
-		if (gDma.entry[id].writable == false) {
-			printf_warning("Dma index [%d] is not marked as writable", id);
-		}
 	}
 	
 	start = slot->romStart;
@@ -221,6 +217,7 @@ void Dma_Free(Rom* rom, DmaBank type) {
 				// Actor Entries
 				Dma_FreeEntry(rom, i, 0x10);
 			}
+			break;
 		case DMA_EFFECT:
 			for (s32 i = 199; i <= 234; i++) {
 				// Effect Entries
@@ -239,10 +236,11 @@ void Dma_Free(Rom* rom, DmaBank type) {
 				Dma_FreeEntry(rom, i, 0x1000);
 			}
 			break;
-		case DMA_BOXTEX:
+		case DMA_SKYBOX_TEXEL:
 			for (s32 i = 941; i <= 1004; i++) {
 				// Box textures (sky / bg) Entries
 				Dma_FreeEntry(rom, i, 0x1000);
+				Dma_WriteFlag(i, false);
 			}
 			break;
 		case DMA_SCENES:
@@ -338,7 +336,7 @@ void Dma_PrintfSlots(Rom* rom) {
 	printf("" PRNT_RSET " ]\n");
 }
 
-void Dma_MarkWritable(u32 id, bool value) {
+void Dma_WriteFlag(u32 id, bool value) {
 	gDma.entry[id].writable = value;
 }
 

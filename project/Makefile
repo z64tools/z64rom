@@ -47,6 +47,9 @@ Library_C   = $(shell cd src && find lib_user/* -type f -name '*.c' 2>/dev/null)
 Library_O   = $(foreach f,$(Library_C:.c=.o),rom/$(f))
 Library_Elf = $(foreach f,$(Library_C:.c=.elf),rom/$(f))
 
+GameState_C   = $(shell cd src && find system/GameState_*/* -type f -name '*.c' 2>/dev/null)
+GameState_O   = $(foreach f,$(GameState_C:.c=.o),rom/$(f))
+
 Code_C   = $(shell cd src && find lib_code/* -maxdepth 2 -type f -name '*.c' 2>/dev/null)
 Code_O   = $(foreach f,$(Code_C:.c=.o),rom/$(f))
 Code_Elf = $(foreach f,$(Code_C:.c=.elf),rom/$(f))
@@ -60,13 +63,14 @@ $(shell mkdir -p rom/ $(foreach dir, \
 	$(dir $(Library_O)) \
 	$(dir $(Code_O)) \
 	$(dir $(Actor_O)) \
+	$(dir $(GameState_O)) \
 	$(dir $(Object_zobj)) \
 	, $(dir)))
 
 mips64_download = https://cdn.discordapp.com/attachments/889436307758129203/936660603454513162/mips64-binutils.7z
 z64hdr_git      = https://github.com/z64tools/z64hdr.git
 
-.PHONY: all rom update clean clean-dist clean-rom clean-dist confirm setup actor library code check object
+.PHONY: all rom update clean clean-dist clean-rom clean-dist confirm setup actor library code check object system
 .DEFAULT_GOAL := all
 
 all:
@@ -74,7 +78,7 @@ all:
 	@$(MAKE) header_depper --no-print-directory -s
 	@$(MAKE) src --no-print-directory -s
 
-src: library code actor
+src: library code system actor
 object: $(Object_zobj)
 
 rom: all
@@ -83,6 +87,7 @@ rom: all
 clean:
 	@rm -f -R $(dir $(Actor_O))
 	@rm -f -R $(dir $(Object_zobj))
+	@rm -f -R $(dir $(GameState_O))
 	@rm -f $(Linkers)
 	@rm -f -R rom/lib_user
 	@rm -f -R rom/lib_code
@@ -130,6 +135,9 @@ setup-no-ask:
 	if [ ! -d "include/z64hdr" ]; then \
 		echo "$(PRNT_GREN)Download$(PRNT_RSET):     z64hdr"; \
 		cd include && git clone $(z64hdr_git) --quiet; \
+		cd z64hdr; \
+		git checkout temp-update; \
+		cd ..; \
 		cd ..; \
 	fi; \
 	if [ ! -d "rom/actor/" ]; then \
@@ -138,7 +146,7 @@ setup-no-ask:
 
 update:
 	@echo "$(PRNT_YELW)Update$(PRNT_RSET):       z64hdr"
-	@cd include && git pull --quiet
+	@cd include/z64hdr && git pull --quiet
 
 # # # # # # # # # # # # # # # # # # # #
 # CODE OBJECT                         #
@@ -181,6 +189,23 @@ rom/actor/%.elf: rom/actor/%.o $(Linkers)
 	@printf "init_vars  = 0x%s\n" $$($(mips64_objdump) -t $@ | grep "_InitVars" | head -c 8) >> $(@D)/config.cfg
 	@$(novl) $(nOvlFlags) 0x80800000 -o $(@D)/actor.zovl $@ -s
 
+# # # # # # # # # # # # # # # # # # # #
+# CODE GAMESTATE                      #
+# # # # # # # # # # # # # # # # # # # #
+
+system: $(GameState_O) rom/system/GameState_FileChoose/state.elf
+
+rom/system/%.o: src/system/%.c
+	@echo "$(PRNT_CYAN)State$(PRNT_RSET):   $(notdir $@)"
+	@$(mips64_gcc) -c $(GccFlags) $< -o $@
+
+rom/system/GameState_FileChoose/state.elf: $(GameState_O) $(Linkers)
+	@echo "$(PRNT_BLUE)State$(PRNT_RSET):   $(notdir $@)"
+	@printf "ENTRY_POINT = 0x80800000;" > $(@D)/entry.ld
+	$(mips64_ld) -o $@ $(GameState_O) -L$(@D) $(LdFlags)
+	@$(mips64_objdump) -drz $@ > $(@:.elf=.s)
+	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $@ $(@:.elf=.bin)
+	
 # # # # # # # # # # # # # # # # # # # #
 # LIB_USER                            #
 # # # # # # # # # # # # # # # # # # # #

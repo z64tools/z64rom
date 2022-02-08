@@ -125,6 +125,7 @@ typedef struct MemFile {
 	union {
 		void* data;
 		PointerCast cast;
+		char* str;
 	};
 	u32 memSize;
 	u32 dataSize;
@@ -171,9 +172,9 @@ void Time_Start(void);
 f32 Time_Get(void);
 
 enum {
-	SORT_NO      = 0,
+	SORT_NO        = 0,
 	SORT_NUMERICAL = 1,
-	NOT_DIR        = 0,
+	IS_FILE        = 0,
 	IS_DIR         = 1,
 } DirEnum;
 
@@ -230,8 +231,6 @@ void Lib_ByteSwap(void* src, s32 size);
 s32 Lib_ParseArguments(char* argv[], char* arg, u32* parArg);
 u32 Lib_Crc32(u8* s, u32 n);
 
-f32 Math_MaxF(f32 a, f32 b);
-f32 Math_MinF(f32 a, f32 b);
 void Color_ToHSL(HSL8* hsl, RGB8* rgb);
 void Color_ToRGB(RGB8* rgb, HSL8* hsl);
 
@@ -292,6 +291,8 @@ s32 Config_GetOption(MemFile* memFile, char* stringName, char* strList[]);
 s32 Config_GetInt(MemFile* memFile, char* intName);
 char* Config_GetString(MemFile* memFile, char* stringName);
 f32 Config_GetFloat(MemFile* memFile, char* floatName);
+
+#define str2cmp(a, b) strncmp(a, b, strlen(b))
 
 #define Node_Add(head, node) { \
 		typeof(node) lastNode = head; \

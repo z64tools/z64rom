@@ -5,7 +5,7 @@ typedef struct {
 	DmaEntry* palette;
 } NewSkyboxFiles;
 
-const NewSkyboxFiles gSkyboxFiles[] = {
+const NewSkyboxFiles gNewSkyboxFiles[] = {
 	{
 		&gDmaDataTable[941],
 		&gDmaDataTable[941 + 1],

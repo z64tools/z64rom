@@ -1128,7 +1128,7 @@ void Rom_Build(Rom* rom) {
 		Dir_Enter("static/"); {
 			ItemList statItem;
 			
-			Rom_ItemList(&statItem, SORT_NO, NOT_DIR);
+			Rom_ItemList(&statItem, SORT_NO, IS_FILE);
 			
 			#if 0
 				for (s32 i = 0; i < statItem.num; i++) {
@@ -1162,7 +1162,7 @@ void Rom_Build(Rom* rom) {
 						break;
 				}
 				if (i > -1) {
-					printf_info_align("Link Animation", "WOW");
+					printf_info_align("Link Animation", "[1 / 1]");
 					MemFile_Reset(&dataFile);
 					MemFile_LoadFile(&dataFile, Dir_File(statItem.item[i]));
 					Dma_WriteEntry(rom, DMA_ID_LINK_ANIMATION, &dataFile);

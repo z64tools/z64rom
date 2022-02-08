@@ -6,6 +6,7 @@
 #include "Dma.h"
 #include "Audio.h"
 #include "Mips64.h"
+#include "yaz.h"
 
 typedef void (* PatchFunc)(struct Rom*, MemFile*, MemFile*, char*);
 

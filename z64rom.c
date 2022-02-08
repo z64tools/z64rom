@@ -19,8 +19,6 @@ s32 sDumpFlag;
 void z64rom_Config(char** input, Rom* rom, s32 argc, char* argv[]);
 void z64rom_CheckTypes();
 
-void sleep(u32);
-
 s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
 	Rom* rom = Lib_Calloc(0, sizeof(struct Rom));
@@ -47,7 +45,7 @@ s32 Main(s32 argc, char* argv[]) {
 		MemFile_LoadFile(&memBase, base);
 		MemFile_LoadFile(&memMod, mod);
 		
-		for (s32 i = 0x40; i < (u32)Math_MinF(memBase.dataSize, memMod.dataSize); i++) {
+		for (s32 i = 0x40; i < (u32)fmax(memBase.dataSize, memMod.dataSize); i++) {
 			if (memBase.cast.u8[i] == memMod.cast.u8[i]) {
 				cont = 0;
 				continue;

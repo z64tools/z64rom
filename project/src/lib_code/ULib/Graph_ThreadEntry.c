@@ -1,5 +1,4 @@
-#include <oot_mq_debug/z64hdr.h>
-#include <SceneRender/SceneRender.h>
+#include <ULib.h>
 
 extern void* sSceneDrawHandlers[53];
 asm ("sSceneDrawHandlers = 0x8012A3A4");

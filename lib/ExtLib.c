@@ -137,12 +137,9 @@ f32 Time_Get(void) {
 
 // Dir
 struct {
-	struct {
-		s32 enterCount[512];
-		s32 pos;
-	} swap[2];
+	s32 enterCount[512];
+	s32 pos;
 	DirParam param;
-	s32 swapId;
 } sDir;
 
 void Dir_SetParam(DirParam w) {
@@ -154,12 +151,26 @@ void Dir_UnsetParam(DirParam w) {
 }
 
 void Dir_Set(char* path, ...) {
+	s32 firstSet = 0;
 	va_list args;
+	
+	if (sCurrentPath[0] == '\0')
+		firstSet++;
 	
 	memset(sCurrentPath, 0, 512);
 	va_start(args, path);
 	vsnprintf(sCurrentPath, ArrayCount(sCurrentPath), path, args);
 	va_end(args);
+	
+	if (firstSet) {
+		for (s32 i = 0; i < 512; i++) {
+			sDir.enterCount[i] = 0;
+		}
+		for (s32 i = 0; i < strlen(sCurrentPath); i++) {
+			if (sCurrentPath[i] == '/' || sCurrentPath[i] == '\\')
+				sDir.enterCount[++sDir.pos] = 1;
+		}
+	}
 }
 
 void Dir_Enter(char* fmt, ...) {
@@ -176,11 +187,13 @@ void Dir_Enter(char* fmt, ...) {
 		}
 	}
 	
-	sDir.swap[sDir.swapId].pos++;
-	sDir.swap[sDir.swapId].enterCount[sDir.swap[sDir.swapId].pos] = 0;
-	for (s32 i = 0; i < strlen(buffer); i++) {
+	sDir.pos++;
+	sDir.enterCount[sDir.pos] = 0;
+	for (s32 i = 0;; i++) {
+		if (buffer[i] == '\0')
+			break;
 		if (buffer[i] == '/' || buffer[i] == '\\')
-			sDir.swap[sDir.swapId].enterCount[sDir.swap[sDir.swapId].pos]++;
+			sDir.enterCount[sDir.pos]++;
 	}
 	
 	strcat(sCurrentPath, buffer);
@@ -191,7 +204,7 @@ void Dir_Enter(char* fmt, ...) {
 }
 
 void Dir_Leave(void) {
-	s32 count = sDir.swap[sDir.swapId].enterCount[sDir.swap[sDir.swapId].pos];
+	s32 count = sDir.enterCount[sDir.pos];
 	
 	for (s32 i = 0; i < count; i++) {
 		#ifndef NDEBUG
@@ -202,7 +215,9 @@ void Dir_Leave(void) {
 		sCurrentPath[strlen(sCurrentPath) - 1] = '\0';
 		strcpy(sCurrentPath, String_GetPath(sCurrentPath));
 	}
-	sDir.swap[sDir.swapId].pos--;
+	
+	sDir.enterCount[sDir.pos] = 0;
+	sDir.pos--;
 }
 
 void Dir_Make(char* dir, ...) {
@@ -1269,15 +1284,6 @@ u32 Lib_Crc32(u8* s, u32 n) {
 	return ~crc;
 }
 
-// Math
-f32 Math_MaxF(f32 a, f32 b) {
-	return a > b ? a : b;
-}
-
-f32 Math_MinF(f32 a, f32 b) {
-	return a < b ? a : b;
-}
-
 // Color
 void Color_ToHSL(HSL8* dest, RGB8* src) {
 	f32 r, g, b;
@@ -1287,8 +1293,8 @@ void Color_ToHSL(HSL8* dest, RGB8* src) {
 	g = (f32)src->g / 255;
 	b = (f32)src->b / 255;
 	
-	cmax = Math_MaxF(r, (Math_MaxF(g, b)));
-	cmin = Math_MinF(r, (Math_MinF(g, b)));
+	cmax = fmax(r, (fmax(g, b)));
+	cmin = fmin(r, (fmin(g, b)));
 	dest->l = (cmax + cmin) / 2;
 	d = cmax - cmin;
 	

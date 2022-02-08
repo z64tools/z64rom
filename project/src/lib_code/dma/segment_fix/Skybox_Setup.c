@@ -1,65 +1,5 @@
 #include <oot_mq_debug/z64hdr.h>
 
-#ifndef DO_ACTION_TEX_WIDTH
-	typedef enum {
-		/* 0x00 */ SKYBOX_NONE,
-		/* 0x01 */ SKYBOX_NORMAL_SKY,
-		/* 0x02 */ SKYBOX_BAZAAR,
-		/* 0x03 */ SKYBOX_OVERCAST_SUNSET,
-		/* 0x04 */ SKYBOX_MARKET_ADULT,
-		/* 0x05 */ SKYBOX_CUTSCENE_MAP,
-		/* 0x07 */ SKYBOX_HOUSE_LINK           = 7,
-		/* 0x09 */ SKYBOX_MARKET_CHILD_DAY     = 9,
-		/* 0x0A */ SKYBOX_MARKET_CHILD_NIGHT,
-		/* 0x0B */ SKYBOX_HAPPY_MASK_SHOP,
-		/* 0x0C */ SKYBOX_HOUSE_KNOW_IT_ALL_BROTHERS,
-		/* 0x0E */ SKYBOX_HOUSE_OF_TWINS       = 14,
-		/* 0x0F */ SKYBOX_STABLES,
-		/* 0x10 */ SKYBOX_HOUSE_KAKARIKO,
-		/* 0x11 */ SKYBOX_KOKIRI_SHOP,
-		/* 0x13 */ SKYBOX_GORON_SHOP           = 19,
-		/* 0x14 */ SKYBOX_ZORA_SHOP,
-		/* 0x16 */ SKYBOX_POTION_SHOP_KAKARIKO = 22,
-		/* 0x17 */ SKYBOX_POTION_SHOP_MARKET,
-		/* 0x18 */ SKYBOX_BOMBCHU_SHOP,
-		/* 0x1A */ SKYBOX_HOUSE_RICHARD        = 26,
-		/* 0x1B */ SKYBOX_HOUSE_IMPA,
-		/* 0x1C */ SKYBOX_TENT,
-		/* 0x1D */ SKYBOX_UNSET_1D,
-		/* 0x20 */ SKYBOX_HOUSE_MIDO           = 32,
-		/* 0x21 */ SKYBOX_HOUSE_SARIA,
-		/* 0x22 */ SKYBOX_HOUSE_ALLEY,
-		/* 0x27 */ SKYBOX_UNSET_27             = 39
-	} SkyboxId;
-	
-	typedef struct {
-		/* 0x00 */ u16 startTime;
-		/* 0x02 */ u16 endTime;
-		/* 0x04 */ u8  blend; // if true, blend between.. skyboxes? palettes?
-		/* 0x05 */ u8  skybox1Index; // whats the difference between _pal and non _pal files?
-		/* 0x06 */ u8  skybox2Index;
-	} struct_8011FC1C; // size = 0x8
-	
-	#define skyboxTime          environmentTime
-	#define envCtx_skybox1Index envCtx.unk_10[0]
-	#define envCtx_skybox2Index envCtx.unk_10[1]
-	#define skyboxBlend         unk_13
-	
-	typedef struct {
-		/* 0x000 */ char  unk_00[0x128];
-		/* 0x128 */ void* staticSegments[2];
-		/* 0x130 */ u16 (*palettes)[256];
-		/* 0x134 */ Gfx (*dListBuf)[150];
-		/* 0x138 */ Gfx*  unk_138;
-		/* 0x13C */ Vtx*  roomVtx;
-		/* 0x140 */ s16   unk_140;
-		/* 0x144 */ Vec3f rot;
-		/* 0x150 */ char  unk_150[0x10];
-	} Skybox__Context; // size = 0x160
-	
-	#define SkyboxContext Skybox__Context
-#endif
-
 typedef struct {
 	DmaEntry* file;
 	DmaEntry* palette;
@@ -68,13 +8,10 @@ typedef struct {
 s8 gSkyboxDmaIdTable[];
 
 f32 Environment_LerpWeight(u16 max, u16 min, u16 val);
-extern NewSkyboxFiles gSkyboxFiles[];
+extern NewSkyboxFiles gNewSkyboxFiles[];
 extern struct_8011FC1C D_8011FC1C[][9];
 extern u8 gWeatherMode;
-asm ("gSkyboxFiles = 0x8011FD3C");
-asm ("D_8011FC1C = 0x8011FC1C");
-asm ("gWeatherMode = 0x8011FB30");
-asm ("Environment_LerpWeight = 0x8006F93C");
+asm ("gNewSkyboxFiles = 0x8011FD3C");
 
 void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skyboxId) {
 	u32 size;
@@ -83,6 +20,8 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 	u8 imageIdx2 = 0;
 	u32 start;
 	s32 phi_v1;
+	
+	osSyncPrintf("Skybox_Setup ");
 	
 	if (gSkyboxDmaIdTable[skyboxId] > -1) {
 		DmaEntry* entry = &gDmaDataTable[gSkyboxDmaIdTable[skyboxId] + 941];
@@ -110,8 +49,8 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 				if (gSaveContext.skyboxTime >= D_8011FC1C[phi_v1][i].startTime &&
 					(gSaveContext.skyboxTime < D_8011FC1C[phi_v1][i].endTime ||
 					D_8011FC1C[phi_v1][i].endTime == 0xFFFF)) {
-					globalCtx->envCtx_skybox1Index = imageIdx1 = D_8011FC1C[phi_v1][i].skybox1Index;
-					globalCtx->envCtx_skybox2Index = imageIdx2 = D_8011FC1C[phi_v1][i].skybox2Index;
+					globalCtx->envCtx.skybox1Index = imageIdx1 = D_8011FC1C[phi_v1][i].skybox1Index;
+					globalCtx->envCtx.skybox2Index = imageIdx2 = D_8011FC1C[phi_v1][i].skybox2Index;
 					if (D_8011FC1C[phi_v1][i].blend != 0) {
 						globalCtx->envCtx.skyboxBlend =
 							Environment_LerpWeight(
@@ -127,62 +66,62 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 				}
 			}
 			
-			size = gSkyboxFiles[imageIdx1].file->vromEnd - gSkyboxFiles[imageIdx1].file->vromStart;
+			size = gNewSkyboxFiles[imageIdx1].file->vromEnd - gNewSkyboxFiles[imageIdx1].file->vromStart;
 			skyboxCtx->staticSegments[0] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(
 				skyboxCtx->staticSegments[0],
-				gSkyboxFiles[imageIdx1].file->vromStart,
+				gNewSkyboxFiles[imageIdx1].file->vromStart,
 				size,
 				"Skybox_Setup",
 				__LINE__
 			);
 			
-			size = gSkyboxFiles[imageIdx2].file->vromEnd - gSkyboxFiles[imageIdx2].file->vromStart;
+			size = gNewSkyboxFiles[imageIdx2].file->vromEnd - gNewSkyboxFiles[imageIdx2].file->vromStart;
 			skyboxCtx->staticSegments[1] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(
 				skyboxCtx->staticSegments[1],
-				gSkyboxFiles[imageIdx2].file->vromStart,
+				gNewSkyboxFiles[imageIdx2].file->vromStart,
 				size,
 				"Skybox_Setup",
 				__LINE__
 			);
 			
 			if ((imageIdx1 & 1) ^ ((imageIdx1 & 4) >> 2)) {
-				size = gSkyboxFiles[imageIdx1].palette->vromEnd - gSkyboxFiles[imageIdx1].palette->vromStart;
+				size = gNewSkyboxFiles[imageIdx1].palette->vromEnd - gNewSkyboxFiles[imageIdx1].palette->vromStart;
 				
 				skyboxCtx->palettes = GameState_Alloc(&globalCtx->state, size * 2, "Skybox_Setup", __LINE__);
 				
 				DmaMgr_SendRequest1(
 					skyboxCtx->palettes,
-					gSkyboxFiles[imageIdx1].palette->vromStart,
+					gNewSkyboxFiles[imageIdx1].palette->vromStart,
 					size,
 					"Skybox_Setup",
 					__LINE__
 				);
 				DmaMgr_SendRequest1(
 					(void*)((u32)skyboxCtx->palettes + size),
-					gSkyboxFiles[imageIdx2].palette->vromStart,
+					gNewSkyboxFiles[imageIdx2].palette->vromStart,
 					size,
 					"Skybox_Setup",
 					__LINE__
 				);
 			} else {
-				size = gSkyboxFiles[imageIdx1].palette->vromEnd - gSkyboxFiles[imageIdx1].palette->vromStart;
+				size = gNewSkyboxFiles[imageIdx1].palette->vromEnd - gNewSkyboxFiles[imageIdx1].palette->vromStart;
 				
 				skyboxCtx->palettes = GameState_Alloc(&globalCtx->state, size * 2, "Skybox_Setup", __LINE__);
 				
 				DmaMgr_SendRequest1(
 					skyboxCtx->palettes,
-					gSkyboxFiles[imageIdx2].palette->vromStart,
+					gNewSkyboxFiles[imageIdx2].palette->vromStart,
 					size,
 					"Skybox_Setup",
 					__LINE__
 				);
 				DmaMgr_SendRequest1(
 					(void*)((u32)skyboxCtx->palettes + size),
-					gSkyboxFiles[imageIdx1].palette->vromStart,
+					gNewSkyboxFiles[imageIdx1].palette->vromStart,
 					size,
 					"Skybox_Setup",
 					__LINE__
@@ -266,6 +205,8 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 			skyboxCtx->unk_140 = 2;
 			break;
 	}
+	
+	osSyncPrintf("OK\n");
 }
 
 #define ID(x) ((x) - 941)

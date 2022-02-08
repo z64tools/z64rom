@@ -47,22 +47,31 @@ $(shell mkdir -p release_linux/tools/)
 		win32 \
 		all-release \
 		linux-release \
-		win32-release
+		win32-release \
+		hdrup
 
 default: linux
 all: linux win32
 all-release: linux-release win32-release
+hdrup: hdrup.exe
 
 linux:         project-files-linux $(SOURCE_O_LINUX)         $(DEBUG_EXECUTABLE_LINUX)
 linux-release: project-files-linux $(SOURCE_O_RELEASE_LINUX) $(RELEASE_EXECUTABLE_LINUX)
 win32:         project-files-win32 $(SOURCE_O_WIN32)         $(DEBUG_EXECUTABLE_WIN32)
 win32-release: project-files-win32 $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABLE_WIN32)
 
+hdrup.exe: tools/hdrup.c lib/ExtLib.c
+	@i686-w64-mingw32.static-gcc -o $@ $^ $(OPT_WIN32) $(CFLAGS) -DNDEBUG -lm -D_WIN32
+
 # # # # # # # # # # # # # # # # # # # #
 # PROJECT                             #
 # # # # # # # # # # # # # # # # # # # #
 
-tools: project/tools/elf2ld project/tools/cofi project/tools/novl project/tools/z64convert project/tools/depper
+tools: project/tools/elf2ld \
+	project/tools/cofi \
+	project/tools/novl \
+	project/tools/z64convert \
+	project/tools/depper
 
 project-files-linux: tools project/tools/z64audio
 	@mkdir -p             release_linux/src/actor

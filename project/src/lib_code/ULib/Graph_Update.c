@@ -1,29 +1,7 @@
-#include <z_lib_user.h>
-
-/*IF*/
-/*
-0x800C61D8 ENTRY_POINT
-0xB3D378   ROM_ADDR
-*/
-/*IN*/
-
-// Size: 0x66C
+#include <ULib.h>
 
 extern OSTime sGraphUpdateTime;
 extern FaultClient sGraphUcodeFaultClient;
-asm ("sGraphUcodeFaultClient = 0x80166648;");
-asm ("sGraphUpdateTime = 0x801665D0;");
-asm ("gGfxPools = 0x801B41C0;");
-asm ("gRSPGFXTotalTime = 0x8016A568;");
-asm ("gRSPAudioTotalTime = 0x8016A560;");
-asm ("gAppNmiBufferPtr = 0x80166660;");
-asm ("gRDPTotalTime = 0x8016A580;");
-asm ("D_8016A538 = 0x8016A538;");
-asm ("D_8016A530 = 0x8016A530;");
-asm ("D_8016A540 = 0x8016A540;");
-asm ("D_8016A548 = 0x8016A548;");
-asm ("D_8012DBC0 = 0x8012DBC0;");
-asm ("osMemSize = 0x80000318;");
 
 void _Graph_Update(GraphicsContext* gfxCtx, GameState* gameState) {
 	u32 problem;
@@ -143,7 +121,7 @@ void _Graph_Update(GraphicsContext* gfxCtx, GameState* gameState) {
 	if (gLibCtx.myMagicValue == 0xDEADBEEF)
 		ULib_Update(gameState);
 	
-	if (D_8012DBC0 && PreNmiBuff_IsResetting(gAppNmiBufferPtr) && !gameState->unk_A0) {
+	if (gIsCtrlr2Valid && PreNmiBuff_IsResetting(gAppNmiBufferPtr) && !gameState->unk_A0) {
 		SET_NEXT_GAMESTATE(gameState, PreNMI_Init, PreNMIContext);
 		gameState->running = false;
 	}

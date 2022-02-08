@@ -18,6 +18,7 @@ extern StackEntry sIrqMgrStackInfo;
 extern AudioMgr gAudioMgr;
 extern OSMesgQueue sSiIntMsgQ;
 extern OSMesg sSiIntMsgBuf[1];
+extern u32 gSystemHeapSize;
 
 void Main(void* arg) {
 	IrqMgrClient irqClient;
@@ -80,5 +81,5 @@ void Main(void* arg) {
 	}
 	
 	osDestroyThread(&sGraphThread);
-	func_800FBFD8();
+	RcpUtils_Reset();
 }

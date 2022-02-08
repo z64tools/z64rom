@@ -678,7 +678,7 @@ void Rom_Build_SetAudioSegment(Rom* rom) {
 	#define RAM_ADDR rom->file.seekPoint + 0x7F588E60
 	
 	MemFile_Params(&rom->file, MEM_ALIGN, 16, MEM_END);
-	MemFile_Seek(&rom->file, 0x00B65B70);
+	MemFile_Seek(&rom->file, 0xB65C00);
 	
 	Mips64_SplitLoad(INST_ADDR(0x800E330C, 0x800E3310), MIPS_REG_A1, rom->offset.segment.seqRom);
 	Mips64_SplitLoad(INST_ADDR(0x800E3320, 0x800E3324), MIPS_REG_A1, rom->offset.segment.fontRom);
@@ -697,6 +697,11 @@ void Rom_Build_SetAudioSegment(Rom* rom) {
 	MemFile_Append(&rom->file, &rom->mem.seqFontTbl);
 	
 	MemFile_Params(&rom->file, MEM_ALIGN, 0, MEM_END);
+	
+	if (rom->file.seekPoint - 0xB65C00 > 0x318C - 0x10) {
+		printf_warning("AudioDebug_Draw overwriting exceeded. Might cause trouble...");
+	}
+	
 	#undef INST_ADDR
 	#undef RAM_ADDR
 }

@@ -1,4 +1,4 @@
-#include <z_lib_user.h>
+#include <ULib.h>
 
 LibContext gLibCtx = {
 	.myMagicValue = 0xDEADBEEF,
@@ -21,9 +21,9 @@ void ULib_Update(GameState* gameState) {
 		GlobalContext* globalCtx = &gGlobalContext;
 		MessageContext* msgCtx = &globalCtx->msgCtx;
 		
-		msgCtx->unk_E3D6 = 1;
+		msgCtx->textUnskippable = 1;
 		
-		if (soundFlag == 1 && (msgCtx->msgMode == 52 || msgCtx->unk_E3E4 == 0x30)) {
+		if (soundFlag == 1 && (msgCtx->msgMode == 52 || msgCtx->textboxEndType == 0x30)) {
 			Audio_PlaySoundGeneral(NA_SE_SY_MESSAGE_END, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
 			soundFlag = 0;
 		}

@@ -1,19 +1,12 @@
 #include <oot_mq_debug/z64hdr.h>
 
-typedef enum {
-	LANGUAGE_ENG,
-	LANGUAGE_GER,
-	LANGUAGE_FRA,
-	LANGUAGE_MAX
-} Language;
-
 void func_801109B0(GlobalContext* globalCtx) {
 	InterfaceContext* interfaceCtx = &globalCtx->interfaceCtx;
 	u32 parameterSize;
 	u16 doActionOffset;
 	u8 temp;
 	
-	gSaveContext.unk_1422 = 0; // gSaveContext.sunsSongState = SUNSSONG_INACTIVE;
+	gSaveContext.sunsSongState = SUNSSONG_INACTIVE;
 	gSaveContext.unk_13E8 = gSaveContext.unk_13EA = 0;
 	
 	View_Init(&interfaceCtx->view, globalCtx->state.gfxCtx);

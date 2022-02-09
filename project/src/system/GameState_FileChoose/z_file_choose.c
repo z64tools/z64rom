@@ -73,9 +73,7 @@ void FileSelect_InitModeUpdate(GameState* thisx) {
 		this->menuMode = FS_MENU_MODE_CONFIG;
 		this->configMode = CM_FADE_IN_START;
 		this->nextTitleLabel = FS_TITLE_OPEN_FILE;
-		osSyncPrintf("Ｓｒａｍ Ｓｔａｒｔ─Ｌｏａｄ  》》》》》  ");
 		Sram_VerifyAndLoadAllSaves(this, &this->sramCtx);
-		osSyncPrintf("終了！！！\n");
 	}
 }
 
@@ -190,17 +188,6 @@ void FileSelect_UpdateMainMenu(GameState* thisx) {
 	
 	if (CHECK_BTN_ALL(input->press.button, BTN_START) || CHECK_BTN_ALL(input->press.button, BTN_A)) {
 		if (this->buttonIndex <= FS_BTN_MAIN_FILE_3) {
-			osSyncPrintf(
-				"REGCK_ALL[%x]=%x,%x,%x,%x,%x,%x\n",
-				this->buttonIndex,
-				GET_NEWF(sramCtx, this->buttonIndex, 0),
-				GET_NEWF(sramCtx, this->buttonIndex, 1),
-				GET_NEWF(sramCtx, this->buttonIndex, 2),
-				GET_NEWF(sramCtx, this->buttonIndex, 3),
-				GET_NEWF(sramCtx, this->buttonIndex, 4),
-				GET_NEWF(sramCtx, this->buttonIndex, 5)
-			);
-			
 			if (!SLOT_OCCUPIED(sramCtx, this->buttonIndex)) {
 				Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
 				this->configMode = CM_ROTATE_TO_NAME_ENTRY;
@@ -401,63 +388,7 @@ void FileSelect_PulsateCursor(GameState* thisx) {
 		*((u8*)0x80000002) = LANGUAGE_ENG;
 		
 		SsSram_ReadWrite(OS_K1_TO_PHYSICAL(0xA8000000), sramCtx->readBuff, 3, OS_WRITE);
-		osSyncPrintf(
-			"1:read_buff[]=%x, %x, %x, %x\n",
-			sramCtx->readBuff[SRAM_HEADER_SOUND],
-			sramCtx->readBuff[SRAM_HEADER_ZTARGET],
-			sramCtx->readBuff[SRAM_HEADER_LANGUAGE],
-			sramCtx->readBuff[SRAM_HEADER_MAGIC]
-		);
-		
 		SsSram_ReadWrite(OS_K1_TO_PHYSICAL(0xA8000000), sramCtx->readBuff, SRAM_SIZE, OS_READ);
-		osSyncPrintf(
-			"read_buff[]=%x, %x, %x, %x\n",
-			sramCtx->readBuff[SRAM_HEADER_SOUND],
-			sramCtx->readBuff[SRAM_HEADER_ZTARGET],
-			sramCtx->readBuff[SRAM_HEADER_LANGUAGE],
-			sramCtx->readBuff[SRAM_HEADER_MAGIC]
-		);
-	} else if (CHECK_BTN_ALL(debugInput->press.button, BTN_DUP)) {
-		sramCtx->readBuff[SRAM_HEADER_LANGUAGE] = gSaveContext.language = LANGUAGE_GER;
-		*((u8*)0x80000002) = LANGUAGE_GER;
-		
-		SsSram_ReadWrite(OS_K1_TO_PHYSICAL(0xA8000000), sramCtx->readBuff, 3, OS_WRITE);
-		osSyncPrintf(
-			"1:read_buff[]=%x, %x, %x, %x\n",
-			sramCtx->readBuff[SRAM_HEADER_SOUND],
-			sramCtx->readBuff[SRAM_HEADER_ZTARGET],
-			sramCtx->readBuff[SRAM_HEADER_LANGUAGE],
-			sramCtx->readBuff[SRAM_HEADER_MAGIC]
-		);
-		SsSram_ReadWrite(OS_K1_TO_PHYSICAL(0xA8000000), sramCtx->readBuff, SRAM_SIZE, OS_READ);
-		osSyncPrintf(
-			"read_buff[]=%x, %x, %x, %x\n",
-			sramCtx->readBuff[SRAM_HEADER_SOUND],
-			sramCtx->readBuff[SRAM_HEADER_ZTARGET],
-			sramCtx->readBuff[SRAM_HEADER_LANGUAGE],
-			sramCtx->readBuff[SRAM_HEADER_MAGIC]
-		);
-	} else if (CHECK_BTN_ALL(debugInput->press.button, BTN_DRIGHT)) {
-		sramCtx->readBuff[SRAM_HEADER_LANGUAGE] = gSaveContext.language = LANGUAGE_FRA;
-		*((u8*)0x80000002) = LANGUAGE_FRA;
-		
-		SsSram_ReadWrite(OS_K1_TO_PHYSICAL(0xA8000000), sramCtx->readBuff, 3, OS_WRITE);
-		osSyncPrintf(
-			"1:read_buff[]=%x, %x, %x, %x\n",
-			sramCtx->readBuff[SRAM_HEADER_SOUND],
-			sramCtx->readBuff[SRAM_HEADER_ZTARGET],
-			sramCtx->readBuff[SRAM_HEADER_LANGUAGE],
-			sramCtx->readBuff[SRAM_HEADER_MAGIC]
-		);
-		
-		SsSram_ReadWrite(OS_K1_TO_PHYSICAL(0xA8000000), sramCtx->readBuff, SRAM_SIZE, OS_READ);
-		osSyncPrintf(
-			"read_buff[]=%x, %x, %x, %x\n",
-			sramCtx->readBuff[SRAM_HEADER_SOUND],
-			sramCtx->readBuff[SRAM_HEADER_ZTARGET],
-			sramCtx->readBuff[SRAM_HEADER_LANGUAGE],
-			sramCtx->readBuff[SRAM_HEADER_MAGIC]
-		);
 	}
 	
 	alphaStep = ABS(this->highlightColor[3] - cursorAlphaTargets[this->highlightPulseDir]) / XREG(35);
@@ -848,7 +779,7 @@ void FileSelect_DrawFileInfo(GameState* thisx, s16 fileIndex, s16 isActive) {
 	if (1) {
 	}
 	
-	OPEN_DISPS(this->state.gfxCtx, "../z_file_choose.c", 1709);
+	OPEN_DISPS(this->state.gfxCtx, __FILE__, __LINE__);
 	
 	gDPPipeSync(POLY_OPA_DISP++);
 	gDPSetCombineLERP(
@@ -1020,7 +951,7 @@ void FileSelect_DrawFileInfo(GameState* thisx, s16 fileIndex, s16 isActive) {
 		}
 	}
 	
-	CLOSE_DISPS(this->state.gfxCtx, "../z_file_choose.c", 1797);
+	CLOSE_DISPS(this->state.gfxCtx, __FILE__, __LINE__);
 }
 
 void* sFileInfoBoxTextures[] = {
@@ -1089,7 +1020,7 @@ void FileSelect_DrawWindowContents(GameState* thisx) {
 	s16 isActive;
 	s16 pad;
 	
-	OPEN_DISPS(this->state.gfxCtx, "../z_file_choose.c", 1940);
+	OPEN_DISPS(this->state.gfxCtx, __FILE__, __LINE__);
 	
 	// draw title label
 	gDPPipeSync(POLY_OPA_DISP++);
@@ -1528,7 +1459,7 @@ void FileSelect_DrawWindowContents(GameState* thisx) {
 	gDPPipeSync(POLY_OPA_DISP++);
 	gDPSetCombineMode(POLY_OPA_DISP++, G_CC_MODULATEIDECALA, G_CC_MODULATEIDECALA);
 	
-	CLOSE_DISPS(this->state.gfxCtx, "../z_file_choose.c", 2198);
+	CLOSE_DISPS(this->state.gfxCtx, __FILE__, __LINE__);
 }
 
 void FileSelect_ConfigModeDraw(GameState* thisx) {
@@ -1537,7 +1468,7 @@ void FileSelect_ConfigModeDraw(GameState* thisx) {
 	f32 eyeY;
 	f32 eyeZ;
 	
-	OPEN_DISPS(this->state.gfxCtx, "../z_file_choose.c", 2218);
+	OPEN_DISPS(this->state.gfxCtx, __FILE__, __LINE__);
 	gDPPipeSync(POLY_OPA_DISP++);
 	
 	eyeX = 1000.0f * Math_CosS(ZREG(11)) - 1000.0f * Math_SinS(ZREG(11));
@@ -1578,7 +1509,7 @@ void FileSelect_ConfigModeDraw(GameState* thisx) {
 		
 		gSPMatrix(
 			POLY_OPA_DISP++,
-			Matrix_NewMtx(this->state.gfxCtx, "../z_file_choose.c", 2282),
+			Matrix_NewMtx(this->state.gfxCtx, __FILE__, __LINE__),
 			G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW
 		);
 		
@@ -1616,7 +1547,7 @@ void FileSelect_ConfigModeDraw(GameState* thisx) {
 		Matrix_RotateX((this->windowRot - 314.0f) / 100.0f, MTXMODE_APPLY);
 		gSPMatrix(
 			POLY_OPA_DISP++,
-			Matrix_NewMtx(this->state.gfxCtx, "../z_file_choose.c", 2316),
+			Matrix_NewMtx(this->state.gfxCtx, __FILE__, __LINE__),
 			G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW
 		);
 		
@@ -1655,7 +1586,7 @@ void FileSelect_ConfigModeDraw(GameState* thisx) {
 		
 		gSPMatrix(
 			POLY_OPA_DISP++,
-			Matrix_NewMtx(this->state.gfxCtx, "../z_file_choose.c", 2337),
+			Matrix_NewMtx(this->state.gfxCtx, __FILE__, __LINE__),
 			G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW
 		);
 		
@@ -1676,7 +1607,7 @@ void FileSelect_ConfigModeDraw(GameState* thisx) {
 	gDPPipeSync(POLY_OPA_DISP++);
 	FileSelect_SetView(this, 0.0f, 0.0f, 64.0f);
 	
-	CLOSE_DISPS(this->state.gfxCtx, "../z_file_choose.c", 2352);
+	CLOSE_DISPS(this->state.gfxCtx, __FILE__, __LINE__);
 }
 
 /**
@@ -1884,21 +1815,12 @@ void FileSelect_LoadGame(GameState* thisx) {
 	u16 swordEquipMask;
 	s32 pad;
 	
-	if (this->buttonIndex == FS_BTN_SELECT_FILE_1) {
-		Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
-		gSaveContext.fileNum = this->buttonIndex;
-		Sram_OpenSave(&this->sramCtx);
-		gSaveContext.gameMode = 0;
-		SET_NEXT_GAMESTATE(&this->state, Select_Init, SelectContext);
-		this->state.running = false;
-	} else {
-		Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
-		gSaveContext.fileNum = this->buttonIndex;
-		Sram_OpenSave(&this->sramCtx);
-		gSaveContext.gameMode = 0;
-		SET_NEXT_GAMESTATE(&this->state, Gameplay_Init, GlobalContext);
-		this->state.running = false;
-	}
+	Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+	gSaveContext.fileNum = this->buttonIndex;
+	Sram_OpenSave(&this->sramCtx);
+	gSaveContext.gameMode = 0;
+	SET_NEXT_GAMESTATE(&this->state, Gameplay_Init, GlobalContext);
+	this->state.running = false;
 	
 	gSaveContext.respawn[0].entranceIndex = -1;
 	gSaveContext.respawnFlag = 0;
@@ -1965,7 +1887,7 @@ void FileSelect_SelectModeDraw(GameState* thisx) {
 	f32 eyeY;
 	f32 eyeZ;
 	
-	OPEN_DISPS(this->state.gfxCtx, "../z_file_choose.c", 2753);
+	OPEN_DISPS(this->state.gfxCtx, __FILE__, __LINE__);
 	
 	gDPPipeSync(POLY_OPA_DISP++);
 	
@@ -2001,7 +1923,7 @@ void FileSelect_SelectModeDraw(GameState* thisx) {
 	Matrix_RotateX(this->windowRot / 100.0f, MTXMODE_APPLY);
 	gSPMatrix(
 		POLY_OPA_DISP++,
-		Matrix_NewMtx(this->state.gfxCtx, "../z_file_choose.c", 2810),
+		Matrix_NewMtx(this->state.gfxCtx, __FILE__, __LINE__),
 		G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW
 	);
 	
@@ -2018,7 +1940,7 @@ void FileSelect_SelectModeDraw(GameState* thisx) {
 	gDPPipeSync(POLY_OPA_DISP++);
 	FileSelect_SetView(this, 0.0f, 0.0f, 64.0f);
 	
-	CLOSE_DISPS(this->state.gfxCtx, "../z_file_choose.c", 2834);
+	CLOSE_DISPS(this->state.gfxCtx, __FILE__, __LINE__);
 }
 
 void (*gFileSelectDrawFuncs[])(GameState*) = {
@@ -2042,7 +1964,7 @@ void FileSelect_Main(GameState* thisx) {
 	FileChooseContext* this = (FileChooseContext*)thisx;
 	Input* input = &this->state.input[0];
 	
-	OPEN_DISPS(this->state.gfxCtx, "../z_file_choose.c", 2898);
+	OPEN_DISPS(this->state.gfxCtx, __FILE__, __LINE__);
 	
 	this->n64ddFlag = 0;
 	
@@ -2165,7 +2087,7 @@ void FileSelect_Main(GameState* thisx) {
 	gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 0, 0, 0, sScreenFillAlpha);
 	gDPFillRectangle(POLY_OPA_DISP++, 0, 0, gScreenWidth - 1, gScreenHeight - 1);
 	
-	CLOSE_DISPS(this->state.gfxCtx, "../z_file_choose.c", 3035);
+	CLOSE_DISPS(this->state.gfxCtx, __FILE__, __LINE__);
 }
 
 void FileSelect_InitContext(GameState* thisx) {
@@ -2344,25 +2266,24 @@ void FileSelect_StateDestroy(GameState* thisx) {
 
 void FileSelect_StateInit(GameState* thisx) {
 	FileChooseContext* this = (FileChooseContext*)thisx;
-	u32 size = (u32)_title_staticSegmentRomEnd - (u32)_title_staticSegmentRomStart;
+	u32 size = gDmaDataTable[939].vromEnd - gDmaDataTable[939].vromStart;
 	s32 pad;
 	
 	SREG(30) = 1;
-	osSyncPrintf("SIZE=%x\n", size);
 	
-	this->staticSegment = GameState_Alloc(&this->state, size, "../z_file_choose.c", 3392);
-	ASSERT(this->staticSegment != NULL, "this->staticSegment != NULL", "../z_file_choose.c", 3393);
-	DmaMgr_SendRequest1(this->staticSegment, (u32)_title_staticSegmentRomStart, size, "../z_file_choose.c", 3394);
+	this->staticSegment = GameState_Alloc(&this->state, size, __FILE__, __LINE__);
+	ASSERT(this->staticSegment != NULL, "this->staticSegment != NULL", __FILE__, __LINE__);
+	DmaMgr_SendRequest1(this->staticSegment, gDmaDataTable[939].vromStart, size, __FILE__, __LINE__);
 	
-	size = (u32)_parameter_staticSegmentRomEnd - (u32)_parameter_staticSegmentRomStart;
-	this->parameterSegment = GameState_Alloc(&this->state, size, "../z_file_choose.c", 3398);
-	ASSERT(this->parameterSegment != NULL, "this->parameterSegment != NULL", "../z_file_choose.c", 3399);
+	size = gDmaDataTable[940].vromEnd - gDmaDataTable[940].vromStart;
+	this->parameterSegment = GameState_Alloc(&this->state, size, __FILE__, __LINE__);
+	ASSERT(this->parameterSegment != NULL, "this->parameterSegment != NULL", __FILE__, __LINE__);
 	DmaMgr_SendRequest1(
 		this->parameterSegment,
-		(u32)_parameter_staticSegmentRomStart,
+		gDmaDataTable[940].vromStart,
 		size,
-		"../z_file_choose.c",
-		3400
+		__FILE__,
+		__LINE__
 	);
 	
 	Matrix_Init(&this->state);
@@ -2373,4 +2294,8 @@ void FileSelect_StateInit(GameState* thisx) {
 	Font_LoadOrderedFont(&this->font);
 	Audio_QueueSeqCmd(0xF << 28 | SEQ_PLAYER_BGM_MAIN << 24 | 0xA);
 	func_800F5E18(SEQ_PLAYER_BGM_MAIN, NA_BGM_FILE_SELECT, 0, 7, 1);
+	
+	for (s32 i = 0; i < 80; i++) {
+		osSyncPrintf("SOOOOO\n");
+	}
 }

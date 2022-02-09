@@ -610,30 +610,14 @@ void FileSelect_DrawNameEntry(GameState* thisx) {
 	
 	if ((this->kbdButton == FS_KBD_BTN_HIRA) || (this->kbdButton == FS_KBD_BTN_KATA) ||
 		(this->kbdButton == FS_KBD_BTN_END)) {
-		if (this->kbdX != this->kbdButton) {
-			osSyncPrintf("014 xpos=%d  contents=%d\n", this->kbdX, this->kbdButton);
-		}
 		this->nameEntryVtx[40].v.ob[0] = this->nameEntryVtx[42].v.ob[0] = D_80811BB0[(this->kbdX + 1) * 4].v.ob[0] - 4;
 		this->nameEntryVtx[41].v.ob[0] = this->nameEntryVtx[43].v.ob[0] = this->nameEntryVtx[40].v.ob[0] + 52;
 		this->nameEntryVtx[40].v.ob[1] = this->nameEntryVtx[41].v.ob[1] = D_80811BB0[(this->kbdX + 1) * 4].v.ob[1] + 4;
 	} else if ((this->kbdButton == FS_KBD_BTN_ENG) || (this->kbdButton == FS_KBD_BTN_BACKSPACE)) {
-		if (this->kbdX != this->kbdButton) {
-			osSyncPrintf("23 xpos=%d  contents=%d\n", this->kbdX, this->kbdButton);
-		}
 		this->nameEntryVtx[40].v.ob[0] = this->nameEntryVtx[42].v.ob[0] = D_80811BB0[(this->kbdX + 1) * 4].v.ob[0] - 4;
 		this->nameEntryVtx[41].v.ob[0] = this->nameEntryVtx[43].v.ob[0] = this->nameEntryVtx[40].v.ob[0] + 40;
 		this->nameEntryVtx[40].v.ob[1] = this->nameEntryVtx[41].v.ob[1] = D_80811BB0[(this->kbdX + 1) * 4].v.ob[1] + 4;
 	} else {
-		if (this->charIndex >= 65) {
-			osSyncPrintf(
-				"mjp=%d  xpos=%d  ypos=%d  name_contents=%d\n",
-				this->charIndex,
-				this->kbdX,
-				this->kbdY,
-				this->kbdButton
-			);
-		}
-		
 		this->nameEntryVtx[40].v.ob[0] = this->nameEntryVtx[42].v.ob[0] =
 			this->keyboardVtx[this->charIndex * 4].v.ob[0] - D_80812544[this->charIndex] - 6;
 		this->nameEntryVtx[41].v.ob[0] = this->nameEntryVtx[43].v.ob[0] = this->nameEntryVtx[40].v.ob[0] + 24;

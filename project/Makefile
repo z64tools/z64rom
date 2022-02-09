@@ -47,8 +47,8 @@ Library_C   = $(shell cd src && find lib_user/* -type f -name '*.c' 2>/dev/null)
 Library_O   = $(foreach f,$(Library_C:.c=.o),rom/$(f))
 Library_Elf = $(foreach f,$(Library_C:.c=.elf),rom/$(f))
 
-GameState_C   = $(shell cd src && find system/GameState_*/* -type f -name '*.c' 2>/dev/null)
-GameState_O   = $(foreach f,$(GameState_C:.c=.o),rom/$(f))
+FileChoose_C   = $(shell cd src && find system/GameState_FileChoose/* -type f -name '*.c' 2>/dev/null)
+FileChoose_O   = $(foreach f,$(FileChoose_C:.c=.o),rom/$(f))
 
 Code_C   = $(shell cd src && find lib_code/* -maxdepth 2 -type f -name '*.c' 2>/dev/null)
 Code_O   = $(foreach f,$(Code_C:.c=.o),rom/$(f))
@@ -63,7 +63,7 @@ $(shell mkdir -p rom/ $(foreach dir, \
 	$(dir $(Library_O)) \
 	$(dir $(Code_O)) \
 	$(dir $(Actor_O)) \
-	$(dir $(GameState_O)) \
+	$(dir $(FileChoose_O)) \
 	$(dir $(Object_zobj)) \
 	, $(dir)))
 
@@ -87,7 +87,7 @@ rom: all
 clean:
 	@rm -f -R $(dir $(Actor_O))
 	@rm -f -R $(dir $(Object_zobj))
-	@rm -f -R $(dir $(GameState_O))
+	@rm -f -R $(dir $(FileChoose_O))
 	@rm -f $(Linkers)
 	@rm -f -R rom/lib_user
 	@rm -f -R rom/lib_code
@@ -193,18 +193,23 @@ rom/actor/%.elf: rom/actor/%.o $(Linkers)
 # CODE GAMESTATE                      #
 # # # # # # # # # # # # # # # # # # # #
 
-system: $(GameState_O) rom/system/GameState_FileChoose/state.elf
+system: $(FileChoose_O) rom/system/GameState_FileChoose/state.elf
 
 rom/system/%.o: src/system/%.c
 	@echo "$(PRNT_CYAN)State$(PRNT_RSET):   $(notdir $@)"
 	@$(mips64_gcc) -c $(GccFlags) $< -o $@
 
-rom/system/GameState_FileChoose/state.elf: $(GameState_O) $(Linkers)
+rom/system/GameState_FileChoose/state.elf: $(FileChoose_O) $(Linkers)
 	@echo "$(PRNT_BLUE)State$(PRNT_RSET):   $(notdir $@)"
 	@printf "ENTRY_POINT = 0x80800000;" > $(@D)/entry.ld
-	$(mips64_ld) -o $@ $(GameState_O) -L$(@D) $(LdFlags)
+	$(mips64_ld) -o $@ $(FileChoose_O) -L$(@D) $(LdFlags)
 	@$(mips64_objdump) -drz $@ > $(@:.elf=.s)
 	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $@ $(@:.elf=.bin)
+	
+	@printf "vram_addr  = 0x80800000\n" > $(@D)/config.cfg
+	@printf "init_func  = 0x%s\n" $$($(mips64_objdump) -t $@ | grep "_StateInit" | head -c 8) >> $(@D)/config.cfg
+	@printf "dest_func  = 0x%s\n" $$($(mips64_objdump) -t $@ | grep "_StateDestroy" | head -c 8) >> $(@D)/config.cfg
+	@$(novl) $(nOvlFlags) 0x80800000 -o $(@D)/actor.zovl $@ -s
 	
 # # # # # # # # # # # # # # # # # # # #
 # LIB_USER                            #

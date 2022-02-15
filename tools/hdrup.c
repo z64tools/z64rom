@@ -35,8 +35,8 @@ void Func_Map(MemFile* map, MemFile* out) {
 			!str2cmp(name, "_buffers") ||
 			!str2cmp(name, "_message") ||
 			!str2cmp(name, "_vr_") ||
-			String_MemMem(name, "_room_") ||
-			String_MemMem(name, "_scene")
+			StrStr(name, "_room_") ||
+			StrStr(name, "_scene")
 		)
 			continue;
 		
@@ -51,7 +51,7 @@ void Func_Map(MemFile* map, MemFile* out) {
 				continue;
 			
 			if (!str2cmp(wordPtr, "FileChoose_Init\n")) {
-				wow = String_MemMem(linePtr, "..ovl_kaleido_scope");
+				wow = StrStr(linePtr, "..ovl_kaleido_scope");
 				
 				if (wow)
 					linePtr = wow;
@@ -94,7 +94,7 @@ static void GetProtos(MemFile* temp, MemFile* out, MemFile* var, ItemList* srcLi
 		if (!strcmp(srcList->item[i], "audio_init_params.c"))
 			continue;
 		
-		if (String_MemMemCase(srcList->item[i], ".cfg") || String_MemMemCase(srcList->item[i], ".h"))
+		if (StrStrCase(srcList->item[i], ".cfg") || StrStrCase(srcList->item[i], ".h"))
 			continue;
 		
 		MemFile_Reset(temp);
@@ -127,7 +127,7 @@ static void GetProtos(MemFile* temp, MemFile* out, MemFile* var, ItemList* srcLi
 			if (x < 0)
 				continue;
 			
-			if (String_MemMem(String_GetWord(lineStr, 1), "(")) {
+			if (StrStr(String_GetWord(lineStr, 1), "(")) {
 				s32 s = 0;
 				s32 panicEscape = 0;
 				s32 d = -1;
@@ -173,12 +173,12 @@ static void GetProtos(MemFile* temp, MemFile* out, MemFile* var, ItemList* srcLi
 					}
 				}
 				
-				if (String_MemMem(fnc, "StorageChange") ||
-					String_MemMem(fnc, "SoundFontData") ||
-					String_MemMem(fnc, "RelocInfo") ||
-					String_MemMem(fnc, "FreqLerp") ||
-					String_MemMem(fnc, "arg3_800F") ||
-					String_MemMem(fnc, "GfxMod")
+				if (StrStr(fnc, "StorageChange") ||
+					StrStr(fnc, "SoundFontData") ||
+					StrStr(fnc, "RelocInfo") ||
+					StrStr(fnc, "FreqLerp") ||
+					StrStr(fnc, "arg3_800F") ||
+					StrStr(fnc, "GfxMod")
 				)
 					continue;
 				
@@ -199,7 +199,7 @@ static void GetProtos(MemFile* temp, MemFile* out, MemFile* var, ItemList* srcLi
 		u32 lineCount;
 		u32 writeTitle = 0;
 		
-		if (String_MemMemCase(srcList->item[i], ".cfg") || String_MemMemCase(srcList->item[i], ".h"))
+		if (StrStrCase(srcList->item[i], ".cfg") || StrStrCase(srcList->item[i], ".h"))
 			continue;
 		
 		MemFile_Reset(temp);
@@ -242,58 +242,58 @@ static void GetProtos(MemFile* temp, MemFile* out, MemFile* var, ItemList* srcLi
 			}
 			
 			if (
-				String_MemMem(fnc, "NatureAmbienceDataIO") ||
-				String_MemMem(fnc, "FreqLerp") ||
-				String_MemMem(fnc, "SfxPlayerState") ||
-				String_MemMem(fnc, "OcarinaStick") ||
-				String_MemMem(fnc, "SoundRequest") ||
-				String_MemMem(fnc, "UnusedBankLerp") ||
-				String_MemMem(fnc, "DoorLockInfo") ||
-				String_MemMem(fnc, "TargetRangeParams") ||
-				String_MemMem(fnc, "CameraMode") ||
-				String_MemMem(fnc, "CameraSetting") ||
-				String_MemMem(fnc, "HitInfo") ||
-				String_MemMem(fnc, "ColChkBloodFunc") ||
-				String_MemMem(fnc, "ColChkResetFunc") ||
-				String_MemMem(fnc, "ColChkLineFunc") ||
-				String_MemMem(fnc, "ColChkVsFunc") ||
-				String_MemMem(fnc, "ColChkApplyFunc") ||
-				String_MemMem(fnc, "DebugDispObject_DrawFunc") ||
-				String_MemMem(fnc, "InputCombo") ||
-				String_MemMem(fnc, "PrintTextBuffer") ||
-				String_MemMem(fnc, "DrawItemTableEntry") ||
-				String_MemMem(fnc, "CutsceneStateHandler") ||
-				String_MemMem(fnc, "DebugDispObjectInfo") ||
-				String_MemMem(fnc, "LightningBolt") ||
-				String_MemMem(fnc, "LightsBuffer") ||
-				String_MemMem(fnc, "MessageTableEntry") ||
-				String_MemMem(fnc, "MapMarkDataOverlay") ||
-				String_MemMem(fnc, "MapMarkInfo") ||
-				String_MemMem(fnc, "typedef") ||
-				String_MemMem(fnc, "NaviColor") ||
-				String_MemMem(fnc, "sUnused") ||
-				String_MemMem(fnc, "SsSramContext") ||
-				String_MemMem(fnc, "SavePlayerData") ||
-				String_MemMem(fnc, "OptionsMenuTextureInfo") ||
-				String_MemMem(fnc, "__OSEventState") ||
-				String_MemMem(fnc, "OSMgrArgs") ||
-				String_MemMem(fnc, "BowStringData") ||
-				String_MemMem(fnc, "TextTriggerEntry") ||
-				String_MemMem(fnc, "RestrictionFlags") ||
-				String_MemMem(fnc, "struct_8011FB48") ||
-				String_MemMem(fnc, "Struct_8011FAF0") ||
-				String_MemMem(fnc, "struct_80116130") ||
-				String_MemMem(fnc, "Struct_8016E320") ||
-				String_MemMem(fnc, "Struct_8012AF0C") ||
-				String_MemMem(fnc, "gBuildMakeOption") ||
-				String_MemMem(fnc, "gBuildDate") ||
-				String_MemMem(fnc, "gBuildTeam")
+				StrStr(fnc, "NatureAmbienceDataIO") ||
+				StrStr(fnc, "FreqLerp") ||
+				StrStr(fnc, "SfxPlayerState") ||
+				StrStr(fnc, "OcarinaStick") ||
+				StrStr(fnc, "SoundRequest") ||
+				StrStr(fnc, "UnusedBankLerp") ||
+				StrStr(fnc, "DoorLockInfo") ||
+				StrStr(fnc, "TargetRangeParams") ||
+				StrStr(fnc, "CameraMode") ||
+				StrStr(fnc, "CameraSetting") ||
+				StrStr(fnc, "HitInfo") ||
+				StrStr(fnc, "ColChkBloodFunc") ||
+				StrStr(fnc, "ColChkResetFunc") ||
+				StrStr(fnc, "ColChkLineFunc") ||
+				StrStr(fnc, "ColChkVsFunc") ||
+				StrStr(fnc, "ColChkApplyFunc") ||
+				StrStr(fnc, "DebugDispObject_DrawFunc") ||
+				StrStr(fnc, "InputCombo") ||
+				StrStr(fnc, "PrintTextBuffer") ||
+				StrStr(fnc, "DrawItemTableEntry") ||
+				StrStr(fnc, "CutsceneStateHandler") ||
+				StrStr(fnc, "DebugDispObjectInfo") ||
+				StrStr(fnc, "LightningBolt") ||
+				StrStr(fnc, "LightsBuffer") ||
+				StrStr(fnc, "MessageTableEntry") ||
+				StrStr(fnc, "MapMarkDataOverlay") ||
+				StrStr(fnc, "MapMarkInfo") ||
+				StrStr(fnc, "typedef") ||
+				StrStr(fnc, "NaviColor") ||
+				StrStr(fnc, "sUnused") ||
+				StrStr(fnc, "SsSramContext") ||
+				StrStr(fnc, "SavePlayerData") ||
+				StrStr(fnc, "OptionsMenuTextureInfo") ||
+				StrStr(fnc, "__OSEventState") ||
+				StrStr(fnc, "OSMgrArgs") ||
+				StrStr(fnc, "BowStringData") ||
+				StrStr(fnc, "TextTriggerEntry") ||
+				StrStr(fnc, "RestrictionFlags") ||
+				StrStr(fnc, "struct_8011FB48") ||
+				StrStr(fnc, "Struct_8011FAF0") ||
+				StrStr(fnc, "struct_80116130") ||
+				StrStr(fnc, "Struct_8016E320") ||
+				StrStr(fnc, "Struct_8012AF0C") ||
+				StrStr(fnc, "gBuildMakeOption") ||
+				StrStr(fnc, "gBuildDate") ||
+				StrStr(fnc, "gBuildTeam")
 			)
 				continue;
 			
 			String_Replace(fnc, "static ", "");
 			
-			if (!String_MemMem(fnc, "extern "))
+			if (!StrStr(fnc, "extern "))
 				MemFile_Printf(var, "extern %s\n", fnc);
 			else
 				MemFile_Printf(var, "%s\n", fnc);
@@ -427,7 +427,7 @@ void Func_Proto(MemFile* temp, MemFile* out, MemFile* var) {
 		MemFile_Reset(temp);
 		MemFile_LoadFile_String(temp, Dir_File("variables.h"));
 		
-		ptr = String_MemMem(temp->str, "extern");
+		ptr = StrStr(temp->str, "extern");
 		
 		MemFile_Write(var, ptr, strlen(ptr));
 		
@@ -458,14 +458,14 @@ int main(int argc, char* argv[]) {
 	MemFile_Malloc(&var, MbToBin(16.0));
 	MemFile_Malloc(&func, MbToBin(16.0));
 	
-	if (Lib_ParseArguments(argv, "--decomp", &parArg)) {
+	if (ParseArgs(argv, "decomp", &parArg)) {
 		Dir_Set(argv[parArg]);
 		MemFile_LoadFile_String(&tmp, Dir_File("build/z64.map"));
 	} else {
 		printf_error("Provide [--decomp]");
 	}
 	
-	if (!Lib_ParseArguments(argv, "--out", &parArg)) {
+	if (!ParseArgs(argv, "out", &parArg)) {
 		printf_error("Provide [--out]");
 	}
 	

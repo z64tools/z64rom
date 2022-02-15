@@ -134,42 +134,42 @@ void Rom_WriteRestrictionFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
 	memset(rf, 0, sizeof(RestrictionFlag));
 	rf[0].sceneIndex = sceneIndex;
 	
-	if (String_MemMem(flags, "BOTTLES")) {
+	if (StrStr(flags, "BOTTLES")) {
 		rf->bottles = 3;
 	}
-	if (String_MemMem(flags, "A_BUTTON")) {
+	if (StrStr(flags, "A_BUTTON")) {
 		rf->aButton = 3;
 	}
-	if (String_MemMem(flags, "B_BUTTON")) {
+	if (StrStr(flags, "B_BUTTON")) {
 		rf->bButton = 3;
 	}
 	
-	if (String_MemMem(flags, "WARP_SONG")) {
+	if (StrStr(flags, "WARP_SONG")) {
 		rf->warpSong = 3;
 	}
-	if (String_MemMem(flags, "OCARINA")) {
+	if (StrStr(flags, "OCARINA")) {
 		rf->ocarina = 3;
 	}
-	if (String_MemMem(flags, "HOOKSHOT")) {
+	if (StrStr(flags, "HOOKSHOT")) {
 		rf->hookshot = 3;
 	}
-	if (String_MemMem(flags, "TRADE_ITEM")) {
+	if (StrStr(flags, "TRADE_ITEM")) {
 		rf->tradeItem = 3;
 	}
 	
-	if (String_MemMem(flags, "ALL")) {
+	if (StrStr(flags, "ALL")) {
 		rf->all = 3;
 	}
-	if (String_MemMem(flags, "DINS_FIRE")) {
+	if (StrStr(flags, "DINS_FIRE")) {
 		rf->din = 1;
 	}
-	if (String_MemMem(flags, "NAYRUS_LOVE")) {
+	if (StrStr(flags, "NAYRUS_LOVE")) {
 		rf->nayry = 1;
 	}
-	if (String_MemMem(flags, "FARORES_WIND")) {
+	if (StrStr(flags, "FARORES_WIND")) {
 		rf->farore = 3;
 	}
-	if (String_MemMem(flags, "SUN_SONG")) {
+	if (StrStr(flags, "SUN_SONG")) {
 		rf->sunSong = 3;
 	}
 }
@@ -402,7 +402,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 }
 
 static void Rom_Patch_Binary(Rom* rom, MemFile* dataFile, MemFile* config, char* file) {
-	char* tmp = String_MemMem(String_GetBasename(file), "_0x");
+	char* tmp = StrStr(String_GetBasename(file), "_0x");
 	
 	if (tmp == NULL)
 		return;
@@ -609,16 +609,22 @@ void Rom_Dump(Rom* rom) {
 		}
 		
 		Dir_Enter("static/.vanilla/"); {
-			for (s32 i = 6; i <= DMA_ID_OVL_MAP_MARK_DATA; i++) {
-				if (i > DMA_ID_MAP_48X85_STATIC)
+			for (s32 i = 6; i <= DMA_ID_PARAMETER_STATIC; i++) {
+				s32 name = i;
+				if (i > DMA_ID_CODE && i < DMA_ID_OVL_MAP_MARK_DATA)
 					i = DMA_ID_OVL_MAP_MARK_DATA;
+				if (i > DMA_ID_OVL_MAP_MARK_DATA && i < DMA_ID_Z_SELECT_STATIC)
+					i = DMA_ID_Z_SELECT_STATIC;
+				
+				if (name >= DMA_ID_Z_SELECT_STATIC)
+					name -= 901;
 				
 				rf.romStart = ReadBE(rom->table.dma[i].vromStart);
 				rf.romEnd = ReadBE(rom->table.dma[i].vromEnd);
 				rf.size = rf.romEnd - rf.romStart;
 				rf.data = SegmentedToVirtual(0x0, rf.romStart);
 				
-				Rom_Extract(&dataFile, rf, Dir_File("%s.bin", gSystemName[i]));
+				Rom_Extract(&dataFile, rf, Dir_File("%s.bin", gSystemName[name]));
 			}
 			
 			Dir_Leave();
@@ -682,9 +688,13 @@ void Rom_Build(Rom* rom) {
 	Dma_Free(rom, DMA_UNUSED);
 	
 	Dma_FreeEntry(rom, DMA_ID_LINK_ANIMATION, 0x1000); Dma_WriteFlag(DMA_ID_LINK_ANIMATION, false);
+	Dma_FreeEntry(rom, DMA_ID_TITLE_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_TITLE_STATIC, false);
+	Dma_FreeEntry(rom, DMA_ID_PARAMETER_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_PARAMETER_STATIC, false);
+	
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_3, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_3, false);
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_4, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_4, false);
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_5, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_5, false);
+	Dma_CombineSlots();
 	
 	Dir_Enter("rom/"); {
 		Dir_Enter("sound/"); {
@@ -971,7 +981,7 @@ void Rom_Build(Rom* rom) {
 						id = 0;
 						break;
 					}
-					if (String_MemMem(gameSysList.item[i], gStateName[id])) {
+					if (StrStr(gameSysList.item[i], gStateName[id])) {
 						id++;
 						break;
 					}
@@ -983,7 +993,7 @@ void Rom_Build(Rom* rom) {
 							id = 0;
 							break;
 						}
-						if (String_MemMem(gameSysList.item[i], gKaleidoName[ABS(id)])) {
+						if (StrStr(gameSysList.item[i], gKaleidoName[ABS(id)])) {
 							id--;
 							break;
 						}
@@ -1130,44 +1140,36 @@ void Rom_Build(Rom* rom) {
 			
 			Rom_ItemList(&statItem, SORT_NO, IS_FILE);
 			
-			#if 0
-				for (s32 i = 0; i < statItem.num; i++) {
-					s32 j;
-					
-					for (j = 0; j <= ArrayCount(gSystemName); j++) {
-						if (j == ArrayCount(gSystemName)) {
-							j = -1;
-							break;
-						}
-						if (String_MemMemCase(statItem.item[i], gSystemName[j]))
-							break;
-					}
-					
-					if (j < 0)
-						continue;
-					
-					MemFile_Reset(&dataFile);
-					MemFile_LoadFile(&dataFile, Dir_File(statItem.item[i]));
-					Dma_WriteEntry(rom, j, &dataFile);
-				}
-			#else
-				s32 i;
+			for (s32 item = 0; item < statItem.num; item++) {
+				s32 dmaId;
+				printf_progress("Link Static", item + 1, statItem.num);
 				
-				for (i = 0; i <= statItem.num; i++) {
-					if (i == statItem.num) {
-						i = -1;
+				for (dmaId = 0; dmaId <= ArrayCount(gSystemName); dmaId++) {
+					if (dmaId == ArrayCount(gSystemName)) {
+						dmaId = -1;
 						break;
 					}
-					if (String_MemMemCase(statItem.item[i], "link_animation"))
+					if (StrStrCase(statItem.item[item], gSystemName[dmaId]))
 						break;
 				}
-				if (i > -1) {
-					printf_info_align("Link Animation", "[1 / 1]");
-					MemFile_Reset(&dataFile);
-					MemFile_LoadFile(&dataFile, Dir_File(statItem.item[i]));
-					Dma_WriteEntry(rom, DMA_ID_LINK_ANIMATION, &dataFile);
-				}
-			#endif
+				
+				if (dmaId < 0) continue;
+				if (dmaId == DMA_ID_CODE) continue;
+				if (dmaId >= 36) dmaId += 901;
+				
+				#if 1 // Only these are supported atm
+					if (dmaId != DMA_ID_TITLE_STATIC &&
+						dmaId != DMA_ID_LINK_ANIMATION &&
+						dmaId != DMA_ID_PARAMETER_STATIC
+					)
+						continue;
+				#endif
+				
+				MemFile_Reset(&dataFile);
+				MemFile_LoadFile(&dataFile, Dir_File(statItem.item[item]));
+				
+				Dma_WriteEntry(rom, dmaId, &dataFile);
+			}
 			
 			Dir_Leave();
 		}
@@ -1211,8 +1213,7 @@ void Rom_Build(Rom* rom) {
 	fix_crc(rom->file.data);
 	MemFile_SaveFile(&rom->file, "build.z64");
 	
-	if (gLog)
-		LogPrint();
+	if (gLog) LogPrint();
 }
 
 void Rom_New(Rom* rom, char* romName) {

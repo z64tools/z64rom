@@ -7,6 +7,7 @@
 #include "Audio.h"
 #include "Mips64.h"
 #include "yaz.h"
+#include "Texture.h"
 
 typedef void (* PatchFunc)(struct Rom*, MemFile*, MemFile*, char*);
 
@@ -155,39 +156,6 @@ typedef struct  {
 	u8 splitHi;
 } SampleInfo;
 
-typedef enum {
-	DMA_ID_MAKEROM,
-	DMA_ID_UNUSED_1, // boot
-	DMA_ID_UNUSED_2, // dmadata
-	DMA_ID_UNUSED_3,
-	DMA_ID_UNUSED_4,
-	DMA_ID_UNUSED_5,
-	DMA_ID_LINK_ANIMATION,
-	DMA_ID_ICON_ITEM_STATIC,
-	DMA_ID_ICON_ITEM_24_STATIC,
-	DMA_ID_ICON_ITEM_FIELD_STATIC,
-	DMA_ID_ICON_ITEM_DUNGEON_STATIC,
-	DMA_ID_ICON_ITEM_GAMEOVER_STATIC,
-	DMA_ID_ICON_ITEM_NES_STATIC,
-	DMA_ID_ICON_ITEM_GER_STATIC,
-	DMA_ID_ICON_ITEM_FRA_STATIC,
-	DMA_ID_ITEM_NAME_STATIC,
-	DMA_ID_MAP_NAME_STATIC,
-	DMA_ID_DO_ACTION_STATIC,
-	DMA_ID_MESSAGE_STATIC,
-	DMA_ID_MESSAGE_TEXTURE_STATIC,
-	DMA_ID_NES_FONT_STATIC,
-	DMA_ID_MESSAGE_DATA_STATIC_NES,
-	DMA_ID_MESSAGE_DATA_STATIC_GER,
-	DMA_ID_MESSAGE_DATA_STATIC_FRA,
-	DMA_ID_MESSAGE_DATA_STATIC_STAFF,
-	DMA_ID_MAP_GRAND_STATIC,
-	DMA_ID_MAP_I_STATIC,
-	DMA_ID_MAP_48X85_STATIC,
-	DMA_ID_CODE,
-	DMA_ID_OVL_MAP_MARK_DATA = 35,
-} DmaIndex;
-
 extern const char* gObjectName[];
 extern const char* gActorName[];
 extern const char* gEffectName[];
@@ -197,7 +165,7 @@ extern const char* gSceneName[];
 extern const char* gBankName[];
 extern const char* gSequenceName[];
 extern const N64AudioInfo gSampleInfo[];
-extern const char* gSystemName[36];
+extern const char* gSystemName[40];
 extern const char* gSkyboxName[32];
 
 extern s32 gExtractAudio;

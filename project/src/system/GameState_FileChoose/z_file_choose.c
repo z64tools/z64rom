@@ -2267,17 +2267,14 @@ void FileSelect_StateDestroy(GameState* thisx) {
 void FileSelect_StateInit(GameState* thisx) {
 	FileChooseContext* this = (FileChooseContext*)thisx;
 	u32 size = gDmaDataTable[939].vromEnd - gDmaDataTable[939].vromStart;
-	s32 pad;
 	
 	SREG(30) = 1;
 	
 	this->staticSegment = GameState_Alloc(&this->state, size, __FILE__, __LINE__);
-	ASSERT(this->staticSegment != NULL, "this->staticSegment != NULL", __FILE__, __LINE__);
 	DmaMgr_SendRequest1(this->staticSegment, gDmaDataTable[939].vromStart, size, __FILE__, __LINE__);
 	
 	size = gDmaDataTable[940].vromEnd - gDmaDataTable[940].vromStart;
 	this->parameterSegment = GameState_Alloc(&this->state, size, __FILE__, __LINE__);
-	ASSERT(this->parameterSegment != NULL, "this->parameterSegment != NULL", __FILE__, __LINE__);
 	DmaMgr_SendRequest1(
 		this->parameterSegment,
 		gDmaDataTable[940].vromStart,

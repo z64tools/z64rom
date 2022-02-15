@@ -216,20 +216,20 @@ void printf_progress(const char* info, u32 a, u32 b);
 s32 printf_get_answer(void);
 void printf_WinFix();
 
-void* Lib_MemMem(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize);
-void* Lib_MemMemCase(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize);
-void* Lib_MemMem16(const void* haystack, size_t haySize, const void* needle, size_t needleSize);
-void* Lib_MemMemU16(void* haystack, size_t haySize, const void* needle, size_t needleSize);
-void* Lib_MemMemU32(void* haystack, size_t haySize, const void* needle, size_t needleSize);
-void* Lib_MemMemU64(void* haystack, size_t haySize, const void* needle, size_t needleSize);
-void* Lib_Malloc(void* data, s32 size);
-void* Lib_Calloc(void* data, s32 size);
-void* Lib_Realloc(void* data, s32 size);
-void* Lib_Free(void* data);
-s32 Lib_Touch(char* file);
-void Lib_ByteSwap(void* src, s32 size);
-s32 Lib_ParseArguments(char* argv[], char* arg, u32* parArg);
-u32 Lib_Crc32(u8* s, u32 n);
+void* MemMem(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize);
+void* MemMemCase(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize);
+void* MemMem16(const void* haystack, size_t haySize, const void* needle, size_t needleSize);
+void* MemMemU16(void* haystack, size_t haySize, const void* needle, size_t needleSize);
+void* MemMemU32(void* haystack, size_t haySize, const void* needle, size_t needleSize);
+void* MemMemU64(void* haystack, size_t haySize, const void* needle, size_t needleSize);
+void* Malloc(void* data, s32 size);
+void* Calloc(void* data, s32 size);
+void* Realloc(void* data, s32 size);
+void* Free(void* data);
+s32 Touch(char* file);
+void ByteSwap(void* src, s32 size);
+s32 ParseArgs(char* argv[], char* arg, u32* parArg);
+u32 Crc32(u8* s, u32 n);
 
 void Color_ToHSL(HSL8* hsl, RGB8* rgb);
 void Color_ToRGB(RGB8* rgb, HSL8* hsl);
@@ -260,8 +260,8 @@ void MemFile_Free(MemFile* memFile);
 void MemFile_Reset(MemFile* memFile);
 void MemFile_Clear(MemFile* memFile);
 
-#define String_MemMem(src, comp)     Lib_MemMem(src, strlen(src), comp, strlen(comp))
-#define String_MemMemCase(src, comp) Lib_MemMemCase(src, strlen(src), comp, strlen(comp))
+#define StrStr(src, comp)     MemMem(src, strlen(src), comp, strlen(comp))
+#define StrStrCase(src, comp) MemMemCase(src, strlen(src), comp, strlen(comp))
 u32 String_GetHexInt(char* string);
 s32 String_GetInt(char* string);
 f32 String_GetFloat(char* string);
@@ -426,7 +426,6 @@ extern PrintfSuppressLevel gPrintfSuppress;
 // #define strcat(dst, src)  strcat(dst, src)
 #define String_SMerge(dst, ...) sprintf(dst + strlen(dst), __VA_ARGS__);
 #define String_Generate(string) strdup(string)
-#define String_IsDiff(a, b)     strcmp(a, b)
 
 #define Config_WriteTitle(title) MemFile_Printf( \
 		config, \
@@ -503,11 +502,11 @@ extern PrintfSuppressLevel gPrintfSuppress;
 	
     #ifndef __EXTLIB_C__
 		
-		#define Lib_Malloc(data, size) Lib_Malloc(data, size); \
-			printf_debugExt_align("Lib_Malloc", "0x%X", size);
+		#define Malloc(data, size) Malloc(data, size); \
+			printf_debugExt_align("Malloc", "0x%X", size);
 		
-		#define Lib_Calloc(data, size) Lib_Calloc(data, size); \
-			printf_debugExt_align("Lib_Calloc", "0x%X", size);
+		#define Calloc(data, size) Calloc(data, size); \
+			printf_debugExt_align("Calloc", "0x%X", size);
 		
     #endif
 #else
@@ -522,12 +521,12 @@ extern PrintfSuppressLevel gPrintfSuppress;
 
 #define Main(y1, y2) main(y1, y2)
 
-#define ParArg(arg) Lib_ParseArguments(argv, arg, &parArg)
+#define XARG(arg) ParseArgs(argv, arg, &parArg)
 
 #define AttPacked __attribute__ ((packed))
 #define AttAligned(x) __attribute__((aligned(x)))
 
-#define ParseArg(xarg)         Lib_ParseArguments(argv, xarg, &parArg)
+#define ParseArg(xarg)         ParseArgs(argv, xarg, &parArg)
 #define EXT_INFO_TITLE(xtitle) PRNT_YELW xtitle PRNT_RNL
 #define EXT_INFO(A, indent, B) PRNT_GRAY "[>] " PRNT_RSET A "\r\033[" #indent "C" PRNT_GRAY "# " B PRNT_NL
 

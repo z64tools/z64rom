@@ -20,12 +20,12 @@ s32 main(s32 argc, char* argv[]) {
 			printf_error("Could not load file [%s]", argv[i]);
 		}
 		
-		ptr = String_MemMem(sHeadFile.data, "#include");
+		ptr = StrStr(sHeadFile.data, "#include");
 		
 		while (1) {
 			word = String_GetWord(ptr, 1);
 			if (word[0] == '"') {
-				ptr = String_MemMem(ptr + 1, "#include");
+				ptr = StrStr(ptr + 1, "#include");
 				if (ptr == NULL)
 					break;
 				
@@ -41,7 +41,7 @@ s32 main(s32 argc, char* argv[]) {
 				MemFile_LoadFile_String(&sInclFile, path);
 				
 				if (sInclFile.info.age > sHeadFile.info.age) {
-					if (Lib_Touch(argv[i])) {
+					if (Touch(argv[i])) {
 						printf_error("Touch Failed");
 					}
 					printf_info("  Touched [%s]", argv[i]);
@@ -50,7 +50,7 @@ s32 main(s32 argc, char* argv[]) {
 				}
 			}
 			
-			ptr = String_MemMem(ptr + 1, "#include");
+			ptr = StrStr(ptr + 1, "#include");
 			
 			if (ptr == NULL)
 				break;

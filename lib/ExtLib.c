@@ -5,7 +5,7 @@
 #include <dirent.h>
 #include <unistd.h>
 
-#ifdef __COMFLAG__
+#ifdef __IDE_FLAG__
     #ifdef _WIN32
 	#undef _WIN32
     #endif
@@ -248,7 +248,7 @@ char* Dir_File(char* fmt, ...) {
 	vsnprintf(argBuf, ArrayCount(argBuf), fmt, args);
 	va_end(args);
 	
-	if (String_MemMem(argBuf, "*")) {
+	if (StrStr(argBuf, "*")) {
 		return Dir_GetWildcard(argBuf);
 	}
 	
@@ -274,7 +274,7 @@ char* Dir_GetWildcard(char* x) {
 	char* sEnd;
 	char* sStart = NULL;
 	char* restorePath;
-	char* search = String_MemMem(x, "*");
+	char* search = StrStr(x, "*");
 	char* posPath = String_GetPath(Tmp_Printf("%s%s", sCurrentPath, x));
 	
 	sEnd = Tmp_String(&search[1]);
@@ -297,7 +297,7 @@ char* Dir_GetWildcard(char* x) {
 	}
 	
 	for (s32 i = 0; i < list.num; i++) {
-		if (String_MemMem(list.item[i], sEnd) && (sStart == NULL || String_MemMem(list.item[i], sStart))) {
+		if (StrStr(list.item[i], sEnd) && (sStart == NULL || StrStr(list.item[i], sStart))) {
 			return Tmp_Printf("%s%s", posPath, list.item[i]);
 		}
 	}
@@ -389,7 +389,7 @@ static void Dir_ItemList_Recursive_ChildCount(ItemList* target, char* pathTo, ch
 	}
 	
 	for (s32 i = 0; i < file.num; i++) {
-		if (keyword && !String_MemMemCase(file.item[i], keyword))
+		if (keyword && !StrStrCase(file.item[i], keyword))
 			continue;
 		target->num++;
 	}
@@ -410,7 +410,7 @@ static void Dir_ItemList_Recursive_ChildWrite(ItemList* target, char* pathTo, ch
 	}
 	
 	for (s32 i = 0; i < file.num; i++) {
-		if (keyword && !String_MemMemCase(file.item[i], keyword))
+		if (keyword && !StrStrCase(file.item[i], keyword))
 			continue;
 		target->item[target->num++] = Tmp_Printf("%s%s", pathTo, file.item[i]);
 	}
@@ -498,7 +498,7 @@ void Dir_ItemList_Keyword(ItemList* itemList, char* ext) {
 	
 	while ((entry = readdir(dir)) != NULL) {
 		if (!__isDir(Dir_File(entry->d_name))) {
-			if (!String_MemMem(entry->d_name, ext))
+			if (!StrStr(entry->d_name, ext))
 				continue;
 			itemList->num++;
 			bufSize += strlen(entry->d_name) + 2;
@@ -515,7 +515,7 @@ void Dir_ItemList_Keyword(ItemList* itemList, char* ext) {
 		
 		while ((entry = readdir(dir)) != NULL) {
 			if (!__isDir(Dir_File(entry->d_name))) {
-				if (!String_MemMem(entry->d_name, ext))
+				if (!StrStr(entry->d_name, ext))
 					continue;
 				strcpy(&itemList->buffer[itemList->writePoint], Tmp_Printf("%s", entry->d_name));
 				itemList->item[i] = &itemList->buffer[itemList->writePoint];
@@ -974,7 +974,7 @@ void printf_WinFix() {
 }
 
 // Lib
-void* Lib_MemMem(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize) {
+void* MemMem(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize) {
 	if (haystack == NULL || needle == NULL)
 		return NULL;
 	register char* cur, * last;
@@ -1004,7 +1004,7 @@ void* Lib_MemMem(const void* haystack, size_t haystackSize, const void* needle, 
 	return NULL;
 }
 
-void* Lib_MemMemCase(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize) {
+void* MemMemCase(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize) {
 	if (haystack == NULL || needle == NULL)
 		return NULL;
 	register char* cur, * last;
@@ -1034,7 +1034,7 @@ void* Lib_MemMemCase(const void* haystack, size_t haystackSize, const void* need
 	return NULL;
 }
 
-void* Lib_MemMem16(const void* haystack, size_t haySize, const void* needle, size_t needleSize) {
+void* MemMem16(const void* haystack, size_t haySize, const void* needle, size_t needleSize) {
 	if (haySize == 0 || needleSize == 0)
 		return NULL;
 	
@@ -1060,7 +1060,7 @@ void* Lib_MemMem16(const void* haystack, size_t haySize, const void* needle, siz
 	}
 }
 
-void* Lib_MemMemU16(void* haystack, size_t haySize, const void* needle, size_t needleSize) {
+void* MemMemU16(void* haystack, size_t haySize, const void* needle, size_t needleSize) {
 	u16* hay = haystack;
 	const u16* nee = needle;
 	const u16* neeEnd = nee + needleSize / sizeof(*nee);
@@ -1100,7 +1100,7 @@ L_next:
 	return 0;
 }
 
-void* Lib_MemMemU32(void* haystack, size_t haySize, const void* needle, size_t needleSize) {
+void* MemMemU32(void* haystack, size_t haySize, const void* needle, size_t needleSize) {
 	u32* hay = haystack;
 	const u32* nee = needle;
 	const u32* neeEnd = nee + needleSize / sizeof(*nee);
@@ -1140,7 +1140,7 @@ L_next:
 	return 0;
 }
 
-void* Lib_MemMemU64(void* haystack, size_t haySize, const void* needle, size_t needleSize) {
+void* MemMemU64(void* haystack, size_t haySize, const void* needle, size_t needleSize) {
 	u64* hay = haystack;
 	const u64* nee = needle;
 	const u64* neeEnd = nee + needleSize / sizeof(*nee);
@@ -1180,7 +1180,7 @@ L_next:
 	return 0;
 }
 
-void Lib_ByteSwap(void* src, s32 size) {
+void ByteSwap(void* src, s32 size) {
 	u32 buffer[64] = { 0 };
 	u8* temp = (u8*)buffer;
 	u8* srcp = src;
@@ -1194,7 +1194,7 @@ void Lib_ByteSwap(void* src, s32 size) {
 	}
 }
 
-void* Lib_Malloc(void* data, s32 size) {
+void* Malloc(void* data, s32 size) {
 	data = malloc(size);
 	
 	if (data == NULL) {
@@ -1204,8 +1204,8 @@ void* Lib_Malloc(void* data, s32 size) {
 	return data;
 }
 
-void* Lib_Calloc(void* data, s32 size) {
-	data = Lib_Malloc(data, size);
+void* Calloc(void* data, s32 size) {
+	data = Malloc(data, size);
 	if (data != NULL) {
 		memset(data, 0, size);
 	}
@@ -1213,7 +1213,7 @@ void* Lib_Calloc(void* data, s32 size) {
 	return data;
 }
 
-void* Lib_Realloc(void* data, s32 size) {
+void* Realloc(void* data, s32 size) {
 	data = realloc(data, size);
 	
 	if (data == NULL) {
@@ -1223,14 +1223,14 @@ void* Lib_Realloc(void* data, s32 size) {
 	return data;
 }
 
-void* Lib_Free(void* data) {
+void* Free(void* data) {
 	if (data)
 		free(data);
 	
 	return NULL;
 }
 
-s32 Lib_Touch(char* file) {
+s32 Touch(char* file) {
 	MemFile mem = MemFile_Initialize();
 	
 	if (MemFile_LoadFile(&mem, file)) {
@@ -1248,27 +1248,34 @@ s32 Lib_Touch(char* file) {
 	return 0;
 }
 
-s32 Lib_ParseArguments(char* argv[], char* arg, u32* parArg) {
+s32 ParseArgs(char* argv[], char* arg, u32* parArg) {
 	s32 i = 1;
+	char* s = Tmp_Printf("-%s", arg);
+	char* ss = Tmp_Printf("--%s", arg);
+	char* tst[] = {
+		arg, s, ss
+	};
 	
 	if (parArg != NULL)
 		*parArg = 0;
 	
-	while (argv[i] != NULL) {
-		if (!String_IsDiff(argv[i], arg)) {
-			if (parArg != NULL)
-				*parArg =  i + 1;
+	for (s32 j = 0; j < 3; j++) {
+		while (argv[i] != NULL) {
+			if (!strcmp(argv[i], tst[j])) {
+				if (parArg != NULL)
+					*parArg =  i + 1;
+				
+				return i + 1;
+			}
 			
-			return i + 1;
+			i++;
 		}
-		
-		i++;
 	}
 	
 	return 0;
 }
 
-u32 Lib_Crc32(u8* s, u32 n) {
+u32 Crc32(u8* s, u32 n) {
 	u32 crc = 0xFFFFFFFF;
 	
 	for (u32 i = 0; i < n; i++) {
@@ -1350,7 +1357,7 @@ void* File_Load(void* destSize, char* filepath) {
 	
 	fseek(file, 0, SEEK_END);
 	size = ftell(file);
-	dest = Lib_Malloc(0, size);
+	dest = Malloc(0, size);
 	if (dest == NULL) {
 		printf_error("Failed to malloc [0x%X] bytes to store data from [%s].", size, filepath);
 	}
@@ -1376,7 +1383,7 @@ void File_Save(char* filepath, void* src, s32 size) {
 }
 
 void* File_Load_ReqExt(void* size, char* filepath, const char* ext) {
-	if (Lib_MemMem(filepath, strlen(filepath), ext, strlen(ext))) {
+	if (MemMem(filepath, strlen(filepath), ext, strlen(ext))) {
 		return File_Load(size, filepath);
 	}
 	printf_error("[%s] does not match extension [%s]", filepath, ext);
@@ -1385,7 +1392,7 @@ void* File_Load_ReqExt(void* size, char* filepath, const char* ext) {
 }
 
 void File_Save_ReqExt(char* filepath, void* src, s32 size, const char* ext) {
-	if (Lib_MemMem(filepath, strlen(filepath), ext, strlen(ext))) {
+	if (MemMem(filepath, strlen(filepath), ext, strlen(ext))) {
 		File_Save(filepath, src, size);
 		
 		return;
@@ -1581,7 +1588,7 @@ s32 MemFile_LoadFile(MemFile* memFile, char* filepath) {
 	}
 	
 	if (memFile->param.getCrc) {
-		memFile->info.crc32 = Lib_Crc32(memFile->data, memFile->dataSize);
+		memFile->info.crc32 = Crc32(memFile->data, memFile->dataSize);
 	}
 	
 	return 0;
@@ -1630,7 +1637,7 @@ s32 MemFile_LoadFile_String(MemFile* memFile, char* filepath) {
 	}
 	
 	if (memFile->param.getCrc) {
-		memFile->info.crc32 = Lib_Crc32(memFile->data, memFile->dataSize);
+		memFile->info.crc32 = Crc32(memFile->data, memFile->dataSize);
 	}
 	
 	return 0;
@@ -1667,7 +1674,7 @@ s32 MemFile_SaveFile_String(MemFile* memFile, char* filepath) {
 }
 
 s32 MemFile_LoadFile_ReqExt(MemFile* memFile, char* filepath, const char* ext) {
-	if (Lib_MemMem(filepath, strlen(filepath), ext, strlen(ext))) {
+	if (MemMem(filepath, strlen(filepath), ext, strlen(ext))) {
 		return MemFile_LoadFile(memFile, filepath);
 	}
 	printf_warning("[%s] does not match extension [%s]", filepath, ext);
@@ -1676,7 +1683,7 @@ s32 MemFile_LoadFile_ReqExt(MemFile* memFile, char* filepath, const char* ext) {
 }
 
 s32 MemFile_SaveFile_ReqExt(MemFile* memFile, char* filepath, s32 size, const char* ext) {
-	if (Lib_MemMem(filepath, strlen(filepath), ext, strlen(ext))) {
+	if (MemMem(filepath, strlen(filepath), ext, strlen(ext))) {
 		return MemFile_SaveFile(memFile, filepath);
 	}
 	
@@ -2086,12 +2093,12 @@ s32 String_Replace(char* src, char* word, char* replacement) {
 		return true;
 	}
 	
-	ptr = String_MemMem(src, word);
+	ptr = StrStr(src, word);
 	
 	while (ptr != NULL) {
 		String_Remove(ptr, strlen(word));
 		String_Insert(ptr, replacement);
-		ptr = String_MemMem(src, word);
+		ptr = StrStr(src, word);
 		diff = true;
 	}
 	
@@ -2114,7 +2121,7 @@ char* Config_Get(MemFile* memFile, char* name) {
 	u32 lineCount = String_GetLineCount(memFile->data);
 	
 	for (s32 i = 0; i < lineCount; i++) {
-		if (!String_IsDiff(String_GetWord(String_GetLine(memFile->data, i), 0), name)) {
+		if (!strcmp(String_GetWord(String_GetLine(memFile->data, i), 0), name)) {
 			char* word = String_Word(String_Line(memFile->data, i), 2);
 			char* ret;
 			
@@ -2146,10 +2153,10 @@ s32 Config_GetBool(MemFile* memFile, char* boolName) {
 	ptr = Config_Get(memFile, boolName);
 	if (ptr) {
 		char* word = ptr;
-		if (!String_IsDiff(word, "true")) {
+		if (!strcmp(word, "true")) {
 			return true;
 		}
-		if (!String_IsDiff(word, "false")) {
+		if (!strcmp(word, "false")) {
 			return false;
 		}
 	}
@@ -2169,7 +2176,7 @@ s32 Config_GetOption(MemFile* memFile, char* stringName, char* strList[]) {
 	ptr = Config_Get(memFile, stringName);
 	if (ptr) {
 		word = ptr;
-		while (strList[i] != NULL && !String_MemMem(word, strList[i]))
+		while (strList[i] != NULL && !StrStr(word, strList[i]))
 			i++;
 		
 		if (strList != NULL)

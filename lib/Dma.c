@@ -212,12 +212,6 @@ void Dma_Free(Rom* rom, DmaBank type) {
 				Dma_FreeEntry(rom, i, 0x10);
 			}
 			break;
-		case DMA_SYSTEM:
-			for (s32 i = 1; i <= 35; i++) {
-				// Actor Entries
-				Dma_FreeEntry(rom, i, 0x10);
-			}
-			break;
 		case DMA_EFFECT:
 			for (s32 i = 199; i <= 234; i++) {
 				// Effect Entries

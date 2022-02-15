@@ -39,15 +39,17 @@ $(shell mkdir -p release_linux/tools/)
 
 .PHONY: project-files-linux \
 	    project-files-win32 \
-		clean \
-		tools \
-		clean-release \
 		default \
 		linux \
 		win32 \
 		all-release \
 		linux-release \
 		win32-release \
+		clean-all \
+		clean-sub \
+		clean-release \
+		clean \
+		tools \
 		hdrup
 
 default: linux
@@ -97,7 +99,7 @@ project-files-win32: tools project/tools/z64audio.exe
 # CLEAN                               #
 # # # # # # # # # # # # # # # # # # # #
 
-clean-all: clean-sub clean
+clean-all: clean-sub clean-release clean
 
 clean-sub:
 	@$(MAKE) -C tools/z64audio clean --no-print-directory --silent
@@ -107,9 +109,11 @@ clean-sub:
 
 clean:
 	@rm -f -R bin
+	@rm -f project/tools/elf2ld
+
+clean-release:
 	@rm -f -R release_linux
 	@rm -f -R release_win32
-	@rm -f project/tools/elf2ld
 	
 # # # # # # # # # # # # # # # # # # # #
 # TOOLS                               #

@@ -21,13 +21,13 @@ void z64rom_CheckTypes();
 
 s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
-	Rom* rom = Lib_Calloc(0, sizeof(struct Rom));
+	Rom* rom = Calloc(0, sizeof(struct Rom));
 	u32 parArg = 0;
 	
 	printf_WinFix();
 	printf_SetPrefix("");
 	
-	if (ParArg("--base") && ParArg("--mod")) {
+	if (XARG("base") || XARG("mod")) {
 		MemFile memBase = MemFile_Initialize();
 		MemFile memMod = MemFile_Initialize();
 		MemFile patch = MemFile_Initialize();
@@ -36,10 +36,13 @@ s32 Main(s32 argc, char* argv[]) {
 		s32 cont = 0;
 		s32 first = 0;
 		
-		ParArg("--base");
-		base = argv[parArg];
-		ParArg("--mod");
-		mod = argv[parArg];
+		if (XARG("base"))
+			base = argv[parArg];
+		if (XARG("mod"))
+			mod = argv[parArg];
+		
+		if (mod == NULL || base == NULL)
+			printf_error("Provide both [--base] and [--mod]");
 		
 		MemFile_Malloc(&patch, MbToBin(32.0));
 		MemFile_LoadFile(&memBase, base);
@@ -76,10 +79,10 @@ s32 Main(s32 argc, char* argv[]) {
 		return 0;
 	}
 	
-	if (ParArg("--actor")) {
+	if (XARG("actor")) {
 		u32 id = String_GetInt(argv[parArg]);
 		
-		if (ParArg("--i")) {
+		if (XARG("i")) {
 			input = argv[parArg];
 			rom->type = Zelda_OoT_Debug;
 			Rom_New(rom, input);
@@ -90,10 +93,10 @@ s32 Main(s32 argc, char* argv[]) {
 		return 0;
 	}
 	
-	if (ParArg("--dma")) {
+	if (XARG("dma")) {
 		u32 id = String_GetInt(argv[parArg]);
 		
-		if (ParArg("--i")) {
+		if (XARG("i")) {
 			input = argv[parArg];
 			rom->type = Zelda_OoT_Debug;
 			Rom_New(rom, input);
@@ -104,17 +107,10 @@ s32 Main(s32 argc, char* argv[]) {
 		return 0;
 	}
 	
-	if (ParArg("--generic"))
-		gGenericNames = true;
-	
-	if (ParArg("--no-wav"))
-		gExtractAudio = false;
-	
-	if (ParArg("--L"))
-		gLog = true;
-	
-	if (ParArg("--D"))
-		printf_SetSuppressLevel(PSL_DEBUG);
+	if (XARG("generic")) gGenericNames = true;
+	if (XARG("no-wav")) gExtractAudio = false;
+	if (XARG("log")) gLog = true;
+	if (XARG("debug")) printf_SetSuppressLevel(PSL_DEBUG);
 	
 	z64rom_CheckTypes();
 	z64rom_Config(&input, rom, argc, argv);
@@ -160,17 +156,14 @@ void z64rom_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
 	
 	*config = MemFile_Initialize();
 	
-	if (Lib_ParseArguments(argv, "--i", &parArg)) {
-		input[0] = String_GetSpacedArg(argv, parArg);
+	if (ParseArgs(argv, "input", &parArg) || ParseArgs(argv, "i", &parArg)) {
+		input[0] = argv[parArg];
 		sDumpFlag = true;
-	} else if (argc > 1) {
-		input[0] = String_GetSpacedArg(argv, 1);
+	} else if (argc == 2) {
+		input[0] = argv[1];
 		
-		if (String_MemMemCase(input[0], ".z64")) {
-			sDumpFlag = true;
-		} else {
-			input[0] = NULL;
-		}
+		if (StrStrCase(input[0], ".z64")) sDumpFlag = true;
+		else input[0] = NULL;
 	}
 	
 	if (sDumpFlag) {

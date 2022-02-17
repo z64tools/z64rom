@@ -81,6 +81,14 @@ all:
 src: library code system actor
 object: $(Object_zobj)
 
+pack:
+	@rm -f pack.7z
+	@mkdir -p .pack/src/
+	@mkdir -p .pack/rom/
+	@rsync -av --exclude=".*" --exclude="*.txt" src/* .pack/src/
+	@rsync -av --exclude=".*" --exclude="*.elf" --exclude="*.o" rom/* .pack/rom/
+	@7z a pack ./.pack/*
+
 rom: all
 	@$(z64rom)
 

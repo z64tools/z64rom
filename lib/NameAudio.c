@@ -13,7 +13,7 @@ const N64AudioInfo gSampleInfo[] = {
 	/* 009 */ { 22050, 0, NULL, "Anim_Bird_Owl" },
 	/* 010 */ { 22050, 0, NULL, "Anim_Bird_Blue_Jay" },
 	/* 011 */ { 22050, 0, NULL, "Anim_Bird_Nightingale6" },
-	/* 012 */ { 16000, 0, NULL, "Amb_Waterfall" }, // confused with 76, might be for gerudo valley
+	/* 012 */ { 16000, 0, NULL, "Amb_Waterfall" }, // confused with 76, might be for gerudo valley waterfall
 	/* 013 */ { 16000, 0, NULL, "Amb_Sandstorm" },
 	/* 014 */ { 16000, 0, NULL, "Amb_Rain" },
 	/* 015 */ { 16000, 0, NULL, "Amb_Distant_Thunder" },
@@ -41,7 +41,7 @@ const N64AudioInfo gSampleInfo[] = {
 	/* 037 */ { 12000, 0, NULL, "Unk_Water_Noise6" }, // ?? probably water
 	/* 038 */ { 16000, 0, NULL, "Water_Splash_Big" },
 	/* 039 */ { 16000, 0, NULL, "Water_Swim" },
-	/* 040 */ { 13000, 0, NULL, "Unk_Gener_Thump" }, // ?? MM Fireworks <-- YEAH WHAT HE SAID!
+	/* 040 */ { 13000, 0, NULL, "Unk_Gener_Thump" }, // ?? used for mm fireworks
 	/* 041 */ { 13000, 0, NULL, "Step_Wood_Bridge" },
 	/* 042 */ { 16000, 0, NULL, "Unk_Sample_42" }, // ?? 
 	/* 043 */ { 16000, 0, NULL, "Metal_Impact_Iron_Boots" },
@@ -70,14 +70,14 @@ const N64AudioInfo gSampleInfo[] = {
 	/* 066  */ { 8000, 0, NULL, "Gener_Cork" },
 	/* 067 */ { 22000, 0, NULL, "Gener_Dryfire" },
 	/* 068  */ { 8000, 0, NULL, "Bombchu_Scurrying" },
-	/* 069 */ { 16000, 0, NULL, "Unk_Sample_69" }, // ?? thats the sex number! :D
+	/* 069 */ { 16000, 0, NULL, "Unk_Sample_69" }, // ?? :)
 	/* 070 */ { 16000, 0, NULL, "Wood_Door_Open1" },
 	/* 071 */ { 16000, 0, NULL, "Wood_Door_Wooden_Close" },
 	/* 072 */ { 16000, 0, NULL, "Gener_Explosion" },
 	/* 073 */ { 16000, 0, NULL, "Anim_Horse_Gallop" },
 	/* 074 */ { 16000, 0, NULL, "Anim_Horse_Neigh" },
 	/* 075 */ { 12000, 0, NULL, "Water_Stream" },
-	/* 076 */ { 12000, 0, NULL, "Water_Waterfall" }, // confused with 12, might be for zoras river
+	/* 076 */ { 12000, 0, NULL, "Water_Waterfall" }, // confused with 12, might be for zoras river waterfall
 	/* 077 */ { 12000, 0, NULL, "Stone_Scrape1" },
 	/* 078 */ { 12000, 0, NULL, "Stone_Scrape2" },
 	/* 079 */ { 16000, 0, NULL, "Amb_Lava" },
@@ -239,7 +239,7 @@ const N64AudioInfo gSampleInfo[] = {
 	/* 235 */ { 16000, 0, NULL, "Npc_Sheik_Struggle" },
 	/* 236 */ { 16000, 0, NULL, "Npc_Sheik_Scream" },
 	/* 237 */ { 16000, 0, NULL, "Npc_Sheik_Hurt" },
-	/* 238 */ { 16000, 0, NULL, "Npc_Sheik_Grunt" }, // ( ͡° ͜ʖ ͡°)
+	/* 238 */ { 16000, 0, NULL, "Npc_Sheik_Grunt" },
 	/* 239 */ { 16000, 0, NULL, "Npc_Zelda_Child_Breath" },
 	/* 240 */ { 16000, 0, NULL, "Npc_Zelda_Child_Gasp1" },
 	/* 241 */ { 16000, 0, NULL, "Npc_Zelda_Child_Gasp2" },
@@ -269,7 +269,7 @@ const N64AudioInfo gSampleInfo[] = {
 	/* 265 */ { 16000, 3, NULL, "Enemy_Scrape_Big" },
 	/* 266 */ { 16000, 3, NULL, "Enemy_Crackling" },
 	/* 267 */ { 16000, 3, NULL, "Enemy_Step_Huge" }, // unsure. What enemies use this?
-	/* 268 */ { 16000, 3, NULL, "Enemy_Distorted_Voice" }, // bad name?
+	/* 268 */ { 16000, 3, NULL, "Enemy_Distorted_Voice" }, // bad name? used for wallmasters and poes 
 	/* 269 */ { 16000, 3, NULL, "Enemy_Keese_Hit" },
 	/* 270 */ { 16000, 3, NULL, "Gener_Flapping" },
 	/* 271 */ { 16000, 3, NULL, "Enemy_Scream" },
@@ -421,7 +421,7 @@ const N64AudioInfo gSampleInfo[] = {
 	/* 417 */ { 32000, 0, NULL, "Perc_Cowbell" },
 	/* 418 */ { 32000, 0, NULL, "Inst_Guitar_Electric_Low" },
 	/* 419 */ { 32000, 0, NULL, "Inst_Guitar_Electric_Prim" },
-	/* 420 */ { 16000, 0, NULL, "Inst_Guitar_Electric_Hi" },
+	/* 420 */ { 16000, 0, NULL, "Inst_Guitar_Electric_Hi" }, // weed
 	/* 421 */ { 32000, 0, NULL, "Inst_Violin" },
 	/* 422 */ { 22050, 0, NULL, "Perc_Church_Bell" },
 	/* 423 */ { 16000, 0, NULL, "Perc_Cuica_Open" },
@@ -440,16 +440,16 @@ const N64AudioInfo gSampleInfo[] = {
 	/* 436 */ { 16000, 0, NULL, "Perc_Conga_Bent" }, // Dublicate
 	/* 437 */ { 0, 0, &gSampleInfo[407], "Perc_Conga_Mute" }, // Dublicate
 	/* 438 */ { 0, 0, &gSampleInfo[415], "Perc_Conga_Bass" }, // Dublicate
-	/* 439 */ { 0, 0, &gSampleInfo[423], "Perc_CuicaA" }, // Dublicate
-	/* 440 */ { 0, 0, &gSampleInfo[424], "Perc_CuicaB" }, // Dublicate
-	/* 441 */ { 0, 0, &gSampleInfo[390], "Inst_Kalimba_Bass" }, // Dublicate
+	/* 439 */ { 0, 0, &gSampleInfo[423], "Perc_Cuica_Open" }, // Dublicate
+	/* 440 */ { 0, 0, &gSampleInfo[424], "Perc_Cuica_Mute" }, // Dublicate
+	/* 441 */ { 0, 0, &gSampleInfo[390], "Inst_Marimba_Bass" }, // Dublicate
 	/* 442 */ { 0, 0, &gSampleInfo[434], "Inst_Synth_String" }, // Dublicate
-	/* 443 */ { 32000, 0, NULL, "Inst_Zummara" },
+	/* 443 */ { 32000, 0, NULL, "Inst_Zummara" }, // unsure. might be a wrong name?
 	/* 444 */ { 0, 0, &gSampleInfo[407], "Perc_Conga_Mute" }, // Dublicate
 	/* 445 */ { 0, 0, &gSampleInfo[415], "Perc_Conga_Bass" }, // Dublicate
 	/* 446 */ { 0, 0, &gSampleInfo[405], "Perc_Gong" }, // Dublicate
 	/* 447 */ { 0, 0, &gSampleInfo[406], "Perc_Bells" }, // Dublicate
-	/* 448 */ { 0, 0, &gSampleInfo[409], "Inst_Pad_Voice" }, // Dublicate (Dez here: I want to believe this typo is 100% intentional for reasons my brain is unable to comprehend.)
+	/* 448 */ { 0, 0, &gSampleInfo[409], "Inst_Pad_Voice" }, // Dublicate (Dez here: I want to believe this typo from Rankaisija is 100% intentional for reasons my puny brain is unable to comprehend.)
 	
 	// OoT 1.0 temp fix
 	/* 000 */ { 32000, 0, NULL, "Inst_Temp0" },

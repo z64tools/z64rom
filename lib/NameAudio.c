@@ -59,7 +59,7 @@ const N64AudioInfo gSampleInfo[] = {
 	/* 055 */ { 22050, 0, NULL, "Gener_Fuse" },
 	/* 056 */ { 22050, 0, NULL, "Unk_Sample_56" }, // ?? Impact?
 	/* 057 */ { 22050, 0, NULL, "Gener_Flesh_Cut" },
-	/* 058 */ { 22050, 0, NULL, "Arrow_Hit" },
+	/* 058 */ { 22050, 0, NULL, "Gener_Arrow_Hit" },
 	/* 059 */ { 16000, 0, NULL, "Gener_Swoosh" },
 	/* 060 */ { 16000, 0, NULL, "Unk_Sample_60" }, // ??
 	/* 061 */ { 16000, 0, NULL, "Gener_Whip" },

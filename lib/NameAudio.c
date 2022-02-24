@@ -267,7 +267,7 @@ const N64AudioInfo gSampleInfo[] = {
 	/* 263 */ { 16000, 3, NULL, "Enemy_Dodongo_Breathe" }, // unsure.more enemies might use this?
 	/* 264 */ { 16000, 3, NULL, "Enemy_Dodongo_Swallow" }, // unsure. more enemies might use this? tasty
 	/* 265 */ { 16000, 3, NULL, "Enemy_Scrape_Big" },
-	/* 266 */ { 16000, 3, NULL, "Enemy_Crackling" },
+	/* 266 */ { 16000, 3, NULL, "Gener_Crackling" },
 	/* 267 */ { 16000, 3, NULL, "Enemy_Step_Huge" }, // unsure. What enemies use this?
 	/* 268 */ { 16000, 3, NULL, "Enemy_Distorted_Voice" }, // bad name? used for wallmasters and poes 
 	/* 269 */ { 16000, 3, NULL, "Enemy_Keese_Hit" },

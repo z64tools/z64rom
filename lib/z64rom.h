@@ -156,17 +156,31 @@ typedef struct  {
 	u8 splitHi;
 } SampleInfo;
 
-extern const char* gObjectName[];
-extern const char* gActorName[];
-extern const char* gEffectName[];
-extern const char* gStateName[6];
-extern const char* gKaleidoName[2];
-extern const char* gSceneName[];
-extern const char* gBankName[];
-extern const char* gSequenceName[];
+typedef struct {
+	N64AudioInfo* sample;
+	const char*   object;
+	const char*   actor;
+	const char*   effect;
+	const char*   state;
+	const char*   kaleido;
+	const char*   scene;
+	const char*   bank;
+	const char*   sequence;
+	const char*   system;
+	const char*   skybox;
+} RomNameTable;
+
 extern const N64AudioInfo gSampleInfo[];
-extern const char* gSystemName[40];
-extern const char* gSkyboxName[32];
+extern const char* gObjectName_OoT[402];
+extern const char* gActorName_OoT[471];
+extern const char* gEffectName_OoT[37];
+extern const char* gStateName_OoT[6];
+extern const char* gKaleidoName_OoT[2];
+extern const char* gSceneName_OoT[110];
+extern const char* gBankName_OoT[41];
+extern const char* gSequenceName_OoT[114];
+extern const char* gSystemName_OoT[40];
+extern const char* gSkyboxName_OoT[32];
 
 extern s32 gExtractAudio;
 extern s32 gLog;

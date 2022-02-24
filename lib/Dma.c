@@ -157,22 +157,6 @@ void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 	if (Slot_Size(&slot) == 0)
 		return;
 	
-	// Combine freed slots
-	while (compSlot != NULL) {
-		if (compSlot->romStart == slot.romEnd) {
-			compSlot->romStart = slot.romStart;
-			
-			return;
-		}
-		if (compSlot->romEnd == slot.romStart) {
-			compSlot->romEnd = slot.romEnd;
-			
-			return;
-		}
-		
-		compSlot = compSlot->next;
-	}
-	
 	node = Tmp_Alloc(sizeof(struct Slot));
 	
 	memcpy(node, &slot, sizeof(struct Slot));
@@ -185,17 +169,6 @@ void Dma_FreeSegment(Rom* rom, u32 romStart, u32 romEnd) {
 	
 	slot->romStart = romStart;
 	slot->romEnd = romEnd;
-	
-	// Combine freed slots
-	while (compSlot != NULL) {
-		if (compSlot->romEnd == slot->romStart) {
-			compSlot->romEnd = slot->romEnd;
-			
-			return;
-		}
-		
-		compSlot = compSlot->next;
-	}
 	
 	Node_Add(gSlotHead, slot);
 }
@@ -255,7 +228,6 @@ void Dma_Free(Rom* rom, DmaBank type) {
 			Dma_FreeSegment(rom, 0x35CE040, 0x4000000);
 			break;
 	}
-	Dma_CombineSlots();
 }
 
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */

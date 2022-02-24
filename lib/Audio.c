@@ -289,7 +289,7 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		}
 		SetSegment(0x1, bank);
 		
-		Dir_Enter("0x%02X-%s/", i, gBankName[i]); {
+		Dir_Enter("0x%02X-%s/", i, gBankName_OoT[i]); {
 			if (entry->numInst) {
 				Dir_Enter("instrument/");
 				
@@ -357,7 +357,7 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			}
 			
 			MemFile_Reset(config);
-			Config_WriteTitle_Str(gBankName[i]);
+			Config_WriteTitle_Str(gBankName_OoT[i]);
 			
 			MemFile_Printf(config, "# Sample Medium types [");
 			for (s32 e = 0; e < ArrayCount(sMediumType); e++) {
@@ -400,7 +400,7 @@ void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		MemFile_Reset(config);
 		for (s32 i = 0; i < num; i++) {
-			Dir_Enter("0x%02X-%s/", i, gSequenceName[i]); {
+			Dir_Enter("0x%02X-%s/", i, gSequenceName_OoT[i]); {
 				printf_progress("Sequence", i + 1, num);
 				segFontOffTable = SegmentedToVirtual(0x0, rom->offset.table.seqFontTbl);
 				entry = &head->entries[i];
@@ -408,7 +408,7 @@ void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 				romFile.size = ReadBE(entry->size);
 				
 				MemFile_Reset(config);
-				Config_WriteTitle_Str(gSequenceName[i]);
+				Config_WriteTitle_Str(gSequenceName_OoT[i]);
 				seqFontTable = SegmentedToVirtual(0x1, ReadBE(segFontOffTable[i]));
 				
 				Config_WriteVar_Int("bank_num", ReadBE(seqFontTable[0]));
@@ -418,7 +418,7 @@ void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 				}
 				
 				if (romFile.size != 0) {
-					Rom_Extract(dataFile, romFile, Dir_File("%s.seq", gSequenceName[i]));
+					Rom_Extract(dataFile, romFile, Dir_File("%s.seq", gSequenceName_OoT[i]));
 				} else {
 					Config_WriteVar_Hex("seq_pointer", ReadBE(entry->romAddr));
 				}

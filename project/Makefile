@@ -57,6 +57,9 @@ Code_Elf = $(foreach f,$(Code_C:.c=.elf),rom/$(f))
 Code_S   = $(shell cd src && find lib_code/* -maxdepth 2 -type f -name '*.s' 2>/dev/null)
 Code_SElf = $(foreach f,$(Code_S:.s=.elf),rom/$(f))
 
+Audio_Wav    = $(shell find rom/sound/sample/*/* -maxdepth 0 -type f -name '*.wav' 2>/dev/null)
+Audio_Vadpcm = $(foreach f,$(Library_C:.c=.o),rom/$(f))
+
 # Make build directories
 $(shell mkdir -p include/)
 $(shell mkdir -p rom/ $(foreach dir, \
@@ -210,7 +213,7 @@ rom/system/%.o: src/system/%.c
 rom/system/GameState_FileChoose/state.elf: $(FileChoose_O) $(Linkers)
 	@echo "$(PRNT_BLUE)State$(PRNT_RSET):   $(notdir $@)"
 	@printf "ENTRY_POINT = 0x80800000;" > $(@D)/entry.ld
-	$(mips64_ld) -o $@ $(FileChoose_O) -L$(@D) $(LdFlags)
+	@$(mips64_ld) -o $@ $(FileChoose_O) -L$(@D) $(LdFlags)
 	@$(mips64_objdump) -drz $@ > $(@:.elf=.s)
 	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $@ $(@:.elf=.bin)
 	

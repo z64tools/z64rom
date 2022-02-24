@@ -474,9 +474,9 @@ void Rom_Dump(Rom* rom) {
 					continue;
 				
 				printf_progress("Actor", i + 1, rom->table.num.actor);
-				Dir_Enter("0x%04X-%s/", i, gActorName[i]); {
+				Dir_Enter("0x%04X-%s/", i, gActorName_OoT[i]); {
 					if (Rom_Extract(&dataFile, rf, Dir_File("actor.zovl")))
-						Rom_Config_Actor(&config, &rom->table.actor[i], gActorName[i], Dir_File("config.cfg"));
+						Rom_Config_Actor(&config, &rom->table.actor[i], gActorName_OoT[i], Dir_File("config.cfg"));
 					
 					Dir_Leave();
 				}
@@ -493,9 +493,9 @@ void Rom_Dump(Rom* rom) {
 					continue;
 				
 				printf_progress("Effect", i + 1, rom->table.num.effect);
-				Dir_Enter("0x%04X-%s/", i, gEffectName[i]); {
+				Dir_Enter("0x%04X-%s/", i, gEffectName_OoT[i]); {
 					if (Rom_Extract(&dataFile, rf, Dir_File("effect.zovl")))
-						Rom_Config_Effect(&config, &rom->table.effect[i], gEffectName[i], Dir_File("config.cfg"));
+						Rom_Config_Effect(&config, &rom->table.effect[i], gEffectName_OoT[i], Dir_File("config.cfg"));
 					
 					Dir_Leave();
 				}
@@ -512,7 +512,7 @@ void Rom_Dump(Rom* rom) {
 					continue;
 				
 				printf_progress("Object", i + 1, rom->table.num.obj);
-				Dir_Enter("0x%04X-%s/", i, gObjectName[i]); {
+				Dir_Enter("0x%04X-%s/", i, gObjectName_OoT[i]); {
 					Rom_Extract(&dataFile, rf, Dir_File("object.zobj"));
 					
 					Dir_Leave();
@@ -530,14 +530,14 @@ void Rom_Dump(Rom* rom) {
 					continue;
 				
 				printf_progress("Scene", i + 1, rom->table.num.scene);
-				Dir_Enter("0x%02X-%s/", i, gSceneName[i]); {
+				Dir_Enter("0x%02X-%s/", i, gSceneName_OoT[i]); {
 					if (Rom_Extract(&dataFile, rf, Dir_File("scene.zscene"))) {
 						u32* seg;
 						u32 roomNum;
 						u32 roomListSeg;
 						u32* vromSeg;
 						
-						Rom_Config_Scene(rom, &config, i, gSceneName[i], Dir_File("config.cfg"));
+						Rom_Config_Scene(rom, &config, i, gSceneName_OoT[i], Dir_File("config.cfg"));
 						SetSegment(0x2, rf.data);
 						seg = dataFile.data;
 						
@@ -585,21 +585,21 @@ void Rom_Dump(Rom* rom) {
 					continue;
 				
 				printf_progress("System", i + 1, rom->table.num.state);
-				Dir_Enter("GameState_%s/", gStateName[i]); {
+				Dir_Enter("GameState_%s/", gStateName_OoT[i]); {
 					if (Rom_Extract(&dataFile, rf, Dir_File("state.zovl")))
-						Rom_Config_GameState(&config, &rom->table.state[i], gStateName[i], Dir_File("config.cfg"));
+						Rom_Config_GameState(&config, &rom->table.state[i], gStateName_OoT[i], Dir_File("config.cfg"));
 					
 					Dir_Leave();
 				}
 			}
 			
 			for (s32 i = 0; i < rom->table.num.kaleido; i++) {
-				Dir_Enter("Kaleido_%s/", gKaleidoName[i]); {
+				Dir_Enter("Kaleido_%s/", gKaleidoName_OoT[i]); {
 					rf.size = ReadBE(rom->table.kaleido[i].vromEnd) - ReadBE(rom->table.kaleido[i].vromStart);
 					rf.data = SegmentedToVirtual(0x0, ReadBE(rom->table.kaleido[i].vromStart));
 					
 					Rom_Extract(&dataFile, rf, Dir_File("overlay.zovl"));
-					Rom_Config_Kaleido(rom, &config, i, gKaleidoName[i], Dir_File("config.cfg"));
+					Rom_Config_Kaleido(rom, &config, i, gKaleidoName_OoT[i], Dir_File("config.cfg"));
 					
 					Dir_Leave();
 				}
@@ -624,7 +624,7 @@ void Rom_Dump(Rom* rom) {
 				rf.size = rf.romEnd - rf.romStart;
 				rf.data = SegmentedToVirtual(0x0, rf.romStart);
 				
-				Rom_Extract(&dataFile, rf, Dir_File("%s.bin", gSystemName[name]));
+				Rom_Extract(&dataFile, rf, Dir_File("%s.bin", gSystemName_OoT[name]));
 			}
 			
 			Dir_Leave();
@@ -634,7 +634,7 @@ void Rom_Dump(Rom* rom) {
 			for (s32 i = 0; i < 32; i++) {
 				printf_progress("Skybox", i + 1, 32);
 				
-				Dir_Enter("%02d-%s/", i, gSkyboxName[i]); {
+				Dir_Enter("%02d-%s/", i, gSkyboxName_OoT[i]); {
 					rf.romStart = ReadBE(rom->table.dma[941 + i * 2].vromStart);
 					rf.romEnd = ReadBE(rom->table.dma[941 + i * 2].vromEnd);
 					rf.size = rf.romEnd - rf.romStart;
@@ -680,21 +680,23 @@ void Rom_Build(Rom* rom) {
 	printf_info_align("Load Baserom", PRNT_PRPL "%s", rom->file.info.name);
 	printf_info_align("Build Rom", PRNT_PRPL "build.z64");
 	
+	Dma_FreeEntry(rom, DMA_ID_UNUSED_3, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_3, false);
+	Dma_FreeEntry(rom, DMA_ID_UNUSED_4, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_4, false);
+	Dma_FreeEntry(rom, DMA_ID_UNUSED_5, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_5, false);
+	
+	Dma_FreeEntry(rom, DMA_ID_LINK_ANIMATION, 0x1000); Dma_WriteFlag(DMA_ID_LINK_ANIMATION, false);
+	Dma_FreeEntry(rom, DMA_ID_TITLE_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_TITLE_STATIC, false);
+	Dma_FreeEntry(rom, DMA_ID_PARAMETER_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_PARAMETER_STATIC, false);
+	
 	Dma_Free(rom, DMA_ACTOR);
 	Dma_Free(rom, DMA_EFFECT);
 	Dma_Free(rom, DMA_OBJECT);
 	Dma_Free(rom, DMA_SCENES);
 	Dma_Free(rom, DMA_SKYBOX_TEXEL);
 	Dma_Free(rom, DMA_UNUSED);
-	
-	Dma_FreeEntry(rom, DMA_ID_LINK_ANIMATION, 0x1000); Dma_WriteFlag(DMA_ID_LINK_ANIMATION, false);
-	Dma_FreeEntry(rom, DMA_ID_TITLE_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_TITLE_STATIC, false);
-	Dma_FreeEntry(rom, DMA_ID_PARAMETER_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_PARAMETER_STATIC, false);
-	
-	Dma_FreeEntry(rom, DMA_ID_UNUSED_3, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_3, false);
-	Dma_FreeEntry(rom, DMA_ID_UNUSED_4, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_4, false);
-	Dma_FreeEntry(rom, DMA_ID_UNUSED_5, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_5, false);
 	Dma_CombineSlots();
+	
+	Dma_PrintfSlots(rom);
 	
 	Dir_Enter("rom/"); {
 		Dir_Enter("sound/"); {
@@ -977,11 +979,11 @@ void Rom_Build(Rom* rom) {
 				
 				// Get id based on name
 				for (;; id++) {
-					if (id >= ArrayCount(gStateName)) {
+					if (id >= ArrayCount(gStateName_OoT)) {
 						id = 0;
 						break;
 					}
-					if (StrStr(gameSysList.item[i], gStateName[id])) {
+					if (StrStr(gameSysList.item[i], gStateName_OoT[id])) {
 						id++;
 						break;
 					}
@@ -989,11 +991,11 @@ void Rom_Build(Rom* rom) {
 				
 				if (id == 0) {
 					for (;; id--) {
-						if (ABS(id) >= ArrayCount(gStateName)) {
+						if (ABS(id) >= ArrayCount(gStateName_OoT)) {
 							id = 0;
 							break;
 						}
-						if (StrStr(gameSysList.item[i], gKaleidoName[ABS(id)])) {
+						if (StrStr(gameSysList.item[i], gKaleidoName_OoT[ABS(id)])) {
 							id--;
 							break;
 						}
@@ -1144,12 +1146,12 @@ void Rom_Build(Rom* rom) {
 				s32 dmaId;
 				printf_progress("Link Static", item + 1, statItem.num);
 				
-				for (dmaId = 0; dmaId <= ArrayCount(gSystemName); dmaId++) {
-					if (dmaId == ArrayCount(gSystemName)) {
+				for (dmaId = 0; dmaId <= ArrayCount(gSystemName_OoT); dmaId++) {
+					if (dmaId == ArrayCount(gSystemName_OoT)) {
 						dmaId = -1;
 						break;
 					}
-					if (StrStrCase(statItem.item[item], gSystemName[dmaId]))
+					if (StrStrCase(statItem.item[item], gSystemName_OoT[dmaId]))
 						break;
 				}
 				
@@ -1332,8 +1334,7 @@ void Rom_New(Rom* rom, char* romName) {
 			rom->offset.table.dmaTable = 0x00007430;
 			rom->offset.table.objTable = 0x00B6EF58;
 			rom->offset.table.actorTable = 0x00B5E490;
-			rom->offset.table.effectTable = 0x0;
-			printf_error("effectTable is zero, fix me [%s] [%d]", __FILE__, __LINE__);
+			rom->offset.table.effectTable = 0x00B5DBA0;
 			rom->offset.table.stateTable = 0x00B672A0;
 			rom->offset.table.sceneTable = 0x00B71440;
 			rom->offset.table.kaleidoTable = 0x00B743E0;
@@ -1427,7 +1428,7 @@ void Rom_Debug_ActorEntry(Rom* rom, u32 id) {
 	ActorEntry* actorTable = rom->table.actor;
 	s32 i = 0;
 	
-	printf_info("" PRNT_REDD "0x%04X-%s " PRNT_RSET "[%d]", id, gActorName[id], id);
+	printf_info("" PRNT_REDD "0x%04X-%s " PRNT_RSET "[%d]", id, gActorName_OoT[id], id);
 	printf_info("Actor\t[%08d] [%08X]", id, VirtualToSegmented(0x0, &actorTable[id]));
 	printf_info("vRAM\t" PRNT_PRPL "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(actorTable[id].vramStart), ReadBE(actorTable[id].vramEnd), ReadBE(actorTable[id].vramEnd) - ReadBE(actorTable[id].vramStart));
 	printf_info("vROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(actorTable[id].vromStart), ReadBE(actorTable[id].vromEnd), ReadBE(actorTable[id].vromEnd) - ReadBE(actorTable[id].vromStart));

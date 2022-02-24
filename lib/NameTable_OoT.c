@@ -1,4 +1,6 @@
-const char* gObjectName[] = {
+#include "z64rom.h"
+
+const char* gObjectName_OoT[] = {
 	"invalid",
 	"gameplay_keep",
 	"gameplay_field_keep",
@@ -403,7 +405,7 @@ const char* gObjectName[] = {
 	"zl4",
 };
 
-const char* gActorName[] = {
+const char* gActorName_OoT[] = {
 	"Player",
 	"Unset_1",
 	"En_Test",
@@ -877,7 +879,7 @@ const char* gActorName[] = {
 	"Obj_Warp2block",
 };
 
-const char* gEffectName[] = {
+const char* gEffectName_OoT[] = {
 	"Effect_Dust",
 	"Effect_KiraKira",
 	"Effect_Bomb",
@@ -917,7 +919,7 @@ const char* gEffectName[] = {
 	"Effect_Ice_Smoke",
 };
 
-const char* gStateName[] = {
+const char* gStateName_OoT[] = {
 	"TitleSetup",
 	"LevelSelect",
 	"BootTitle",
@@ -926,12 +928,12 @@ const char* gStateName[] = {
 	"FileChoose"
 };
 
-const char* gKaleidoName[] = {
+const char* gKaleidoName_OoT[] = {
 	"PauseMenu",
 	"Player",
 };
 
-const char* gSceneName[] = {
+const char* gSceneName_OoT[] = {
 	"Ydan",
 	"Ddan",
 	"Bdan",
@@ -1044,7 +1046,7 @@ const char* gSceneName[] = {
 	"Testroom",
 };
 
-const char* gBankName[] = {
+const char* gBankName_OoT[] = {
 	"MasterBank",
 	"Actor",
 	"Nature",
@@ -1088,7 +1090,7 @@ const char* gBankName[] = {
 	"Unk",
 };
 
-const char* gSequenceName[] = {
+const char* gSequenceName_OoT[] = {
 	"MasterSequence",
 	"NatureAmbience",
 	"HyruleField",
@@ -1205,7 +1207,7 @@ const char* gSequenceName[] = {
 	"Nothing",
 };
 
-const char* gSystemName[] = {
+const char* gSystemName_OoT[] = {
 	/*   0 */ "makerom",
 	/*   1 */ "Boot",
 	/*   2 */ "dmadata",
@@ -1249,7 +1251,7 @@ const char* gSystemName[] = {
 	/* 940 */ "parameter_static",
 };
 
-const char* gSkyboxName[] = {
+const char* gSkyboxName_OoT[] = {
 	"Skybox_Clear_Sunrise",
 	"Skybox_Clear_Day",
 	"Skybox_Clear_Sunset",

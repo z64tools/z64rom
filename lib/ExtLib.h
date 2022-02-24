@@ -37,7 +37,10 @@ typedef struct {
 	f32 h;
 	f32 s;
 	f32 l;
-	u8  alpha;
+	union {
+		u8 alpha;
+		u8 a;
+	};
 } HSLA8;
 
 typedef struct {
@@ -171,7 +174,7 @@ void LogPrint();
 void Time_Start(void);
 f32 Time_Get(void);
 
-enum {
+typedef enum {
 	SORT_NO        = 0,
 	SORT_NUMERICAL = 1,
 	IS_FILE        = 0,
@@ -279,6 +282,7 @@ char* String_GetFilename(const char* src);
 s32 String_GetPathNum(const char* src);
 char* String_GetFolder(const char* src, s32 num);
 void String_Insert(char* point, char* insert);
+void String_InsertExt(char* origin, char* insert, s32 pos, s32 size);
 void String_Remove(char* point, s32 amount);
 s32 String_Replace(char* src, char* word, char* replacement);
 void String_SwapExtension(char* dest, char* src, const char* ext);
@@ -415,6 +419,7 @@ extern PrintfSuppressLevel gPrintfSuppress;
 #define CLAMP_MIN(val, min)  ((val) < (min) ? (min) : (val))
 #define CLAMP_MAX(val, max)  ((val) > (max) ? (max) : (val))
 #define ArrayCount(arr)      (u32)(sizeof(arr) / sizeof(arr[0]))
+#define Lerp(x, min, max)    ((min) + ((max) - (min)) * (x))
 
 #define BinToMb(x)        ((f32)(x) / (f32)0x100000)
 #define BinToKb(x)        ((f32)(x) / (f32)0x400)

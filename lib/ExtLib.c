@@ -1249,26 +1249,20 @@ s32 Touch(char* file) {
 }
 
 s32 ParseArgs(char* argv[], char* arg, u32* parArg) {
-	s32 i = 1;
 	char* s = Tmp_Printf("-%s", arg);
 	char* ss = Tmp_Printf("--%s", arg);
 	char* tst[] = {
-		arg, s, ss
+		s, ss
 	};
 	
-	if (parArg != NULL)
-		*parArg = 0;
-	
-	for (s32 j = 0; j < 3; j++) {
-		while (argv[i] != NULL) {
+	for (s32 i = 1; argv[i] != NULL; i++) {
+		for (s32 j = 0; j < ArrayCount(tst); j++) {
 			if (!strcmp(argv[i], tst[j])) {
 				if (parArg != NULL)
-					*parArg =  i + 1;
+					*parArg = i + 1;
 				
 				return i + 1;
 			}
-			
-			i++;
 		}
 	}
 	
@@ -1724,6 +1718,11 @@ s32 String_GetInt(char* string) {
 }
 
 f32 String_GetFloat(char* string) {
+	if (StrStr(string, ",")) {
+		string = Tmp_String(string);
+		String_Replace(string, ",", ".");
+	}
+	
 	return strtod(string, NULL);
 }
 
@@ -2070,11 +2069,26 @@ void String_Insert(char* point, char* insert) {
 	memcpy(point, insert, insLen);
 }
 
+void String_InsertExt(char* origin, char* insert, s32 pos, s32 size) {
+	s32 inslen = strlen(insert);
+	
+	if (pos >= size)
+		return;
+	
+	if (size - pos - inslen > 0)
+		memmove(&origin[pos + inslen], &origin[pos], size - pos - inslen);
+	
+	for (s32 j = 0; j < inslen; pos++, j++) {
+		origin[pos] = insert[j];
+	}
+}
+
 void String_Remove(char* point, s32 amount) {
 	char* get = point + amount;
 	s32 len = strlen(get);
 	
-	memcpy(point, get, strlen(get));
+	if (len)
+		memcpy(point, get, strlen(get));
 	point[len] = 0;
 }
 

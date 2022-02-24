@@ -52,7 +52,7 @@ const N64AudioInfo gSampleInfo[] = {
 	/* 048 */ { 22050, 0, NULL, "Metal_Shieth" },
 	/* 049 */ { 22050, 0, NULL, "Metal_Draw" },
 	/* 050 */ { 22050, 0, NULL, "Gener_Swipe2" },
-	/* 051 */ { 22050, 0, NULL, "Unk_Swoosh" }, // ?? idk sounds like mouth noises
+	/* 051 */ { 22050, 0, NULL, "Gener_Swoosh1" }, // ?? idk sounds like mouth noises
 	/* 052 */ { 22050, 0, NULL, "Wood_Creak_Long" },
 	/* 053 */ { 22050, 0, NULL, "Metal_Hit_Hard" }, // idk when this is used
 	/* 054 */ { 22050, 0, NULL, "Metal_Chain_Pull" },

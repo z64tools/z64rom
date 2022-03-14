@@ -134,9 +134,9 @@ typedef struct MemFile {
 	u32 dataSize;
 	u32 seekPoint;
 	struct {
-		Time  age;
-		char* name;
-		u32   crc32;
+		Time age;
+		char name[512];
+		u32  crc32;
 	} info;
 	struct {
 		u32 align   : 8;
@@ -221,7 +221,7 @@ void printf_WinFix();
 
 void* MemMem(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize);
 void* MemMemCase(const void* haystack, size_t haystackSize, const void* needle, size_t needleSize);
-void* MemMem16(const void* haystack, size_t haySize, const void* needle, size_t needleSize);
+void* MemMemAlign(u32 val, const void* haystack, size_t haySize, const void* needle, size_t needleSize);
 void* MemMemU16(void* haystack, size_t haySize, const void* needle, size_t needleSize);
 void* MemMemU32(void* haystack, size_t haySize, const void* needle, size_t needleSize);
 void* MemMemU64(void* haystack, size_t haySize, const void* needle, size_t needleSize);
@@ -295,6 +295,22 @@ s32 Config_GetOption(MemFile* memFile, char* stringName, char* strList[]);
 s32 Config_GetInt(MemFile* memFile, char* intName);
 char* Config_GetString(MemFile* memFile, char* stringName);
 f32 Config_GetFloat(MemFile* memFile, char* floatName);
+
+extern PrintfSuppressLevel gPrintfSuppress;
+
+#define PRNT_DGRY "\e[90;2m"
+#define PRNT_DRED "\e[91;2m"
+#define PRNT_GRAY "\e[0;90m"
+#define PRNT_REDD "\e[0;91m"
+#define PRNT_GREN "\e[0;92m"
+#define PRNT_YELW "\e[0;93m"
+#define PRNT_BLUE "\e[0;94m"
+#define PRNT_PRPL "\e[0;95m"
+#define PRNT_CYAN "\e[0;96m"
+#define PRNT_RSET "\e[m"
+#define PRNT_NL   "\n"
+#define PRNT_RNL  PRNT_RSET PRNT_NL
+#define PRNT_TODO "\e[91;2m" "TODO"
 
 #define str2cmp(a, b) strncmp(a, b, strlen(b))
 
@@ -393,31 +409,14 @@ f32 Config_GetFloat(MemFile* memFile, char* floatName);
 #define Decr(x) (x -= (x > 0) ? 1 : 0)
 #define Incr(x) (x += (x < 0) ? 1 : 0)
 
-extern PrintfSuppressLevel gPrintfSuppress;
-
-#define PRNT_DGRY "\e[90;2m"
-#define PRNT_DRED "\e[91;2m"
-#define PRNT_GRAY "\e[0;90m"
-#define PRNT_REDD "\e[0;91m"
-#define PRNT_GREN "\e[0;92m"
-#define PRNT_YELW "\e[0;93m"
-#define PRNT_BLUE "\e[0;94m"
-#define PRNT_PRPL "\e[0;95m"
-#define PRNT_CYAN "\e[0;96m"
-#define PRNT_RSET "\e[m"
-#define PRNT_NL   "\n"
-#define PRNT_RNL  PRNT_RSET PRNT_NL
-#define PRNT_TODO "\e[91;2m" "TODO"
-
-#define MAX(a, b)            ((a) > (b) ? (a) : (b))
-#define MIN(a, b)            ((a) < (b) ? (a) : (b))
-#define ABS_MAX(a, b)        (ABS(a) > ABS(b) ? (a) : (b))
-#define ABS_MIN(a, b)        (ABS(a) < ABS(b) ? (a) : (b))
-#define ARRAY_COUNT(arr)     (s32)(sizeof(arr) / sizeof(arr[0]))
-#define ABS(val)             ((val) < 0 ? -(val) : (val))
-#define CLAMP(val, min, max) ((val) < (min) ? (min) : (val) > (max) ? (max) : (val))
-#define CLAMP_MIN(val, min)  ((val) < (min) ? (min) : (val))
-#define CLAMP_MAX(val, max)  ((val) > (max) ? (max) : (val))
+#define Max(a, b)            ((a) > (b) ? (a) : (b))
+#define Min(a, b)            ((a) < (b) ? (a) : (b))
+#define MaxAbs(a, b)         (Abs(a) > Abs(b) ? (a) : (b))
+#define MinAbs(a, b)         (Abs(a) <= Abs(b) ? (a) : (b))
+#define Abs(val)             ((val) < 0 ? -(val) : (val))
+#define Clamp(val, min, max) ((val) < (min) ? (min) : (val) > (max) ? (max) : (val))
+#define ClampMin(val, min)   ((val) < (min) ? (min) : (val))
+#define ClampMax(val, max)   ((val) > (max) ? (max) : (val))
 #define ArrayCount(arr)      (u32)(sizeof(arr) / sizeof(arr[0]))
 #define Lerp(x, min, max)    ((min) + ((max) - (min)) * (x))
 

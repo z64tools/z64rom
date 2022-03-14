@@ -185,6 +185,7 @@ extern const char* gSkyboxName_OoT[32];
 extern s32 gExtractAudio;
 extern s32 gLog;
 extern s32 gGenericNames;
+extern s32 gInfoFlag;
 
 void fix_crc(unsigned char* rom);
 

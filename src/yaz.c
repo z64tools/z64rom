@@ -5,7 +5,6 @@
 
 #define MAX_RUNLEN (0xFF + 0x12)
 
-// simple and straight encoding scheme for Yaz0
 static u32 Yaz_SimpleEncode(u8* src, s32 size, s32 pos, u32* pMatchPos) {
 	s32 numBytes = 1;
 	s32 matchPos = 0;
@@ -41,7 +40,6 @@ static u32 Yaz_SimpleEncode(u8* src, s32 size, s32 pos, u32* pMatchPos) {
 	return numBytes;
 }
 
-// a lookahead encoding scheme for ngc Yaz0
 static u32 Yaz_NintendoEncode(u8* src, s32 size, s32 pos, u32* pMatchPos) {
 	u32 numBytes = 1;
 	static u32 numBytes1;
@@ -77,10 +75,7 @@ static u32 Yaz_NintendoEncode(u8* src, s32 size, s32 pos, u32* pMatchPos) {
 	return numBytes;
 }
 
-// src points to the yaz0 source data (to the "real" source data, not at the header!)
-// dst points to a buffer uncompressedSize bytes large (you get uncompressedSize from
-// the second 4 bytes in the Yaz0 header).
-void Yaz_Decode(u8* src, u8* dst, s32 uncompressedSize) {
+void Yaz_Decode(u8* dst, u8* src, s32 uncompressedSize) {
 	s32 srcPlace = 0, dstPlace = 0; // current read/write positions
 	
 	u32 validBitCount = 0; // number of valid bits left in "code" byte
@@ -130,10 +125,11 @@ void Yaz_Decode(u8* src, u8* dst, s32 uncompressedSize) {
 	}
 }
 
-s32 Yaz_Encode(u8* src, u8* dst, s32 srcSize) {
+s32 Yaz_Encode(u8* dst, u8* src, s32 srcSize) {
 	s32 srcPos = 0;
-	s32 dstPos = 0;
+	s32 dstPos = 0x10;
 	s32 bufPos = 0;
+	u32* dstU32 = (u32*)dst;
 	
 	u8 buf[24]; // 8 codes * 3 bytes maximum
 	
@@ -189,6 +185,11 @@ s32 Yaz_Encode(u8* src, u8* dst, s32 srcSize) {
 			bufPos = 0;
 		}
 	}
+	
+	dst[0] = 'Y'; dst[1] = 'a'; dst[2] = 'z'; dst[3] = '0';
+	dstU32[1] = ReadBE(srcSize);
+	dstU32[2] = 0;
+	dstU32[3] = 0;
 	
 	if (validBitCount > 0) {
 		dst[dstPos++] = currCodeByte;

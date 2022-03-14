@@ -1,5 +1,11 @@
 #include "z64rom.h"
 
+u32 TestSwap(u32 swapMe) {
+	SwapBE(swapMe);
+	
+	return swapMe;
+}
+
 void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 	ItemList vanilla = { 0 };
 	ItemList modified = { 0 };
@@ -750,8 +756,9 @@ void Rom_Build(Rom* rom) {
 					entry[i].vramStart = Config_GetInt(&config, "vram_addr");
 					entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
 					
-					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile);
-					entry[i].vromEnd = entry[i].vromStart + dataFile.dataSize;
+					entry[i].vromEnd = dataFile.dataSize;
+					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
+					entry[i].vromEnd += entry[i].vromStart;
 					
 					SwapBE(entry[i].allocType);
 					SwapBE(entry[i].initInfo);
@@ -798,8 +805,9 @@ void Rom_Build(Rom* rom) {
 					entry[i].vramStart = Config_GetInt(&config, "vram_addr");
 					entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
 					
-					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile);
-					entry[i].vromEnd = entry[i].vromStart + dataFile.dataSize;
+					entry[i].vromEnd = dataFile.dataSize;
+					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
+					entry[i].vromEnd += entry[i].vromStart;
 					
 					SwapBE(entry[i].initInfo);
 					SwapBE(entry[i].vramStart);
@@ -834,8 +842,9 @@ void Rom_Build(Rom* rom) {
 					MemFile_Reset(&dataFile);
 					MemFile_LoadFile(&dataFile, Dir_File("*.zobj"));
 					
-					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile);
-					entry[i].vromEnd = entry[i].vromStart + dataFile.dataSize;
+					entry[i].vromEnd = dataFile.dataSize;
+					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
+					entry[i].vromEnd += entry[i].vromStart;
 					SwapBE(entry[i].vromStart);
 					SwapBE(entry[i].vromEnd);
 					
@@ -901,8 +910,9 @@ void Rom_Build(Rom* rom) {
 						} else if (MemFile_LoadFile(&memRoom, Dir_File("room_%d.zmap", j)))
 							printf_error("Exiting...");
 						
-						vromSeg[id + 0] = Dma_WriteEntry(rom, DMA_FIND_FREE, &memRoom);
-						vromSeg[id + 1] = vromSeg[id + 0] + memRoom.dataSize;
+						u32 size = memRoom.dataSize;
+						vromSeg[id + 0] = Dma_WriteEntry(rom, DMA_FIND_FREE, &memRoom, false);
+						vromSeg[id + 1] = vromSeg[id + 0] + size;
 						SwapBE(vromSeg[id + 0]);
 						SwapBE(vromSeg[id + 1]);
 					}
@@ -952,9 +962,10 @@ void Rom_Build(Rom* rom) {
 						}
 					}
 					
+					u32 size = dataFile.dataSize;
 					entry[i].config = Config_GetInt(&config, "scene_func_id");
-					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile);
-					entry[i].vromEnd = entry[i].vromStart + dataFile.dataSize;
+					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
+					entry[i].vromEnd = entry[i].vromStart + size;
 					SwapBE(entry[i].vromStart);
 					SwapBE(entry[i].vromEnd);
 					
@@ -991,11 +1002,11 @@ void Rom_Build(Rom* rom) {
 				
 				if (id == 0) {
 					for (;; id--) {
-						if (ABS(id) >= ArrayCount(gStateName_OoT)) {
+						if (Abs(id) >= ArrayCount(gStateName_OoT)) {
 							id = 0;
 							break;
 						}
-						if (StrStr(gameSysList.item[i], gKaleidoName_OoT[ABS(id)])) {
+						if (StrStr(gameSysList.item[i], gKaleidoName_OoT[Abs(id)])) {
 							id--;
 							break;
 						}
@@ -1019,7 +1030,7 @@ void Rom_Build(Rom* rom) {
 						entry[id].init = Config_GetInt(&config, "init_func");
 						entry[id].destroy = Config_GetInt(&config, "dest_func");
 						
-						entry[id].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile);
+						entry[id].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
 						entry[id].vromEnd = entry[id].vromStart + dataFile.dataSize;
 						
 						entry[id].vramStart = Config_GetInt(&config, "vram_addr");
@@ -1035,7 +1046,7 @@ void Rom_Build(Rom* rom) {
 						Dir_Leave();
 					}
 				} else if (id < 0) {
-					id = ABS(id) - 1;
+					id = Abs(id) - 1;
 					
 					Dir_Enter(gameSysList.item[i]); {
 						KaleidoEntry* entry = rom->table.kaleido;
@@ -1048,7 +1059,7 @@ void Rom_Build(Rom* rom) {
 						if (MemFile_LoadFile(&dataFile, Dir_File("*.zovl")))
 							printf_error("Exiting");
 						
-						entry[id].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile);
+						entry[id].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
 						entry[id].vromEnd = entry[id].vromStart + dataFile.dataSize;
 						
 						entry[id].vramStart = Config_GetInt(&config, "vram_addr");
@@ -1124,11 +1135,11 @@ void Rom_Build(Rom* rom) {
 					
 					MemFile_Reset(&dataFile);
 					MemFile_LoadFile(&dataFile, Dir_File("texel.bin"));
-					Dma_WriteEntry(rom, texId, &dataFile);
+					Dma_WriteEntry(rom, texId, &dataFile, false);
 					
 					MemFile_Reset(&dataFile);
 					MemFile_LoadFile(&dataFile, Dir_File("palette.bin"));
-					Dma_WriteEntry(rom, palId, &dataFile);
+					Dma_WriteEntry(rom, palId, &dataFile, false);
 					
 					Dir_Leave();
 				}
@@ -1170,7 +1181,7 @@ void Rom_Build(Rom* rom) {
 				MemFile_Reset(&dataFile);
 				MemFile_LoadFile(&dataFile, Dir_File(statItem.item[item]));
 				
-				Dma_WriteEntry(rom, dmaId, &dataFile);
+				Dma_WriteEntry(rom, dmaId, &dataFile, false);
 			}
 			
 			Dir_Leave();
@@ -1202,7 +1213,7 @@ void Rom_Build(Rom* rom) {
 				if (Dir_Stat("z_lib_user.bin")) {
 					MemFile_Reset(&dataFile);
 					MemFile_LoadFile(&dataFile, Dir_File("z_lib_user.bin"));
-					Dma_WriteEntry(rom, DMA_ID_UNUSED_1, &dataFile);
+					Dma_WriteEntry(rom, DMA_ID_UNUSED_1, &dataFile, false);
 				}
 				
 				Dir_Leave();
@@ -1210,6 +1221,12 @@ void Rom_Build(Rom* rom) {
 		}
 		
 		Dir_Leave();
+	}
+	
+	if (gCompressFlag) {
+		Dma_PrintfSlots(rom);
+		
+		rom->file.dataSize = Dma_GetRomSize();
 	}
 	
 	fix_crc(rom->file.data);
@@ -1228,7 +1245,7 @@ void Rom_New(Rom* rom, char* romName) {
 		printf_error_align("Load Rom", "%s", romName);
 	}
 	
-	if (rom->file.dataSize < MbToBin(64)) {
+	if (gInfoFlag == false && rom->file.dataSize < MbToBin(64)) {
 		printf_warning_align("Rom Size", "[%.2fMb / %.2fMb]", BinToMb(rom->file.dataSize), 64.0f);
 		printf_warning("Bad things " PRNT_REDD "might " PRNT_RSET "happen...");
 		printf_warning("Do you want to continue the process? [y/n]");
@@ -1456,4 +1473,5 @@ void Rom_Debug_ActorEntry(Rom* rom, u32 id) {
 void Rom_Debug_DmaEntry(Rom* rom, u32 id) {
 	printf_info("Dma Entry\t[%08d] [%08X]", id, VirtualToSegmented(0x0, &rom->table.dma[id]));
 	printf_info("vROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.dma[id].vromStart), ReadBE(rom->table.dma[id].vromEnd), ReadBE(rom->table.dma[id].vromEnd) - ReadBE(rom->table.dma[id].vromStart));
+	printf_info("pROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.dma[id].romStart), ReadBE(rom->table.dma[id].romEnd), ClampMin((s32)(ReadBE(rom->table.dma[id].romEnd) - ReadBE(rom->table.dma[id].romStart)), 0));
 }

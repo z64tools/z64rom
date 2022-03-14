@@ -1034,7 +1034,10 @@ void* MemMemCase(const void* haystack, size_t haystackSize, const void* needle, 
 	return NULL;
 }
 
-void* MemMem16(const void* haystack, size_t haySize, const void* needle, size_t needleSize) {
+void* MemMemAlign(u32 val, const void* haystack, size_t haySize, const void* needle, size_t needleSize) {
+	const u8* hay = haystack;
+	const u8* nee = needle;
+	
 	if (haySize == 0 || needleSize == 0)
 		return NULL;
 	
@@ -1046,15 +1049,12 @@ void* MemMem16(const void* haystack, size_t haySize, const void* needle, size_t 
 	}
 	
 	for (s32 i = 0;; i++) {
-		const u8* hay = haystack;
-		const u8* nee = needle;
-		
-		if (i * 16 > haySize - needleSize)
+		if (i * val > haySize - needleSize)
 			return NULL;
 		
-		if (hay[i * 16] == nee[0]) {
-			if (memcmp(&hay[i * 16], nee, needleSize) == 0) {
-				return (void*)&hay[i * 16];
+		if (hay[i * val] == nee[0]) {
+			if (memcmp(&hay[i * val], nee, needleSize) == 0) {
+				return (void*)&hay[i * val];
 			}
 		}
 	}
@@ -1249,20 +1249,22 @@ s32 Touch(char* file) {
 }
 
 s32 ParseArgs(char* argv[], char* arg, u32* parArg) {
-	char* s = Tmp_Printf("-%s", arg);
-	char* ss = Tmp_Printf("--%s", arg);
+	char* s = Tmp_Printf("%s", arg);
+	char* ss = Tmp_Printf("-%s", arg);
+	char* sss = Tmp_Printf("--%s", arg);
 	char* tst[] = {
-		s, ss
+		s, ss, sss
 	};
 	
 	for (s32 i = 1; argv[i] != NULL; i++) {
 		for (s32 j = 0; j < ArrayCount(tst); j++) {
-			if (!strcmp(argv[i], tst[j])) {
-				if (parArg != NULL)
-					*parArg = i + 1;
-				
-				return i + 1;
-			}
+			if (strlen(argv[i]) == strlen(tst[j]))
+				if (!strcmp(argv[i], tst[j])) {
+					if (parArg != NULL)
+						*parArg = i + 1;
+					
+					return i + 1;
+				}
 		}
 	}
 	
@@ -1575,11 +1577,7 @@ s32 MemFile_LoadFile(MemFile* memFile, char* filepath) {
 	fclose(file);
 	stat(filepath, &sta);
 	memFile->info.age = sta.st_mtime;
-	
-	if (memFile->param.getName != 0) {
-		memFile->info.name = Tmp_Alloc(strlen(filepath));
-		strcpy(memFile->info.name, filepath);
-	}
+	strcpy(memFile->info.name, filepath);
 	
 	if (memFile->param.getCrc) {
 		memFile->info.crc32 = Crc32(memFile->data, memFile->dataSize);
@@ -1624,11 +1622,7 @@ s32 MemFile_LoadFile_String(MemFile* memFile, char* filepath) {
 	
 	stat(filepath, &sta);
 	memFile->info.age = sta.st_mtime;
-	
-	if (memFile->param.getName != 0) {
-		memFile->info.name = Tmp_Alloc(strlen(filepath));
-		strcpy(memFile->info.name, filepath);
-	}
+	strcpy(memFile->info.name, filepath);
 	
 	if (memFile->param.getCrc) {
 		memFile->info.crc32 = Crc32(memFile->data, memFile->dataSize);

@@ -767,7 +767,7 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Write(&rom->mem.sampleTbl, &head, 16);
 	MemFile_Write(&rom->mem.sampleTbl, &entry, 16);
 	
-	rom->offset.segment.smplRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, dataFile);
+	rom->offset.segment.smplRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, dataFile, false);
 	MemFile_Free(&sample);
 	MemFile_Params(dataFile, MEM_ALIGN, 0, MEM_REALLOC, 0, MEM_END);
 }
@@ -930,12 +930,12 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				confEnv[3].rate = Config_GetInt(config, "decay2_rate"); SwapBE(confEnv[3].rate);
 				confEnv[3].level = Config_GetInt(config, "decay2_level"); SwapBE(confEnv[3].level);
 				
-				if (!MemMem16(memEnv.data, memEnv.dataSize, confEnv, 0x10)) {
+				if (!MemMemAlign(0x10, memEnv.data, memEnv.dataSize, confEnv, 0x10)) {
 					instrument.envelope = memEnv.seekPoint;
 					MemFile_Write(&memEnv, confEnv, 0x10);
 					MemFile_Align(&memEnv, 16);
 				} else {
-					void* ptr = MemMem16(memEnv.data, memEnv.dataSize, confEnv, 0x10);
+					void* ptr = MemMemAlign(0x10, memEnv.data, memEnv.dataSize, confEnv, 0x10);
 					instrument.envelope = (uPtr)ptr - (uPtr)memEnv.data;
 				}
 				
@@ -978,32 +978,32 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 						loopSize = 4 * (4 + 8);
 					}
 					
-					if (!MemMem16(memLoopBook.data, memLoopBook.dataSize, loop, loopSize)) {
+					if (!MemMemAlign(0x10, memLoopBook.data, memLoopBook.dataSize, loop, loopSize)) {
 						smpl.loop = memLoopBook.seekPoint;
 						MemFile_Write(&memLoopBook, loop, loopSize);
 						MemFile_Align(&memLoopBook, 16);
 					} else {
-						void* ptr = MemMem16(memLoopBook.data, memLoopBook.dataSize, loop, loopSize);
+						void* ptr = MemMemAlign(0x10, memLoopBook.data, memLoopBook.dataSize, loop, loopSize);
 						smpl.loop = (uPtr)ptr - (uPtr)memLoopBook.data;
 					}
 					
 					MemFile_Reset(dataFile);
 					Audio_LoadFile(dataFile, "*.book.bin");
-					if (!MemMem16(memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize)) {
+					if (!MemMemAlign(0x10, memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize)) {
 						smpl.book = memBook.seekPoint;
 						MemFile_Append(&memBook, dataFile);
 						MemFile_Align(&memBook, 16);
 					} else {
-						void* ptr = MemMem16(memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize);
+						void* ptr = MemMemAlign(0x10, memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize);
 						smpl.book = (uPtr)ptr - (uPtr)memBook.data;
 					}
 					
-					if (!MemMem16(memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample))) {
+					if (!MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample))) {
 						instrument.sound[soundID].sample = memSample.seekPoint;
 						MemFile_Write(&memSample, &smpl, sizeof(struct Sample));
 						smplNum++;
 					} else {
-						void* ptr = MemMem16(memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample));
+						void* ptr = MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample));
 						instrument.sound[soundID].sample = (uPtr)ptr - (uPtr)memSample.data;
 					}
 					Dir_Set(restoreDir);
@@ -1086,32 +1086,32 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 						loopSize = 4 * (4 + 8);
 					}
 					
-					if (!MemMem16(memLoopBook.data, memLoopBook.dataSize, loop, loopSize)) {
+					if (!MemMemAlign(0x10, memLoopBook.data, memLoopBook.dataSize, loop, loopSize)) {
 						smpl.loop = memLoopBook.seekPoint;
 						MemFile_Write(&memLoopBook, loop, loopSize);
 						MemFile_Align(&memLoopBook, 16);
 					} else {
-						void* ptr = MemMem16(memLoopBook.data, memLoopBook.dataSize, loop, loopSize);
+						void* ptr = MemMemAlign(0x10, memLoopBook.data, memLoopBook.dataSize, loop, loopSize);
 						smpl.loop = (uPtr)ptr - (uPtr)memLoopBook.data;
 					}
 					
 					MemFile_Reset(dataFile);
 					Audio_LoadFile(dataFile, "*.book.bin");
-					if (!MemMem16(memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize)) {
+					if (!MemMemAlign(0x10, memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize)) {
 						smpl.book = memBook.seekPoint;
 						MemFile_Append(&memBook, dataFile);
 						MemFile_Align(&memBook, 16);
 					} else {
-						void* ptr = MemMem16(memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize);
+						void* ptr = MemMemAlign(0x10, memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize);
 						smpl.book = (uPtr)ptr - (uPtr)memBook.data;
 					}
 					
-					if (!MemMem16(memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample))) {
+					if (!MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample))) {
 						sfx.sample = memSample.seekPoint;
 						MemFile_Write(&memSample, &smpl, sizeof(struct Sample));
 						smplNum++;
 					} else {
-						void* ptr = MemMem16(memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample));
+						void* ptr = MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample));
 						sfx.sample = (uPtr)ptr - (uPtr)memSample.data;
 					}
 				} Dir_Set(restoreDir);
@@ -1167,12 +1167,12 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				confEnv[3].rate = Config_GetInt(config, "decay2_rate"); SwapBE(confEnv[3].rate);
 				confEnv[3].level = Config_GetInt(config, "decay2_level"); SwapBE(confEnv[3].level);
 				
-				if (!MemMem16(memEnv.data, memEnv.dataSize, confEnv, 0x10)) {
+				if (!MemMemAlign(0x10, memEnv.data, memEnv.dataSize, confEnv, 0x10)) {
 					drum.envelope = memEnv.seekPoint;
 					MemFile_Write(&memEnv, confEnv, 0x10);
 					MemFile_Align(&memEnv, 16);
 				} else {
-					void* ptr = MemMem16(memEnv.data, memEnv.dataSize, confEnv, 0x10);
+					void* ptr = MemMemAlign(0x10, memEnv.data, memEnv.dataSize, confEnv, 0x10);
 					drum.envelope = (uPtr)ptr - (uPtr)memEnv.data;
 				}
 				
@@ -1220,32 +1220,32 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 						loopSize = 4 * (4 + 8);
 					}
 					
-					if (!MemMem16(memLoopBook.data, memLoopBook.dataSize, loop, loopSize)) {
+					if (!MemMemAlign(0x10, memLoopBook.data, memLoopBook.dataSize, loop, loopSize)) {
 						smpl.loop = memLoopBook.seekPoint;
 						MemFile_Write(&memLoopBook, loop, loopSize);
 						MemFile_Align(&memLoopBook, 16);
 					} else {
-						void* ptr = MemMem16(memLoopBook.data, memLoopBook.dataSize, loop, loopSize);
+						void* ptr = MemMemAlign(0x10, memLoopBook.data, memLoopBook.dataSize, loop, loopSize);
 						smpl.loop = (uPtr)ptr - (uPtr)memLoopBook.data;
 					}
 					
 					MemFile_Reset(dataFile);
 					Audio_LoadFile(dataFile, "*.book.bin");
 					smpl.book = memBook.seekPoint;
-					if (!MemMem16(memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize)) {
+					if (!MemMemAlign(0x10, memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize)) {
 						MemFile_Append(&memBook, dataFile);
 						MemFile_Align(&memBook, 16);
 					} else {
-						void* ptr = MemMem16(memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize);
+						void* ptr = MemMemAlign(0x10, memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize);
 						smpl.book = (uPtr)ptr - (uPtr)memBook.data;
 					}
 					
-					if (!MemMem16(memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample))) {
+					if (!MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample))) {
 						drum.sound.sample = memSample.seekPoint;
 						MemFile_Write(&memSample, &smpl, sizeof(struct Sample));
 						smplNum++;
 					} else {
-						void* ptr = MemMem16(memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample));
+						void* ptr = MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample));
 						drum.sound.sample = (uPtr)ptr - (uPtr)memSample.data;
 					}
 					
@@ -1412,7 +1412,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		}
 	}
 	
-	rom->offset.segment.fontRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, &soundFontMem);
+	rom->offset.segment.fontRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, &soundFontMem, false);
 	
 	MemFile_Free(&soundFontMem);
 	
@@ -1535,7 +1535,7 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Append(&memLookUpTable, &memIndexTable);
 	MemFile_Append(&rom->mem.seqFontTbl, &memLookUpTable);
 	
-	rom->offset.segment.seqRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, &sequenceMem);
+	rom->offset.segment.seqRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, &sequenceMem, false);
 	
 	MemFile_Free(&memIndexTable);
 	MemFile_Free(&memLookUpTable);

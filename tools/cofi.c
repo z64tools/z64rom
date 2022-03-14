@@ -1,4 +1,4 @@
-#include "../lib/ExtLib.h"
+#include "../src/ExtLib.h"
 
 MemFile new;
 MemFile old;

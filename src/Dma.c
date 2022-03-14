@@ -9,6 +9,9 @@ struct {
 	u32 highest;
 } gDma;
 
+u32 gCompressFlag = false;
+u8* gYazBuf;
+
 RomFile Rom_GetRomFile(Rom* rom, u32 vromA, u32 vromB) {
 	DmaEntry* dmaTable = rom->table.dma;
 	s32 i;
@@ -31,7 +34,7 @@ RomFile Rom_GetRomFile(Rom* rom, u32 vromA, u32 vromB) {
 		romFile.romStart = ReadBE(vromA);
 		romFile.romEnd = ReadBE(vromB);
 		romFile.data = SegmentedToVirtual(0x0, romFile.romStart);
-		romFile.size = CLAMP_MIN((s32)romFile.romEnd - (s32)romFile.romStart, 0);
+		romFile.size = ClampMin((s32)romFile.romEnd - (s32)romFile.romStart, 0);
 		
 		return romFile;
 	}
@@ -42,7 +45,7 @@ RomFile Rom_GetRomFile(Rom* rom, u32 vromA, u32 vromB) {
 	else
 		romFile.romEnd = ReadBE(dmaTable[i].vromEnd);
 	romFile.data = SegmentedToVirtual(0x0, romFile.romStart);
-	romFile.size = CLAMP_MIN((s32)romFile.romEnd - (s32)romFile.romStart, 0);
+	romFile.size = ClampMin((s32)romFile.romEnd - (s32)romFile.romStart, 0);
 	
 	return romFile;
 }
@@ -71,14 +74,32 @@ static u32 Slot_Size(Slot* slot) {
  * id == -1, write to first free entry
  * id > 0 write to specific entry
  */
-u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile) {
+u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, bool compress) {
+	static u32 firstCompressedID = 0;
 	DmaEntry* dma = &rom->table.dma[id];
 	Slot* slot = gSlotHead;
-	u32 size = memFile->dataSize;
+	u32 fileSize = memFile->dataSize;
 	u32 start;
 	
+	if (compress && gCompressFlag) {
+		char* yazFile = Tmp_Alloc(strlen(memFile->info.name) + 0x20);
+		
+		if (gYazBuf == NULL) gYazBuf = Calloc(0, MbToBin(32));
+		
+		strcpy(yazFile, memFile->info.name);
+		String_SwapExtension(yazFile, memFile->info.name, ".yaz");
+		
+		if (Stat(yazFile) >= memFile->info.age) {
+			MemFile_LoadFile(memFile, yazFile);
+		} else {
+			memcpy(gYazBuf, memFile->data, memFile->dataSize);
+			memFile->dataSize = Yaz_Encode(memFile->data, gYazBuf, memFile->dataSize);
+			MemFile_SaveFile(memFile, yazFile);
+		}
+	}
+	
 	while (slot != NULL) {
-		if (Slot_Size(slot) > size + 0x10)
+		if (Slot_Size(slot) > memFile->dataSize + 0x10)
 			break;
 		slot = slot->next;
 	}
@@ -113,18 +134,25 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile) {
 		}
 	}
 	
+	if (gCompressFlag && compress && firstCompressedID == 0) {
+		firstCompressedID = id;
+		printf_info("Compressed DMA ID %d", firstCompressedID);
+	}
+	
 	start = slot->romStart;
-	dma->vromStart = slot->romStart;
-	dma->romStart = slot->romStart;
-	rom->file.seekPoint = slot->romStart;
+	rom->file.seekPoint = start;
+	dma->vromStart = start;
+	dma->romStart = start;
+	
 	MemFile_Append(&rom->file, memFile);
 	MemFile_Align(&rom->file, 16);
+	dma->vromEnd = start + fileSize;
+	dma->romEnd = (start + memFile->dataSize) * (compress && gCompressFlag);
 	
-	dma->vromEnd = rom->file.seekPoint;
-	dma->romEnd = 0;
 	SwapBE(dma->romStart);
-	SwapBE(dma->vromStart);
+	SwapBE(dma->romEnd);
 	SwapBE(dma->vromEnd);
+	SwapBE(dma->vromStart);
 	slot->romStart = rom->file.seekPoint;
 	
 	return start;
@@ -132,9 +160,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile) {
 
 void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 	DmaEntry* dma = &rom->table.dma[id];
-	Slot slot = { 0 };
-	Slot* node;
-	Slot* compSlot = gSlotHead;
+	Slot* slot;
 	
 	if (gDma.entry[id].writable == true) {
 		printf_warning("Trying to reflag dma id [%d]", id);
@@ -144,28 +170,25 @@ void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 	
 	gDma.entry[id].writable = true;
 	if (id > gDma.highest) gDma.highest = id;
-	slot.romStart = ReadBE(dma->vromStart);
-	slot.romEnd = ReadBE(dma->vromEnd);
 	
-	dma->romStart = dma->romEnd = 0xFFFFFFFF;
+	if (ReadBE(dma->vromStart) - ReadBE(dma->vromEnd) == 0)
+		return;
+	slot = Tmp_Alloc(sizeof(struct Slot));
+	slot->romStart = ReadBE(dma->vromStart);
+	slot->romEnd = ReadBE(dma->vromEnd);
+	
+	dma->romStart = dma->romEnd = __UINT32_MAX__;
 	dma->vromStart = dma->vromEnd = 0;
 	
 	if (dmaAlign) {
-		slot.romEnd = Align(slot.romEnd, dmaAlign);
+		slot->romEnd = Align(slot->romEnd, dmaAlign);
 	}
 	
-	if (Slot_Size(&slot) == 0)
-		return;
-	
-	node = Tmp_Alloc(sizeof(struct Slot));
-	
-	memcpy(node, &slot, sizeof(struct Slot));
-	Node_Add(gSlotHead, node);
+	Node_Add(gSlotHead, slot);
 }
 
 void Dma_FreeSegment(Rom* rom, u32 romStart, u32 romEnd) {
 	Slot* slot = Tmp_Alloc(sizeof(struct Slot));
-	Slot* compSlot = gSlotHead;
 	
 	slot->romStart = romStart;
 	slot->romEnd = romEnd;
@@ -221,16 +244,32 @@ void Dma_Free(Rom* rom, DmaBank type) {
 				// Unused
 				Dma_FreeEntry(rom, i, 0x1000);
 			}
-			for (s32 i = 1532; i <= 1547; i++) {
-				// Blank
-				Dma_FreeEntry(rom, i, 0x1000);
-			}
-			Dma_FreeSegment(rom, 0x35CE040, 0x4000000);
+			Dma_FreeSegment(rom, 0x35CE000, 0x4000000);
 			break;
 	}
 }
 
+u32 Dma_GetRomSize(void) {
+	Slot* slot = gSlotHead;
+	u32 romEnd = 0;
+	
+	while (slot != NULL) {
+		if (slot->romStart > romEnd)
+			romEnd = slot->romStart;
+		slot = slot->next;
+	}
+	
+	return Align(romEnd, MbToBin(1));
+}
+
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
+
+s32 Dma_Intersect(Slot* a, Slot* b) {
+	if (a->romStart == b->romEnd || a->romStart == b->romEnd)
+		return 1;
+	
+	return ((Max(a->romStart, b->romStart) < Min(a->romEnd, b->romEnd)));
+}
 
 void Dma_CombineSlots(void) {
 	Slot* slot = gSlotHead;
@@ -239,19 +278,20 @@ void Dma_CombineSlots(void) {
 	while (slot != NULL) {
 		comp = gSlotHead;
 		while (comp != NULL) {
-			if (slot->romEnd == comp->romStart) {
-				slot->romEnd = comp->romEnd;
-				Node_Remove(gSlotHead, comp);
-				break;
+			Slot* next = comp->next;
+			if (comp != slot) {
+				if (Dma_Intersect(slot, comp)) {
+					slot->romStart = Min(slot->romStart, comp->romStart);
+					slot->romEnd = Max(slot->romEnd, comp->romEnd);
+					Node_Remove(gSlotHead, comp);
+					comp = gSlotHead;
+					continue;
+				}
 			}
 			
-			if (slot->romStart == comp->romEnd) {
-				slot->romStart = comp->romStart;
-				Node_Remove(gSlotHead, comp);
-				break;
-			}
-			comp = comp->next;
+			comp = next;
 		}
+		
 		slot = slot->next;
 	}
 }
@@ -300,6 +340,13 @@ void Dma_PrintfSlots(Rom* rom) {
 		slot = slot->next;
 	}
 	printf("" PRNT_RSET " ]\n");
+	
+	slot = gSlotHead;
+	while (slot != NULL) {
+		printf("%08X-%08X " PRNT_YELW "%12.2f kB" PRNT_RSET "\n", slot->romStart, slot->romEnd, BinToKb(slot->romEnd - slot->romStart));
+		
+		slot = slot->next;
+	}
 }
 
 void Dma_WriteFlag(u32 id, bool value) {

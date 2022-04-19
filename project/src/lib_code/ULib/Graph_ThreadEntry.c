@@ -28,8 +28,8 @@ void Graph_ThreadEntry(void* arg0) {
 		
 		DmaMgr_SendRequest0(
 			0x80600000,
-			gDmaDataTable[1].vromStart,
-			gDmaDataTable[1].vromEnd - gDmaDataTable[1].vromStart
+			gDmaDataTable[3].vromStart,
+			gDmaDataTable[3].vromEnd - gDmaDataTable[3].vromStart
 		);
 		sSceneDrawHandlers[4] = SceneAnim_Update;
 	}

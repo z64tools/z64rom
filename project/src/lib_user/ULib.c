@@ -1,4 +1,5 @@
 #include <ULib.h>
+#include "vt.h"
 
 LibContext gLibCtx = {
 	.myMagicValue = 0xDEADBEEF,
@@ -36,4 +37,34 @@ void ULib_Update(GameState* gameState) {
 			soundFlag = 1;
 		}
 	}
+}
+
+void ULib_DmaDebug(DmaRequest* req, DmaEntry* dma) {
+	const char** name = sDmaMgrFileNames;
+	u32 id = 0;
+	DmaEntry* iter = gDmaDataTable;
+	
+	while (iter->vromEnd) {
+		if (req->vromAddr >= iter->vromStart && req->vromAddr < iter->vromEnd) {
+			break;
+		}
+		
+		iter++;
+		name++;
+	}
+	
+	osSyncPrintf(VT_FGCOL(YELLOW));
+	osSyncPrintf(">" VT_RST);
+	osSyncPrintf(VT_FGCOL(CYAN));
+	osSyncPrintf("Dma Request: " VT_RST);
+	osSyncPrintf("vrom " VT_FGCOL(BLUE) "%08X - %08X" VT_RST " size: " VT_FGCOL(BLUE) "%08X " VT_RST, req->vromAddr, req->vromAddr + req->size, req->size);
+	osSyncPrintf("[ " VT_FGCOL(RED) "%s" VT_RST " ]\n", *name);
+	osSyncPrintf(VT_FGCOL(YELLOW));
+	osSyncPrintf(" " VT_RST);
+	osSyncPrintf(VT_FGCOL(CYAN));
+	osSyncPrintf("Dma Entry:   " VT_RST);
+	osSyncPrintf("vrom " VT_FGCOL(BLUE) "%08X - %08X" VT_RST " size: " VT_FGCOL(BLUE) "%08X " VT_RST, dma->vromStart, dma->vromEnd, dma->vromEnd - dma->romStart);
+	if (dma->romEnd)
+		osSyncPrintf("[ " VT_FGCOL(YELLOW) "Yaz" VT_RST " ]", *name);
+	osSyncPrintf("\n");
 }

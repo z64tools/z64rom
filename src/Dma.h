@@ -174,16 +174,18 @@ typedef enum {
 	DMA_NO_ENTRY  = -2,
 } DmaParam;
 
-u32 Dma_WriteEntry(struct Rom* rom, s32 id, MemFile* memFile, bool compress);
+u32 Dma_WriteEntry(struct Rom* rom, s32 id, MemFile* memFile, s32 compress);
+u32 Dma_GetRomSize(void);
+u32 Dma_GetVRomEnd(void);
+
 void Dma_FreeEntry(struct Rom* rom, u32 id, u32 dmaAlign);
 void Dma_FreeSegment(struct Rom* rom, u32 romStart, u32 romEnd);
-void Dma_Free(struct Rom* rom, DmaBank type);
-u32 Dma_GetRomSize(void);
+void Dma_FreeGroup(struct Rom* rom, DmaBank type);
 
+void Dma_CompressRom(struct Rom* rom);
 void Dma_CombineSlots(void);
 void Dma_PrintfSlots(struct Rom* rom);
 void Dma_WriteFlag(u32 id, bool value);
-void Dma_ClearSlots();
 
 extern Slot* gSlotHead;
 extern u32 gCompressFlag;

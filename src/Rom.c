@@ -694,12 +694,12 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeEntry(rom, DMA_ID_TITLE_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_TITLE_STATIC, false);
 	Dma_FreeEntry(rom, DMA_ID_PARAMETER_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_PARAMETER_STATIC, false);
 	
-	Dma_Free(rom, DMA_ACTOR);
-	Dma_Free(rom, DMA_EFFECT);
-	Dma_Free(rom, DMA_OBJECT);
-	Dma_Free(rom, DMA_SCENES);
-	Dma_Free(rom, DMA_SKYBOX_TEXEL);
-	Dma_Free(rom, DMA_UNUSED);
+	Dma_FreeGroup(rom, DMA_ACTOR);
+	Dma_FreeGroup(rom, DMA_EFFECT);
+	Dma_FreeGroup(rom, DMA_OBJECT);
+	Dma_FreeGroup(rom, DMA_SCENES);
+	Dma_FreeGroup(rom, DMA_SKYBOX_TEXEL);
+	Dma_FreeGroup(rom, DMA_UNUSED);
 	Dma_CombineSlots();
 	
 	Dma_PrintfSlots(rom);
@@ -756,9 +756,8 @@ void Rom_Build(Rom* rom) {
 					entry[i].vramStart = Config_GetInt(&config, "vram_addr");
 					entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
 					
-					entry[i].vromEnd = dataFile.dataSize;
 					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-					entry[i].vromEnd += entry[i].vromStart;
+					entry[i].vromEnd = Dma_GetVRomEnd();
 					
 					SwapBE(entry[i].allocType);
 					SwapBE(entry[i].initInfo);
@@ -805,9 +804,8 @@ void Rom_Build(Rom* rom) {
 					entry[i].vramStart = Config_GetInt(&config, "vram_addr");
 					entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
 					
-					entry[i].vromEnd = dataFile.dataSize;
 					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-					entry[i].vromEnd += entry[i].vromStart;
+					entry[i].vromEnd = Dma_GetVRomEnd();
 					
 					SwapBE(entry[i].initInfo);
 					SwapBE(entry[i].vramStart);
@@ -842,9 +840,8 @@ void Rom_Build(Rom* rom) {
 					MemFile_Reset(&dataFile);
 					MemFile_LoadFile(&dataFile, Dir_File("*.zobj"));
 					
-					entry[i].vromEnd = dataFile.dataSize;
-					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-					entry[i].vromEnd += entry[i].vromStart;
+					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, true);
+					entry[i].vromEnd = Dma_GetVRomEnd();
 					SwapBE(entry[i].vromStart);
 					SwapBE(entry[i].vromEnd);
 					
@@ -910,9 +907,8 @@ void Rom_Build(Rom* rom) {
 						} else if (MemFile_LoadFile(&memRoom, Dir_File("room_%d.zmap", j)))
 							printf_error("Exiting...");
 						
-						u32 size = memRoom.dataSize;
 						vromSeg[id + 0] = Dma_WriteEntry(rom, DMA_FIND_FREE, &memRoom, false);
-						vromSeg[id + 1] = vromSeg[id + 0] + size;
+						vromSeg[id + 1] = Dma_GetVRomEnd();
 						SwapBE(vromSeg[id + 0]);
 						SwapBE(vromSeg[id + 1]);
 					}
@@ -962,10 +958,9 @@ void Rom_Build(Rom* rom) {
 						}
 					}
 					
-					u32 size = dataFile.dataSize;
 					entry[i].config = Config_GetInt(&config, "scene_func_id");
 					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-					entry[i].vromEnd = entry[i].vromStart + size;
+					entry[i].vromEnd = Dma_GetVRomEnd();
 					SwapBE(entry[i].vromStart);
 					SwapBE(entry[i].vromEnd);
 					
@@ -1031,7 +1026,7 @@ void Rom_Build(Rom* rom) {
 						entry[id].destroy = Config_GetInt(&config, "dest_func");
 						
 						entry[id].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-						entry[id].vromEnd = entry[id].vromStart + dataFile.dataSize;
+						entry[id].vromEnd = Dma_GetVRomEnd();
 						
 						entry[id].vramStart = Config_GetInt(&config, "vram_addr");
 						entry[id].vramEnd = entry[id].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
@@ -1060,7 +1055,7 @@ void Rom_Build(Rom* rom) {
 							printf_error("Exiting");
 						
 						entry[id].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-						entry[id].vromEnd = entry[id].vromStart + dataFile.dataSize;
+						entry[id].vromEnd = Dma_GetVRomEnd();
 						
 						entry[id].vramStart = Config_GetInt(&config, "vram_addr");
 						entry[id].vramEnd = entry[id].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
@@ -1213,7 +1208,7 @@ void Rom_Build(Rom* rom) {
 				if (Dir_Stat("z_lib_user.bin")) {
 					MemFile_Reset(&dataFile);
 					MemFile_LoadFile(&dataFile, Dir_File("z_lib_user.bin"));
-					Dma_WriteEntry(rom, DMA_ID_UNUSED_1, &dataFile, false);
+					Dma_WriteEntry(rom, DMA_ID_UNUSED_3, &dataFile, false);
 				}
 				
 				Dir_Leave();

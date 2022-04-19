@@ -252,7 +252,7 @@ s32 MemFile_Append(MemFile* dest, MemFile* src);
 void MemFile_Align(MemFile* src, u32 align);
 s32 MemFile_Printf(MemFile* dest, const char* fmt, ...);
 s32 MemFile_Read(MemFile* src, void* dest, u32 size);
-void MemFile_Seek(MemFile* src, u32 seek);
+void* MemFile_Seek(MemFile* src, u32 seek);
 s32 MemFile_LoadFile(MemFile* memFile, char* filepath);
 s32 MemFile_LoadFile_String(MemFile* memFile, char* filepath);
 s32 MemFile_SaveFile(MemFile* memFile, char* filepath);

@@ -1536,11 +1536,13 @@ s32 MemFile_Read(MemFile* src, void* dest, u32 size) {
 	return 0;
 }
 
-void MemFile_Seek(MemFile* src, u32 seek) {
+void* MemFile_Seek(MemFile* src, u32 seek) {
 	if (seek > src->memSize) {
 		printf_error("!");
 	}
 	src->seekPoint = seek;
+	
+	return (void*)&src->cast.u8[seek];
 }
 
 s32 MemFile_LoadFile(MemFile* memFile, char* filepath) {

@@ -60,6 +60,8 @@ Code_SElf = $(foreach f,$(Code_S:.s=.elf),rom/$(f))
 Audio_Wav    = $(shell find rom/sound/sample/*/* -maxdepth 0 -type f -name '*.wav' 2>/dev/null)
 Audio_Vadpcm = $(foreach f,$(Library_C:.c=.o),rom/$(f))
 
+YazTemp   = $(shell find . -type f -name '*.yaz' 2>/dev/null)
+
 # Make build directories
 $(shell mkdir -p include/)
 $(shell mkdir -p rom/ $(foreach dir, \
@@ -102,6 +104,9 @@ clean:
 	@rm -f $(Linkers)
 	@rm -f -R rom/lib_user
 	@rm -f -R rom/lib_code
+
+clean-yaz:
+	@rm $(YazTemp)
 
 clean-rom:
 	@rm -f -R rom

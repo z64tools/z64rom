@@ -15,6 +15,7 @@ asm ("__gfxCtx = 0x80212020");
 asm ("gGlobalContext = 0x80212020");
 
 void ULib_Update(GameState* gameState);
+void ULib_DmaDebug(DmaRequest* req, DmaEntry* dma);
 
 typedef enum {
 	SURFACE_FLOOR_VOID_SMALL        = 0x5,

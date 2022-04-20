@@ -2244,3 +2244,106 @@ f32 Config_GetFloat(MemFile* memFile, char* floatName) {
 	
 	return 0;
 }
+
+#include <signal.h>
+
+#define FAULT_BUFFER_SIZE 256
+#define FAULT_LOG_NUM     16
+
+char* sFaultMsg[FAULT_LOG_NUM];
+char* sFaultFunc[FAULT_LOG_NUM];
+u32 sFaultLine[FAULT_LOG_NUM];
+u32 sFaultIndex;
+
+static void Fault_Signal(int arg) {
+	const char* errorMsg[] = {
+		"0",
+		"1",
+		"SIGINT",
+		"3",
+		"SIGILL",
+		"5",
+		"SIGABRT_COMPAT",
+		"7",
+		"SIGFPE",
+		"9",
+		"10",
+		"Segmentation Fault",
+		"12",
+		"13",
+		"14",
+		"SIGTERM",
+		"16",
+		"17",
+		"18",
+		"19",
+		"20",
+		"SIGBREAK",
+		"SIGABRT",
+		
+		"UNDEFINED",
+	};
+	u32 msgsNum = 0;
+	
+	if (arg != 0xDEADBEEF)
+		printf("" PRNT_DGRY "[" PRNT_REDD "!" PRNT_DGRY "]:" PRNT_DGRY " [ " PRNT_REDD "%s " PRNT_DGRY "] \a\n", errorMsg[ClampMax(arg, 23)]);
+	else
+		printf("" PRNT_DGRY "[" PRNT_REDD "!" PRNT_DGRY "]:" PRNT_DGRY " [ " PRNT_REDD "FAULT LOG " PRNT_DGRY "] \a\n");
+	
+	for (s32 i = 0; i < FAULT_LOG_NUM; i++) {
+		u32 loggerID = Wrap(sFaultIndex + i + 1, 0, FAULT_LOG_NUM - 1);
+		u32 prevID = Wrap(loggerID - 1, 0, FAULT_LOG_NUM - 1);
+		
+		if (strlen(sFaultMsg[loggerID]) > 0) {
+			if (msgsNum == 0 || strcmp(sFaultFunc[loggerID], sFaultFunc[prevID]))
+				printf("" PRNT_DGRY "[" PRNT_REDD "!" PRNT_DGRY "]:" PRNT_PRPL " %s"PRNT_RSET "();" PRNT_RSET "\n", sFaultFunc[loggerID]);
+			printf(
+				"" PRNT_DGRY "[" PRNT_REDD "!" PRNT_DGRY "]:" PRNT_DGRY " [ %4d ]" PRNT_RSET " %s" PRNT_RSET "\n",
+				sFaultLine[loggerID],
+				sFaultMsg[loggerID]
+			);
+			msgsNum++;
+		}
+	}
+}
+
+void Fault_Init() {
+	signal(SIGINT, Fault_Signal);
+	signal(SIGILL, Fault_Signal);
+	signal(SIGABRT_COMPAT, Fault_Signal);
+	signal(SIGFPE, Fault_Signal);
+	signal(SIGSEGV, Fault_Signal);
+	signal(SIGTERM, Fault_Signal);
+	signal(SIGBREAK, Fault_Signal);
+	signal(SIGABRT, Fault_Signal);
+	
+	sFaultIndex = 0;
+	
+	for (s32 i = 0; i < FAULT_LOG_NUM; i++) {
+		sFaultMsg[i] = Calloc(0, FAULT_BUFFER_SIZE);
+		sFaultFunc[i] = Calloc(0, FAULT_BUFFER_SIZE * 0.25);
+	}
+}
+
+void Fault_Free() {
+	for (s32 i = 0; i < FAULT_LOG_NUM; i++) {
+		Free(sFaultMsg[i]);
+		Free(sFaultFunc[i]);
+	}
+}
+
+void Fault_Print() {
+	Fault_Signal(0xDEADBEEF);
+}
+
+void Fault_Log(const char* func, u32 line, const char* txt, ...) {
+	va_list args;
+	
+	va_start(args, txt);
+	vsnprintf(sFaultMsg[sFaultIndex], FAULT_BUFFER_SIZE, txt, args);
+	va_end(args);
+	
+	strcpy(sFaultFunc[sFaultIndex], func);
+	sFaultLine[sFaultIndex] = line;
+	sFaultIndex = Wrap(sFaultIndex + 1, 0, FAULT_LOG_NUM - 1);
+}

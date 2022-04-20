@@ -296,6 +296,14 @@ s32 Config_GetInt(MemFile* memFile, char* intName);
 char* Config_GetString(MemFile* memFile, char* stringName);
 f32 Config_GetFloat(MemFile* memFile, char* floatName);
 
+void Fault_Init();
+void Fault_Free();
+void Fault_Print();
+void Fault_Log(const char* func, u32 line, const char* txt, ...);
+#ifndef __EXTLIB_C__
+	#define Fault_Log(...) Fault_Log(__FUNCTION__, __LINE__, __VA_ARGS__)
+#endif
+
 extern PrintfSuppressLevel gPrintfSuppress;
 
 #define PRNT_DGRY "\e[90;2m"

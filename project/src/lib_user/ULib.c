@@ -43,6 +43,7 @@ void ULib_DmaDebug(DmaRequest* req, DmaEntry* dma) {
 	const char** name = sDmaMgrFileNames;
 	u32 id = 0;
 	DmaEntry* iter = gDmaDataTable;
+	u32* wow;
 	
 	while (iter->vromEnd) {
 		if (req->vromAddr >= iter->vromStart && req->vromAddr < iter->vromEnd) {
@@ -52,6 +53,11 @@ void ULib_DmaDebug(DmaRequest* req, DmaEntry* dma) {
 		iter++;
 		name++;
 	}
+	
+	wow = (u32*)*name;
+	
+	if (wow && wow[0] == 0x6C696E6B && wow[1] == 0x5F616E69)
+		return;
 	
 	osSyncPrintf(VT_FGCOL(YELLOW));
 	osSyncPrintf(">" VT_RST);

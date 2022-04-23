@@ -1,4 +1,4 @@
-CFLAGS         := -s -flto -Wall
+CFLAGS         := -s -flto -Wall -IExtLib
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
 SOURCE_C       := $(shell find src/* -type f -name '*.c')

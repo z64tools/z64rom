@@ -8,6 +8,3 @@
 	path = tools/z64convert
 	url = https://github.com/turpaan64/z64convert.git
 	branch = document-print
-[submodule "ExtLib"]
-	path = ExtLib
-	url = https://github.com/rankaisija64/ExtLib.git

@@ -1,7 +1,7 @@
 #ifndef __Z64_DMA_H__
 #define __Z64_DMA_H__
 
-#include "ExtLib.h"
+#include <ExtLib.h>
 
 typedef struct {
 	u32 loadedRamAddr;

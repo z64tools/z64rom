@@ -1,7 +1,7 @@
 #ifndef __Z64ROM_H__
 #define __Z64ROM_H__
 
-#include "ExtLib.h"
+#include <ExtLib.h>
 #include "Rom.h"
 #include "Dma.h"
 #include "Audio.h"
@@ -183,7 +183,7 @@ extern const char* gSystemName_OoT[40];
 extern const char* gSkyboxName_OoT[32];
 
 extern s32 gExtractAudio;
-extern s32 gLog;
+extern s32 gPrintInfo;
 extern s32 gGenericNames;
 extern s32 gInfoFlag;
 

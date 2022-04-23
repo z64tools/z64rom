@@ -702,7 +702,8 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeGroup(rom, DMA_UNUSED);
 	Dma_CombineSlots();
 	
-	Dma_PrintfSlots(rom);
+	if (gPrintInfo)
+		Dma_PrintfSlots(rom);
 	
 	Dir_Enter("rom/"); {
 		Dir_Enter("sound/"); {
@@ -1227,7 +1228,8 @@ void Rom_Build(Rom* rom) {
 	fix_crc(rom->file.data);
 	MemFile_SaveFile(&rom->file, "build.z64");
 	
-	if (gLog) LogPrint();
+	MemFile_Free(&dataFile);
+	MemFile_Free(&config);
 }
 
 void Rom_New(Rom* rom, char* romName) {
@@ -1236,8 +1238,9 @@ void Rom_New(Rom* rom, char* romName) {
 	
 	rom->file = MemFile_Initialize();
 	MemFile_Params(&rom->file, MEM_FILENAME, true, MEM_END);
+	
 	if (MemFile_LoadFile(&rom->file, romName)) {
-		printf_error_align("Load Rom", "%s", romName);
+		printf_error_align("Error Opening", "%s", romName);
 	}
 	
 	if (gInfoFlag == false && rom->file.dataSize < MbToBin(64)) {
@@ -1410,18 +1413,16 @@ void Rom_New(Rom* rom, char* romName) {
 	MemFile_Malloc(&rom->mem.seqTbl, MbToBin(0.1));
 	MemFile_Malloc(&rom->mem.seqFontTbl, MbToBin(0.1));
 	
-	#ifdef NDEBUG // rezimodnar ksaM sarojaM esuaceb tsuj tseuQ drihT gnipmud diovA
-		if (rom->offset.segment.seqRom == 0x03F00000 &&
-			rom->offset.segment.fontRom == 0x03E00000 &&
-			rom->offset.segment.smplRom == 0x00094870 &&
-			rom->type == Zelda_OoT_Debug) {
-			u32* checkVal = SegmentedToVirtual(0x0, 0xBCC920);
-			
-			if (ReadBE(checkVal[0]) == 0x52059 && ReadBE(checkVal[1]) == 0x37F7) {
-				SwapBE(rom->offset.table.seqTable);
-			}
+	if (rom->offset.segment.seqRom == 0x03F00000 &&
+		rom->offset.segment.fontRom == 0x03E00000 &&
+		rom->offset.segment.smplRom == 0x00094870 &&
+		rom->type == Zelda_OoT_Debug) {
+		u32* checkVal = SegmentedToVirtual(0x0, 0xBCC920);
+		
+		if (ReadBE(checkVal[0]) == 0x52059 && ReadBE(checkVal[1]) == 0x37F7) {
+			SwapBE(rom->offset.table.seqTable);
 		}
-	#endif
+	}
 }
 
 void Rom_Free(Rom* rom) {

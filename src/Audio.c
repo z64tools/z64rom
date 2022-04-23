@@ -296,11 +296,6 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				for (s32 j = 0; j < entry->numInst; j++) {
 					char* output = Dir_File("%d-Inst.cfg", j);
 					
-					#ifndef NDEBUG
-						if (gPrintfSuppress == PSL_DEBUG)
-							printf_progress("inst", j + 1, entry->numInst);
-					#endif
-					
 					if (bank->instruments[j] == 0)
 						instrument = NULL;
 					else
@@ -321,11 +316,6 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					char* output = Dir_File("%d-Sfx.cfg", j);
 					sfx = SegmentedToVirtual(0x1, ReadBE(bank->sfx));
 					
-					#ifndef NDEBUG
-						if (gPrintfSuppress == PSL_DEBUG)
-							printf_progress("sfx", j + 1, ReadBE(entry->numSfx));
-					#endif
-					
 					if (Rom_Config_Sfx(rom, config, &sfx[j], "Sound Effect", output, off)) {
 						strcpy(sBankFiles[sBankNum++], output);
 						Assert(sBankNum < 1024 * 5);
@@ -341,11 +331,6 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				for (s32 j = 0; j < entry->numDrum; j++) {
 					char* output = Dir_File("%d-Drum.cfg", j);
 					u32* wow = SegmentedToVirtual(0x1, ReadBE(bank->drums));
-					
-					#ifndef NDEBUG
-						if (gPrintfSuppress == PSL_DEBUG)
-							printf_progress("drum", j + 1, entry->numDrum);
-					#endif
 					
 					if (Rom_Config_Drum(rom, config, wow[j], "Drum", output, off)) {
 						strcpy(sBankFiles[sBankNum++], output);
@@ -774,6 +759,7 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 
 void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	ItemList itemList;
+	MemFile soundFontMem = MemFile_Initialize();
 	MemFile memBank = MemFile_Initialize();
 	MemFile memBook = MemFile_Initialize();
 	MemFile memLoopBook = MemFile_Initialize();
@@ -785,10 +771,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	AudioEntryHead sfHead = { 0 };
 	AudioEntry sfEntry = { 0 };
 	
-	MemFile soundFontMem = MemFile_Initialize();
-	
 	MemFile_Malloc(&soundFontMem, MbToBin(2.00));
-	
 	MemFile_Malloc(&memBank, MbToBin(0.25));
 	MemFile_Malloc(&memBook, MbToBin(0.25));
 	MemFile_Malloc(&memLoopBook, MbToBin(0.25));
@@ -1415,9 +1398,9 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	rom->offset.segment.fontRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, &soundFontMem, false);
 	
 	MemFile_Free(&soundFontMem);
-	
 	MemFile_Free(&memBank);
 	MemFile_Free(&memBook);
+	MemFile_Free(&memLoopBook);
 	MemFile_Free(&memInst);
 	MemFile_Free(&memEnv);
 	MemFile_Free(&memSample);

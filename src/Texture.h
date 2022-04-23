@@ -1,4 +1,4 @@
-#include "ExtLib.h"
+#include <ExtLib.h>
 
 typedef enum {
 	TEX_FMT_RGBA,

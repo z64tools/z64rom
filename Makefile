@@ -24,7 +24,7 @@ PRNT_PRPL := \e[0;95m
 PRNT_CYAN := \e[0;96m
 PRNT_RSET := \e[m
 
-HEADER := src/z64rom.h src/ExtLib.h src/Audio.h
+HEADER := src/z64rom.h src/Audio.h
 
 # Make build directories
 $(shell mkdir -p bin/ $(foreach dir, \
@@ -62,7 +62,7 @@ linux-release: project-files-linux $(SOURCE_O_RELEASE_LINUX) $(RELEASE_EXECUTABL
 win32:         project-files-win32 $(SOURCE_O_WIN32)         $(DEBUG_EXECUTABLE_WIN32)
 win32-release: project-files-win32 $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABLE_WIN32)
 
-hdrup.exe: tools/hdrup.c src/ExtLib.c
+hdrup.exe: tools/hdrup.c
 	@i686-w64-mingw32.static-gcc -o $@ $^ $(OPT_WIN32) $(CFLAGS) -DNDEBUG -lm -D_WIN32
 
 # # # # # # # # # # # # # # # # # # # #
@@ -140,32 +140,24 @@ project/tools/z64audio.exe: tools/z64audio/z64audio.c
 	@$(MAKE) -C tools/z64audio win32 -j --no-print-directory --silent
 	@cp $(<:.c=.exe) $@
 	
-project/tools/%: tools/%.c
+project/tools/%: tools/%.c src/External.c
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@gcc -o $@ $< src/ExtLib.c $(OPT_LINUX) $(CFLAGS) -DNDEBUG
+	@gcc -o $@ $^ $(OPT_LINUX) $(CFLAGS) -DNDEBUG
 
 # # # # # # # # # # # # # # # # # # # #
 # LINUX BUILD                         #
 # # # # # # # # # # # # # # # # # # # #
 
 bin/linux/ndebug/%.o: %.c %.h $(HEADER)
+bin/linux/ndebug/%.o: %.c $(HEADER)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@gcc -c -o $@ $< $(OPT_LINUX) $(CFLAGS) -DNDEBUG
 	@objdump -drz $@ > $(@:.o=.s)
-	
-bin/linux/ndebug/%.o: %.c $(HEADER)
-	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@gcc -c -o $@ $< $(OPT_LINUX) $(CFLAGS) -DNDEBUG -Wno-missing-braces
-	@objdump -drz $@ > $(@:.o=.s)
 
 bin/linux/%.o: %.c %.h $(HEADER)
-	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@gcc -c -o $@ $< $(OPT_LINUX) $(CFLAGS)
-	@objdump -drz $@ > $(@:.o=.s)
-	
 bin/linux/%.o: %.c $(HEADER)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@gcc -c -o $@ $< $(OPT_LINUX) $(CFLAGS) -Wno-missing-braces
+	@gcc -c -o $@ $< $(OPT_LINUX) $(CFLAGS)
 	@objdump -drz $@ > $(@:.o=.s)
 
 $(RELEASE_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_RELEASE_LINUX)
@@ -181,23 +173,15 @@ $(DEBUG_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX)
 # # # # # # # # # # # # # # # # # # # #
 
 bin/win32/ndebug/%.o: %.c %.h $(HEADER)
+bin/win32/ndebug/%.o: %.c $(HEADER)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@i686-w64-mingw32.static-gcc -c -o $@ $< $(OPT_WIN32) $(CFLAGS) -DNDEBUG -D_WIN32
 	@i686-w64-mingw32.static-objdump -drz $@ > $(@:.o=.s)
 	
-bin/win32/ndebug/%.o: %.c $(HEADER)
-	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -c -o $@ $< $(OPT_WIN32) $(CFLAGS) -DNDEBUG -D_WIN32 -Wno-missing-braces
-	@i686-w64-mingw32.static-objdump -drz $@ > $(@:.o=.s)
-	
 bin/win32/%.o: %.c %.h $(HEADER)
-	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -c -o $@ $< $(OPT_WIN32) $(CFLAGS) -D_WIN32
-	@i686-w64-mingw32.static-objdump -drz $@ > $(@:.o=.s)
-	
 bin/win32/%.o: %.c $(HEADER)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -c -o $@ $< $(OPT_WIN32) $(CFLAGS) -D_WIN32 -Wno-missing-braces
+	@i686-w64-mingw32.static-gcc -c -o $@ $< $(OPT_WIN32) $(CFLAGS) -D_WIN32
 	@i686-w64-mingw32.static-objdump -drz $@ > $(@:.o=.s)
 
 bin/win32/icon.o: src/icon.rc src/icon.ico

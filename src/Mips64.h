@@ -1,4 +1,4 @@
-#include "ExtLib.h"
+#include <ExtLib.h>
 
 typedef enum {
 	MIPS_REG_ZERO = 0,

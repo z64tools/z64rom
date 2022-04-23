@@ -1,7 +1,7 @@
 #ifndef __Z64_ROM_H__
 #define __Z64_ROM_H__
 
-#include "ExtLib.h"
+#include <ExtLib.h>
 
 struct Rom;
 struct RomFile;

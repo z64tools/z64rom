@@ -12,7 +12,7 @@ char* sToolUsage = {
 	PRNT_NL
 };
 s32 gExtractAudio = true;
-s32 gLog;
+s32 gPrintInfo;
 s32 gGenericNames;
 s32 sDumpFlag;
 s32 gInfoFlag;
@@ -77,6 +77,7 @@ s32 Main(s32 argc, char* argv[]) {
 	Rom* rom = Calloc(0, sizeof(struct Rom));
 	u32 parArg = 0;
 	
+	Log_Init();
 	printf_WinFix();
 	printf_SetPrefix("");
 	
@@ -176,7 +177,7 @@ s32 Main(s32 argc, char* argv[]) {
 	}
 	if (XARG("generic")) gGenericNames = true;
 	if (XARG("no-wav")) gExtractAudio = false;
-	if (XARG("log")) gLog = true;
+	if (XARG("log")) gPrintInfo = true;
 	if (XARG("debug")) printf_SetSuppressLevel(PSL_DEBUG);
 	if (XARG("compress")) gCompressFlag = true;
 	
@@ -213,6 +214,9 @@ s32 Main(s32 argc, char* argv[]) {
 			getchar();
 		}
 	#endif
+	
+	Log_Free();
+	Free(rom);
 	
 	return 0;
 }

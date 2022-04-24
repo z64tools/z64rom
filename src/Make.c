@@ -3,15 +3,14 @@
 #define THREAD_NUM 512
 
 ItemList gItemList;
-DirCtx gDirCtx;
 volatile bool gMsgCompiled;
 const char* gAppDir;
 const char* gTools[] = {
 #ifdef _WIN32
-	"tools\\mips64-binutils\\bin\\mips64-gcc.exe",
-	"tools\\mips64-binutils\\bin\\mips64-ld.exe",
-	"tools\\mips64-binutils\\bin\\mips64-objdump.exe",
-	"tools\\mips64-binutils\\bin\\mips64-objcopy.exe",
+	"tools\\mips64-binutils-win32\\bin\\mips64-gcc.exe",
+	"tools\\mips64-binutils-win32\\bin\\mips64-ld.exe",
+	"tools\\mips64-binutils-win32\\bin\\mips64-objdump.exe",
+	"tools\\mips64-binutils-win32\\bin\\mips64-objcopy.exe",
 	"tools\\z64audio.exe",
 	"tools\\novl.exe",
 #else
@@ -28,6 +27,11 @@ const char* gFlags = "-c -Iinclude/z64hdr -Iinclude/z64hdr/include -Iinclude/ "
 	" -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division -Wall"
 	" -Wno-builtin-declaration-mismatch -Wno-unused-variable";
 const char* gFlagsCode = "-mno-gpopt -fomit-frame-pointer";
+
+typedef struct {
+	DirCtx dirCtx;
+	s32    i;
+} ThreadArgs;
 
 static const char* Make_Tool(const char* app) {
 	static char buffer[6][256];
@@ -69,18 +73,18 @@ static const char* Make_Tool(const char* app) {
 void Make_Compile_Object(const char* source, const char* output, const char* flags, u32 depNum, const char* dep[]) {
 	char command[256 * 2] = { 0 };
 	
-	if (Sys_Stat(output) && Sys_Stat(output) >= Sys_Stat(source))
-		return;
-	
-	// Check if newer than output
-	if (depNum) {
-		for (s32 i = 0;; i++) {
-			if (Sys_Stat(dep[i]) > Sys_Stat(output))
-				break;
-			if (i == depNum - 1)
-				return;
-		}
-	}
+	// if (Sys_Stat(output) && Sys_Stat(output) >= Sys_Stat(source))
+	// 	return;
+	//
+	// // Check if newer than output
+	// if (depNum) {
+	// 	for (s32 i = 0;; i++) {
+	// 		if (Sys_Stat(dep[i]) > Sys_Stat(output))
+	// 			break;
+	// 		if (i == depNum - 1)
+	// 			return;
+	// 	}
+	// }
 	
 	sprintf(
 		command,
@@ -103,18 +107,18 @@ void Make_Compile_Elf(const char* source, const char* output, const char* flags,
 	char command[256 * 2] = { 0 };
 	char entryDir[256] = { 0 };
 	
-	if (Sys_Stat(output) && Sys_Stat(output) >= Sys_Stat(source))
-		return;
-	
-	// Check if newer than output
-	if (depNum) {
-		for (s32 i = 0;; i++) {
-			if (Sys_Stat(dep[i]) > Sys_Stat(output))
-				break;
-			if (i == depNum - 1)
-				return;
-		}
-	}
+	// if (Sys_Stat(output) && Sys_Stat(output) >= Sys_Stat(source))
+	// 	return;
+	//
+	// // Check if newer than output
+	// if (depNum) {
+	// 	for (s32 i = 0;; i++) {
+	// 		if (Sys_Stat(dep[i]) > Sys_Stat(output))
+	// 			break;
+	// 		if (i == depNum - 1)
+	// 			return;
+	// 	}
+	// }
 	
 	strcpy(entryDir, String_GetPath(output));
 	strcat(entryDir, ".entry/");
@@ -143,58 +147,62 @@ void Make_Compile_Elf(const char* source, const char* output, const char* flags,
 	Sys_Command(command);
 }
 
-static void Compile_Code_Obj(u32 i) {
+static void Compile_Code_Obj(ThreadArgs* arg) {
 	char output[256];
+	char* input = gItemList.item[arg->i];
 	
-	if (!MemMem(gItemList.item[i], strlen(gItemList.item[i]) + 1, ".c\0", 3))
+	if (input[strlen(input)] != 'c' || input[strlen(input) - 1] != '.')
 		return;
 	
-	strcpy(output, gItemList.item[i]);
+	strcpy(output, input);
 	String_Replace(output, ".c", ".o");
 	String_Replace(output, "src/", "rom/");
 	
-	Make_Compile_Object(gItemList.item[i], output, gFlagsCode, 0, NULL);
+	Make_Compile_Object(input, output, gFlagsCode, 0, NULL);
 }
 
-static void Compile_Code_Elf(u32 i) {
+static void Compile_Code_Elf(ThreadArgs* arg) {
 	char output[256];
+	char* input = gItemList.item[arg->i];
 	
-	if (!MemMem(gItemList.item[i], strlen(gItemList.item[i]) + 1, ".o\0", 3))
+	if (input[strlen(input)] != 'o' || input[strlen(input) - 1] != '.')
 		return;
 	
-	strcpy(output, gItemList.item[i]);
+	strcpy(output, input);
 	String_Replace(output, ".o", ".elf");
 	
-	Make_Compile_Elf(gItemList.item[i], output, "-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T z_lib_user.ld --emit-relocs", 0, NULL);
+	Make_Compile_Elf(input, output, "-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T z_lib_user.ld --emit-relocs", 0, NULL);
 }
 
-static void Compile_Actor_Obj(u32 i) {
+static void Compile_Actor_Obj(ThreadArgs* arg) {
 	char output[256];
+	char* input = gItemList.item[arg->i];
 	
-	if (!MemMem(gItemList.item[i], strlen(gItemList.item[i]) + 1, ".c\0", 3))
+	if (input[strlen(input)] != 'c' || input[strlen(input) - 1] != '.')
 		return;
 	
-	strcpy(output, gItemList.item[i]);
+	strcpy(output, input);
 	String_Replace(output, ".c", ".o");
 	String_Replace(output, "src/", "rom/");
 	
-	Make_Compile_Object(gItemList.item[i], output, "", 0, NULL);
+	Make_Compile_Object(input, output, "", 0, NULL);
 }
 
-static void Compile_Library_Obj(u32 i) {
+static void Compile_Library_Obj(ThreadArgs* arg) {
 	char output[256];
+	char* input = gItemList.item[arg->i];
 	
-	if (!MemMem(gItemList.item[i], strlen(gItemList.item[i]) + 1, ".c\0", 3))
+	if (input[strlen(input)] != 'c' || input[strlen(input) - 1] != '.')
 		return;
 	
-	strcpy(output, gItemList.item[i]);
+	strcpy(output, input);
 	String_Replace(output, ".c", ".o");
 	String_Replace(output, "src/", "rom/");
 	
-	Make_Compile_Object(gItemList.item[i], output, gFlagsCode, 0, NULL);
+	Make_Compile_Object(input, output, gFlagsCode, 0, NULL);
 }
 
-static void Compile_Library_Ld(char* cmd) {
+static void Compile_Library_Ld(ThreadArgs* arg, char* cmd) {
 	MemFile linker = MemFile_Initialize();
 	u32 lineNum = String_GetLineCount(cmd);
 	char* txt = cmd;
@@ -222,26 +230,29 @@ skip:
 		txt = String_Line(txt, 1);
 	}
 	
-	MemFile_SaveFile(&linker, Dir_File(&gDirCtx, "include/z_lib_user.ld"));
+	MemFile_SaveFile(&linker, Dir_File(&arg->dirCtx, "include/z_lib_user.ld"));
 	MemFile_Free(&linker);
 	Free(cmd);
 }
 
 void Make_Library() {
+	ThreadArgs arg = { 0 };
 	s32 i = 0;
 	Thread thread[THREAD_NUM];
 	char cli[256 * 2] = { 0 };
 	
 	gMsgCompiled = false;
-	Dir_Set(&gDirCtx, "%s", gAppDir);
-	if (!Dir_Stat(&gDirCtx, "src/lib_user/")) return;
-	Dir_ItemList_Recursive(&gDirCtx, &gItemList, "src/lib_user");
+	Dir_Set(&arg.dirCtx, "%s", gAppDir);
+	if (!Dir_Stat(&arg.dirCtx, "src/lib_user/")) return;
+	Dir_ItemList_Recursive(&arg.dirCtx, &gItemList, "src/lib_user");
 	
 	while (i < gItemList.num) {
 		u32 target = Clamp(gItemList.num - i, 0, THREAD_NUM);
 		
-		for (s32 j = 0; j < target; j++)
-			Thread_Create(thread[j], Compile_Library_Obj, i + j);
+		for (s32 j = 0; j < target; j++) {
+			arg.i = i + j;
+			Thread_Create(thread[j], Compile_Library_Obj, &arg);
+		}
 		
 		for (s32 j = 0; j < target; j++)
 			Thread_Join(thread[j]);
@@ -252,12 +263,12 @@ void Make_Library() {
 	if (gMsgCompiled == false)
 		return;
 	
-	if (Dir_Stat(&gDirCtx, "rom/lib_user/entry.ld") == false) {
+	if (Dir_Stat(&arg.dirCtx, "rom/lib_user/entry.ld") == false) {
 		MemFile entry = MemFile_Initialize();
 		
 		MemFile_Malloc(&entry, 0x160);
 		MemFile_Printf(&entry, "ENTRY_POINT = 0x80600000;\n");
-		if (MemFile_SaveFile(&entry, Dir_File(&gDirCtx, "rom/lib_user/entry.ld")))
+		if (MemFile_SaveFile(&entry, Dir_File(&arg.dirCtx, "rom/lib_user/entry.ld")))
 			printf_error("Could not save [rom/lib_user/entry.ld]");
 		MemFile_Free(&entry);
 	}
@@ -294,23 +305,26 @@ void Make_Library() {
 	strcpy(cli, Make_Tool("mips64-objdump"));
 	strcat(cli, " -x -t rom/lib_user/z_lib_user.elf");
 	
-	Compile_Library_Ld(Sys_CommandGet(cli));
+	Compile_Library_Ld(&arg, Sys_CommandGet(cli));
 }
 
 void Make_Code_Obj() {
+	ThreadArgs arg = { 0 };
 	s32 i = 0;
 	Thread thread[THREAD_NUM];
 	
 	gMsgCompiled = false;
-	Dir_Set(&gDirCtx, "%s", gAppDir);
-	if (!Dir_Stat(&gDirCtx, "src/lib_code/")) return;
-	Dir_ItemList_Recursive(&gDirCtx, &gItemList, "src/lib_code/");
+	Dir_Set(&arg.dirCtx, "%s", gAppDir);
+	if (!Dir_Stat(&arg.dirCtx, "src/lib_code/")) return;
+	Dir_ItemList_Recursive(&arg.dirCtx, &gItemList, "src/lib_code/");
 	
 	while (i < gItemList.num) {
 		u32 target = Clamp(gItemList.num - i, 0, THREAD_NUM);
 		
-		for (s32 j = 0; j < target; j++)
-			Thread_Create(thread[j], Compile_Code_Obj, i + j);
+		for (s32 j = 0; j < target; j++) {
+			arg.i = i + j;
+			Thread_Create(thread[j], Compile_Code_Obj, &arg);
+		}
 		
 		for (s32 j = 0; j < target; j++)
 			Thread_Join(thread[j]);
@@ -320,19 +334,22 @@ void Make_Code_Obj() {
 }
 
 void Make_Code_Elf() {
+	ThreadArgs arg = { 0 };
 	s32 i = 0;
 	Thread thread[THREAD_NUM];
 	
 	gMsgCompiled = false;
-	Dir_Set(&gDirCtx, "%s", gAppDir);
-	if (!Dir_Stat(&gDirCtx, "rom/lib_code/")) return;
-	Dir_ItemList_Recursive(&gDirCtx, &gItemList, "rom/lib_code/");
+	Dir_Set(&arg.dirCtx, "%s", gAppDir);
+	if (!Dir_Stat(&arg.dirCtx, "rom/lib_code/")) return;
+	Dir_ItemList_Recursive(&arg.dirCtx, &gItemList, "rom/lib_code/");
 	
 	while (i < gItemList.num) {
 		u32 target = Clamp(gItemList.num - i, 0, THREAD_NUM);
 		
-		for (s32 j = 0; j < target; j++)
-			Thread_Create(thread[j], Compile_Code_Elf, i + j);
+		for (s32 j = 0; j < target; j++) {
+			arg.i = i + j;
+			Thread_Create(thread[j], Compile_Code_Elf, &arg);
+		}
 		
 		for (s32 j = 0; j < target; j++)
 			Thread_Join(thread[j]);
@@ -342,18 +359,21 @@ void Make_Code_Elf() {
 }
 
 void Make_Actor_Obj() {
+	ThreadArgs arg = { 0 };
 	s32 i = 0;
 	Thread thread[THREAD_NUM];
 	
 	gMsgCompiled = false;
-	Dir_Set(&gDirCtx, "%s", gAppDir);
-	Dir_ItemList_Recursive(&gDirCtx, &gItemList, "src/actor/");
+	Dir_Set(&arg.dirCtx, "%s", gAppDir);
+	Dir_ItemList_Recursive(&arg.dirCtx, &gItemList, "src/actor/");
 	
 	while (i < gItemList.num) {
 		u32 target = Clamp(gItemList.num - i, 0, THREAD_NUM);
 		
-		for (s32 j = 0; j < target; j++)
-			Thread_Create(thread[j], Compile_Actor_Obj, i + j);
+		for (s32 j = 0; j < target; j++) {
+			arg.i = i + j;
+			Thread_Create(thread[j], Compile_Actor_Obj, &arg);
+		}
 		
 		for (s32 j = 0; j < target; j++)
 			Thread_Join(thread[j]);
@@ -364,6 +384,9 @@ void Make_Actor_Obj() {
 
 void Make(void) {
 	gAppDir = Sys_AppDir();
+	
+	printf_info("Compiling...");
+	
 	Make_Library();
 	
 	Make_Code_Obj();
@@ -371,6 +394,11 @@ void Make(void) {
 	
 	Make_Code_Elf();
 	
+	ItemList_Free(&gItemList);
+	
+	printf_info("Done!");
+	
 	Log_Print();
+	Log_Free();
 	exit(0);
 }

@@ -75,7 +75,7 @@ void Main_CheckTypes() {
 
 s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
-	Rom* rom = Calloc(0, sizeof(struct Rom));
+	Rom* rom;
 	u32 parArg = 0;
 	
 	Log_Init();
@@ -86,6 +86,8 @@ s32 Main(s32 argc, char* argv[]) {
 	
 	if (XARG("make"))
 		Make();
+	
+	rom = Calloc(0, sizeof(struct Rom));
 	
 	if (XARG("yaz")) {
 		u8* tmpBuffer;

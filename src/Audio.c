@@ -694,7 +694,7 @@ void Rom_Build_SetAudioSegment(Rom* rom) {
 }
 
 void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
-	ItemList itemList;
+	ItemList itemList = ItemList_Initialize();
 	MemFile sample = MemFile_Initialize();
 	AudioEntryHead head = { 0 };
 	AudioEntry entry = { 0 };
@@ -755,12 +755,14 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Write(&rom->mem.sampleTbl, &entry, 16);
 	
 	rom->offset.segment.smplRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, dataFile, false);
-	MemFile_Free(&sample);
 	MemFile_Params(dataFile, MEM_ALIGN, 0, MEM_REALLOC, 0, MEM_END);
+	
+	MemFile_Free(&sample);
+	ItemList_Free(&itemList);
 }
 
 void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
-	ItemList itemList;
+	ItemList itemList = ItemList_Initialize();
 	MemFile soundFontMem = MemFile_Initialize();
 	MemFile memBank = MemFile_Initialize();
 	MemFile memBook = MemFile_Initialize();
@@ -790,9 +792,9 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Write(&rom->mem.fontTbl, &sfHead, 16);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
-		ItemList listInst = { 0 };
-		ItemList listSfx = { 0 };
-		ItemList listDrum = { 0 };
+		ItemList listInst = ItemList_Initialize();
+		ItemList listSfx = ItemList_Initialize();
+		ItemList listDrum = ItemList_Initialize();
 		printf_progress("Build SoundFont", i + 1, itemList.num);
 		MemFile_Reset(&memBank);
 		MemFile_Reset(&memBook);
@@ -1395,6 +1397,10 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			
 			Dir_Leave(&gDir);
 		}
+		
+		ItemList_Free(&listInst);
+		ItemList_Free(&listSfx);
+		ItemList_Free(&listDrum);
 	}
 	
 	rom->offset.segment.fontRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, &soundFontMem, false);
@@ -1408,10 +1414,12 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Free(&memSample);
 	MemFile_Free(&memSfx);
 	MemFile_Free(&memDrum);
+	
+	ItemList_Free(&itemList);
 }
 
 void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
-	ItemList itemList;
+	ItemList itemList = ItemList_Initialize();
 	MemFile memIndexTable = MemFile_Initialize();
 	MemFile memLookUpTable = MemFile_Initialize();
 	MemFile sequenceMem = MemFile_Initialize();

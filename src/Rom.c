@@ -9,8 +9,9 @@ u32 TestSwap(u32 swapMe) {
 }
 
 void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
-	ItemList vanilla = { 0 };
-	ItemList modified = { 0 };
+	ItemList vanilla = ItemList_Initialize();
+	ItemList modified = ItemList_Initialize();
+	ItemList result = ItemList_Initialize();
 	
 	Dir_Enter(&gDir, ".vanilla/"); {
 		Dir_ItemList(&gDir, &vanilla, isDir);
@@ -82,6 +83,32 @@ void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 			i++;
 		}
 	}
+	
+	u32 size = 0;
+	
+	for (s32 i = 0; i < list->num; i++) {
+		if (!list->item[i])
+			continue;
+		size += strlen(list->item[i]) + 1;
+	}
+	
+	result.num = list->num;
+	result.buffer = Calloc(0, size);
+	result.item = Calloc(0, sizeof(u8*) * list->num);
+	
+	for (s32 i = 0; i < list->num; i++) {
+		if (!list->item[i])
+			continue;
+		
+		result.item[i] = &result.buffer[result.writePoint];
+		strcpy(result.item[i], list->item[i]);
+		result.writePoint += strlen(result.item[i]) + 1;
+	}
+	
+	list[0] = result;
+	
+	ItemList_Free(&vanilla);
+	ItemList_Free(&modified);
 }
 
 s32 Rom_Extract(MemFile* mem, RomFile rom, char* name) {
@@ -410,7 +437,7 @@ static void Rom_Patch_Binary(Rom* rom, MemFile* dataFile, MemFile* config, char*
 }
 
 static void Rom_Build_Patch(Rom* rom, MemFile* dataFile, MemFile* config) {
-	ItemList list;
+	ItemList list = ItemList_Initialize();
 	
 	Dir_ItemList_Recursive(&gDir, &list, ".cfg");
 	
@@ -445,6 +472,8 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 		rom->file.seekPoint = Config_GetInt(config, "rom");
 		MemFile_Append(&rom->file, dataFile);
 	}
+	
+	ItemList_Free(&list);
 }
 
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
@@ -717,7 +746,7 @@ void Rom_Build(Rom* rom) {
 		}
 		
 		Dir_Enter(&gDir, "actor/"); {
-			ItemList actorList;
+			ItemList actorList = ItemList_Initialize();
 			ActorEntry* entry = rom->table.actor;
 			Rom_ItemList(&actorList, SORT_NUMERICAL, IS_DIR);
 			
@@ -763,11 +792,12 @@ void Rom_Build(Rom* rom) {
 				}
 			}
 			
+			ItemList_Free(&actorList);
 			Dir_Leave(&gDir);
 		}
 		
 		Dir_Enter(&gDir, "effect/"); {
-			ItemList effectList;
+			ItemList effectList = ItemList_Initialize();
 			EffectEntry* entry = rom->table.effect;
 			Rom_ItemList(&effectList, SORT_NUMERICAL, IS_DIR);
 			
@@ -808,6 +838,7 @@ void Rom_Build(Rom* rom) {
 				}
 			}
 			
+			ItemList_Free(&effectList);
 			Dir_Leave(&gDir);
 		}
 		
@@ -839,12 +870,13 @@ void Rom_Build(Rom* rom) {
 				}
 			}
 			
+			ItemList_Free(&objectList);
 			Dir_Leave(&gDir);
 		}
 		
 		Dir_Enter(&gDir, "scene/"); {
 			MemFile memRoom = MemFile_Initialize();
-			ItemList sceneList;
+			ItemList sceneList = ItemList_Initialize();
 			SceneEntry* entry = rom->table.scene;
 			
 			MemFile_Malloc(&memRoom, MbToBin(2));
@@ -959,7 +991,7 @@ void Rom_Build(Rom* rom) {
 			}
 			
 			MemFile_Free(&memRoom);
-			
+			ItemList_Free(&sceneList);
 			Dir_Leave(&gDir);
 		}
 		
@@ -1100,11 +1132,12 @@ void Rom_Build(Rom* rom) {
 				}
 			}
 			
+			ItemList_Free(&gameSysList);
 			Dir_Leave(&gDir);
 		}
 		
 		Dir_Enter(&gDir, "skybox/"); {
-			ItemList skyList;
+			ItemList skyList = ItemList_Initialize();
 			
 			Rom_ItemList(&skyList, SORT_NUMERICAL, IS_DIR);
 			
@@ -1130,11 +1163,12 @@ void Rom_Build(Rom* rom) {
 				}
 			}
 			
+			ItemList_Free(&skyList);
 			Dir_Leave(&gDir);
 		}
 		
 		Dir_Enter(&gDir, "static/"); {
-			ItemList statItem;
+			ItemList statItem = ItemList_Initialize();
 			
 			Rom_ItemList(&statItem, SORT_NO, IS_FILE);
 			
@@ -1169,6 +1203,7 @@ void Rom_Build(Rom* rom) {
 				Dma_WriteEntry(rom, dmaId, &dataFile, false);
 			}
 			
+			ItemList_Free(&statItem);
 			Dir_Leave(&gDir);
 		}
 		

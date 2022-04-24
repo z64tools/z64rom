@@ -14,6 +14,8 @@ DEBUG_EXECUTABLE_WIN32   := release_win32/z64rom-debug.exe
 
 SOURCE_nOVL_C            := $(shell find tools/nOVL/src/* -type f -name '*.c')
 
+ExtLibDep := $(C_INCLUDE_PATH)/ExtLib.h
+
 PRNT_DGRY := \e[90;2m
 PRNT_GRAY := \e[0;90m
 PRNT_REDD := \e[0;91m
@@ -140,7 +142,7 @@ project/tools/z64audio.exe: tools/z64audio/z64audio.c
 	@$(MAKE) -C tools/z64audio win32 -j --no-print-directory --silent
 	@cp $(<:.c=.exe) $@
 	
-project/tools/%: tools/%.c src/External.c
+project/tools/%: tools/%.c src/External.c $(ExtLibDep)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@gcc -o $@ $^ $(OPT_LINUX) $(CFLAGS) -DNDEBUG
 
@@ -148,14 +150,16 @@ project/tools/%: tools/%.c src/External.c
 # LINUX BUILD                         #
 # # # # # # # # # # # # # # # # # # # #
 
-bin/linux/ndebug/%.o: %.c %.h $(HEADER)
-bin/linux/ndebug/%.o: %.c $(HEADER)
+bin/linux/src/External.o: src/External.c $(ExtLibDep) $(C_INCLUDE_PATH)/ExtLib.c
+bin/linux/ndebug/%.o: %.c %.h $(HEADER) $(ExtLibDep)
+bin/linux/ndebug/%.o: %.c $(HEADER) $(ExtLibDep)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@gcc -c -o $@ $< $(OPT_LINUX) $(CFLAGS) -DNDEBUG
 	@objdump -drz $@ > $(@:.o=.s)
-
-bin/linux/%.o: %.c %.h $(HEADER)
-bin/linux/%.o: %.c $(HEADER)
+	
+bin/linux/src/External.o: src/External.c $(ExtLibDep) $(C_INCLUDE_PATH)/ExtLib.c
+bin/linux/%.o: %.c %.h $(HEADER) $(ExtLibDep)
+bin/linux/%.o: %.c $(HEADER) $(ExtLibDep)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@gcc -c -o $@ $< $(OPT_LINUX) $(CFLAGS)
 	@objdump -drz $@ > $(@:.o=.s)
@@ -172,14 +176,16 @@ $(DEBUG_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX)
 # WINDOWS-32 BUILD                    #
 # # # # # # # # # # # # # # # # # # # #
 
-bin/win32/ndebug/%.o: %.c %.h $(HEADER)
-bin/win32/ndebug/%.o: %.c $(HEADER)
+bin/win32/ndebug/src/External.o: src/External.c $(ExtLibDep) $(C_INCLUDE_PATH)/ExtLib.c
+bin/win32/ndebug/%.o: %.c %.h $(HEADER) $(ExtLibDep)
+bin/win32/ndebug/%.o: %.c $(HEADER) $(ExtLibDep)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@i686-w64-mingw32.static-gcc -c -o $@ $< $(OPT_WIN32) $(CFLAGS) -DNDEBUG -D_WIN32
 	@i686-w64-mingw32.static-objdump -drz $@ > $(@:.o=.s)
 	
-bin/win32/%.o: %.c %.h $(HEADER)
-bin/win32/%.o: %.c $(HEADER)
+bin/win32/src/External.o: src/External.c $(ExtLibDep) $(C_INCLUDE_PATH)/ExtLib.c
+bin/win32/%.o: %.c %.h $(HEADER) $(ExtLibDep)
+bin/win32/%.o: %.c $(HEADER) $(ExtLibDep)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@i686-w64-mingw32.static-gcc -c -o $@ $< $(OPT_WIN32) $(CFLAGS) -D_WIN32
 	@i686-w64-mingw32.static-objdump -drz $@ > $(@:.o=.s)

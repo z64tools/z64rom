@@ -12,7 +12,7 @@ prvFileList
 bin/*
 test/*
 !project/patches/*
-release_*
+app_*
 bin/
 project/tools/cofi
 project/tools/depper

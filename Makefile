@@ -1,16 +1,12 @@
-CFLAGS         := -s -flto -Wall -DEXTLIB=100
+CFLAGS         := -s -flto -Wall -DEXTLIB=101
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
 SOURCE_C       := $(shell find src/* -type f -name '*.c')
 SOURCE_O_LINUX := $(foreach f,$(SOURCE_C:.c=.o),bin/linux/$f)
-SOURCE_O_RELEASE_LINUX := $(foreach f,$(SOURCE_C:.c=.o),bin/linux/ndebug/$f)
 SOURCE_O_WIN32 := $(foreach f,$(SOURCE_C:.c=.o),bin/win32/$f)
-SOURCE_O_RELEASE_WIN32 := $(foreach f,$(SOURCE_C:.c=.o),bin/win32/ndebug/$f)
 
-RELEASE_EXECUTABLE_LINUX := release_linux/z64rom
-DEBUG_EXECUTABLE_LINUX   := release_linux/z64rom-debug
-RELEASE_EXECUTABLE_WIN32 := release_win32/z64rom.exe
-DEBUG_EXECUTABLE_WIN32   := release_win32/z64rom-debug.exe
+RELEASE_EXECUTABLE_LINUX := app_linux/z64rom
+RELEASE_EXECUTABLE_WIN32 := app_win32/z64rom.exe
 
 SOURCE_nOVL_C            := $(shell find tools/nOVL/src/* -type f -name '*.c')
 
@@ -30,14 +26,13 @@ HEADER := src/z64rom.h src/Audio.h
 
 # Make build directories
 $(shell mkdir -p bin/ $(foreach dir, \
-	$(dir $(SOURCE_O_WIN32)) \
 	$(dir $(RELEASE_EXECUTABLE_WIN32)) \
-	$(dir $(SOURCE_O_RELEASE_WIN32)) \
-	$(dir $(SOURCE_O_LINUX)) \
+	$(dir $(SOURCE_O_WIN32)) \
 	$(dir $(RELEASE_EXECUTABLE_LINUX)) \
-	$(dir $(SOURCE_O_RELEASE_LINUX)), $(dir)))
-$(shell mkdir -p release_win32/tools/)
-$(shell mkdir -p release_linux/tools/)
+	$(dir $(SOURCE_O_LINUX)) \
+	, $(dir)))
+$(shell mkdir -p app_win32/tools/)
+$(shell mkdir -p app_linux/tools/)
 
 .PHONY: project-files-linux \
 	    project-files-win32 \
@@ -56,13 +51,10 @@ $(shell mkdir -p release_linux/tools/)
 
 default: linux
 all: linux win32
-all-release: linux-release win32-release
 hdrup: hdrup.exe
 
-linux:         project-files-linux $(SOURCE_O_LINUX)         $(DEBUG_EXECUTABLE_LINUX)
-linux-release: project-files-linux $(SOURCE_O_RELEASE_LINUX) $(RELEASE_EXECUTABLE_LINUX)
-win32:         project-files-win32 $(SOURCE_O_WIN32)         $(DEBUG_EXECUTABLE_WIN32)
-win32-release: project-files-win32 $(SOURCE_O_RELEASE_WIN32) $(RELEASE_EXECUTABLE_WIN32)
+linux: project-files-linux $(SOURCE_O_LINUX) $(RELEASE_EXECUTABLE_LINUX)
+win32: project-files-win32 $(SOURCE_O_WIN32) $(RELEASE_EXECUTABLE_WIN32)
 
 hdrup.exe: tools/hdrup.c
 	@i686-w64-mingw32.static-gcc -o $@ $^ $(OPT_WIN32) $(CFLAGS) -DNDEBUG -lm -D_WIN32
@@ -78,26 +70,26 @@ tools: project/tools/elf2ld \
 	project/tools/depper
 
 project-files-linux: tools project/tools/z64audio
-	@mkdir -p             release_linux/src/actor
-	@mkdir -p             release_linux/src/object
-	@cp -r project/patch  release_linux/
-	@cp -r project/src    release_linux/
-	@cp -r project/*      release_linux/
-	@cp -r project/.[^.]* release_linux/
-	@rm -f                release_linux/*/*/*.txt
-	@rm -f                release_linux/*/*.txt
-	@rm -f                release_linux/tools/z64audio.exe
+	@mkdir -p             app_linux/src/actor
+	@mkdir -p             app_linux/src/object
+	@cp -r project/patch  app_linux/
+	@cp -r project/src    app_linux/
+	@cp -r project/*      app_linux/
+	@cp -r project/.[^.]* app_linux/
+	@rm -f                app_linux/*/*/*.txt
+	@rm -f                app_linux/*/*.txt
+	@rm -f                app_linux/tools/z64audio.exe
 
 project-files-win32: tools project/tools/z64audio.exe
-	@mkdir -p             release_win32/src/actor
-	@mkdir -p             release_win32/src/object
-	@cp -r project/patch  release_win32/
-	@cp -r project/src    release_win32/
-	@cp -r project/*      release_win32/
-	@cp -r project/.[^.]* release_win32/
-	@rm -f                release_win32/*/*/*.txt
-	@rm -f                release_win32/*/*.txt
-	@rm -f                release_win32/tools/z64audio
+	@mkdir -p             app_win32/src/actor
+	@mkdir -p             app_win32/src/object
+	@cp -r project/patch  app_win32/
+	@cp -r project/src    app_win32/
+	@cp -r project/*      app_win32/
+	@cp -r project/.[^.]* app_win32/
+	@rm -f                app_win32/*/*/*.txt
+	@rm -f                app_win32/*/*.txt
+	@rm -f                app_win32/tools/z64audio
 
 # # # # # # # # # # # # # # # # # # # #
 # CLEAN                               #
@@ -116,8 +108,8 @@ clean:
 	@rm -f project/tools/elf2ld
 
 clean-release:
-	@rm -f -R release_linux
-	@rm -f -R release_win32
+	@rm -f -R app_linux
+	@rm -f -R app_win32
 	
 # # # # # # # # # # # # # # # # # # # #
 # TOOLS                               #
@@ -149,13 +141,6 @@ project/tools/%: tools/%.c src/External.c $(ExtLibDep)
 # # # # # # # # # # # # # # # # # # # #
 # LINUX BUILD                         #
 # # # # # # # # # # # # # # # # # # # #
-
-bin/linux/src/External.o: src/External.c $(ExtLibDep) $(C_INCLUDE_PATH)/ExtLib.c
-bin/linux/ndebug/%.o: %.c %.h $(HEADER) $(ExtLibDep)
-bin/linux/ndebug/%.o: %.c $(HEADER) $(ExtLibDep)
-	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@gcc -c -o $@ $< $(OPT_LINUX) $(CFLAGS) -DNDEBUG
-	@objdump -drz $@ > $(@:.o=.s)
 	
 bin/linux/src/External.o: src/External.c $(ExtLibDep) $(C_INCLUDE_PATH)/ExtLib.c
 bin/linux/%.o: %.c %.h $(HEADER) $(ExtLibDep)
@@ -164,24 +149,13 @@ bin/linux/%.o: %.c $(HEADER) $(ExtLibDep)
 	@gcc -c -o $@ $< $(OPT_LINUX) $(CFLAGS)
 	@objdump -drz $@ > $(@:.o=.s)
 
-$(RELEASE_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_RELEASE_LINUX)
+$(RELEASE_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
 	@gcc -o $@ $^ $(OPT_LINUX) $(CFLAGS) -DNDEBUG -lm
-
-$(DEBUG_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX)
-	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@gcc -o $@ $^ $(OPT_LINUX) $(CFLAGS) -lm
 
 # # # # # # # # # # # # # # # # # # # #
 # WINDOWS-32 BUILD                    #
 # # # # # # # # # # # # # # # # # # # #
-
-bin/win32/ndebug/src/External.o: src/External.c $(ExtLibDep) $(C_INCLUDE_PATH)/ExtLib.c
-bin/win32/ndebug/%.o: %.c %.h $(HEADER) $(ExtLibDep)
-bin/win32/ndebug/%.o: %.c $(HEADER) $(ExtLibDep)
-	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -c -o $@ $< $(OPT_WIN32) $(CFLAGS) -DNDEBUG -D_WIN32
-	@i686-w64-mingw32.static-objdump -drz $@ > $(@:.o=.s)
 	
 bin/win32/src/External.o: src/External.c $(ExtLibDep) $(C_INCLUDE_PATH)/ExtLib.c
 bin/win32/%.o: %.c %.h $(HEADER) $(ExtLibDep)
@@ -193,11 +167,7 @@ bin/win32/%.o: %.c $(HEADER) $(ExtLibDep)
 bin/win32/icon.o: src/icon.rc src/icon.ico
 	@i686-w64-mingw32.static-windres -o $@ $<
 
-$(RELEASE_EXECUTABLE_WIN32): z64rom.c bin/win32/icon.o $(SOURCE_O_RELEASE_WIN32)
+$(RELEASE_EXECUTABLE_WIN32): z64rom.c bin/win32/icon.o $(SOURCE_O_WIN32)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
 	@i686-w64-mingw32.static-gcc -o $@ $^ $(OPT_WIN32) $(CFLAGS) -DNDEBUG -lm -D_WIN32
-
-$(DEBUG_EXECUTABLE_WIN32): z64rom.c bin/win32/icon.o $(SOURCE_O_WIN32)
-	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -o $@ $^ $(OPT_WIN32) $(CFLAGS) -lm -D_WIN32
 	

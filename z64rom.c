@@ -1,8 +1,9 @@
 #include "src/z64rom.h"
+#include "src/Make.h"
 
 char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.4.10"
 #ifndef NDEBUG
-		PRNT_DGRY " DEBUG BUILD"
+	PRNT_DGRY " DEBUG BUILD"
 #endif
 ;
 char* sToolUsage = {
@@ -18,7 +19,7 @@ s32 sDumpFlag;
 s32 gInfoFlag;
 
 void Main_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
-	char* confRom = Tmp_Printf("%s%s", CurWorkDir(), "z64project.cfg");
+	char* confRom = Tmp_Printf("%s%s", Sys_AppDir(), "z64project.cfg");
 	MemFile* config = &rom->config;
 	u32 parArg = 0;
 	
@@ -40,14 +41,14 @@ void Main_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
 		
 		MemFile_Printf(config, "# Project Settings\n");
 		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", String_GetFilename(input[0]));
-	} else if (Stat(confRom)) {
+	} else if (Sys_Stat(confRom)) {
 		MemFile_Reset(config);
 		MemFile_LoadFile_String(config, confRom);
 		
 		input[0] = Config_GetString(config, "z_baserom");
 		
-		if (!Stat(Tmp_Printf("%s%s", CurWorkDir(), input[0]))) {
-			printf_error("Could not locate your baserom [%s]", Tmp_Printf("%s%s", CurWorkDir(), input[0]));
+		if (!Sys_Stat(Tmp_Printf("%s%s", Sys_AppDir(), input[0]))) {
+			printf_error("Could not locate your baserom [%s]", Tmp_Printf("%s%s", Sys_AppDir(), input[0]));
 		}
 	}
 }
@@ -80,6 +81,11 @@ s32 Main(s32 argc, char* argv[]) {
 	Log_Init();
 	printf_WinFix();
 	printf_SetPrefix("");
+	
+	Sys_SetWorkDir(Sys_AppDir());
+	
+	if (XARG("make"))
+		Make();
 	
 	if (XARG("yaz")) {
 		u8* tmpBuffer;
@@ -208,12 +214,12 @@ s32 Main(s32 argc, char* argv[]) {
 	
 	printf_toolinfo(sToolName, sToolUsage);
 	
-	#ifdef _WIN32
-		if (argc == 1) {
-			printf_info("Press enter to exit.");
-			getchar();
-		}
-	#endif
+#ifdef _WIN32
+	if (argc == 1) {
+		printf_info("Press enter to exit.");
+		getchar();
+	}
+#endif
 	
 	Log_Free();
 	Free(rom);

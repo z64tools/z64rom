@@ -1,5 +1,7 @@
 #include "z64rom.h"
 
+extern DirCtx gDir;
+
 char sBankFiles[1024 * 5][512];
 s32 sBankNum;
 SampleInfo sUnsortedSampleTbl[1024 * 5];
@@ -22,12 +24,12 @@ char* sSeqPlayerType[] = {
 };
 
 #if 0
-	char* sSeqModeType[] = {
-		"default",
-		"enemy",
-		"still",
-		"ignore"
-	};
+char* sSeqModeType[] = {
+	"default",
+	"enemy",
+	"still",
+	"ignore"
+};
 #endif
 
 #define __Config_Sample(wow, sampletype) \
@@ -249,7 +251,7 @@ static void Rom_Dump_Samples_PatchWavFiles(MemFile* dataFile, MemFile* config) {
 	
 	for (s32 i = 0; i < ArrayCount(info); i++) {
 		printf_progress("Update Sample", i + 1, ArrayCount(info));
-		char* file = Dir_File("%s/Sample.wav", info[i].info->name);
+		char* file = Dir_File(&gDir, "%s/Sample.wav", info[i].info->name);
 		
 		MemFile_Reset(dataFile);
 		MemFile_LoadFile(dataFile, file);
@@ -262,7 +264,7 @@ static void Rom_Dump_Samples_PatchWavFiles(MemFile* dataFile, MemFile* config) {
 		/* finetune */ smplInfo[6] = info[i].finetune;
 		MemFile_SaveFile(dataFile, file);
 	}
-	#undef NOTE
+#undef NOTE
 }
 
 void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
@@ -275,7 +277,7 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	Sound* sfx;
 	u32 off = 0;
 	
-	Dir_Enter("soundfont/.vanilla/");
+	Dir_Enter(&gDir, "soundfont/.vanilla/");
 	for (s32 i = 0; i < num; i++) {
 		printf_progress("SoundFont", i + 1, num);
 		
@@ -289,12 +291,12 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		}
 		SetSegment(0x1, bank);
 		
-		Dir_Enter("0x%02X-%s/", i, gBankName_OoT[i]); {
+		Dir_Enter(&gDir, "0x%02X-%s/", i, gBankName_OoT[i]); {
 			if (entry->numInst) {
-				Dir_Enter("instrument/");
+				Dir_Enter(&gDir, "instrument/");
 				
 				for (s32 j = 0; j < entry->numInst; j++) {
-					char* output = Dir_File("%d-Inst.cfg", j);
+					char* output = Dir_File(&gDir, "%d-Inst.cfg", j);
 					
 					if (bank->instruments[j] == 0)
 						instrument = NULL;
@@ -306,14 +308,14 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					}
 				}
 				
-				Dir_Leave();
+				Dir_Leave(&gDir);
 			}
 			
 			if (entry->numSfx) {
-				Dir_Enter("sfx/");
+				Dir_Enter(&gDir, "sfx/");
 				
 				for (s32 j = 0; j < ReadBE(entry->numSfx); j++) {
-					char* output = Dir_File("%d-Sfx.cfg", j);
+					char* output = Dir_File(&gDir, "%d-Sfx.cfg", j);
 					sfx = SegmentedToVirtual(0x1, ReadBE(bank->sfx));
 					
 					if (Rom_Config_Sfx(rom, config, &sfx[j], "Sound Effect", output, off)) {
@@ -322,14 +324,14 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					}
 				}
 				
-				Dir_Leave();
+				Dir_Leave(&gDir);
 			}
 			
 			if (entry->numDrum) {
-				Dir_Enter("drum/");
+				Dir_Enter(&gDir, "drum/");
 				
 				for (s32 j = 0; j < entry->numDrum; j++) {
-					char* output = Dir_File("%d-Drum.cfg", j);
+					char* output = Dir_File(&gDir, "%d-Drum.cfg", j);
 					u32* wow = SegmentedToVirtual(0x1, ReadBE(bank->drums));
 					
 					if (Rom_Config_Drum(rom, config, wow[j], "Drum", output, off)) {
@@ -338,7 +340,7 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					}
 				}
 				
-				Dir_Leave();
+				Dir_Leave(&gDir);
 			}
 			
 			MemFile_Reset(config);
@@ -362,12 +364,12 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			MemFile_Printf(config, "]\n");
 			Config_WriteVar_Str("sequence_player", sSeqPlayerType[entry->seqPlayer]);
 			
-			MemFile_SaveFile_String(config, Dir_File("config.cfg"));
+			MemFile_SaveFile_String(config, Dir_File(&gDir, "config.cfg"));
 			
-			Dir_Leave();
+			Dir_Leave(&gDir);
 		}
 	}
-	Dir_Leave();
+	Dir_Leave(&gDir);
 	
 	SetSegment(0x1, NULL);
 }
@@ -380,12 +382,12 @@ void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 	RomFile romFile;
 	u32 num = ReadBE(head->numEntries);
 	
-	Dir_Enter("sequence/.vanilla/");  {
+	Dir_Enter(&gDir, "sequence/.vanilla/");  {
 		SetSegment(0x1, SegmentedToVirtual(0x0, rom->offset.table.seqFontTbl));
 		
 		MemFile_Reset(config);
 		for (s32 i = 0; i < num; i++) {
-			Dir_Enter("0x%02X-%s/", i, gSequenceName_OoT[i]); {
+			Dir_Enter(&gDir, "0x%02X-%s/", i, gSequenceName_OoT[i]); {
 				printf_progress("Sequence", i + 1, num);
 				segFontOffTable = SegmentedToVirtual(0x0, rom->offset.table.seqFontTbl);
 				entry = &head->entries[i];
@@ -403,7 +405,7 @@ void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 				}
 				
 				if (romFile.size != 0) {
-					Rom_Extract(dataFile, romFile, Dir_File("%s.seq", gSequenceName_OoT[i]));
+					Rom_Extract(dataFile, romFile, Dir_File(&gDir, "%s.seq", gSequenceName_OoT[i]));
 				} else {
 					Config_WriteVar_Hex("seq_pointer", ReadBE(entry->romAddr));
 				}
@@ -428,15 +430,15 @@ void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 				MemFile_Printf(config, "]\n");
 				Config_WriteVar_Str("sequence_player", sSeqPlayerType[entry->seqPlayer]);
 				
-				MemFile_SaveFile_String(config, Dir_File("config.cfg"));
+				MemFile_SaveFile_String(config, Dir_File(&gDir, "config.cfg"));
 				
-				Dir_Leave();
+				Dir_Leave(&gDir);
 			}
 		}
 		
 		SetSegment(0x1, NULL);
 		
-		Dir_Leave();
+		Dir_Leave(&gDir);
 	}
 }
 
@@ -479,7 +481,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	tbl = sSortedSampleTbl;
 	
-	Dir_Enter("sample/.vanilla/");  {
+	Dir_Enter(&gDir, "sample/.vanilla/");  {
 		for (s32 i = 0; i < sSortID; i++) {
 			printf_progress("Sample", i + 1, sSortID);
 			name = gSampleInfo[i].dublicate == NULL ? gSampleInfo[i].name : gSampleInfo[i].dublicate->name;
@@ -496,44 +498,44 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 			if (sampRate == 0)
 				printf_error("Sample [%s] is missing samplerate", name);
 			
-			Dir_Enter("%s/", name); {
+			Dir_Enter(&gDir, "%s/", name); {
 				book = SegmentedToVirtual(0x0, tbl[i]->book);
 				loop = SegmentedToVirtual(0x0, tbl[i]->loop);
 				
 				rf.size = ReadBE(tbl[i]->data) & 0x00FFFFFF;
 				rf.data = SegmentedToVirtual(0x0, tbl[i]->sampleAddr);
-				Rom_Extract(dataFile, rf, Dir_File("sample.vadpcm.bin"));
+				Rom_Extract(dataFile, rf, Dir_File(&gDir, "sample.vadpcm.bin"));
 				
 				rf.size = sizeof(s16) * 8 * ReadBE(book->order) * ReadBE(book->npredictors) + 8;
 				rf.data = book;
-				Rom_Extract(dataFile, rf, Dir_File("sample.book.bin"));
+				Rom_Extract(dataFile, rf, Dir_File(&gDir, "sample.book.bin"));
 				
-				Rom_Config_Sample(rom, config, (Sample*)tbl[i], name, Dir_File("config.cfg"));
+				Rom_Config_Sample(rom, config, (Sample*)tbl[i], name, Dir_File(&gDir, "config.cfg"));
 				
 				if (loop->count) {
 					rf.size = 0x20;
 					rf.data = SegmentedToVirtual(0x0, tbl[i]->loop + 0x10);
-					Rom_Extract(dataFile, rf, Dir_File("sample.loopbook.bin"));
+					Rom_Extract(dataFile, rf, Dir_File(&gDir, "sample.loopbook.bin"));
 				}
 				
 				if (gExtractAudio) {
-					#ifndef _WIN32
-						strcpy(sysbuf, "./tools/z64audio --i ");
-					#else
-						strcpy(sysbuf, "tools\\z64audio.exe --i ");
-					#endif
-					strcat(sysbuf, Dir_File("sample.vadpcm.bin"));
+#ifndef _WIN32
+					strcpy(sysbuf, "./tools/z64audio --i ");
+#else
+					strcpy(sysbuf, "tools\\z64audio.exe --i ");
+#endif
+					strcat(sysbuf, Dir_File(&gDir, "sample.vadpcm.bin"));
 					strcat(sysbuf, " --o ");
-					strcat(sysbuf, Dir_File("Sample.wav"));
+					strcat(sysbuf, Dir_File(&gDir, "Sample.wav"));
 					
-					#ifndef NDEBUG
-						if (gPrintfSuppress == PSL_DEBUG)
-							strcat(sysbuf, " --D");
-						else
-							strcat(sysbuf, " --S");
-					#else
+#ifndef NDEBUG
+					if (gPrintfSuppress == PSL_DEBUG)
+						strcat(sysbuf, " --D");
+					else
 						strcat(sysbuf, " --S");
-					#endif
+#else
+					strcat(sysbuf, " --S");
+#endif
 					
 					strcat(sysbuf, " --srate ");
 					strcat(sysbuf, Tmp_Printf("%d", sampRate));
@@ -555,8 +557,8 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 					MemFile_Reset(dataFile);
 					s8* instInfo;
 					
-					if (MemFile_LoadFile(dataFile, Dir_File("Sample.wav"))) {
-						printf_warning_align("Sample not found", "%s", Dir_File("Sample.wav"));
+					if (MemFile_LoadFile(dataFile, Dir_File(&gDir, "Sample.wav"))) {
+						printf_warning_align("Sample not found", "%s", Dir_File(&gDir, "Sample.wav"));
 					}
 					
 					instInfo = MemMem(dataFile->data, dataFile->dataSize, "inst", 4);
@@ -565,14 +567,14 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 						Config_SPrintf("\n # Instrument Info\n");
 						Config_WriteVar_Int("basenote", instInfo[8]);
 						Config_WriteVar_Int("finetune", instInfo[9]);
-						MemFile_SaveFile_String(config, Dir_File("config.cfg"));
+						MemFile_SaveFile_String(config, Dir_File(&gDir, "config.cfg"));
 					} else {
 						if (dataFile->dataSize == 0)
-							printf_warning_align("Audio", "Empty File [%s]", Dir_File("Sample.wav"));
+							printf_warning_align("Audio", "Empty File [%s]", Dir_File(&gDir, "Sample.wav"));
 					}
 				}
 				
-				Dir_Leave();
+				Dir_Leave(&gDir);
 			}
 		}
 		
@@ -631,7 +633,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 		if (gExtractAudio && !gGenericNames)
 			Rom_Dump_Samples_PatchWavFiles(dataFile, config);
 		
-		Dir_Leave();
+		Dir_Leave(&gDir);
 	}
 }
 
@@ -651,10 +653,10 @@ static void Audio_LoadFile(MemFile* dataFile, char* file) {
 	
 	strcpy(buf, file);
 	String_Replace(buf, "*", "sample");
-	if (Stat(Dir_File(buf))) {
-		if (MemFile_LoadFile(dataFile, Dir_File(buf))) printf_error("Exiting...");
+	if (Sys_Stat(Dir_File(&gDir, buf))) {
+		if (MemFile_LoadFile(dataFile, Dir_File(&gDir, buf))) printf_error("Exiting...");
 	} else {
-		if (MemFile_LoadFile(dataFile, Dir_File(file))) printf_error("Exiting...");
+		if (MemFile_LoadFile(dataFile, Dir_File(&gDir, file))) printf_error("Exiting...");
 	}
 }
 
@@ -687,8 +689,8 @@ void Rom_Build_SetAudioSegment(Rom* rom) {
 		printf_warning("AudioDebug_Draw overwriting exceeded. Might cause trouble...");
 	}
 	
-	#undef INST_ADDR
-	#undef RAM_ADDR
+#undef INST_ADDR
+#undef RAM_ADDR
 }
 
 void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
@@ -707,9 +709,9 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 		MemFile_Reset(config);
 		MemFile_Reset(&sample);
 		
-		Dir_Enter(itemList.item[i]); {
-			char* file = Dir_File("*.vadpcm.bin");
-			char* cfg = Dir_File("config.cfg");
+		Dir_Enter(&gDir, itemList.item[i]); {
+			char* file = Dir_File(&gDir, "*.vadpcm.bin");
+			char* cfg = Dir_File(&gDir, "config.cfg");
 			f32 tuning;
 			
 			if (file == NULL)
@@ -733,13 +735,13 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 				printf_error("Error: Samplebank alignment failed!");
 			
 			sSampleTbl[sSampleTblNum].size = sample.dataSize;
-			strcpy(sSampleTbl[sSampleTblNum].dir, Dir_File(""));
+			strcpy(sSampleTbl[sSampleTblNum].dir, Dir_File(&gDir, ""));
 			strcpy(sSampleTbl[sSampleTblNum].name, String_GetFolder(itemList.item[i], -1));
 			String_Replace(sSampleTbl[sSampleTblNum].name, "/", "\0");
 			sSampleTblNum++;
 			MemFile_Append(dataFile, &sample);
 			
-			Dir_Leave();
+			Dir_Leave(&gDir);
 		}
 	}
 	
@@ -804,38 +806,38 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		MemFile_Reset(config);
 		SetSegment(0x4, memBank.data);
 		
-		Dir_Enter(itemList.item[i]); {
+		Dir_Enter(&gDir, itemList.item[i]); {
 			u32 smplNum = 0;
 			
-			if (Dir_Stat("instrument/")) {
-				Dir_Enter("instrument/");
-				Dir_ItemList(&listInst, false);
+			if (Dir_Stat(&gDir, "instrument/")) {
+				Dir_Enter(&gDir, "instrument/");
+				Dir_ItemList(&gDir, &listInst, false);
 				ItemList_NumericalSort(&listInst);
 				
-				Dir_Leave();
+				Dir_Leave(&gDir);
 			}
 			
-			if (Dir_Stat("sfx/")) {
-				Dir_Enter("sfx/");
-				Dir_ItemList(&listSfx, false);
+			if (Dir_Stat(&gDir, "sfx/")) {
+				Dir_Enter(&gDir, "sfx/");
+				Dir_ItemList(&gDir, &listSfx, false);
 				ItemList_NumericalSort(&listSfx);
 				
-				Dir_Leave();
+				Dir_Leave(&gDir);
 			}
 			
-			if (Dir_Stat("drum/")) {
-				Dir_Enter("drum/");
-				Dir_ItemList(&listDrum, false);
+			if (Dir_Stat(&gDir, "drum/")) {
+				Dir_Enter(&gDir, "drum/");
+				Dir_ItemList(&gDir, &listDrum, false);
 				ItemList_NumericalSort(&listDrum);
 				
-				Dir_Leave();
+				Dir_Leave(&gDir);
 			}
 			
 			// DDDDDDDD SSSSSSSS Drum Segment | Sfx Segment
 			MemFile_Write(&memBank, "\0\0\0\0\0\0\0\0", 8);
 			
 			for (s32 j = 0; j < listInst.num; j++) {
-				char* restoreDir = Tmp_String(Dir_Current());
+				char* restoreDir = Tmp_String(Dir_Current(&gDir));
 				Instrument instrument = { 0 };
 				Adsr confEnv[4];
 				char* sampleName[3];
@@ -859,7 +861,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				}
 				
 				MemFile_Reset(config);
-				MemFile_LoadFile_String(config, Dir_File("instrument/%s", listInst.item[j]));
+				MemFile_LoadFile_String(config, Dir_File(&gDir, "instrument/%s", listInst.item[j]));
 				
 				for (s32 soundID = 0; soundID < 3; soundID++) {
 					sampleName[soundID] = Config_GetString(config, confSample[soundID]);
@@ -931,9 +933,9 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					if (sampleID < 0)
 						continue;
 					
-					Dir_Set(sSampleTbl[sampleID].dir);
+					Dir_Set(&gDir, sSampleTbl[sampleID].dir);
 					MemFile_Reset(dataFile);
-					MemFile_LoadFile(dataFile, Dir_File("config.cfg"));
+					MemFile_LoadFile(dataFile, Dir_File(&gDir, "config.cfg"));
 					
 					smpl.sampleAddr = ReadBE(sSampleTbl[sampleID].segment);
 					smpl.data = sSampleTbl[sampleID].size;
@@ -989,7 +991,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 						void* ptr = MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample));
 						instrument.sound[soundID].sample = (uPtr)ptr - (uPtr)memSample.data;
 					}
-					Dir_Set(restoreDir);
+					Dir_Set(&gDir, restoreDir);
 				}
 				
 				SwapBE(memInst.seekPoint);
@@ -1000,7 +1002,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			}
 			
 			for (s32 j = 0; j < listSfx.num; j++) {
-				char* restoreDir = Tmp_String(Dir_Current());
+				char* restoreDir = Tmp_String(Dir_Current(&gDir));
 				Sound sfx = { 0 };
 				char* prim;
 				
@@ -1010,7 +1012,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				}
 				
 				MemFile_Reset(config);
-				MemFile_LoadFile_String(config, Dir_File("sfx/%s", listSfx.item[j]));
+				MemFile_LoadFile_String(config, Dir_File(&gDir, "sfx/%s", listSfx.item[j]));
 				prim = Config_GetString(config, "prim_sample");
 				
 				if (!strcmp(prim, "NULL")) {
@@ -1034,10 +1036,10 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 							break;
 					}
 					
-					Dir_Set(sSampleTbl[l].dir);
+					Dir_Set(&gDir, sSampleTbl[l].dir);
 					
 					MemFile_Reset(config);
-					MemFile_LoadFile_String(config, Dir_File("config.cfg"));
+					MemFile_LoadFile_String(config, Dir_File(&gDir, "config.cfg"));
 					
 					if (sSampleTbl[l].tuninOverride > 0)
 						sfx.tuning = sSampleTbl[l].tuninOverride;
@@ -1097,16 +1099,16 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 						void* ptr = MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample));
 						sfx.sample = (uPtr)ptr - (uPtr)memSample.data;
 					}
-				} Dir_Set(restoreDir);
+				} Dir_Set(&gDir, restoreDir);
 				
 				MemFile_Write(&memSfx, &sfx, sizeof(struct Sound));
 			}
 			
 			for (s32 j = 0; j < listDrum.num; j++) {
-				char* restoreDir = Tmp_String(Dir_Current());
+				char* restoreDir = Tmp_String(Dir_Current(&gDir));
 				Drum drum = { 0 };
 				Adsr confEnv[4] = { 0 };
-				char* currentConf = Tmp_String(Dir_File("drum/%s", listDrum.item[j]));
+				char* currentConf = Tmp_String(Dir_File(&gDir, "drum/%s", listDrum.item[j]));
 				char* prim;
 				
 				if (j == 0) {
@@ -1173,9 +1175,9 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 							break;
 					}
 					
-					Dir_Set(sSampleTbl[sampleID].dir);
+					Dir_Set(&gDir, sSampleTbl[sampleID].dir);
 					MemFile_Reset(config);
-					MemFile_LoadFile_String(config, Dir_File("config.cfg"));
+					MemFile_LoadFile_String(config, Dir_File(&gDir, "config.cfg"));
 					
 					smpl.sampleAddr = ReadBE(sSampleTbl[sampleID].segment);
 					smpl.data = sSampleTbl[sampleID].size;
@@ -1234,7 +1236,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					
 					MemFile_Reset(config);
 					MemFile_LoadFile_String(config, currentConf);
-				} Dir_Set(restoreDir);
+				} Dir_Set(&gDir, restoreDir);
 				
 				MemFile_Write(&memDrum, &drum, sizeof(struct Drum));
 				MemFile_Align(&memDrum, 16);
@@ -1358,7 +1360,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			MemFile_Append(&soundFontMem, &memBank); MemFile_Align(&soundFontMem, 16);
 			
 			MemFile_Reset(config);
-			MemFile_LoadFile_String(config, Dir_File("config.cfg"));
+			MemFile_LoadFile_String(config, Dir_File(&gDir, "config.cfg"));
 			confMed = Config_GetString(config, "medium_type");
 			confSeq = Config_GetString(config, "sequence_player");
 			
@@ -1391,7 +1393,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			SwapBE(sfEntry.numSfx);
 			MemFile_Write(&rom->mem.fontTbl, &sfEntry, 16);
 			
-			Dir_Leave();
+			Dir_Leave(&gDir);
 		}
 	}
 	
@@ -1445,7 +1447,7 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			continue;
 		}
 		
-		Dir_Enter(itemList.item[i]); {
+		Dir_Enter(&gDir, itemList.item[i]); {
 			u32 med = 0;
 			u32 seq = 0;
 			char* confMed;
@@ -1453,7 +1455,7 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			
 			MemFile_Reset(dataFile);
 			MemFile_Reset(config);
-			MemFile_LoadFile_String(config, Dir_File("config.cfg"));
+			MemFile_LoadFile_String(config, Dir_File(&gDir, "config.cfg"));
 			confMed = Config_GetString(config, "medium_type");
 			confSeq = Config_GetString(config, "sequence_player");
 			
@@ -1478,8 +1480,8 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			sqEntry.numDrum = 0;
 			sqEntry.numSfx = 0;
 			
-			if (Dir_File("*.seq")) {
-				MemFile_LoadFile(dataFile, Dir_File("*.seq"));
+			if (Dir_File(&gDir, "*.seq")) {
+				MemFile_LoadFile(dataFile, Dir_File(&gDir, "*.seq"));
 				addr = sequenceMem.seekPoint;
 				MemFile_Append(&sequenceMem, dataFile);
 				MemFile_Align(&sequenceMem, 16);
@@ -1504,7 +1506,7 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 				MemFile_Write(&memIndexTable, &bankId, 1);
 			}
 			
-			Dir_Leave();
+			Dir_Leave(&gDir);
 		}
 	}
 	

@@ -95,7 +95,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 		strcpy(yazFile, memFile->info.name);
 		String_SwapExtension(yazFile, memFile->info.name, ".yaz");
 		
-		if (Stat(yazFile) >= memFile->info.age) {
+		if (Sys_Stat(yazFile) >= memFile->info.age) {
 			MemFile_LoadFile(memFile, yazFile);
 		} else {
 			memcpy(gYazBuf, memFile->data, memFile->dataSize);

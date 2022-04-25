@@ -1,5 +1,10 @@
 #include <ULib.h>
 
+/*
+   z64ram = 0x800005A0
+   z64rom = 0x0011A0
+ */
+
 void Main_ThreadEntry(void* arg) {
 	OSTime time;
 	

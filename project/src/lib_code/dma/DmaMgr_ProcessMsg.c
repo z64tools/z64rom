@@ -1,5 +1,10 @@
 #include <ULib.h>
 
+/*
+   z64ram = 0x800013FC
+   z64rom = 0x001FFC
+ */
+
 void DmaMgr_ProcessMsg(DmaRequest* req) {
 	static u32 s = 0;
 	u32 vrom = req->vromAddr;

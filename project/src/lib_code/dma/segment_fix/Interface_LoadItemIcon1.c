@@ -1,5 +1,10 @@
 #include <oot_mq_debug/z64hdr.h>
 
+/*
+   z64ram = 0x80084A6C
+   z64rom = 0xAFBC0C
+ */
+
 void Interface_LoadItemIcon1(GlobalContext* globalCtx, u16 button) {
 	InterfaceContext* interfaceCtx = &globalCtx->interfaceCtx;
 	

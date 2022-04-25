@@ -1,4 +1,4 @@
-CFLAGS         := -s -flto -Wall -DEXTLIB=104 -pthread
+CFLAGS         := -s -flto -Wall -DEXTLIB=105 -pthread
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
 SOURCE_C       := $(shell find src/* -type f -name '*.c')
@@ -67,7 +67,8 @@ tools: project/tools/elf2ld \
 	project/tools/cofi \
 	project/tools/novl \
 	project/tools/z64convert \
-	project/tools/depper
+	project/tools/depper \
+	project/tools/novl.exe
 
 project-files-linux: tools project/tools/z64audio
 	@mkdir -p             app_linux/src/actor
@@ -79,6 +80,7 @@ project-files-linux: tools project/tools/z64audio
 	@rm -f                app_linux/*/*/*.txt
 	@rm -f                app_linux/*/*.txt
 	@rm -f                app_linux/tools/z64audio.exe
+	@rm -f                app_linux/tools/novl.exe
 
 project-files-win32: tools project/tools/z64audio.exe
 	@mkdir -p             app_win32/src/actor
@@ -90,6 +92,7 @@ project-files-win32: tools project/tools/z64audio.exe
 	@rm -f                app_win32/*/*/*.txt
 	@rm -f                app_win32/*/*.txt
 	@rm -f                app_win32/tools/z64audio
+	@rm -f                app_win32/tools/novl
 
 # # # # # # # # # # # # # # # # # # # #
 # CLEAN                               #
@@ -118,6 +121,10 @@ clean-release:
 project/tools/novl: $(SOURCE_nOVL_C)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@gcc -o $@ -s -Os -DNOVL_DEBUG=1 -flto $^ -Wno-unused-result `pkg-config --cflags --libs libelf glib-2.0`
+	
+project/tools/novl.exe: $(SOURCE_nOVL_C)
+	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
+	@i686-w64-mingw32.static-gcc -o $@ -Wall -DNDEBUG -Os -s -flto -mconsole tools/novl/src/*.c `i686-w64-mingw32.static-pkg-config --cflags --libs glib-2.0` -Itools/novl/libelf -D__LIBELF_INTERNAL__=1 -DHAVE_MEMCPY=1 -DHAVE_MEMCMP=1 -DHAVE_MEMMOVE=1 -DSTDC_HEADERS=1 tools/novl/libelf/*.c
 
 project/tools/z64audio: tools/z64audio/z64audio.c
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"

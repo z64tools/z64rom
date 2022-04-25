@@ -1,5 +1,10 @@
 #include <oot_mq_debug/z64hdr.h>
 
+/*
+   z64ram = 0x800AF218
+   z64rom = 0xB263B8
+ */
+
 typedef struct {
 	DmaEntry* file;
 	DmaEntry* palette;

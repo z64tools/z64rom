@@ -17,6 +17,8 @@ s32 gPrintInfo;
 s32 gGenericNames;
 s32 sDumpFlag;
 s32 gInfoFlag;
+s32 gLogOutput;
+extern u32 gThreading;
 
 void Main_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
 	char* confRom = Tmp_Printf("%s%s", Sys_AppDir(), "z64project.cfg");
@@ -83,6 +85,9 @@ s32 Main(s32 argc, char* argv[]) {
 	printf_SetPrefix("");
 	
 	Sys_SetWorkDir(Sys_AppDir());
+	
+	if (XARG("single-thread")) gThreading = false;
+	if (XARG("log")) gLogOutput = true;
 	
 	if (XARG("make"))
 		Make();
@@ -185,7 +190,7 @@ s32 Main(s32 argc, char* argv[]) {
 	}
 	if (XARG("generic")) gGenericNames = true;
 	if (XARG("no-wav")) gExtractAudio = false;
-	if (XARG("log")) gPrintInfo = true;
+	if (XARG("info")) gPrintInfo = true;
 	if (XARG("debug")) printf_SetSuppressLevel(PSL_DEBUG);
 	if (XARG("compress")) gCompressFlag = true;
 	

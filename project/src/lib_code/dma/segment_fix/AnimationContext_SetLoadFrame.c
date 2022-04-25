@@ -1,5 +1,10 @@
 #include <oot_mq_debug/z64hdr.h>
 
+/*
+   z64ram = 0x800A336C
+   z64rom = 0xB1A50C
+ */
+
 AnimationEntry* AnimationContext_AddEntry(AnimationContext* animationCtx, AnimationType type);
 asm ("AnimationContext_AddEntry = 0x800A3334");
 

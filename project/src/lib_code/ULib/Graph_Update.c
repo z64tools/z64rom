@@ -1,5 +1,10 @@
 #include <ULib.h>
 
+/*
+   z64ram = 0x800C61D8
+   z64rom = 0xB3D378
+ */
+
 extern OSTime sGraphUpdateTime;
 extern FaultClient sGraphUcodeFaultClient;
 

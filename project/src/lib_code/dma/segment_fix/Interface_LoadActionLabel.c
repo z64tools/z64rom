@@ -1,5 +1,10 @@
 #include <oot_mq_debug/z64hdr.h>
 
+/*
+   z64ram = 0x80086D90
+   z64rom = 0xAFDF30
+ */
+
 #define gAttackDoActionENGTex (void*)0x07000000
 #define gCheckDoActionENGTex  (void*)0x07000180
 
@@ -17,15 +22,15 @@ void Interface_LoadActionLabel(InterfaceContext* interfaceCtx, u16 action, s16 l
 		action = DO_ACTION_NONE;
 	}
 	
-	#if 0 // RIP other languages
-		if (gSaveContext.language != LANGUAGE_ENG) {
-			action += DO_ACTION_MAX;
-		}
-		
-		if (gSaveContext.language == LANGUAGE_FRA) {
-			action += DO_ACTION_MAX;
-		}
-	#endif
+#if 0                          // RIP other languages
+	if (gSaveContext.language != LANGUAGE_ENG) {
+		action += DO_ACTION_MAX;
+	}
+	
+	if (gSaveContext.language == LANGUAGE_FRA) {
+		action += DO_ACTION_MAX;
+	}
+#endif
 	
 	if ((action != DO_ACTION_NONE) && (action != DO_ACTION_MAX + DO_ACTION_NONE) && (action != 2 * DO_ACTION_MAX + DO_ACTION_NONE)) {
 		osCreateMesgQueue(&interfaceCtx->loadQueue, &interfaceCtx->loadMsg, OS_MESG_BLOCK);

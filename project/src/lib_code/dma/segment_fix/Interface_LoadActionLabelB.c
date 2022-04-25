@@ -1,23 +1,28 @@
 #include <oot_mq_debug/z64hdr.h>
 
+/*
+   z64ram = 0x8008708C
+   z64rom = 0xAFE22C
+ */
+
 #ifndef DO_ACTION_TEX_WIDTH
-	#define DO_ACTION_TEX_WIDTH  48
-	#define DO_ACTION_TEX_HEIGHT 16
-	#define DO_ACTION_TEX_SIZE   ((DO_ACTION_TEX_WIDTH * DO_ACTION_TEX_HEIGHT) / 2) // (sizeof(gCheckDoActionENGTex))
+#define DO_ACTION_TEX_WIDTH  48
+#define DO_ACTION_TEX_HEIGHT 16
+#define DO_ACTION_TEX_SIZE   ((DO_ACTION_TEX_WIDTH * DO_ACTION_TEX_HEIGHT) / 2)         // (sizeof(gCheckDoActionENGTex))
 #endif
 
 void Interface_LoadActionLabelB(GlobalContext* globalCtx, u16 action) {
 	InterfaceContext* interfaceCtx = &globalCtx->interfaceCtx;
 	
-	#if 0
-		if (gSaveContext.language != LANGUAGE_ENG) {
-			action += DO_ACTION_MAX;
-		}
-		
-		if (gSaveContext.language == LANGUAGE_FRA) {
-			action += DO_ACTION_MAX;
-		}
-	#endif
+#if 0
+	if (gSaveContext.language != LANGUAGE_ENG) {
+		action += DO_ACTION_MAX;
+	}
+	
+	if (gSaveContext.language == LANGUAGE_FRA) {
+		action += DO_ACTION_MAX;
+	}
+#endif
 	
 	interfaceCtx->unk_1FC = action;
 	

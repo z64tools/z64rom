@@ -1,5 +1,10 @@
 #include <ULib.h>
 
+/*
+   z64ram = 0x800C6844
+   z64rom = 0xB3D9E4
+ */
+
 extern void* sSceneDrawHandlers[53];
 asm ("sSceneDrawHandlers = 0x8012A3A4");
 asm ("gGameStateOverlayTable = 0x8011F830");

@@ -1,5 +1,10 @@
 #include <oot_mq_debug/z64hdr.h>
 
+/*
+   z64ram = 0x80080AB4
+   z64rom = 0xAF7C54
+ */
+
 extern s16 sEntranceIconMapIndex;
 asm ("sEntranceIconMapIndex = 0x80123A5C");
 asm ("gMapData = 0x8015FFD0");

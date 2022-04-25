@@ -1,5 +1,10 @@
 #include "Sram.h"
 
+/*
+   z64ram = 0x800A9258
+   z64rom = 0xB203F8
+ */
+
 void Sram_InitSave(FileChooseContext* fileChooseCtx, SramContext* sramCtx) {
 	u16 offset;
 	u16 j;

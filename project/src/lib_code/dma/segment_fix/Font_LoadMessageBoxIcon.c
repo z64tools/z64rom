@@ -1,5 +1,10 @@
 #include <oot_mq_debug/z64hdr.h>
 
+/*
+   z64ram = 0x8006EEBC
+   z64rom = 0xAE605C
+ */
+
 void Font_LoadMessageBoxIcon(Font* font, u16 icon) {
 	DmaMgr_SendRequest1(
 		font->iconBuf,

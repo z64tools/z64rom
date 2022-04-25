@@ -1,5 +1,10 @@
 #include <oot_mq_debug/z64hdr.h>
 
+/*
+   z64ram = 0x800CA3A0
+   z64rom = 0xB41540
+ */
+
 extern u32 osMemSize;
 extern u32 sSysCfbFbPtr[2];
 extern u32 sSysCfbEnd;

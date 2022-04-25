@@ -1,13 +1,18 @@
 #include <oot_mq_debug/z64hdr.h>
 
+/*
+   z64ram = 0x8006EF10
+   z64rom = 0xAE60B0
+ */
+
 extern const char _message_0xFFFC_nes[];
 extern const char _message_0xFFFD_nes[];
 asm ("_message_0xFFFC_nes = 0x070380D4");
 asm ("_message_0xFFFD_nes = 0x0703811C");
 
 #ifndef CTRL_NEWLINE
-	#define MESSAGE_NEWLINE 0x01
-	#define MESSAGE_END     0x02
+#define MESSAGE_NEWLINE 0x01
+#define MESSAGE_END     0x02
 #endif
 
 void Font_LoadOrderedFont(Font* font) {

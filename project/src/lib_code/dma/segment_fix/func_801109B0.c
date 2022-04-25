@@ -1,5 +1,10 @@
 #include <oot_mq_debug/z64hdr.h>
 
+/*
+   z64ram = 0x801109B0
+   z64rom = 0xB87B50
+ */
+
 void func_801109B0(GlobalContext* globalCtx) {
 	InterfaceContext* interfaceCtx = &globalCtx->interfaceCtx;
 	u32 parameterSize;

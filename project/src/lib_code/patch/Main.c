@@ -1,5 +1,10 @@
 #include <oot_mq_debug/z64hdr.h>
 
+/*
+   z64ram = 0x800C6E20
+   z64rom = 0xB3DFC0
+ */
+
 extern PreNmiBuff* gAppNmiBufferPtr;
 extern SchedContext gSchedContext;
 extern PadMgr gPadMgr;

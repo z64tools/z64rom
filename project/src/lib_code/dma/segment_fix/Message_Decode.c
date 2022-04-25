@@ -2,6 +2,11 @@
 #include <include/message_data_fmt.h>
 #include <include/message_data_static.h>
 
+/*
+   z64ram = 0x80109B3C
+   z64rom = 0xB80CDC
+ */
+
 void Message_Decode(GlobalContext* globalCtx) {
 	u8 temp_s2;
 	u8 phi_s1;

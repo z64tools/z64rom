@@ -1,4 +1,4 @@
-CFLAGS         := -s -flto -Wall -DEXTLIB=103 -pthread
+CFLAGS         := -s -flto -Wall -DEXTLIB=104 -pthread
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
 SOURCE_C       := $(shell find src/* -type f -name '*.c')

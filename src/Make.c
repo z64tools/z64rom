@@ -328,44 +328,6 @@ skip:
 	Free(cmd);
 }
 
-static void Make_Code_Thread_Elf(ThreadArg* arg) {
-	char* output;
-	char* input = arg->itemList->item[arg->i];
-	
-	if (!StrEnd(input, ".o")) {
-		Log("Skipped " PRNT_DGRY "[%s]", input);
-		
-		return;
-	}
-	
-	output = Calloc(0, strlen(input) + 10);
-	strcpy(output, input);
-	String_Replace(output, ".o", ".elf");
-	String_Replace(output, "src/", "rom/");
-	
-	Make_Code_LD(input, output, arg->flag, 0, NULL, arg->callback);
-	Free(output);
-}
-
-static void Make_Code_Thread_Obj(ThreadArg* arg) {
-	char* output;
-	char* input = arg->itemList->item[arg->i];
-	
-	if (!StrEnd(input, ".c")) {
-		Log("Skipped " PRNT_DGRY "[%s]", input);
-		
-		return;
-	}
-	
-	output = Calloc(0, strlen(input) + 10);
-	strcpy(output, input);
-	String_Replace(output, ".c", ".o");
-	String_Replace(output, "src/", "rom/");
-	
-	Make_Code_GCC(input, output, arg->flag, 0, NULL, arg->callback);
-	Free(output);
-}
-
 static void Make_Linker_Thread(ThreadArg* arg) {
 	ItemList itemList = ItemList_Initialize();
 	const char* elf = "rom/lib_user/z_lib_user.elf";
@@ -374,17 +336,31 @@ static void Make_Linker_Thread(ThreadArg* arg) {
 	char* inputList = NULL;
 	char* command = NULL;
 	u32 inputStrLen = 0;
+	u32 breaker = true;
 	
 	ItemList_Recursive(&itemList, arg->path, NULL, PATH_RELATIVE);
 	
-	command = Calloc(command, 2048);
+	if (!Sys_Stat(bin))
+		breaker = false;
 	
 	for (s32 i = 0; i < itemList.num; i++) {
 		if (!StrEnd(itemList.item[i], ".o"))
 			continue;
+		
+		if (breaker)
+			if (Sys_Stat(bin) < Sys_Stat(itemList.item[i]))
+				breaker = false;
+		
 		inputStrLen += strlen(itemList.item[i]) + 4;
 	}
 	
+	if (breaker) {
+		ItemList_Free(&itemList);
+		
+		return;
+	}
+	
+	command = Calloc(command, 2048);
 	inputList = Calloc(inputList, inputStrLen);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
@@ -446,6 +422,44 @@ static void Make_Linker_Thread(ThreadArg* arg) {
 	Free(command);
 	
 	printf_info_align("mips64-objdump", "" PRNT_CYAN "z_code_lib.ld");
+}
+
+static void Make_Code_Thread_Elf(ThreadArg* arg) {
+	char* output;
+	char* input = arg->itemList->item[arg->i];
+	
+	if (!StrEnd(input, ".o")) {
+		Log("Skipped " PRNT_DGRY "[%s]", input);
+		
+		return;
+	}
+	
+	output = Calloc(0, strlen(input) + 10);
+	strcpy(output, input);
+	String_Replace(output, ".o", ".elf");
+	String_Replace(output, "src/", "rom/");
+	
+	Make_Code_LD(input, output, arg->flag, 0, NULL, arg->callback);
+	Free(output);
+}
+
+static void Make_Code_Thread_Obj(ThreadArg* arg) {
+	char* output;
+	char* input = arg->itemList->item[arg->i];
+	
+	if (!StrEnd(input, ".c")) {
+		Log("Skipped " PRNT_DGRY "[%s]", input);
+		
+		return;
+	}
+	
+	output = Calloc(0, strlen(input) + 10);
+	strcpy(output, input);
+	String_Replace(output, ".c", ".o");
+	String_Replace(output, "src/", "rom/");
+	
+	Make_Code_GCC(input, output, arg->flag, 0, NULL, arg->callback);
+	Free(output);
 }
 
 void Make_Code_Thread(ThreadArg* arg) {
@@ -583,7 +597,7 @@ void Make(void) {
 		Log_Free();
 	}
 	
-	printf_info("Compiled");
+	printf_info_align("Make", "OK");
 	
 	exit(0);
 }

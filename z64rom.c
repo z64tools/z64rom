@@ -1,5 +1,6 @@
 #include "src/z64rom.h"
 #include "src/Make.h"
+#include <xm.h>
 
 char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.4.10"
 #ifndef NDEBUG
@@ -87,10 +88,8 @@ s32 Main(s32 argc, char* argv[]) {
 	Sys_SetWorkDir(Sys_AppDir());
 	
 	if (XARG("single-thread")) gThreading = false;
-	if (XARG("log")) gLogOutput = true;
-	
-	if (XARG("make"))
-		Make();
+	if (!XARG("no-make")) Make();
+	if (XARG("make-only")) return 0;
 	
 	rom = Calloc(0, sizeof(struct Rom));
 	

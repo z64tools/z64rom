@@ -1,4 +1,4 @@
-CFLAGS         := -s -flto -Wall -DEXTLIB=105 -pthread
+CFLAGS         := -s -flto -Wall -DEXTLIB=106 -pthread
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
 SOURCE_C       := $(shell find src/* -type f -name '*.c')
@@ -158,7 +158,7 @@ bin/linux/%.o: %.c $(HEADER) $(ExtLibDep)
 
 $(RELEASE_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@gcc -o $@ $^ $(OPT_LINUX) $(CFLAGS) -DNDEBUG -lm
+	@gcc -o $@ $^ -L$(C_INCLUDE_PATH) -L$(C_INCLUDE_PATH) -lm -ldl -lxm-linux -laudio-linux $(OPT_LINUX) $(CFLAGS) -DNDEBUG
 
 # # # # # # # # # # # # # # # # # # # #
 # WINDOWS-32 BUILD                    #
@@ -176,5 +176,5 @@ bin/win32/icon.o: src/icon.rc src/icon.ico
 
 $(RELEASE_EXECUTABLE_WIN32): z64rom.c bin/win32/icon.o $(SOURCE_O_WIN32)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -o $@ $^ $(OPT_WIN32) $(CFLAGS) -DNDEBUG -lm -D_WIN32
+	@i686-w64-mingw32.static-gcc -o $@ $^ -L$(C_INCLUDE_PATH) -lm -lxm-win32 -laudio-win32 $(OPT_WIN32) $(CFLAGS) -DNDEBUG -D_WIN32
 	

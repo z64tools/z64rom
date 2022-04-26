@@ -92,33 +92,49 @@ static const char* Make_Tool(const char* app) {
 }
 
 static s32 Callback_Actor(const char* input, PassType type, void* arg) {
-	switch (type) {
-		case PRE_GCC: break;
-		case POST_GCC: break;
-		case PRE_LD: break;
-		case POST_LD: {
-			char* output;
-			char* command = arg;
-			char* info;
-			
-			output = String_GetPath(input);
-			info = String_GetFolder(input, -1);
-			
-			String_Remove(info, strlen("0x0000-"));
-			String_Replace(info, "/", " ");
-			
-			printf_info_align("novl", "%s", info);
-			
-			sprintf(
-				command,
-				"%s -v -c -s -A 0x80800000 -o %sactor.zovl %s",
-				Make_Tool("novl"),
-				output,
-				input
-			);
-			
-			if (Sys_Command(command)) printf_error_align("Sys_Command", "Error");
-		}
+	char* ovl = Tmp_Printf("%sactor.zovl", String_GetPath(input));
+	
+	String_Replace(ovl, "src/", "rom/");
+	
+	if (type == PRE_GCC) {
+		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
+			return 1;
+		
+		return 0;
+	}
+	
+	if (type == POST_GCC) {
+		return 0;
+	}
+	
+	if (type == PRE_LD) {
+		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
+			return 1;
+		
+		return 0;
+	}
+	
+	if (type == POST_LD) {
+		char* command = arg;
+		char* info;
+		
+		info = String_GetFolder(input, -1);
+		String_Remove(info, strlen("0x0000-"));
+		String_Replace(info, "/", " ");
+		
+		printf_info_align("novl", "%s", info);
+		
+		sprintf(
+			command,
+			"%s -v -c -A 0x80800000 -o %s %s",
+			Make_Tool("novl"),
+			ovl,
+			input
+		);
+		
+		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
+		
+		return 0;
 	}
 	
 	return 0;
@@ -184,35 +200,26 @@ error:
 				output
 			);
 			
-			if (Sys_Command(command)) printf_error_align("Sys_Command", "Error");
+			if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
 		}
 	}
 	
 	return 0;
 }
 
-void Make_Code_GCC(const char* source, const char* output, const char* flags, u32 depNum, const char* dep[], BinutilCallback callback) {
+void Make_Code_GCC(const char* source, const char* output, const char* flags, BinutilCallback callback) {
 	char* command;
 	
 	if (!Sys_Stat(source))
 		printf_error_align("Make_Code_GCC", "Source not found [%s]", source);
 	
+	if (callback)
+		if (callback(source, PRE_GCC, NULL)) goto build;
+	
 	if (Sys_Stat(output) && Sys_Stat(output) >= Sys_Stat(source))
 		return;
 	
-// Check if newer than output
-	if (depNum) {
-		for (s32 i = 0;; i++) {
-			if (Sys_Stat(dep[i]) > Sys_Stat(output))
-				break;
-			if (i == depNum - 1)
-				return;
-		}
-	}
-	
-	if (callback)
-		if (callback(source, PRE_GCC, NULL)) return;
-	
+build:
 	command = Calloc(0, 2048);
 	
 	sprintf(
@@ -227,7 +234,7 @@ void Make_Code_GCC(const char* source, const char* output, const char* flags, u3
 	
 	if (!Sys_Stat(String_GetPath(output)))
 		Sys_MakeDir(output);
-	if (Sys_Command(command)) printf_error_align("Sys_Command", "Error");
+	if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
 	
 	printf_info_align("mips64-gcc", "%s", String_GetFilename(source));
 	
@@ -236,7 +243,7 @@ void Make_Code_GCC(const char* source, const char* output, const char* flags, u3
 	Free(command);
 }
 
-void Make_Code_LD(const char* source, const char* output, const char* flags, u32 depNum, const char* dep[], BinutilCallback callback) {
+void Make_Code_LD(const char* source, const char* output, const char* flags, BinutilCallback callback) {
 	MemFile entry = MemFile_Initialize();
 	char* command;
 	char entryDir[1024] = { 0 };
@@ -245,22 +252,13 @@ void Make_Code_LD(const char* source, const char* output, const char* flags, u32
 	if (!Sys_Stat(source))
 		printf_error_align("Make_Code_LD", "Source not found [%s]", source);
 	
+	if (callback)
+		if (callback(source, PRE_LD, &entryPoint)) goto build;
+	
 	if (Sys_Stat(output) && Sys_Stat(output) >= Sys_Stat(source))
 		return;
 	
-	// Check if newer than output
-	if (depNum) {
-		for (s32 i = 0;; i++) {
-			if (Sys_Stat(dep[i]) > Sys_Stat(output))
-				break;
-			if (i == depNum - 1)
-				return;
-		}
-	}
-	
-	if (callback)
-		if (callback(source, PRE_LD, &entryPoint)) return;
-	
+build:
 	command = Calloc(0, 2048);
 	
 	strcpy(entryDir, String_GetPath(output));
@@ -286,7 +284,7 @@ void Make_Code_LD(const char* source, const char* output, const char* flags, u32
 	
 	if (!Sys_Stat(String_GetPath(output)))
 		Sys_MakeDir(output);
-	if (Sys_Command(command)) printf_error_align("Sys_Command", "Error");
+	if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
 	
 	printf_info_align("mips64-ld", "%s", String_GetFilename(source));
 	
@@ -389,7 +387,7 @@ static void Make_Linker_Thread(ThreadArg* arg) {
 		
 		if (!Sys_Stat(String_GetPath(elf)))
 			Sys_MakeDir(elf);
-		if (Sys_Command(command)) printf_error_align("Sys_Command", "Error");
+		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
 		Log("Compiled: [%s]", elf);
 	}
 	if (true == true /* BIN */) {
@@ -401,7 +399,7 @@ static void Make_Linker_Thread(ThreadArg* arg) {
 			bin
 		);
 		
-		if (Sys_Command(command)) printf_error_align("Sys_Command", "Error");
+		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
 		Log("Compiled: [%s]", bin);
 	}
 	if (false == false /* LD */) {
@@ -439,7 +437,7 @@ static void Make_Code_Thread_Elf(ThreadArg* arg) {
 	String_Replace(output, ".o", ".elf");
 	String_Replace(output, "src/", "rom/");
 	
-	Make_Code_LD(input, output, arg->flag, 0, NULL, arg->callback);
+	Make_Code_LD(input, output, arg->flag, arg->callback);
 	Free(output);
 }
 
@@ -458,7 +456,7 @@ static void Make_Code_Thread_Obj(ThreadArg* arg) {
 	String_Replace(output, ".c", ".o");
 	String_Replace(output, "src/", "rom/");
 	
-	Make_Code_GCC(input, output, arg->flag, 0, NULL, arg->callback);
+	Make_Code_GCC(input, output, arg->flag, arg->callback);
 	Free(output);
 }
 
@@ -592,12 +590,5 @@ void Make(void) {
 	
 	Thread_Free();
 	
-	if (gLogOutput) {
-		Log_Print();
-		Log_Free();
-	}
-	
 	printf_info_align("Make", "OK");
-	
-	exit(0);
 }

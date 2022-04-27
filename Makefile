@@ -1,4 +1,5 @@
 CFLAGS         := -s -flto -Wall -DEXTLIB=106 -pthread
+CFLAGS_MAIN    := -s -Wall -DEXTLIB=106 -pthread
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
 SOURCE_C       := $(shell find src/* -type f -name '*.c')
@@ -45,16 +46,14 @@ $(shell mkdir -p app_linux/tools/)
 		clean-all \
 		clean-sub \
 		clean-release \
-		clean \
-		tools \
-		hdrup
+		clean
 
 default: linux
 all: linux win32
 hdrup: hdrup.exe
 
-linux: project-files-linux $(SOURCE_O_LINUX) $(RELEASE_EXECUTABLE_LINUX)
-win32: project-files-win32 $(SOURCE_O_WIN32) $(RELEASE_EXECUTABLE_WIN32)
+linux: project-files-linux app_linux/tools/mips64-binutils/bin/mips64-gcc $(SOURCE_O_LINUX) $(RELEASE_EXECUTABLE_LINUX)
+win32: project-files-win32 app_win32/tools/mips64-binutils/bin/mips64-gcc.exe $(SOURCE_O_WIN32) $(RELEASE_EXECUTABLE_WIN32)
 
 hdrup.exe: tools/hdrup.c
 	@i686-w64-mingw32.static-gcc -o $@ $^ $(OPT_WIN32) $(CFLAGS) -DNDEBUG -lm -D_WIN32
@@ -63,31 +62,31 @@ hdrup.exe: tools/hdrup.c
 # PROJECT                             #
 # # # # # # # # # # # # # # # # # # # #
 
-tools: project/tools/elf2ld \
-	project/tools/cofi \
-	project/tools/novl \
-	project/tools/z64convert \
-	project/tools/depper \
-	project/tools/novl.exe
+# tools: project/tools/elf2ld \
+# 	project/tools/cofi \
+# 	project/tools/novl \
+# 	project/tools/z64convert \
+# 	project/tools/depper \
+# 	project/tools/novl.exe
 
-project-files-linux: tools project/tools/z64audio
+project-files-linux: project/tools/novl project/tools/z64audio
 	@mkdir -p             app_linux/src/actor
 	@mkdir -p             app_linux/src/object
 	@cp -r project/patch  app_linux/
 	@cp -r project/src    app_linux/
-	@cp -r project/*      app_linux/
+	@cp -r project/tools  app_linux/
 	@cp -r project/.[^.]* app_linux/
 	@rm -f                app_linux/*/*/*.txt
 	@rm -f                app_linux/*/*.txt
 	@rm -f                app_linux/tools/z64audio.exe
 	@rm -f                app_linux/tools/novl.exe
 
-project-files-win32: tools project/tools/z64audio.exe
+project-files-win32: project/tools/novl.exe project/tools/z64audio.exe
 	@mkdir -p             app_win32/src/actor
 	@mkdir -p             app_win32/src/object
 	@cp -r project/patch  app_win32/
 	@cp -r project/src    app_win32/
-	@cp -r project/*      app_win32/
+	@cp -r project/tools  app_win32/
 	@cp -r project/.[^.]* app_win32/
 	@rm -f                app_win32/*/*/*.txt
 	@rm -f                app_win32/*/*.txt
@@ -113,6 +112,16 @@ clean:
 clean-release:
 	@rm -f -R app_linux
 	@rm -f -R app_win32
+
+app_linux/tools/mips64-binutils/bin/mips64-gcc: tools/mips64-binutils-linux.7z
+	@echo "$(PRNT_RSET)[$(PRNT_YELW)$(notdir $@)$(PRNT_RSET)]"
+	@7z x $< -oapp_linux/tools/mips64-binutils/ -aos > /dev/null 2>&1
+	@touch $@
+
+app_win32/tools/mips64-binutils/bin/mips64-gcc.exe: tools/mips64-binutils-win32.7z
+	@echo "$(PRNT_RSET)[$(PRNT_YELW)$(notdir $@)$(PRNT_RSET)]"
+	@7z x $< -oapp_win32/tools/mips64-binutils/ -aos > /dev/null 2>&1
+	@touch $@
 	
 # # # # # # # # # # # # # # # # # # # #
 # TOOLS                               #
@@ -158,7 +167,7 @@ bin/linux/%.o: %.c $(HEADER) $(ExtLibDep)
 
 $(RELEASE_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@gcc -o $@ $^ -L$(C_INCLUDE_PATH) -L$(C_INCLUDE_PATH) -lm -ldl -lxm-linux -laudio-linux $(OPT_LINUX) $(CFLAGS) -DNDEBUG
+	@gcc -o $@ $^ -L$(C_INCLUDE_PATH) -L$(C_INCLUDE_PATH) -lm -ldl -lxm-linux -laudio-linux $(OPT_LINUX) $(CFLAGS_MAIN) -DNDEBUG
 
 # # # # # # # # # # # # # # # # # # # #
 # WINDOWS-32 BUILD                    #
@@ -176,5 +185,6 @@ bin/win32/icon.o: src/icon.rc src/icon.ico
 
 $(RELEASE_EXECUTABLE_WIN32): z64rom.c bin/win32/icon.o $(SOURCE_O_WIN32)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -o $@ $^ -L$(C_INCLUDE_PATH) -lm -lxm-win32 -laudio-win32 $(OPT_WIN32) $(CFLAGS) -DNDEBUG -D_WIN32
+	@i686-w64-mingw32.static-gcc -o $@ $^ -L$(C_INCLUDE_PATH) -lm -lxm-win32 -laudio-win32 $(OPT_WIN32) $(CFLAGS_MAIN) -DNDEBUG -D_WIN32
+	@upx -9 --best --compress-icons=0 $@
 	

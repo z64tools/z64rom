@@ -1,6 +1,9 @@
 #include "src/z64rom.h"
 #include "src/Make.h"
 #include <xm.h>
+#include <incbin.h>
+
+INCBIN(XmTrack, "src/tracker.xm");
 
 char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.4.10"
 #ifndef NDEBUG
@@ -80,6 +83,9 @@ s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
 	Rom* rom;
 	u32 parArg = 0;
+	Time time = Sys_Time();
+	
+	rom = Calloc(0, sizeof(struct Rom));
 	
 	Log_Init();
 	printf_WinFix();
@@ -87,11 +93,22 @@ s32 Main(s32 argc, char* argv[]) {
 	
 	Sys_SetWorkDir(Sys_AppDir());
 	
-	if (XARG("single-thread")) gThreading = false;
-	if (!XARG("no-make")) Make();
-	if (XARG("make-only")) return 0;
+	if ((time % 420) == 69) {
+		Sound_Xm_Play(
+			gXmTrackData,
+			gXmTrackSize
+		);
+		goto free;
+	}
 	
-	rom = Calloc(0, sizeof(struct Rom));
+	if (Sys_Stat("z64project.cfg")) {
+		if (XARG("single-thread")) gThreading = false;
+		if (!XARG("no-make")) {
+			printf_toolinfo(sToolName, "\n");
+			Make();
+		}
+		if (XARG("make-only")) goto free;
+	}
 	
 	if (XARG("yaz")) {
 		u8* tmpBuffer;
@@ -109,14 +126,14 @@ s32 Main(s32 argc, char* argv[]) {
 		
 		if (MemFile_SaveFile(&file, newFileName)) printf_error("Could not save [%s]", newFileName);
 		
-		return 0;
+		goto free;
 	}
 	if (XARG("base") || XARG("mod")) {
 		MemFile memBase = MemFile_Initialize();
 		MemFile memMod = MemFile_Initialize();
 		MemFile patch = MemFile_Initialize();
-		char* base;
-		char* mod;
+		char* base = NULL;
+		char* mod = NULL;
 		s32 cont = 0;
 		s32 first = 0;
 		
@@ -158,7 +175,7 @@ s32 Main(s32 argc, char* argv[]) {
 		MemFile_Free(&memBase);
 		MemFile_Free(&memMod);
 		
-		return 0;
+		goto free;
 	}
 	if (XARG("actor")) {
 		u32 id = String_GetInt(argv[parArg]);
@@ -168,10 +185,9 @@ s32 Main(s32 argc, char* argv[]) {
 			rom->type = Zelda_OoT_Debug;
 			Rom_New(rom, input);
 			Rom_Debug_ActorEntry(rom, id);
-			Rom_Free(rom);
 		}
 		
-		return 0;
+		goto free;
 	}
 	if (XARG("dma")) {
 		u32 id = String_GetInt(argv[parArg]);
@@ -182,10 +198,9 @@ s32 Main(s32 argc, char* argv[]) {
 			rom->type = Zelda_OoT_Debug;
 			Rom_New(rom, input);
 			Rom_Debug_DmaEntry(rom, id);
-			Rom_Free(rom);
 		}
 		
-		return 0;
+		goto free;
 	}
 	if (XARG("generic")) gGenericNames = true;
 	if (XARG("no-wav")) gExtractAudio = false;
@@ -197,38 +212,43 @@ s32 Main(s32 argc, char* argv[]) {
 	Main_Config(&input, rom, argc, argv);
 	
 	if (input) {
+		printf_toolinfo(sToolName, "\n");
 		if (sDumpFlag) {
-			printf_toolinfo(sToolName, "\n");
-			
 			Rom_New(rom, input);
 			Rom_Dump(rom);
 			Rom_Free(rom);
 			printf_info("Done!");
 			
-			exit(0);
+			goto free;
 		} else {
-			printf_toolinfo(sToolName, "\n");
-			
 			Rom_New(rom, input);
 			Rom_Build(rom);
 			Rom_Free(rom);
 			printf_info("Done!");
 			
-			exit(0);
+			goto free;
 		}
 	}
 	
+	Sound_Xm_Play(
+		gXmTrackData,
+		gXmTrackSize
+	);
+	
 	printf_toolinfo(sToolName, sToolUsage);
 	
+free:
 #ifdef _WIN32
-	if (argc == 1) {
+	
+	if (!XARG("no-wait")) {
 		printf_info("Press enter to exit.");
 		getchar();
 	}
 #endif
 	
-	Log_Free();
 	Free(rom);
+	Log_Free();
+	Sound_Xm_Stop();
 	
 	return 0;
 }

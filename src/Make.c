@@ -1,20 +1,23 @@
 #include "Make.h"
 
+#define THREAD_NUM 42
+#define Make_Command(dest, tool, args, ...) sprintf(dest, "%s " args, Make_Tool(tool), __VA_ARGS__)
+
 extern s32 gLogOutput;
 const char* gAppPath;
 const char* gTools[] = {
 #ifdef _WIN32
-	"tools\\mips64-binutils-win32\\bin\\mips64-gcc.exe",
-	"tools\\mips64-binutils-win32\\bin\\mips64-ld.exe",
-	"tools\\mips64-binutils-win32\\bin\\mips64-objdump.exe",
-	"tools\\mips64-binutils-win32\\bin\\mips64-objcopy.exe",
+	"tools\\mips64-binutils\\bin\\mips64-gcc.exe",
+	"tools\\mips64-binutils\\bin\\mips64-ld.exe",
+	"tools\\mips64-binutils\\bin\\mips64-objdump.exe",
+	"tools\\mips64-binutils\\bin\\mips64-objcopy.exe",
 	"tools\\z64audio.exe",
 	"tools\\novl.exe",
 #else
-	"tools/mips64-binutils-linux/bin/mips64-gcc",
-	"tools/mips64-binutils-linux/bin/mips64-ld",
-	"tools/mips64-binutils-linux/bin/mips64-objdump",
-	"tools/mips64-binutils-linux/bin/mips64-objcopy",
+	"tools/mips64-binutils/bin/mips64-gcc",
+	"tools/mips64-binutils/bin/mips64-ld",
+	"tools/mips64-binutils/bin/mips64-objdump",
+	"tools/mips64-binutils/bin/mips64-objcopy",
 	"tools/z64audio",
 	"tools/novl",
 #endif
@@ -27,14 +30,17 @@ const char* gFlagsCode = "-mno-gpopt -fomit-frame-pointer";
 const char* gFlagsLink = "-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld -T z_lib_user.ld --emit-relocs";
 u32 gThreading = true;
 
-#define THREAD_NUM 42
-
 typedef enum {
 	PRE_GCC,
 	POST_GCC,
 	PRE_LD,
 	POST_LD,
 } PassType;
+
+typedef enum {
+	CB_BREAK = -1,
+	CB_BUILD = 1
+} CallbackReturn;
 
 typedef s32 (* BinutilCallback)(const char*, PassType, void*);
 
@@ -46,6 +52,13 @@ typedef struct ThreadArg {
 	BinutilCallback callback;
 	u32 i;
 } ThreadArg;
+
+static void Make_Validate_Tools() {
+	for (s32 i = 0; i < ArrayCount(gTools); i++) {
+		if (!Sys_Stat(gTools[i]))
+			printf_error_align("NOT_FOUND", "[ %s ]", gTools[i]);
+	}
+}
 
 static const char* Make_Tool(const char* app) {
 	static char buffer[6][256];
@@ -91,30 +104,30 @@ static const char* Make_Tool(const char* app) {
 	return NULL;
 }
 
-static s32 Callback_Actor(const char* input, PassType type, void* arg) {
-	char* ovl = Tmp_Printf("%sactor.zovl", String_GetPath(input));
+static s32 Callback_System(const char* input, PassType type, void* arg) {
+	char* ovl;
 	
+	if (type == POST_GCC) return 0;
+	
+	ovl = Tmp_Printf("%sactor.zovl", String_GetPath(input));
 	String_Replace(ovl, "src/", "rom/");
 	
 	if (type == PRE_GCC) {
 		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
-			return 1;
+			return CB_BUILD;
 		
-		return 0;
-	}
-	
-	if (type == POST_GCC) {
 		return 0;
 	}
 	
 	if (type == PRE_LD) {
 		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
-			return 1;
+			return CB_BUILD;
 		
 		return 0;
 	}
 	
 	if (type == POST_LD) {
+		char* config = Tmp_Printf("%sconfig.cfg", String_GetPath(input));
 		char* command = arg;
 		char* info;
 		
@@ -124,15 +137,50 @@ static s32 Callback_Actor(const char* input, PassType type, void* arg) {
 		
 		printf_info_align("novl", "%s", info);
 		
-		sprintf(
-			command,
-			"%s -v -c -A 0x80800000 -o %s %s",
-			Make_Tool("novl"),
-			ovl,
-			input
-		);
-		
+		Make_Command(command, "novl", "-v -c -A 0x80800000 -o %s %s", ovl, input);
 		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
+	}
+	
+	return 0;
+}
+
+static s32 Callback_Actor(const char* input, PassType type, void* arg) {
+	char* ovl;
+	
+	if (type == POST_GCC) return 0;
+	
+	ovl = Tmp_Printf("%sactor.zovl", String_GetPath(input));
+	String_Replace(ovl, "src/", "rom/");
+	
+	if (type == PRE_GCC) {
+		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
+			return CB_BUILD;
+		
+		return 0;
+	}
+	
+	if (type == PRE_LD) {
+		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
+			return CB_BUILD;
+		
+		return 0;
+	}
+	
+	if (type == POST_LD) {
+		char* config = Tmp_Printf("%sconfig.cfg", String_GetPath(input));
+		char* command = arg;
+		char* info;
+		char* sys;
+		
+		Make_Command(command, "mips64-objdump", "-t %s", input);
+		sys = Sys_CommandGet(command);
+		
+		info = String_GetFolder(input, -1); String_Remove(info, strlen("0x0000-")); String_Replace(info, "/", " ");
+		printf_info_align("novl", "%s", info);
+		
+		Make_Command(command, "novl", "-v -c -A 0x80800000 -o %s %s", ovl, input);
+		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
+		Free(sys);
 		
 		return 0;
 	}
@@ -141,67 +189,62 @@ static s32 Callback_Actor(const char* input, PassType type, void* arg) {
 }
 
 static s32 Callback_Code(const char* input, PassType type, void* arg) {
-	switch (type) {
-		case PRE_GCC: break;
-		case POST_GCC: break;
-		case PRE_LD: {
-			u32* entryPoint = arg;
-			MemFile mem = MemFile_Initialize();
-			MemFile __config = MemFile_Initialize();
-			MemFile* config = &__config;
-			char* c = Tmp_Alloc(strlen(input) + 0x10);
-			char* z64rom;
-			char* z64ram;
-			
-			strcpy(c, input);
-			if (!String_Replace(c, "rom/", "src/")) goto error;
-			if (!String_Replace(c, ".o", ".c")) goto error;
-			
-			MemFile_LoadFile_String(&mem, c);
-			z64ram = StrStr(mem.str, "z64ram = ");
-			z64rom = StrStr(mem.str, "z64rom = ");
-			
-			if (z64ram == NULL) printf_error_align("No RAM Address:", "[%s]", String_GetFilename(c));
-			if (z64rom == NULL) printf_error_align("No ROM Address:", "[%s]", String_GetFilename(c));
-			
-			z64ram += strlen("z64ram = ");
-			z64rom += strlen("z64rom = ");
-			
-			MemFile_Malloc(config, 0x280);
-			Config_WriteVar_Hex("rom", String_GetHexInt(z64rom));
-			Config_WriteVar_Hex("ram", String_GetHexInt(z64ram));
-			entryPoint[0] = String_GetHexInt(z64ram);
-			
-			strcpy(c, input);
-			if (!String_Replace(c, ".o", ".cfg")) goto error;
-			
-			MemFile_SaveFile_String(config, c);
-			
-			MemFile_Free(&mem);
-			MemFile_Free(config);
-			
-			return 0;
+	if (type == PRE_GCC) {
+		return 0;
+	}
+	if (type == POST_GCC) {
+		return 0;
+	}
+	if (type == PRE_LD) {
+		u32* entryPoint = arg;
+		MemFile mem = MemFile_Initialize();
+		MemFile __config = MemFile_Initialize();
+		MemFile* config = &__config;
+		char* c = Tmp_Alloc(strlen(input) + 0x10);
+		char* z64rom;
+		char* z64ram;
+		
+		strcpy(c, input);
+		if (!String_Replace(c, "rom/", "src/")) goto error;
+		if (!String_Replace(c, ".o", ".c")) goto error;
+		
+		MemFile_LoadFile_String(&mem, c);
+		z64ram = StrStr(mem.str, "z64ram = ");
+		z64rom = StrStr(mem.str, "z64rom = ");
+		
+		if (z64ram == NULL) printf_error_align("No RAM Address:", "[%s]", String_GetFilename(c));
+		if (z64rom == NULL) printf_error_align("No ROM Address:", "[%s]", String_GetFilename(c));
+		
+		z64ram += strlen("z64ram = ");
+		z64rom += strlen("z64rom = ");
+		
+		MemFile_Malloc(config, 0x280);
+		Config_WriteVar_Hex("rom", String_GetHexInt(z64rom));
+		Config_WriteVar_Hex("ram", String_GetHexInt(z64ram));
+		entryPoint[0] = String_GetHexInt(z64ram);
+		
+		strcpy(c, input);
+		if (!String_Replace(c, ".o", ".cfg")) goto error;
+		
+		MemFile_SaveFile_String(config, c);
+		
+		MemFile_Free(&mem);
+		MemFile_Free(config);
+		
+		return 0;
 error:
-			printf_error_align("String_Replace", "[%s] -> [%s]", input, c);
-		}
-		case POST_LD: {
-			char* output;
-			char* command = arg;
-			
-			output = Tmp_Alloc(strlen(input) + 8);
-			strcpy(output, input);
-			String_Replace(output, ".elf", ".bin");
-			
-			sprintf(
-				command,
-				"%s -R .MIPS.abiflags -O binary %s %s",
-				Make_Tool("mips64-objcopy"),
-				input,
-				output
-			);
-			
-			if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
-		}
+		printf_error_align("String_Replace", "[%s] -> [%s]", input, c);
+	}
+	if (type == POST_LD) {
+		char* output;
+		char* command = arg;
+		
+		output = Tmp_Alloc(strlen(input) + 8);
+		strcpy(output, input);
+		String_Replace(output, ".elf", ".bin");
+		
+		Make_Command(command, "mips64-objcopy", "-R .MIPS.abiflags -O binary %s %s", input, output);
+		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
 	}
 	
 	return 0;
@@ -213,8 +256,16 @@ void Make_Code_GCC(const char* source, const char* output, const char* flags, Bi
 	if (!Sys_Stat(source))
 		printf_error_align("Make_Code_GCC", "Source not found [%s]", source);
 	
-	if (callback)
-		if (callback(source, PRE_GCC, NULL)) goto build;
+	if (callback) {
+		switch (callback(source, PRE_GCC, NULL)) {
+			case CB_BREAK:
+				return;
+			case 0:
+				break;
+			case CB_BUILD:
+				goto build;
+		}
+	}
 	
 	if (Sys_Stat(output) && Sys_Stat(output) >= Sys_Stat(source))
 		return;
@@ -222,16 +273,7 @@ void Make_Code_GCC(const char* source, const char* output, const char* flags, Bi
 build:
 	command = Calloc(0, 2048);
 	
-	sprintf(
-		command,
-		"%s %s %s %s -o %s",
-		Make_Tool("mips64-gcc"),
-		gFlags,
-		flags,
-		source,
-		output
-	);
-	
+	Make_Command(command, "mips64-gcc", "%s %s %s -o %s", gFlags, flags, source, output);
 	if (!Sys_Stat(String_GetPath(output)))
 		Sys_MakeDir(output);
 	if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
@@ -252,8 +294,16 @@ void Make_Code_LD(const char* source, const char* output, const char* flags, Bin
 	if (!Sys_Stat(source))
 		printf_error_align("Make_Code_LD", "Source not found [%s]", source);
 	
-	if (callback)
-		if (callback(source, PRE_LD, &entryPoint)) goto build;
+	if (callback) {
+		switch (callback(source, PRE_LD, &entryPoint)) {
+			case CB_BREAK:
+				return;
+			case 0:
+				break;
+			case CB_BUILD:
+				goto build;
+		}
+	}
 	
 	if (Sys_Stat(output) && Sys_Stat(output) >= Sys_Stat(source))
 		return;
@@ -272,16 +322,7 @@ build:
 	MemFile_SaveFile(&entry, entryDir);
 	MemFile_Free(&entry);
 	
-	sprintf(
-		command,
-		"%s -o %s %s -L%s %s",
-		Make_Tool("mips64-ld"),
-		output,
-		source,
-		String_GetPath(entryDir),
-		flags
-	);
-	
+	Make_Command(command, "mips64-ld", "-o %s %s -L%s %s", output, source, String_GetPath(entryDir), flags);
 	if (!Sys_Stat(String_GetPath(output)))
 		Sys_MakeDir(output);
 	if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
@@ -376,40 +417,19 @@ static void Make_Linker_Thread(ThreadArg* arg) {
 		MemFile_SaveFile(&entry, "rom/lib_user/entry.ld");
 		MemFile_Free(&entry);
 		
-		sprintf(
-			command,
-			"%s -o %s %s %s",
-			Make_Tool("mips64-ld"),
-			elf,
-			inputList,
-			arg->flag
-		);
-		
+		Make_Command(command, "mips64-ld", "-o %s %s %s", elf, inputList, arg->flag);
 		if (!Sys_Stat(String_GetPath(elf)))
 			Sys_MakeDir(elf);
 		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
 		Log("Compiled: [%s]", elf);
 	}
 	if (true == true /* BIN */) {
-		sprintf(
-			command,
-			"%s -R .MIPS.abiflags -O binary %s %s",
-			Make_Tool("mips64-objcopy"),
-			elf,
-			bin
-		);
-		
+		Make_Command(command, "mips64-objcopy", "-R .MIPS.abiflags -O binary %s %s", elf, bin);
 		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
 		Log("Compiled: [%s]", bin);
 	}
 	if (false == false /* LD */) {
-		sprintf(
-			command,
-			"%s -x -t %s",
-			Make_Tool("mips64-objdump"),
-			elf
-		);
-		
+		Make_Command(command, "mips64-objdump", "-x -t %s", elf);
 		if (!Sys_Stat(String_GetPath(ld)))
 			Sys_MakeDir(ld);
 		Make_Code_ObjDump(Sys_CommandGet(command), ld);
@@ -505,16 +525,19 @@ void Make_Code(void) {
 		"src/lib_code/",
 		"src/actor/",
 		"src/effect/",
+		"src/system/",
 	};
 	const char* pathO[] = {
 		"rom/lib_user/",
 		"rom/lib_code/",
 		"rom/actor/",
 		"rom/effect/",
+		"rom/system/",
 	};
 	const char* flagObject[] = {
 		gFlagsCode,
 		gFlagsCode,
+		"",
 		"",
 		"",
 	};
@@ -523,15 +546,19 @@ void Make_Code(void) {
 		gFlagsLink,
 		gFlagsLink,
 		gFlagsLink,
+		gFlagsLink,
 	};
 	BinutilCallback callback[] = {
 		NULL,
 		Callback_Code,
 		Callback_Actor,
-		Callback_Actor,
+		NULL,
+		Callback_System,
 	};
 	Thread thread[ArrayCount(pathC)];
 	ThreadArg args[ArrayCount(pathC)] = { 0 };
+	
+	Thread_Init();
 	
 	for (s32 set = 0; set < ArrayCount(pathC); set++) {
 		args[set].path = pathC[set];
@@ -579,16 +606,15 @@ void Make_Code(void) {
 	if (gThreading)
 		for (s32 set = 1; set < ArrayCount(pathC); set++)
 			Thread_Join(&thread[set]);
+	
+	Thread_Free();
 }
 
 void Make(void) {
 	gAppPath = Sys_AppDir();
-	
-	Thread_Init();
+	Make_Validate_Tools();
 	
 	Make_Code();
-	
-	Thread_Free();
 	
 	printf_info_align("Make", "OK");
 }

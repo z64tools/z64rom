@@ -1,4 +1,4 @@
-CFLAGS         := -s -flto -Wall -DEXTLIB=106 -pthread
+CFLAGS         := -s -flto -Wall -DEXTLIB=107 -pthread
 CFLAGS_MAIN    := -s -Wall -DEXTLIB=106 -pthread
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
@@ -69,7 +69,7 @@ hdrup.exe: tools/hdrup.c
 # 	project/tools/depper \
 # 	project/tools/novl.exe
 
-project-files-linux: project/tools/novl project/tools/z64audio
+project-files-linux: project/tools/novl project/tools/z64audio project/tools/z64convert
 	@mkdir -p             app_linux/src/actor
 	@mkdir -p             app_linux/src/object
 	@cp -r project/patch  app_linux/
@@ -81,13 +81,14 @@ project-files-linux: project/tools/novl project/tools/z64audio
 	@rm -f                app_linux/tools/z64audio.exe
 	@rm -f                app_linux/tools/novl.exe
 
-project-files-win32: project/tools/novl.exe project/tools/z64audio.exe
+project-files-win32: project/tools/novl.exe project/tools/z64audio.exe project/tools/z64convert.exe
 	@mkdir -p             app_win32/src/actor
 	@mkdir -p             app_win32/src/object
 	@cp -r project/patch  app_win32/
 	@cp -r project/src    app_win32/
 	@cp -r project/tools  app_win32/
 	@cp -r project/.[^.]* app_win32/
+	@cp tools/wget.exe    app_win32/tools/
 	@rm -f                app_win32/*/*/*.txt
 	@rm -f                app_win32/*/*.txt
 	@rm -f                app_win32/tools/z64audio
@@ -104,6 +105,9 @@ clean-sub:
 	@rm -f project/tools/z64audio
 	@rm -f project/tools/z64audio.exe
 	@rm -f project/tools/novl
+	@rm -f project/tools/novl.exe
+	@rm -f project/tools/z64convert
+	@rm -f project/tools/z64convert.exe
 
 clean:
 	@rm -f -R bin
@@ -139,16 +143,21 @@ project/tools/z64audio: tools/z64audio/z64audio.c
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@$(MAKE) -C tools/z64audio linux -j --no-print-directory --silent
 	@cp $(<:.c=) $@
-	
-project/tools/z64convert: tools/z64convert/src/z64convert.c
-	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@$(MAKE) -C tools/z64convert lincli -j --no-print-directory --silent
-	@cp tools/z64convert/z64convert-cli $@
 
 project/tools/z64audio.exe: tools/z64audio/z64audio.c
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@$(MAKE) -C tools/z64audio win32 -j --no-print-directory --silent
 	@cp $(<:.c=.exe) $@
+	
+project/tools/z64convert: tools/z64convert/src/z64convert.c
+	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
+	@$(MAKE) -C tools/z64convert lincli -j --no-print-directory --silent
+	@cp tools/z64convert/z64convert-cli $@
+	
+project/tools/z64convert.exe: tools/z64convert/src/z64convert.c
+	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
+	@$(MAKE) -C tools/z64convert wincli -j --no-print-directory --silent
+	@cp tools/z64convert/z64convert-cli.exe $@
 	
 project/tools/%: tools/%.c src/External.c $(ExtLibDep)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
@@ -157,6 +166,11 @@ project/tools/%: tools/%.c src/External.c $(ExtLibDep)
 # # # # # # # # # # # # # # # # # # # #
 # LINUX BUILD                         #
 # # # # # # # # # # # # # # # # # # # #
+
+bin/linux/src/lib/%.o: src/lib/%.c src/lib/%.h
+bin/linux/src/lib/%.o: src/lib/%.c
+	@echo "$(PRNT_RSET)[$(PRNT_YELW)$(notdir $@)$(PRNT_RSET)]"
+	@gcc -c -o $@ $<
 	
 bin/linux/src/External.o: src/External.c $(ExtLibDep) $(C_INCLUDE_PATH)/ExtLib.c
 bin/linux/%.o: %.c %.h $(HEADER) $(ExtLibDep)
@@ -167,11 +181,16 @@ bin/linux/%.o: %.c $(HEADER) $(ExtLibDep)
 
 $(RELEASE_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@gcc -o $@ $^ -L$(C_INCLUDE_PATH) -L$(C_INCLUDE_PATH) -lm -ldl -lxm-linux -laudio-linux $(OPT_LINUX) $(CFLAGS_MAIN) -DNDEBUG
+	@gcc -o $@ $^ -L$(C_INCLUDE_PATH) -L$(C_INCLUDE_PATH) -lm -ldl -lxm-linux -laudio-linux -lzip-linux $(OPT_LINUX) $(CFLAGS_MAIN) -DNDEBUG
 
 # # # # # # # # # # # # # # # # # # # #
 # WINDOWS-32 BUILD                    #
 # # # # # # # # # # # # # # # # # # # #
+
+bin/win32/src/lib/%.o: src/lib/%.c src/lib/%.h
+bin/win32/src/lib/%.o: src/lib/%.c
+	@echo "$(PRNT_RSET)[$(PRNT_YELW)$(notdir $@)$(PRNT_RSET)]"
+	@i686-w64-mingw32.static-gcc -c -o $@ $<
 	
 bin/win32/src/External.o: src/External.c $(ExtLibDep) $(C_INCLUDE_PATH)/ExtLib.c
 bin/win32/%.o: %.c %.h $(HEADER) $(ExtLibDep)
@@ -185,6 +204,6 @@ bin/win32/icon.o: src/icon.rc src/icon.ico
 
 $(RELEASE_EXECUTABLE_WIN32): z64rom.c bin/win32/icon.o $(SOURCE_O_WIN32)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -o $@ $^ -L$(C_INCLUDE_PATH) -lm -lxm-win32 -laudio-win32 $(OPT_WIN32) $(CFLAGS_MAIN) -DNDEBUG -D_WIN32
+	@i686-w64-mingw32.static-gcc -o $@ $^ -L$(C_INCLUDE_PATH) -lm -lxm-win32 -laudio-win32 -lzip-win32 $(CURL) $(OPT_WIN32) $(CFLAGS_MAIN) -DNDEBUG -D_WIN32
 	@upx -9 --best --compress-icons=0 $@
 	

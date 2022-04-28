@@ -83,7 +83,6 @@ s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
 	Rom* rom;
 	u32 parArg = 0;
-	Time time = Sys_Time();
 	
 	rom = Calloc(0, sizeof(struct Rom));
 	
@@ -92,17 +91,13 @@ s32 Main(s32 argc, char* argv[]) {
 	printf_SetPrefix("");
 	
 	Sys_SetWorkDir(Sys_AppDir());
+	if (XARG("single-thread")) gThreading = false;
 	
-	if ((time % 420) == 69) {
-		Sound_Xm_Play(
-			gXmTrackData,
-			gXmTrackSize
-		);
-		goto free;
-	}
+	Make();
+	
+	return 0;
 	
 	if (Sys_Stat("z64project.cfg")) {
-		if (XARG("single-thread")) gThreading = false;
 		if (!XARG("no-make")) {
 			printf_toolinfo(sToolName, "\n");
 			Make();

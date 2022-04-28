@@ -541,8 +541,6 @@ void Make_Code(void) {
 }
 
 void Make(void) {
-	Tools_Update();
-	
 	Make_Code();
 	
 	printf_info_align("Make", "OK");

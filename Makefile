@@ -1,4 +1,4 @@
-CFLAGS         := -s -flto -Wall -DEXTLIB=107 -pthread
+CFLAGS         := -s -flto -Wall -DEXTLIB=108 -pthread
 CFLAGS_MAIN    := -s -Wall -DEXTLIB=106 -pthread
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
@@ -52,8 +52,8 @@ default: linux
 all: linux win32
 hdrup: hdrup.exe
 
-linux: project-files-linux app_linux/tools/mips64-binutils/bin/mips64-gcc $(SOURCE_O_LINUX) $(RELEASE_EXECUTABLE_LINUX)
-win32: project-files-win32 app_win32/tools/mips64-binutils/bin/mips64-gcc.exe $(SOURCE_O_WIN32) $(RELEASE_EXECUTABLE_WIN32)
+linux: project-files-linux $(SOURCE_O_LINUX) $(RELEASE_EXECUTABLE_LINUX)
+win32: project-files-win32 $(SOURCE_O_WIN32) $(RELEASE_EXECUTABLE_WIN32)
 
 hdrup.exe: tools/hdrup.c
 	@i686-w64-mingw32.static-gcc -o $@ $^ $(OPT_WIN32) $(CFLAGS) -DNDEBUG -lm -D_WIN32
@@ -116,6 +116,8 @@ clean:
 clean-release:
 	@rm -f -R app_linux
 	@rm -f -R app_win32
+
+binutils: app_linux/tools/mips64-binutils/bin/mips64-gcc app_win32/tools/mips64-binutils/bin/mips64-gcc.exe
 
 app_linux/tools/mips64-binutils/bin/mips64-gcc: tools/mips64-binutils-linux.7z
 	@echo "$(PRNT_RSET)[$(PRNT_YELW)$(notdir $@)$(PRNT_RSET)]"

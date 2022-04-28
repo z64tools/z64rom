@@ -5,7 +5,7 @@
 
 INCBIN(XmTrack, "src/tracker.xm");
 
-char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.4.10"
+char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.4.9"
 #ifndef NDEBUG
 	PRNT_DGRY " DEBUG BUILD"
 #endif
@@ -25,7 +25,7 @@ s32 gLogOutput;
 extern u32 gThreading;
 
 void Main_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
-	char* confRom = Tmp_Printf("%s%s", Sys_AppDir(), "z64project.cfg");
+	const char* confRom = "z64project.cfg";
 	MemFile* config = &rom->config;
 	u32 parArg = 0;
 	
@@ -89,14 +89,30 @@ s32 Main(s32 argc, char* argv[]) {
 	Log_Init();
 	printf_WinFix();
 	printf_SetPrefix("");
-	
 	Sys_SetWorkDir(Sys_AppDir());
+	
 	if (XARG("single-thread")) gThreading = false;
 	
-	Make();
+	if (Tools_Validate() || !Sys_Stat("include/z64hdr/")) {
+		printf_toolinfo(sToolName, "Setup\n\n");
+		printf_info("Some of the tools are missing. Would you like listen to some music while going through installing process? " PRNT_DGRY "[y/n]");
+		
+		if (printf_get_answer())
+			Sound_Xm_Play(
+				gXmTrackData,
+				gXmTrackSize
+			);
+		printf("\n");
+	}
 	
-	return 0;
+	Tools_Init();
 	
+	if (XARG("update")) {
+		printf_toolinfo(sToolName, "Updating z64hdr...\n\n");
+		Tools_Update_Header();
+		
+		goto free;
+	}
 	if (Sys_Stat("z64project.cfg")) {
 		if (!XARG("no-make")) {
 			printf_toolinfo(sToolName, "\n");
@@ -104,7 +120,6 @@ s32 Main(s32 argc, char* argv[]) {
 		}
 		if (XARG("make-only")) goto free;
 	}
-	
 	if (XARG("yaz")) {
 		u8* tmpBuffer;
 		char* newFileName = Tmp_Alloc(512);
@@ -209,26 +224,28 @@ s32 Main(s32 argc, char* argv[]) {
 	if (input) {
 		printf_toolinfo(sToolName, "\n");
 		if (sDumpFlag) {
+			if (argc == 2 && gExtractAudio) {
+				printf_info("Extract " PRNT_CYAN "wav audio samples" PRNT_RSET "?");
+				printf_info("This is optional and will slow down dumping process. " PRNT_DGRY "[y/n]");
+				if (!printf_get_answer()) gExtractAudio = false;
+				printf("\n");
+			}
+			
 			Rom_New(rom, input);
 			Rom_Dump(rom);
 			Rom_Free(rom);
-			printf_info("Done!");
+			printf_info("Done!\n");
 			
 			goto free;
 		} else {
 			Rom_New(rom, input);
 			Rom_Build(rom);
 			Rom_Free(rom);
-			printf_info("Done!");
+			printf_info("Done!\n");
 			
 			goto free;
 		}
 	}
-	
-	Sound_Xm_Play(
-		gXmTrackData,
-		gXmTrackSize
-	);
 	
 	printf_toolinfo(sToolName, sToolUsage);
 	
@@ -236,8 +253,7 @@ free:
 #ifdef _WIN32
 	
 	if (!XARG("no-wait")) {
-		printf_info("Press enter to exit.");
-		getchar();
+		printf_get_space("Press enter to exit.");
 	}
 #endif
 	

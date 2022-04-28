@@ -487,7 +487,7 @@ void Rom_Dump(Rom* rom) {
 	MemFile_Malloc(&dataFile, 0x460000); // Slightly larger than audiotable
 	MemFile_Malloc(&config, 0x25000);
 	
-	printf_info_align("Dump Rom", PRNT_PRPL "%s", rom->file.info.name);
+	printf_info_align("Dumping Rom", PRNT_PRPL "%s", rom->file.info.name);
 	
 	Dir_Enter(&gDir, "rom/"); {
 		Dir_Enter(&gDir, "actor/.vanilla/"); {

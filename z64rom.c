@@ -5,7 +5,7 @@
 
 INCBIN(XmTrack, "src/tracker.xm");
 
-const char* gToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.4.9"
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.0"
 #ifndef NDEBUG
 	PRNT_DGRY " DEBUG BUILD"
 #endif

@@ -886,7 +886,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 						continue;
 					
 					for (s32 sampleID = 0;; sampleID++) {
-						if (sampleID == sSampleTblNum)
+						if (sampleID >= sSampleTblNum)
 							printf_error("Could not locate sample [%s]", sampleName[soundID]);
 						
 						if (!strcmp(sSampleTbl[sampleID].name, sampleName[soundID])) {

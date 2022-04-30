@@ -240,11 +240,20 @@ const char* Tools_Get(ToolIndex id) {
 			if (StrStr(sTools[i], "mips64")) {
 				sprintf(
 					buffer[i],
+#ifdef _WIN32
 					"set PATH=%stools\\mips64-binutils\\bin;%s && "
+#else
+					"export PATH=\"%s%stools\\mips64-binutils\\bin\" && "
+#endif
 					"%s",
 					
+#ifdef _WIN32
 					Sys_AppDir(),
 					"%PATH%",
+#else
+					"$PATH:",
+					Sys_AppDir(),
+#endif
 					
 					sTools[i]
 				);

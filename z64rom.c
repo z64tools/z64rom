@@ -5,7 +5,7 @@
 
 INCBIN(XmTrack, "src/tracker.xm");
 
-char* sToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.4.9"
+const char* gToolName = PRNT_PRPL "z64rom " PRNT_GRAY "0.4.9"
 #ifndef NDEBUG
 	PRNT_DGRY " DEBUG BUILD"
 #endif
@@ -83,6 +83,7 @@ s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
 	Rom* rom;
 	u32 parArg = 0;
+	u32 setupFlag = false;
 	
 	rom = Calloc(0, sizeof(struct Rom));
 	
@@ -93,29 +94,52 @@ s32 Main(s32 argc, char* argv[]) {
 	
 	if (XARG("single-thread")) gThreading = false;
 	
-	if (Tools_Validate() || !Sys_Stat("include/z64hdr/")) {
-		printf_toolinfo(sToolName, "Setup\n\n");
-		printf_info("Some of the tools are missing. Would you like listen to some music while going through installing process? " PRNT_DGRY "[y/n]");
+	if (Tools_Validate_ReqrTools()) {
+		goto free;
+	}
+	
+	if (Tools_Validate_AddiTools() || !Sys_Stat("include/z64hdr/") || Sys_Stat("tools/.failsafe") || Sys_Stat("tools/.installing")) {
+		setupFlag = true;
+		if (Sys_Stat("tools/.installing"))
+			Tools_Clean();
+		Sys_Touch("tools/.installing");
+		printf_toolinfo(gToolName, PRNT_BLUE "Initialization Setup\n\n");
+		printf_info("Play some chill music? " PRNT_DGRY "[y/n]");
 		
-		if (printf_get_answer())
+		if (Terminal_YesOrNo())
 			Sound_Xm_Play(
 				gXmTrackData,
 				gXmTrackSize
 			);
-		printf("\n");
+		Terminal_ClearLines(3);
+		SleepF(0.2);
+		
+		printf_warning("Would you like to let z64rom handle installation automatically? " PRNT_DGRY "[y/n]");
+		if (Terminal_YesOrNo()) {
+			gAutoDownload = true;
+		} else {
+			gAutoDownload = false;
+		}
+		Terminal_ClearLines(3);
+		SleepF(0.2);
+		
+		Tools_Init();
+		
+		if (!Tools_Validate_AddiTools() && Sys_Stat("include/z64hdr/")) {
+			printf_info("All required tools have been installed succesfully!");
+		}
+		Sys_Delete("tools/.installing");
 	}
 	
-	Tools_Init();
-	
 	if (XARG("update")) {
-		printf_toolinfo(sToolName, "Updating z64hdr...\n\n");
+		printf_toolinfo(gToolName, "Updating z64hdr...\n\n");
 		Tools_Update_Header();
 		
 		goto free;
 	}
 	if (Sys_Stat("z64project.cfg")) {
 		if (!XARG("no-make")) {
-			printf_toolinfo(sToolName, "\n");
+			printf_toolinfo(gToolName, "\n");
 			Make();
 		}
 		if (XARG("make-only")) goto free;
@@ -219,15 +243,57 @@ s32 Main(s32 argc, char* argv[]) {
 	if (XARG("compress")) gCompressFlag = true;
 	
 	Main_CheckTypes();
+	
+	if (setupFlag) {
+		for (s32 i = 0; i < argc; i++) {
+			if (StrEnd(argv[i], ".z64") || StrEnd(argv[i], ".Z64")) {
+				char* filename = String_GetFilename(argv[i]);
+				
+				if (!Sys_Stat(filename))
+					Sys_Copy(argv[i], filename, false);
+				input = filename;
+				
+				break;
+			}
+		}
+		
+		if (input == NULL) {
+			ItemList list = ItemList_Initialize();
+			
+			ItemList_List(&list, "", 0);
+			
+			for (s32 i = 0; i < list.num; i++) {
+				if ((StrEnd(list.item[i], ".z64") || StrEnd(list.item[i], ".Z64")) && !StrStr(list.item[i], "build")) {
+					printf("\n");
+					printf_info("Looks like you have a rom called " PRNT_REDD "%s " PRNT_RSET "in the same directory.", list.item[i]);
+					
+					printf_info("Want to use it as your baserom and dump it now? " PRNT_DGRY "[y/n]");
+					
+					if (Terminal_YesOrNo()) {
+						input = strdup(list.item[i]);
+						sDumpFlag = true;
+					}
+					
+					Terminal_ClearLines(2);
+					printf("\n");
+					
+					break;
+				}
+			}
+			
+			ItemList_Free(&list);
+		}
+	}
+	
 	Main_Config(&input, rom, argc, argv);
 	
 	if (input) {
-		printf_toolinfo(sToolName, "\n");
+		printf_toolinfo(gToolName, "\n");
 		if (sDumpFlag) {
-			if (argc == 2 && gExtractAudio) {
-				printf_info("Extract " PRNT_CYAN "wav audio samples" PRNT_RSET "?");
+			if ((argc == 2 || setupFlag) && gExtractAudio) {
+				printf_info("Extract " PRNT_REDD "wav audio samples" PRNT_RSET "?");
 				printf_info("This is optional and will slow down dumping process. " PRNT_DGRY "[y/n]");
-				if (!printf_get_answer()) gExtractAudio = false;
+				if (!Terminal_YesOrNo()) gExtractAudio = false;
 				printf("\n");
 			}
 			
@@ -247,13 +313,13 @@ s32 Main(s32 argc, char* argv[]) {
 		}
 	}
 	
-	printf_toolinfo(sToolName, sToolUsage);
+	printf_toolinfo(gToolName, sToolUsage);
 	
 free:
 #ifdef _WIN32
 	
 	if (!XARG("no-wait")) {
-		printf_get_space("Press enter to exit.");
+		printf_getchar("Press enter to exit.");
 	}
 #endif
 	

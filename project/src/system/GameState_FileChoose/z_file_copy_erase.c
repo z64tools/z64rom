@@ -1,4 +1,4 @@
-#include "file_choose.h"
+#include "z_file_choose.h"
 
 // when choosing a file to copy or erase, the 6 main menu buttons are placed at these offsets
 s16 sChooseFileYOffsets[] = { -48, -48, -48, -24, -24, 0 };

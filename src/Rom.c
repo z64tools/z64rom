@@ -1272,7 +1272,7 @@ void Rom_New(Rom* rom, char* romName) {
 		printf_warning("Bad things " PRNT_REDD "might " PRNT_RSET "happen...");
 		printf_warning("Do you want to continue the process? [y/n]");
 		
-		if (!printf_get_answer()) {
+		if (!Terminal_YesOrNo()) {
 			exit(0);
 		}
 	}

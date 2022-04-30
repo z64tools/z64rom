@@ -1,7 +1,22 @@
 #include <ExtLib.h>
 
-const char* Tools_Get(const char* app);
-s32 Tools_Validate(void);
+extern bool gAutoDownload;
+
+typedef enum {
+	mips64_gcc,
+	mips64_ld,
+	mips64_objdump,
+	mips64_objcopy,
+	z64audio,
+	z64convert,
+	nOVL,
+	wget
+} ToolIndex;
+
+const char* Tools_Get(ToolIndex);
+void Tools_Clean();
+s32 Tools_Validate_ReqrTools(void);
+s32 Tools_Validate_AddiTools(void);
 void Tools_Update_Header(void);
 void Tools_Update_Binutils(void);
 void Tools_Init(void);

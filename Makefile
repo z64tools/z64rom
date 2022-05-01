@@ -1,5 +1,5 @@
-CFLAGS         := -s -flto -Wall -DEXTLIB=110 -pthread
-CFLAGS_MAIN    := -s -Wall -DEXTLIB=106 -pthread
+CFLAGS         := -s -flto -Wall -DEXTLIB=111 -pthread
+CFLAGS_MAIN    := -s -Wall -pthread
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
 SOURCE_C       := $(shell find src/* -type f -name '*.c')
@@ -10,8 +10,6 @@ RELEASE_EXECUTABLE_LINUX := app_linux/z64rom
 RELEASE_EXECUTABLE_WIN32 := app_win32/z64rom.exe
 
 SOURCE_nOVL_C            := $(shell find tools/nOVL/src/* -type f -name '*.c')
-
-ExtLibDep := $(C_INCLUDE_PATH)/ExtLib.h
 
 PRNT_DGRY := \e[90;2m
 PRNT_GRAY := \e[0;90m
@@ -51,6 +49,8 @@ $(shell mkdir -p app_linux/tools/)
 default: linux
 all: linux win32
 hdrup: hdrup.exe
+
+include $(C_INCLUDE_PATH)/ExtLib.mk
 
 linux: project-files-linux $(SOURCE_O_LINUX) $(RELEASE_EXECUTABLE_LINUX)
 win32: project-files-win32 $(SOURCE_O_WIN32) $(RELEASE_EXECUTABLE_WIN32)
@@ -109,7 +109,7 @@ clean-sub:
 	@rm -f project/tools/z64convert
 	@rm -f project/tools/z64convert.exe
 
-clean:
+clean: extlib_clean
 	@rm -f -R bin
 	@rm -f project/tools/elf2ld
 
@@ -160,10 +160,6 @@ project/tools/z64convert.exe: tools/z64convert/src/z64convert.c
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@$(MAKE) -C tools/z64convert wincli -j --no-print-directory --silent
 	@cp tools/z64convert/z64convert-cli.exe $@
-	
-project/tools/%: tools/%.c src/External.c $(ExtLibDep)
-	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@gcc -o $@ $^ $(OPT_LINUX) $(CFLAGS) -DNDEBUG
 
 # # # # # # # # # # # # # # # # # # # #
 # LINUX BUILD                         #
@@ -174,16 +170,15 @@ bin/linux/src/lib/%.o: src/lib/%.c
 	@echo "$(PRNT_RSET)[$(PRNT_YELW)$(notdir $@)$(PRNT_RSET)]"
 	@gcc -c -o $@ $<
 	
-bin/linux/src/External.o: src/External.c $(ExtLibDep) $(C_INCLUDE_PATH)/ExtLib.c
-bin/linux/%.o: %.c %.h $(HEADER) $(ExtLibDep)
-bin/linux/%.o: %.c $(HEADER) $(ExtLibDep)
+bin/linux/%.o: %.c %.h $(HEADER) $(ExtLib_H)
+bin/linux/%.o: %.c $(HEADER) $(ExtLib_H)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@gcc -c -o $@ $< $(OPT_LINUX) $(CFLAGS)
 	@objdump -drz $@ > $(@:.o=.s)
 
-$(RELEASE_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX)
+$(RELEASE_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX) $(ExtLib_Linux_O)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@gcc -o $@ $^ -L$(C_INCLUDE_PATH) -L$(C_INCLUDE_PATH) -lm -ldl -lxm-linux -laudio-linux -lzip-linux $(OPT_LINUX) $(CFLAGS_MAIN) -DNDEBUG
+	@gcc -o $@ $^ -L$(C_INCLUDE_PATH) -L$(C_INCLUDE_PATH) -lm -ldl $(OPT_LINUX) $(CFLAGS_MAIN) -DNDEBUG
 
 # # # # # # # # # # # # # # # # # # # #
 # WINDOWS-32 BUILD                    #
@@ -194,9 +189,9 @@ bin/win32/src/lib/%.o: src/lib/%.c
 	@echo "$(PRNT_RSET)[$(PRNT_YELW)$(notdir $@)$(PRNT_RSET)]"
 	@i686-w64-mingw32.static-gcc -c -o $@ $<
 	
-bin/win32/src/External.o: src/External.c $(ExtLibDep) $(C_INCLUDE_PATH)/ExtLib.c
-bin/win32/%.o: %.c %.h $(HEADER) $(ExtLibDep)
-bin/win32/%.o: %.c $(HEADER) $(ExtLibDep)
+bin/win32/src/External.o: src/External.c $(ExtLib_H)
+bin/win32/%.o: %.c %.h $(HEADER) $(ExtLib_H)
+bin/win32/%.o: %.c $(HEADER) $(ExtLib_H)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@i686-w64-mingw32.static-gcc -c -o $@ $< $(OPT_WIN32) $(CFLAGS) -D_WIN32
 	@i686-w64-mingw32.static-objdump -drz $@ > $(@:.o=.s)
@@ -204,8 +199,8 @@ bin/win32/%.o: %.c $(HEADER) $(ExtLibDep)
 bin/win32/icon.o: src/icon.rc src/icon.ico
 	@i686-w64-mingw32.static-windres -o $@ $<
 
-$(RELEASE_EXECUTABLE_WIN32): z64rom.c bin/win32/icon.o $(SOURCE_O_WIN32)
+$(RELEASE_EXECUTABLE_WIN32): z64rom.c bin/win32/icon.o $(SOURCE_O_WIN32) $(ExtLib_Win32_O)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -o $@ $^ -L$(C_INCLUDE_PATH) -lm -lxm-win32 -laudio-win32 -lzip-win32 $(CURL) $(OPT_WIN32) $(CFLAGS_MAIN) -DNDEBUG -D_WIN32
+	@i686-w64-mingw32.static-gcc -o $@ $^ -L$(C_INCLUDE_PATH) -lm $(OPT_WIN32) $(CFLAGS_MAIN) -DNDEBUG -D_WIN32
 	@upx -9 --best --compress-icons=0 $@
 	

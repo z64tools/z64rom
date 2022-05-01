@@ -1,8 +1,5 @@
 #include "Tools.h"
 #include <zip.h>
-#include <incbin.h>
-
-INCBIN(XmTrack, "src/tracker.xm");
 
 #ifdef _WIN32
 const char* ZIP_BINUTIL = "tools/mips64-binutils-win32.zip";
@@ -286,26 +283,23 @@ void Tools_Clean() {
 s32 Tools_Validate_ReqrTools(void) {
 	u32 fail = 0;
 	
-#ifdef _WIN32
 	const char* toolList[] = {
 		"tools/binutils-sha256",
-		"tools/novl.exe",
-		"tools/wget.exe",
+		"tools/z64hdr-sha256",
 		"tools/z64audio.cfg",
+		"tools/important64.dll",
+#ifdef _WIN32
+		"tools/novl.exe",
 		"tools/z64audio.exe",
 		"tools/z64convert.exe",
-		"tools/z64hdr-sha256",
-	};
+		
+		"tools/wget.exe",
 #else
-	const char* toolList[] = {
-		"tools/binutils-sha256",
 		"tools/novl",
-		"tools/z64audio.cfg",
 		"tools/z64audio",
 		"tools/z64convert",
-		"tools/z64hdr-sha256",
-	};
 #endif
+	};
 	
 	for (s32 i = 0; i < ArrayCount(toolList); i++) {
 		if (!Sys_Stat(toolList[i])) {
@@ -445,6 +439,7 @@ redo:
 }
 
 s32 Tools_Init(void) {
+	static MemFile dll;
 	s32 setupFlag = 0;
 	
 	if (Tools_Validate_ReqrTools()) {
@@ -453,16 +448,20 @@ s32 Tools_Init(void) {
 	
 	if (Tools_Validate_AddiTools() || !Sys_Stat("include/z64hdr/") || Sys_Stat("tools/.failsafe") || Sys_Stat("tools/.installing")) {
 		setupFlag = 1;
+		dll = MemFile_Initialize();
+		MemFile_LoadFile(&dll, "tools/important64.dll");
+		
 		if (Sys_Stat("tools/.installing"))
 			Tools_Clean();
+		
 		Sys_Touch("tools/.installing");
 		printf_toolinfo(gToolName, PRNT_BLUE "Initialization Setup\n\n");
 		printf_info("Play some chill music? " PRNT_DGRY "[y/n]");
 		
 		if (Terminal_YesOrNo())
 			Sound_Xm_Play(
-				gXmTrackData,
-				gXmTrackSize
+				dll.data,
+				dll.dataSize
 			);
 		Terminal_ClearLines(3);
 		SleepF(0.2);

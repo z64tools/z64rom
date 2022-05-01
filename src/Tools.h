@@ -19,6 +19,6 @@ s32 Tools_Validate_ReqrTools(void);
 s32 Tools_Validate_AddiTools(void);
 void Tools_Update_Header(void);
 void Tools_Update_Binutils(void);
-void Tools_Init(void);
+s32 Tools_Init(void);
 
 #define Tools_Command(dest, tool, args, ...) sprintf(dest, "%s " args, Tools_Get(tool), __VA_ARGS__)

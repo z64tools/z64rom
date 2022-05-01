@@ -1,9 +1,6 @@
 #include "src/z64rom.h"
 #include "src/Make.h"
 #include <xm.h>
-#include <incbin.h>
-
-INCBIN(XmTrack, "src/tracker.xm");
 
 const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.0"
 #ifndef NDEBUG
@@ -24,7 +21,7 @@ s32 gInfoFlag;
 s32 gLogOutput;
 extern u32 gThreading;
 
-void Main_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
+static void Main_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
 	const char* confRom = "z64project.cfg";
 	MemFile* config = &rom->config;
 	u32 parArg = 0;
@@ -47,6 +44,27 @@ void Main_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
 		
 		MemFile_Printf(config, "# Project Settings\n");
 		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", String_GetFilename(input[0]));
+		MemFile_Printf(
+			config,
+			"%-15s = \"%s\"\n",
+			"mips64_gcc_flags",
+			"-c -Iinclude/z64hdr -Iinclude/z64hdr/include -Iinclude/ "
+			"-Isrc/lib_user -G 0 -O1 -fno-reorder-blocks -std=gnu99 -march=vr4300 -mabi=32"
+			" -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division -Wall"
+			" -Wno-builtin-declaration-mismatch -Wno-unused-variable"
+		);
+		MemFile_Printf(
+			config,
+			"%-15s = \"%s\"\n",
+			"mips64_gcc_flags_code",
+			"-mno-gpopt -fomit-frame-pointer"
+		);
+		MemFile_Printf(
+			config,
+			"%-15s = \"%s\"\n",
+			"mips64_ld_flags",
+			"-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld -T z_lib_user.ld --emit-relocs"
+		);
 	} else if (Sys_Stat(confRom)) {
 		MemFile_Reset(config);
 		MemFile_LoadFile_String(config, confRom);
@@ -56,26 +74,6 @@ void Main_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
 		if (!Sys_Stat(Tmp_Printf("%s%s", Sys_AppDir(), input[0]))) {
 			printf_error("Could not locate your baserom [%s]", Tmp_Printf("%s%s", Sys_AppDir(), input[0]));
 		}
-	}
-}
-
-void Main_CheckTypes() {
-	u32 error = 0;
-	
-	#define SizeTester(type, expectedSize) if (sizeof(type) != expectedSize) { \
-			printf_error_align("sizeof(" # type ")", "%d > %d", sizeof(type), expectedSize); \
-			error++; \
-	}
-	SizeTester(enum SampleMedium, 1);
-	SizeTester(enum SeqPlayer, 1);
-	SizeTester(struct AudioEntry, 16);
-	SizeTester(struct Instrument, 32);
-	SizeTester(struct Adsr, 4);
-	SizeTester(struct Sound, 8);
-	SizeTester(struct AudioEntryHead, 16);
-	
-	if (error) {
-		exit(EXIT_FAILURE);
 	}
 }
 
@@ -94,198 +92,186 @@ s32 Main(s32 argc, char* argv[]) {
 	
 	if (XARG("single-thread")) gThreading = false;
 	
-	if (Tools_Validate_ReqrTools()) {
-		goto free;
-	}
-	
-	if (Tools_Validate_AddiTools() || !Sys_Stat("include/z64hdr/") || Sys_Stat("tools/.failsafe") || Sys_Stat("tools/.installing")) {
-		setupFlag = true;
-		if (Sys_Stat("tools/.installing"))
-			Tools_Clean();
-		Sys_Touch("tools/.installing");
-		printf_toolinfo(gToolName, PRNT_BLUE "Initialization Setup\n\n");
-		printf_info("Play some chill music? " PRNT_DGRY "[y/n]");
-		
-		if (Terminal_YesOrNo())
-			Sound_Xm_Play(
-				gXmTrackData,
-				gXmTrackSize
-			);
-		Terminal_ClearLines(3);
-		SleepF(0.2);
-		
-		printf_warning("Would you like to let z64rom handle installation automatically? " PRNT_DGRY "[y/n]");
-		if (Terminal_YesOrNo()) {
-			gAutoDownload = true;
-		} else {
-			gAutoDownload = false;
-		}
-		Terminal_ClearLines(3);
-		SleepF(0.2);
-		
-		Tools_Init();
-		
-		if (!Tools_Validate_AddiTools() && Sys_Stat("include/z64hdr/")) {
-			printf_info("All required tools have been installed succesfully!");
-		}
-		Sys_Delete("tools/.installing");
-	}
-	
-	if (XARG("update")) {
-		printf_toolinfo(gToolName, "Updating z64hdr...\n\n");
-		Tools_Update_Header();
-		
-		goto free;
-	}
-	if (Sys_Stat("z64project.cfg")) {
-		if (!XARG("no-make")) {
-			printf_toolinfo(gToolName, "\n");
-			Make();
-		}
-		if (XARG("make-only")) goto free;
-	}
-	if (XARG("yaz")) {
-		u8* tmpBuffer;
-		char* newFileName = Tmp_Alloc(512);
-		MemFile file = MemFile_Initialize();
-		
-		input = argv[parArg];
-		String_SwapExtension(newFileName, input, ".yaz");
-		printf_info("Compressing [%s] to [%s]", input, newFileName);
-		
-		if (MemFile_LoadFile(&file, input)) printf_error("Could not load [%s]", input);
-		tmpBuffer = Tmp_Alloc(file.dataSize);
-		file.dataSize = Yaz_Encode(tmpBuffer, file.data, file.dataSize);
-		file.data = tmpBuffer;
-		
-		if (MemFile_SaveFile(&file, newFileName)) printf_error("Could not save [%s]", newFileName);
-		
-		goto free;
-	}
-	if (XARG("base") || XARG("mod")) {
-		MemFile memBase = MemFile_Initialize();
-		MemFile memMod = MemFile_Initialize();
-		MemFile patch = MemFile_Initialize();
-		char* base = NULL;
-		char* mod = NULL;
-		s32 cont = 0;
-		s32 first = 0;
-		
-		if (XARG("base")) base = argv[parArg];
-		if (XARG("mod")) mod = argv[parArg];
-		
-		if (mod == NULL || base == NULL)
-			printf_error("Provide both [--base] and [--mod]");
-		
-		MemFile_Malloc(&patch, MbToBin(32.0));
-		MemFile_LoadFile(&memBase, base);
-		MemFile_LoadFile(&memMod, mod);
-		
-		for (s32 i = 0x40; i < (u32)fmax(memBase.dataSize, memMod.dataSize); i++) {
-			if (memBase.cast.u8[i] == memMod.cast.u8[i]) {
-				cont = 0;
-				continue;
-			}
+	switch (setupFlag = Tools_Init()) {
+		case -1:
+			goto free;
+			break;
 			
-			if (cont == 0) {
-				if (first)
-					MemFile_Printf(&patch, "\n");
-				MemFile_Printf(&patch, "0x%08X = 0x", i);
-				first = 1;
-			}
+		case 0:
+			Main_Config(&input, rom, argc, argv);
 			
-			if (MemFile_Printf(&patch, "%02X", memMod.cast.u8[i])) {
-				printf_error("Size exceeded %.0f MB. Exiting...", BinToMb(patch.memSize));
-			}
-			
-			cont = 1;
-		}
-		
-		if (patch.dataSize > 0) {
-			// printf("%s\n", (char*)patch.data);
-			MemFile_SaveFile_String(&patch, "PatchOutput.cfg");
-		}
-		MemFile_Free(&patch);
-		MemFile_Free(&memBase);
-		MemFile_Free(&memMod);
-		
-		goto free;
-	}
-	if (XARG("actor")) {
-		u32 id = String_GetInt(argv[parArg]);
-		
-		if (XARG("i")) {
-			input = argv[parArg];
-			rom->type = Zelda_OoT_Debug;
-			Rom_New(rom, input);
-			Rom_Debug_ActorEntry(rom, id);
-		}
-		
-		goto free;
-	}
-	if (XARG("dma")) {
-		u32 id = String_GetInt(argv[parArg]);
-		
-		gInfoFlag = true;
-		if (XARG("i")) {
-			input = argv[parArg];
-			rom->type = Zelda_OoT_Debug;
-			Rom_New(rom, input);
-			Rom_Debug_DmaEntry(rom, id);
-		}
-		
-		goto free;
-	}
-	if (XARG("generic")) gGenericNames = true;
-	if (XARG("no-wav")) gExtractAudio = false;
-	if (XARG("info")) gPrintInfo = true;
-	if (XARG("debug")) printf_SetSuppressLevel(PSL_DEBUG);
-	if (XARG("compress")) gCompressFlag = true;
-	
-	Main_CheckTypes();
-	
-	if (setupFlag) {
-		for (s32 i = 0; i < argc; i++) {
-			if (StrEnd(argv[i], ".z64") || StrEnd(argv[i], ".Z64")) {
-				char* filename = String_GetFilename(argv[i]);
+			if (XARG("update")) {
+				printf_toolinfo(gToolName, "Updating z64hdr...\n\n");
+				Tools_Update_Header();
 				
-				if (!Sys_Stat(filename))
-					Sys_Copy(argv[i], filename, false);
-				input = filename;
-				
-				break;
+				goto free;
 			}
-		}
-		
-		if (input == NULL) {
-			ItemList list = ItemList_Initialize();
 			
-			ItemList_List(&list, "", 0);
+			if (Sys_Stat("z64project.cfg")) {
+				if (!XARG("no-make")) {
+					printf_toolinfo(gToolName, "\n");
+					Make(rom);
+				}
+				if (XARG("make-only")) goto free;
+			}
 			
-			for (s32 i = 0; i < list.num; i++) {
-				if ((StrEnd(list.item[i], ".z64") || StrEnd(list.item[i], ".Z64")) && !StrStr(list.item[i], "build")) {
-					printf("\n");
-					printf_info("Looks like you have a rom called " PRNT_REDD "%s " PRNT_RSET "in the same directory.", list.item[i]);
-					
-					printf_info("Want to use it as your baserom and dump it now? " PRNT_DGRY "[y/n]");
-					
-					if (Terminal_YesOrNo()) {
-						input = strdup(list.item[i]);
-						sDumpFlag = true;
+			if (XARG("yaz")) {
+				u8* tmpBuffer;
+				char* newFileName = Tmp_Alloc(512);
+				MemFile file = MemFile_Initialize();
+				
+				input = argv[parArg];
+				String_SwapExtension(newFileName, input, ".yaz");
+				printf_info("Compressing [%s] to [%s]", input, newFileName);
+				
+				if (MemFile_LoadFile(&file, input)) printf_error("Could not load [%s]", input);
+				tmpBuffer = Tmp_Alloc(file.dataSize);
+				file.dataSize = Yaz_Encode(tmpBuffer, file.data, file.dataSize);
+				file.data = tmpBuffer;
+				
+				if (MemFile_SaveFile(&file, newFileName)) printf_error("Could not save [%s]", newFileName);
+				
+				goto free;
+			}
+			
+			if (XARG("base") || XARG("mod")) {
+				MemFile memBase = MemFile_Initialize();
+				MemFile memMod = MemFile_Initialize();
+				MemFile patch = MemFile_Initialize();
+				char* base = NULL;
+				char* mod = NULL;
+				s32 cont = 0;
+				s32 first = 0;
+				
+				if (XARG("base")) base = argv[parArg];
+				if (XARG("mod")) mod = argv[parArg];
+				
+				if (mod == NULL || base == NULL)
+					printf_error("Provide both [--base] and [--mod]");
+				
+				MemFile_Malloc(&patch, MbToBin(32.0));
+				MemFile_LoadFile(&memBase, base);
+				MemFile_LoadFile(&memMod, mod);
+				
+				for (s32 i = 0x40; i < (u32)fmax(memBase.dataSize, memMod.dataSize); i++) {
+					if (memBase.cast.u8[i] == memMod.cast.u8[i]) {
+						cont = 0;
+						continue;
 					}
 					
-					Terminal_ClearLines(2);
-					printf("\n");
+					if (cont == 0) {
+						if (first)
+							MemFile_Printf(&patch, "\n");
+						MemFile_Printf(&patch, "0x%08X = 0x", i);
+						first = 1;
+					}
+					
+					if (MemFile_Printf(&patch, "%02X", memMod.cast.u8[i])) {
+						printf_error("Size exceeded %.0f MB. Exiting...", BinToMb(patch.memSize));
+					}
+					
+					cont = 1;
+				}
+				
+				if (patch.dataSize > 0) {
+					// printf("%s\n", (char*)patch.data);
+					MemFile_SaveFile_String(&patch, "PatchOutput.cfg");
+				}
+				MemFile_Free(&patch);
+				MemFile_Free(&memBase);
+				MemFile_Free(&memMod);
+				
+				goto free;
+			}
+			
+			if (XARG("actor")) {
+				u32 id = String_GetInt(argv[parArg]);
+				
+				if (XARG("i")) {
+					input = argv[parArg];
+					rom->type = Zelda_OoT_Debug;
+					Rom_New(rom, input);
+					Rom_Debug_ActorEntry(rom, id);
+				}
+				
+				goto free;
+			}
+			
+			if (XARG("dma")) {
+				u32 id = String_GetInt(argv[parArg]);
+				
+				gInfoFlag = true;
+				if (XARG("i")) {
+					input = argv[parArg];
+					rom->type = Zelda_OoT_Debug;
+					Rom_New(rom, input);
+					Rom_Debug_DmaEntry(rom, id);
+				}
+				
+				goto free;
+			}
+			
+			if (XARG("generic"))
+				gGenericNames = true;
+			
+			if (XARG("no-wav"))
+				gExtractAudio = false;
+			
+			if (XARG("info"))
+				gPrintInfo = true;
+			
+			if (XARG("debug"))
+				printf_SetSuppressLevel(PSL_DEBUG);
+			
+			if (XARG("compress"))
+				gCompressFlag = true;
+			
+			break;
+			
+		case 1:
+			for (s32 i = 0; i < argc; i++) {
+				if (StrEnd(argv[i], ".z64") || StrEnd(argv[i], ".Z64")) {
+					char* filename = String_GetFilename(argv[i]);
+					
+					if (!Sys_Stat(filename))
+						Sys_Copy(argv[i], filename, false);
+					input = filename;
 					
 					break;
 				}
 			}
 			
-			ItemList_Free(&list);
-		}
+			if (input == NULL) {
+				ItemList list = ItemList_Initialize();
+				
+				ItemList_List(&list, "", 0);
+				
+				for (s32 i = 0; i < list.num; i++) {
+					if ((StrEnd(list.item[i], ".z64") || StrEnd(list.item[i], ".Z64")) && !StrStr(list.item[i], "build")) {
+						printf("\n");
+						printf_info("Looks like you have a rom called " PRNT_REDD "%s " PRNT_RSET "in the same directory.", list.item[i]);
+						
+						printf_info("Want to use it as your baserom and dump it now? " PRNT_DGRY "[y/n]");
+						
+						if (Terminal_YesOrNo()) {
+							input = strdup(list.item[i]);
+							sDumpFlag = true;
+						}
+						
+						Terminal_ClearLines(2);
+						printf("\n");
+						
+						break;
+					}
+				}
+				
+				ItemList_Free(&list);
+			}
+			
+			Main_Config(&input, rom, argc, argv);
+			
+			break;
 	}
-	
-	Main_Config(&input, rom, argc, argv);
 	
 	if (input) {
 		printf_toolinfo(gToolName, "\n");
@@ -294,6 +280,7 @@ s32 Main(s32 argc, char* argv[]) {
 				printf_info("Extract " PRNT_REDD "wav audio samples" PRNT_RSET "?");
 				printf_info("This is optional and will slow down dumping process. " PRNT_DGRY "[y/n]");
 				if (!Terminal_YesOrNo()) gExtractAudio = false;
+				Terminal_ClearLines(2);
 				printf("\n");
 			}
 			

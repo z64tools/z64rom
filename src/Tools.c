@@ -1,5 +1,8 @@
 #include "Tools.h"
 #include <zip.h>
+#include <incbin.h>
+
+INCBIN(XmTrack, "src/tracker.xm");
 
 #ifdef _WIN32
 const char* ZIP_BINUTIL = "tools/mips64-binutils-win32.zip";
@@ -35,6 +38,8 @@ const char* sTools[] = {
 };
 
 bool gAutoDownload = true;
+
+extern const char* gToolName;
 
 static void Tools__CloseDialog(const char* toolName, bool askClose) {
 	static u32 failCount = 0;
@@ -278,8 +283,6 @@ void Tools_Clean() {
 		Sys_Delete_Recursive("tools/mips64-binutils/");
 }
 
-extern const char* gToolName;
-
 s32 Tools_Validate_ReqrTools(void) {
 	u32 fail = 0;
 	
@@ -441,9 +444,50 @@ redo:
 	printf_info("Installed succesfully!\n");
 }
 
-void Tools_Init(void) {
-	if (Tools_Validate_AddiTools() || Sys_Stat("tools/.failsafe"))
-		Tools_Update_Binutils();
-	if (!Sys_Stat("include/oot_mq_debug/z64hdr.h"))
-		Tools_Update_Header();
+s32 Tools_Init(void) {
+	s32 setupFlag = 0;
+	
+	if (Tools_Validate_ReqrTools()) {
+		return -1;
+	}
+	
+	if (Tools_Validate_AddiTools() || !Sys_Stat("include/z64hdr/") || Sys_Stat("tools/.failsafe") || Sys_Stat("tools/.installing")) {
+		setupFlag = 1;
+		if (Sys_Stat("tools/.installing"))
+			Tools_Clean();
+		Sys_Touch("tools/.installing");
+		printf_toolinfo(gToolName, PRNT_BLUE "Initialization Setup\n\n");
+		printf_info("Play some chill music? " PRNT_DGRY "[y/n]");
+		
+		if (Terminal_YesOrNo())
+			Sound_Xm_Play(
+				gXmTrackData,
+				gXmTrackSize
+			);
+		Terminal_ClearLines(3);
+		SleepF(0.2);
+		
+		printf_warning("Would you like to let z64rom handle installation automatically? " PRNT_DGRY "[y/n]");
+		if (Terminal_YesOrNo()) {
+			gAutoDownload = true;
+		} else {
+			gAutoDownload = false;
+		}
+		Terminal_ClearLines(3);
+		SleepF(0.2);
+		
+		/* INIT */ {
+			if (Tools_Validate_AddiTools() || Sys_Stat("tools/.failsafe"))
+				Tools_Update_Binutils();
+			if (!Sys_Stat("include/oot_mq_debug/z64hdr.h"))
+				Tools_Update_Header();
+		}
+		
+		if (!Tools_Validate_AddiTools() && Sys_Stat("include/z64hdr/")) {
+			printf_info("All required tools have been installed succesfully!");
+		}
+		Sys_Delete("tools/.installing");
+	}
+	
+	return setupFlag;
 }

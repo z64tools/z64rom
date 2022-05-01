@@ -1,14 +1,12 @@
+#include "z64rom.h"
 #include "Make.h"
 
 #define THREAD_NUM 42
 
 extern s32 gLogOutput;
-const char* gFlags = "-c -Iinclude/z64hdr -Iinclude/z64hdr/include -Iinclude/ "
-	"-Isrc/lib_user -G 0 -O1 -fno-reorder-blocks -std=gnu99 -march=vr4300 -mabi=32"
-	" -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division -Wall"
-	" -Wno-builtin-declaration-mismatch -Wno-unused-variable";
-const char* gFlagsCode = "-mno-gpopt -fomit-frame-pointer";
-const char* gFlagsLink = "-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld -T z_lib_user.ld --emit-relocs";
+const char* gFlags;
+const char* gFlagsCode;
+const char* gFlagsLink;
 u32 gThreading = true;
 
 typedef enum {
@@ -614,10 +612,16 @@ void Make_Code(void) {
 			Thread_Join(&thread[set]);
 }
 
-void Make(void) {
+void Make(Rom* rom) {
+	gFlags = Config_GetString(&rom->config, "mips64_gcc_flags");
+	gFlagsCode = Config_GetString(&rom->config, "mips64_gcc_flags_code");
+	gFlagsLink = Config_GetString(&rom->config, "mips64_ld_flags");
+	
 	Thread_Init(); {
 		Make_Code();
 	} Thread_Free();
 	
-	printf_info_align("Make", "OK");
+	printf_WinFix();
+	
+	printf_info_align("Make", "OK\n");
 }

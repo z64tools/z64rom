@@ -487,7 +487,7 @@ void Rom_Dump(Rom* rom) {
 	MemFile_Malloc(&dataFile, 0x460000); // Slightly larger than audiotable
 	MemFile_Malloc(&config, 0x25000);
 	
-	printf_info_align("Dumping Rom", PRNT_PRPL "%s", rom->file.info.name);
+	printf_info_align("Dumping Rom", PRNT_REDD "%s", rom->file.info.name);
 	
 	Dir_Enter(&gDir, "rom/"); {
 		Dir_Enter(&gDir, "actor/.vanilla/"); {
@@ -701,8 +701,8 @@ void Rom_Build(Rom* rom) {
 	MemFile_Malloc(&config, 0x25000);
 	MemFile_Params(&config, MEM_FILENAME, true, MEM_END);
 	
-	printf_info_align("Load Baserom", PRNT_PRPL "%s", rom->file.info.name);
-	printf_info_align("Build Rom", PRNT_PRPL "build.z64");
+	printf_info_align("Load Baserom", PRNT_REDD "%s", rom->file.info.name);
+	printf_info_align("Build Rom", PRNT_BLUE "build.z64");
 	
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_3, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_3, false);
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_4, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_4, false);

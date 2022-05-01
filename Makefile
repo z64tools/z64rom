@@ -1,4 +1,4 @@
-CFLAGS         := -s -Wall -DEXTLIB=111 -pthread
+CFLAGS         := -s -flto -Wall -DEXTLIB=111 -pthread
 CFLAGS_MAIN    := -s -Wall -pthread
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast

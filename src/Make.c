@@ -78,6 +78,59 @@ static s32 Overlay_ValidateMainFile(const char* input, char** oldInput) {
 	return 1;
 }
 
+u32 Overlay_GetInit(void* overlay, u32 size) {
+	u32* ptr = overlay;
+	
+	while (true) {
+		if (size < sizeof(ActorInit))
+			return 0;
+		u32 match = 0;
+		ActorInit* initData = (ActorInit*)ptr;
+		
+		if ((ReadBE(initData->init) & 0xFF000000) == 0x80000000) {
+			if ((ReadBE(initData->update) & 0xFF000000) == 0x80000000) {
+				if ((ReadBE(initData->destroy) & 0xFF000000) == 0x80000000 || initData->destroy == 0) {
+					if ((ReadBE(initData->draw) & 0xFF000000) == 0x80000000 || initData->draw == 0) {
+						match++;
+					}
+				}
+			}
+		}
+		
+		if (ReadBE(initData->id) <= ACTOR_ID_MAX && ReadBE(initData->objectId) <= OBJECT_ID_MAX)
+			match++;
+		
+		if (initData->category <= ACTORCAT_CHEST)
+			match++;
+		
+		if (!(ReadBE(initData->instanceSize) & 0xFF000000) && initData->instanceSize != 0 && (ReadBE(initData->instanceSize) % 4) == 0)
+			match++;
+		
+		if (match == 4) {
+			ActorInit* in = (void*)ptr;
+			
+			Log("id            %04X", ReadBE(in->id));
+			Log("category      %04X", ReadBE(in->category));
+			Log("flags         %04X", ReadBE(in->flags));
+			Log("objectId      %04X", ReadBE(in->objectId));
+			Log("instanceSize  %04X", ReadBE(in->instanceSize));
+			Log("init          %04X", ReadBE(in->init));
+			Log("destroy       %04X", ReadBE(in->destroy));
+			Log("update        %04X", ReadBE(in->update));
+			Log("draw          %04X", ReadBE(in->draw));
+			break;
+		}
+		
+		ptr++;
+		size -= 4;
+	}
+	
+	if (Overlay_GetInit(ptr + 1, size - 4))
+		return (uPtr)ptr - (uPtr)overlay;
+	
+	return 0x80800000 + (uPtr)ptr - (uPtr)overlay;
+}
+
 static s32 Callback_System(const char* input, PassType type, void* arg, void* arg2) {
 	char* ovl;
 	
@@ -151,41 +204,96 @@ static s32 Callback_System(const char* input, PassType type, void* arg, void* ar
 
 static s32 Callback_Actor(const char* input, PassType type, void* arg, void* arg2) {
 	char* ovl;
+	char* conf;
 	
 	if (type == POST_GCC) return 0;
 	
 	ovl = Tmp_Printf("%sactor.zovl", String_GetPath(input));
 	String_Replace(ovl, "src/", "rom/");
 	
+	conf = Tmp_Printf("%sconfig.cfg", String_GetPath(input));
+	String_Replace(ovl, "src/", "rom/");
+	
 	if (type == PRE_GCC) {
-		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
+		if (!Sys_Stat(ovl) || !Sys_Stat(conf) || Sys_Stat(input) > Sys_Stat(ovl))
 			return CB_BUILD;
 		
 		return 0;
 	}
 	
 	if (type == PRE_LD) {
-		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
+		if (!Sys_Stat(ovl) || !Sys_Stat(conf) || Sys_Stat(input) > Sys_Stat(ovl))
 			return CB_BUILD;
 		
 		return 0;
 	}
 	
 	if (type == POST_LD) {
-		// char* config = Tmp_Printf("%sconfig.cfg", String_GetPath(input));
 		char* command = arg;
 		char* info;
-		char* sys;
-		
-		Tools_Command(command, mips64_objdump, "-t %s", input);
-		sys = Sys_CommandOut(command);
+		char* dump;
 		
 		info = String_GetFolder(input, -1); String_Remove(info, strlen("0x0000-")); String_Replace(info, "/", " ");
 		Log("novl %s", info);
 		
-		Tools_Command(command, nOVL, "-v -c -A 0x80800000 -o %s %s", ovl, input);
+		Tools_Command(command, nOVL, "-v -c -s -A 0x80800000 -o %s %s", ovl, input);
 		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
-		Free(sys);
+		
+		Tools_Command(command, mips64_objdump, "-t %s", input);
+		dump = Sys_CommandOut(command); {
+			MemFile mC = MemFile_Initialize();
+			MemFile mConf = MemFile_Initialize();
+			u32 initFlags;
+			char* inC = strdup(input);
+			char* temp;
+			char* varName;
+			
+			String_Replace(inC, "rom/", "src/");
+			String_Replace(inC, ".elf", ".c");
+			
+			MemFile_Malloc(&mConf, 0x80);
+			if (MemFile_LoadFile(&mC, inC)) printf_error("Could not open [%s]", inC);
+			
+			temp = StrStr(mC.str, "\nActorInit ");
+			if (temp)
+				temp += strlen("\nActorInit ");
+			else {
+				temp = StrStr(mC.str, "\nconst ActorInit ");
+				if (temp)
+					temp += strlen("\nconst ActorInit ");
+				else {
+					temp = StrStr(mC.str, " ActorInit ");
+					if (temp)
+						temp += strlen(" ActorInit ");
+					else {
+						printf_WinFix();
+						printf_error_align("ActorInit", "Could not locate ActorInit in [%s]", inC);
+					}
+				}
+			}
+			
+			varName = Malloc(0, 64);
+			strcpy(varName, String_GetWord(temp, 0));
+			String_Replace(varName, "=", "");
+			String_Replace(varName, "[", "");
+			String_Insert(varName, " ");
+			temp = String_LineHead(StrStr(dump, varName));
+			
+			MemFile_Printf(&mConf, "# %s\n", String_GetBasename(input));
+			MemFile_Printf(&mConf, "alloc_type = 0\n");
+			MemFile_Printf(&mConf, "vram_addr  = 0x80800000\n");
+			MemFile_Printf(&mConf, "# %s\n", String_GetLine(temp, 0));
+			MemFile_Printf(&mConf, "init_vars  = 0x%.8s\n", temp);
+			
+			if (MemFile_SaveFile_String(&mConf, conf)) printf_error("Could not save [%s]", conf);
+			
+			MemFile_Free(&mC);
+			MemFile_Free(&mConf);
+			Free(inC);
+			Free(varName);
+		}
+		
+		Free(dump);
 		
 		return 0;
 	}

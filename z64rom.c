@@ -310,8 +310,8 @@ s32 Main(s32 argc, char* argv[]) {
 	printf_toolinfo(gToolName, sToolUsage);
 	
 free:
-#ifdef _WIN32
 	
+#ifdef _WIN32
 	if (!XARG("no-wait")) {
 		printf_getchar("Press enter to exit.");
 	}

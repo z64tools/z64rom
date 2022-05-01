@@ -109,7 +109,7 @@ clean-sub:
 	@rm -f project/tools/z64convert
 	@rm -f project/tools/z64convert.exe
 
-clean: extlib_clean
+clean:
 	@rm -f -R bin
 	@rm -f project/tools/elf2ld
 

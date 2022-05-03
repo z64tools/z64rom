@@ -48,20 +48,31 @@ static void Sound_Convert(ThreadArg* targ) {
 	
 	ItemList* list = Calloc(0, sizeof(ItemList));
 	char* vadpcm = NULL;
-	char* wav = NULL;
+	char* audio = NULL;
+	const char* fmt[] = {
+		".wav",
+		".aiff",
+		".mp3"
+	};
 	
 	list[0] = ItemList_Initialize();
 	
 	ItemList_List(list, targ->path, 0, LIST_FILES);
 	
 	for (s32 i = 0; i < list->num; i++) {
-		if (wav == NULL) {
-			if (StrEndCase(list->item[i], ".wav"))
-				wav = list->item[i];
+		if (audio == NULL) {
+			for (s32 j = 0; j < ArrayCount(fmt); j++) {
+				if (StrEndCase(list->item[i], fmt[j])) {
+					audio = list->item[i];
+					break;
+				}
+			}
 		} else {
-			if (StrEndCase(list->item[i], ".wav"))
-				if (Sys_Stat_Ex(wav) < Sys_Stat_Ex(list->item[i]))
-					wav = list->item[i];
+			for (s32 j = 0; j < ArrayCount(fmt); j++) {
+				if (StrEndCase(list->item[i], fmt[j]))
+					if (Sys_Stat_Ex(audio) < Sys_Stat_Ex(list->item[i]))
+						audio = list->item[i];
+			}
 		}
 		
 		if (vadpcm == NULL)
@@ -69,14 +80,14 @@ static void Sound_Convert(ThreadArg* targ) {
 				vadpcm = list->item[i];
 	}
 	
-	if (wav == NULL)
+	if (audio == NULL)
 		goto free;
 	
-	if (vadpcm == NULL || Sys_Stat_Ex(wav) > Sys_Stat_Ex(vadpcm) || gMakeForce) {
+	if (vadpcm == NULL || Sys_Stat_Ex(audio) > Sys_Stat_Ex(vadpcm) || gMakeForce) {
 		char command[512];
-		Tools_Command(command, z64audio, "\"%s\"", wav);
+		Tools_Command(command, z64audio, "\"%s\"", audio);
 		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
-		Make_Info("z64audio", wav);
+		Make_Info("z64audio", audio);
 	}
 	
 free:

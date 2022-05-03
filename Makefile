@@ -1,6 +1,6 @@
-CFLAGS         := -s -flto -Wall -DEXTLIB=111 -pthread
-CFLAGS_MAIN    := -s -Wall -pthread
-OPT_WIN32      := -Ofast
+CFLAGS         := -s -flto -Wall -DEXTLIB=111 -DNDEBUG
+CFLAGS_MAIN    := -s -Wall -pthread -DNDEBUG
+OPT_WIN32      := -O2
 OPT_LINUX      := -Ofast
 SOURCE_C       := $(shell find src/* -type f -name '*.c')
 SOURCE_O_LINUX := $(foreach f,$(SOURCE_C:.c=.o),bin/linux/$f)
@@ -178,7 +178,7 @@ bin/linux/%.o: %.c $(HEADER) $(ExtLib_H)
 
 $(RELEASE_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX) $(ExtLib_Linux_O)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@gcc -o $@ $^ -L$(C_INCLUDE_PATH) -L$(C_INCLUDE_PATH) -lm -ldl $(OPT_LINUX) $(CFLAGS_MAIN) -DNDEBUG
+	@gcc -o $@ $^ -L$(C_INCLUDE_PATH) -L$(C_INCLUDE_PATH) -lm -ldl $(OPT_LINUX) $(CFLAGS_MAIN)
 
 # # # # # # # # # # # # # # # # # # # #
 # WINDOWS-32 BUILD                    #
@@ -201,5 +201,5 @@ bin/win32/icon.o: src/icon.rc src/icon.ico
 
 $(RELEASE_EXECUTABLE_WIN32): z64rom.c bin/win32/icon.o $(SOURCE_O_WIN32) $(ExtLib_Win32_O)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -o $@ $^ -L$(C_INCLUDE_PATH) -lm $(OPT_WIN32) $(CFLAGS_MAIN) -DNDEBUG -D_WIN32
+	@i686-w64-mingw32.static-gcc -o $@ $^ -L$(C_INCLUDE_PATH) -lm $(OPT_WIN32) $(CFLAGS_MAIN) -D_WIN32
 	

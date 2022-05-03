@@ -8,6 +8,7 @@ const char* gFlags;
 const char* gFlagsCode;
 const char* gFlagsLink;
 u32 gThreading = true;
+volatile bool sMake = false;
 
 typedef enum {
 	PRE_GCC,
@@ -34,7 +35,97 @@ typedef struct ThreadArg {
 
 static void Make_Info(const char* tool, const char* target) {
 	printf("[#]: %-16s %s\n", tool, String_GetFilename(target));
+	sMake = 1;
 }
+
+// # # # # # # # # # # # # # # # # # # # #
+// # MAKE_SOUND                          #
+// # # # # # # # # # # # # # # # # # # # #
+
+static void Sound_Convert(ThreadArg* targ) {
+	if (StrEnd(targ->path, ".vanilla/"))
+		return;
+	
+	ItemList* list = Calloc(0, sizeof(ItemList));
+	char* vadpcm = NULL;
+	char* wav = NULL;
+	
+	list[0] = ItemList_Initialize();
+	
+	ItemList_List(list, targ->path, 0, LIST_FILES);
+	
+	for (s32 i = 0; i < list->num; i++) {
+		if (wav == NULL) {
+			if (StrEndCase(list->item[i], ".wav"))
+				wav = list->item[i];
+		} else {
+			if (StrEndCase(list->item[i], ".wav"))
+				if (Sys_Stat_Ex(wav) < Sys_Stat_Ex(list->item[i]))
+					wav = list->item[i];
+		}
+		
+		if (vadpcm == NULL)
+			if (StrEndCase(list->item[i], ".vadpcm.bin"))
+				vadpcm = list->item[i];
+	}
+	
+	if (wav == NULL)
+		goto free;
+	
+	if (vadpcm == NULL || Sys_Stat_Ex(wav) > Sys_Stat_Ex(vadpcm)) {
+		char command[512];
+		Tools_Command(command, z64audio, "\"%s\"", wav);
+		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
+		Make_Info("z64audio", wav);
+	}
+	
+free:
+	ItemList_Free(list);
+	Free(list);
+}
+
+void Make_Sound(void) {
+	ItemList list = ItemList_Initialize();
+	ThreadArg targ[THREAD_NUM];
+	Thread thread[THREAD_NUM];
+	s32 i = 0;
+	
+	ItemList_List(&list, "rom/sound/sample/", 0, LIST_FOLDERS);
+	
+	if (list.num <= 1)
+		goto free;
+	
+	if (gThreading)
+		Thread_Init();
+	while (i < list.num) {
+		u32 target = Clamp(list.num - i, 0, THREAD_NUM);
+		
+		for (s32 j = 0; j < target; j++) {
+			targ[j].path = list.item[i + j];
+			
+			if (gThreading) {
+				Thread_Create(&thread[j], Sound_Convert, &targ[j]);
+			} else {
+				Sound_Convert(&targ[j]);
+			}
+		}
+		
+		if (gThreading)
+			for (s32 j = 0; j < target; j++)
+				Thread_Join(&thread[j]);
+		
+		i += THREAD_NUM;
+	}
+	if (gThreading)
+		Thread_Free();
+	
+free:
+	ItemList_Free(&list);
+}
+
+// # # # # # # # # # # # # # # # # # # # #
+// # MAKE_CODE                           #
+// # # # # # # # # # # # # # # # # # # # #
 
 static s32 Overlay_ValidateMainFile(const char* input, char** oldInput) {
 	ItemList list = ItemList_Initialize();
@@ -42,7 +133,7 @@ static s32 Overlay_ValidateMainFile(const char* input, char** oldInput) {
 	char* sourcePath = String_GetPath(input);
 	
 	String_Replace(sourcePath, "rom/", "src/");
-	ItemList_List(&list, sourcePath, 0);
+	ItemList_List(&list, sourcePath, 0, LIST_FILES);
 	
 	if (list.num > 2) {
 		for (s32 h = 0; h < list.num; h++) {
@@ -52,7 +143,7 @@ static s32 Overlay_ValidateMainFile(const char* input, char** oldInput) {
 						if (StrEnd(list.item[c], ".c")) {
 							if (!strncmp(list.item[c], list.item[h], strlen(list.item[c]) - 2)) {
 								ItemList_Free(&list);
-								ItemList_List(&list, String_GetPath(input), 0);
+								ItemList_List(&list, String_GetPath(input), 0, LIST_FILES);
 								
 								newInput = Tmp_Alloc(512);
 								
@@ -147,9 +238,6 @@ static s32 Callback_System(const char* input, PassType type, void* arg, void* ar
 	}
 	
 	if (type == PRE_LD) {
-		u32 breaker = true;
-		char** oldInput = arg2;
-		
 		if (Overlay_ValidateMainFile(input, arg2)) {
 			return CB_BREAK;
 		}
@@ -243,7 +331,6 @@ static s32 Callback_Actor(const char* input, PassType type, void* arg, void* arg
 		dump = Sys_CommandOut(command); {
 			MemFile mC = MemFile_Initialize();
 			MemFile mConf = MemFile_Initialize();
-			u32 initFlags;
 			char* inC = strdup(input);
 			char* temp;
 			char* varName;
@@ -363,11 +450,11 @@ error:
 	return 0;
 }
 
-void Make_Code_GCC(const char* source, const char* output, const char* flags, BinutilCallback callback) {
+void Code_GCC(const char* source, const char* output, const char* flags, BinutilCallback callback) {
 	char* command;
 	
 	if (!Sys_Stat(source))
-		printf_error_align("Make_Code_GCC", "Source not found [%s]", source);
+		printf_error_align("Code_GCC", "Source not found [%s]", source);
 	
 	if (callback) {
 		switch (callback(source, PRE_GCC, NULL, NULL)) {
@@ -398,14 +485,14 @@ build:
 	Free(command);
 }
 
-void Make_Code_LD(const char* source, const char* output, const char* flags, BinutilCallback callback) {
+void Code_LD(const char* source, const char* output, const char* flags, BinutilCallback callback) {
 	MemFile entry = MemFile_Initialize();
 	char* command;
 	char entryDir[1024] = { 0 };
 	u32 entryPoint = 0x80800000;
 	
 	if (!Sys_Stat(source))
-		printf_error_align("Make_Code_LD", "Source not found [%s]", source);
+		printf_error_align("Code_LD", "Source not found [%s]", source);
 	
 	if (callback) {
 		switch (callback(source, PRE_LD, &entryPoint, &source)) {
@@ -447,7 +534,7 @@ build:
 	Free(command);
 }
 
-void Make_Code_ObjDump(char* cmd, const char* output) {
+void Code_ObjDump(char* cmd, const char* output) {
 	MemFile linker = MemFile_Initialize();
 	u32 lineNum = String_GetLineCount(cmd);
 	char* txt = cmd;
@@ -490,7 +577,7 @@ static void Make_Linker_Thread(ThreadArg* arg) {
 	u32 inputStrLen = 0;
 	u32 breaker = true;
 	
-	ItemList_List(&itemList, arg->path, -1);
+	ItemList_List(&itemList, arg->path, -1, LIST_FILES);
 	
 	if (!Sys_Stat(bin))
 		breaker = false;
@@ -545,7 +632,7 @@ static void Make_Linker_Thread(ThreadArg* arg) {
 		Tools_Command(command, mips64_objdump, "-x -t %s", elf);
 		if (!Sys_Stat(String_GetPath(ld)))
 			Sys_MakeDir(ld);
-		Make_Code_ObjDump(Sys_CommandOut(command), ld);
+		Code_ObjDump(Sys_CommandOut(command), ld);
 		Log("Compiled: [%s]", ld);
 	}
 	
@@ -571,7 +658,7 @@ static void Make_Code_Thread_Elf(ThreadArg* arg) {
 	String_Replace(output, ".o", ".elf");
 	String_Replace(output, "src/", "rom/");
 	
-	Make_Code_LD(input, output, arg->flag, arg->callback);
+	Code_LD(input, output, arg->flag, arg->callback);
 	Free(output);
 }
 
@@ -590,7 +677,7 @@ static void Make_Code_Thread_Obj(ThreadArg* arg) {
 	String_Replace(output, ".c", ".o");
 	String_Replace(output, "src/", "rom/");
 	
-	Make_Code_GCC(input, output, arg->flag, arg->callback);
+	Code_GCC(input, output, arg->flag, arg->callback);
 	Free(output);
 }
 
@@ -606,7 +693,7 @@ void Make_Code_Thread(ThreadArg* arg) {
 		return;
 	}
 	
-	ItemList_List(&itemList, arg->path, -1);
+	ItemList_List(&itemList, arg->path, -1, LIST_FILES);
 	
 	while (i < itemList.num) {
 		u32 target = Clamp(itemList.num - i, 0, THREAD_NUM);
@@ -672,6 +759,9 @@ void Make_Code(void) {
 	Thread thread[ArrayCount(pathC)];
 	ThreadArg args[ArrayCount(pathC)] = { 0 };
 	
+	if (gThreading)
+		Thread_Init();
+	
 	for (s32 set = 0; set < ArrayCount(pathC); set++) {
 		args[set].path = pathC[set];
 		args[set].flag = flagObject[set];
@@ -718,18 +808,25 @@ void Make_Code(void) {
 	if (gThreading)
 		for (s32 set = 1; set < ArrayCount(pathC); set++)
 			Thread_Join(&thread[set]);
+	
+	if (gThreading)
+		Thread_Free();
 }
+
+// # # # # # # # # # # # # # # # # # # # #
+// # MAKE                                #
+// # # # # # # # # # # # # # # # # # # # #
 
 void Make(Rom* rom) {
 	gFlags = Config_GetString(&rom->config, "mips64_gcc_flags");
 	gFlagsCode = Config_GetString(&rom->config, "mips64_gcc_flags_code");
 	gFlagsLink = Config_GetString(&rom->config, "mips64_ld_flags");
 	
-	Thread_Init(); {
-		Make_Code();
-	} Thread_Free();
+	Make_Sound();
+	Make_Code();
 	
 	printf_WinFix();
 	
-	printf_info_align("Make", "OK\n");
+	if (sMake)
+		printf_info_align("Make", "OK\n");
 }

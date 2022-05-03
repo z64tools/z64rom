@@ -1281,23 +1281,18 @@ void Rom_New(Rom* rom, char* romName) {
 	hdr = SegmentedToVirtual(0x0, 0xDB70);
 	
 	if (rom->type == NoRom) {
-		char* confRom = Tmp_Printf("%s%s", Sys_AppDir(), "z64project.cfg");
-		MemFile* config = &rom->config;
+		char* romType = Config_Get(&rom->config, "z_rom_type");
 		
-		rom->config.seekPoint = strlen(rom->config.data);
-		
-		if (!Config_Get(&rom->config, "z_rom_type")) {
+		if (!strcmp(romType, "__PLACEHOLDER__")) {
 			if (hdr[0] != 0) {
 				rom->type = Zelda_OoT_Debug;
-				Config_WriteVar_Str("z_rom_type", "oot_debug # [oot_debug/oot_u10]");
+				String_Replace(rom->config.str, "__PLACEHOLDER__", "oot_debug");
 			} else {
 				rom->type = Zelda_OoT_1_0;
-				Config_WriteVar_Str("z_rom_type", "oot_u10 # [oot_debug/oot_u10]");
+				String_Replace(rom->config.str, "__PLACEHOLDER__", "oot_u10");
 			}
-			MemFile_SaveFile_String(&rom->config, confRom);
+			rom->config.seekPoint = rom->config.dataSize = strlen(rom->config.str);
 		} else {
-			char* romType = Config_GetString(&rom->config, "z_rom_type");
-			
 			if (!strcmp(romType, "oot_debug")) {
 				rom->type = Zelda_OoT_Debug;
 			} else if (!strcmp(romType, "oot_u10")) {
@@ -1306,7 +1301,6 @@ void Rom_New(Rom* rom, char* romName) {
 				rom->type = NoRom;
 			}
 		}
-		MemFile_Free(&rom->config);
 	}
 	
 	switch (rom->type) {

@@ -117,7 +117,6 @@ static s32 Tools__FileDialog(const char* output) {
 static s32 Tools__BinutilsSHA256(const char* zip, const char* shaFile) {
 	MemFile code = MemFile_Initialize();
 	MemFile arcmem = MemFile_Initialize();
-	u8 buf[64];
 	u8* hash;
 	char* comp;
 	
@@ -232,8 +231,9 @@ redo:
 	ItemList_Free(&itemList);
 }
 
+static char buffer[ArrayCount(sTools) + 1][256];
+
 const char* Tools_Get(ToolIndex id) {
-	static char buffer[ArrayCount(sTools)][256];
 	static u8 init;
 	
 	if (!init) {
@@ -267,6 +267,17 @@ const char* Tools_Get(ToolIndex id) {
 	return buffer[id];
 	
 	return NULL;
+}
+
+s32 Tools_RegisterBlender(MemFile* mem) {
+	char* blender = Config_GetString(mem, "blender_path");
+	
+	if (blender == NULL)
+		return 0;
+	
+	strcpy(buffer[ArrayCount(sTools)], blender);
+	
+	return 1;
 }
 
 void Tools_Clean() {

@@ -90,7 +90,9 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 	if (compress && gCompressFlag) {
 		char* yazFile = Tmp_Alloc(strlen(memFile->info.name) + 0x20);
 		
-		if (gYazBuf == NULL) gYazBuf = Calloc(0, MbToBin(32));
+		if (gYazBuf == NULL) {
+			gYazBuf = Calloc(0, MbToBin(32));
+		}
 		
 		strcpy(yazFile, memFile->info.name);
 		String_SwapExtension(yazFile, memFile->info.name, ".yaz");

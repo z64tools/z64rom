@@ -139,7 +139,7 @@ project/tools/novl: $(SOURCE_nOVL_C)
 	
 project/tools/novl.exe: $(SOURCE_nOVL_C)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -o $@ -Wall -DNDEBUG -Os -s -flto -mconsole tools/novl/src/*.c `i686-w64-mingw32.static-pkg-config --cflags --libs glib-2.0` -Itools/novl/libelf -D__LIBELF_INTERNAL__=1 -DHAVE_MEMCPY=1 -DHAVE_MEMCMP=1 -DHAVE_MEMMOVE=1 -DSTDC_HEADERS=1 tools/novl/libelf/*.c
+	@i686-w64-mingw32.static-gcc -o $@ -Wall -Wno-unused-const-variable -DNDEBUG -Os -s -flto -mconsole tools/novl/src/*.c `i686-w64-mingw32.static-pkg-config --cflags --libs glib-2.0` -Itools/novl/libelf -D__LIBELF_INTERNAL__=1 -DHAVE_MEMCPY=1 -DHAVE_MEMCMP=1 -DHAVE_MEMMOVE=1 -DSTDC_HEADERS=1 tools/novl/libelf/*.c
 
 project/tools/z64audio: tools/z64audio/z64audio.c
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
@@ -202,5 +202,4 @@ bin/win32/icon.o: src/icon.rc src/icon.ico
 $(RELEASE_EXECUTABLE_WIN32): z64rom.c bin/win32/icon.o $(SOURCE_O_WIN32) $(ExtLib_Win32_O)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
 	@i686-w64-mingw32.static-gcc -o $@ $^ -L$(C_INCLUDE_PATH) -lm $(OPT_WIN32) $(CFLAGS_MAIN) -DNDEBUG -D_WIN32
-	@upx -9 --best --compress-icons=0 $@
 	

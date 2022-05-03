@@ -14,6 +14,7 @@ typedef enum {
 } ToolIndex;
 
 const char* Tools_Get(ToolIndex);
+s32 Tools_RegisterBlender(MemFile* mem);
 void Tools_Clean();
 s32 Tools_Validate_ReqrTools(void);
 s32 Tools_Validate_AddiTools(void);

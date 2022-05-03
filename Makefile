@@ -44,11 +44,15 @@ $(shell mkdir -p app_linux/tools/)
 		clean-all \
 		clean-sub \
 		clean-release \
-		clean
+		clean \
+		update-z64audio
 
 default: linux
 all: linux win32
 hdrup: hdrup.exe
+
+update-z64audio:
+	@cd tools/z64audio/ && git pull https://github.com/z64tools/z64audio main && cd ../..
 
 include $(C_INCLUDE_PATH)/ExtLib.mk
 
@@ -176,7 +180,7 @@ bin/linux/%.o: %.c $(HEADER) $(ExtLib_H)
 	@gcc -c -o $@ $< $(OPT_LINUX) $(CFLAGS)
 	@objdump -drz $@ > $(@:.o=.s)
 
-$(RELEASE_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX) $(ExtLib_Linux_O)
+$(RELEASE_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX) $(ExtLib_Linux_O) $(Zip_Linux_O) $(Xm_Linux_O) $(Audio_Linux_O)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
 	@gcc -o $@ $^ -L$(C_INCLUDE_PATH) -L$(C_INCLUDE_PATH) -lm -ldl $(OPT_LINUX) $(CFLAGS_MAIN)
 
@@ -199,7 +203,7 @@ bin/win32/%.o: %.c $(HEADER) $(ExtLib_H)
 bin/win32/icon.o: src/icon.rc src/icon.ico
 	@i686-w64-mingw32.static-windres -o $@ $<
 
-$(RELEASE_EXECUTABLE_WIN32): z64rom.c bin/win32/icon.o $(SOURCE_O_WIN32) $(ExtLib_Win32_O)
+$(RELEASE_EXECUTABLE_WIN32): z64rom.c bin/win32/icon.o $(SOURCE_O_WIN32) $(ExtLib_Win32_O) $(Zip_Win32_O) $(Xm_Win32_O) $(Audio_Win32_O)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
 	@i686-w64-mingw32.static-gcc -o $@ $^ -L$(C_INCLUDE_PATH) -lm $(OPT_WIN32) $(CFLAGS_MAIN) -D_WIN32
 	

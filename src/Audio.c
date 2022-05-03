@@ -648,16 +648,30 @@ struct {
 } sSampleTbl[1024 * 2];
 s32 sSampleTblNum;
 
-static void Audio_LoadFile(MemFile* dataFile, char* file) {
+static s32 Audio_LoadFile(MemFile* dataFile, char* file) {
 	char buf[512];
+	char* smpl;
+	
+	Log("File: %s", file);
 	
 	strcpy(buf, file);
 	String_Replace(buf, "*", "sample");
-	if (Sys_Stat(Dir_File(&gDir, buf))) {
-		if (MemFile_LoadFile(dataFile, Dir_File(&gDir, buf))) printf_error("Exiting...");
+	smpl = Dir_File(&gDir, buf);
+	
+	if (smpl && Sys_Stat(smpl)) {
+		if (MemFile_LoadFile(dataFile, smpl))
+			return 1;
 	} else {
-		if (MemFile_LoadFile(dataFile, Dir_File(&gDir, file))) printf_error("Exiting...");
+		smpl = Dir_File(&gDir, file);
+		
+		if (smpl) {
+			if (MemFile_LoadFile(dataFile, Dir_File(&gDir, file)))
+				return 1;
+		} else
+			return 1;
 	}
+	
+	return 0;
 }
 
 void Rom_Build_SetAudioSegment(Rom* rom) {
@@ -714,8 +728,13 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			char* cfg = Dir_File(&gDir, "config.cfg");
 			f32 tuning;
 			
+			if (cfg == NULL)
+				printf_error("Could not locate sample in [%s]", (itemList.item[i]));
 			if (file == NULL)
 				printf_error("Could not locate sample in [%s]", itemList.item[i]);
+			
+			Log("smp: %s", file);
+			Log("cfg: %s", cfg);
 			
 			if (MemFile_LoadFile(&sample, file))
 				printf_error_align("Failed to load file", "%s", file);
@@ -863,6 +882,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				}
 				
 				MemFile_Reset(config);
+				Log("Load File: %s", Dir_File(&gDir, "instrument/%s", listInst.item[j]));
 				MemFile_LoadFile_String(config, Dir_File(&gDir, "instrument/%s", listInst.item[j]));
 				
 				for (s32 soundID = 0; soundID < 3; soundID++) {
@@ -957,12 +977,18 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					SwapBE(loop[3]);
 					if (loop[2]) {
 						MemFile_Reset(dataFile);
-						Audio_LoadFile(dataFile, "*.loopbook.bin");
-						for (s32 i = 0; i < 8; i++) {
-							loop[4 + i] = dataFile->cast.u32[i];
+						if (Audio_LoadFile(dataFile, "*.loopbook.bin")) {
+							printf_warning("" PRNT_REDD "[%s]" PRNT_RSET " has looppoints but could not find " PRNT_REDD "loopbook", sSampleTbl[sampleID].name);
+							loop[0] = 0;
+							WriteBE(loop[2], 0);
+							loopSize = 0;
+						} else {
+							for (s32 i = 0; i < 8; i++) {
+								loop[4 + i] = dataFile->cast.u32[i];
+							}
+							
+							loopSize = 4 * (4 + 8);
 						}
-						
-						loopSize = 4 * (4 + 8);
 					}
 					
 					if (!MemMemAlign(0x10, memLoopBook.data, memLoopBook.dataSize, loop, loopSize)) {

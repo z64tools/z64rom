@@ -72,7 +72,7 @@ static void Sound_Convert(ThreadArg* targ) {
 	if (wav == NULL)
 		goto free;
 	
-	if (vadpcm == NULL || Sys_Stat_Ex(wav) > Sys_Stat_Ex(vadpcm)) {
+	if (vadpcm == NULL || Sys_Stat_Ex(wav) > Sys_Stat_Ex(vadpcm) || gMakeForce) {
 		char command[512];
 		Tools_Command(command, z64audio, "\"%s\"", wav);
 		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
@@ -822,8 +822,15 @@ void Make(Rom* rom) {
 	gFlagsCode = Config_GetString(&rom->config, "mips64_gcc_flags_code");
 	gFlagsLink = Config_GetString(&rom->config, "mips64_ld_flags");
 	
-	Make_Sound();
-	Make_Code();
+	if (gMakeStr) {
+		if (StrStrCase(gMakeStr, "sound"))
+			Make_Sound();
+		if (StrStrCase(gMakeStr, "code"))
+			Make_Code();
+	} else {
+		Make_Sound();
+		Make_Code();
+	}
 	
 	printf_WinFix();
 	

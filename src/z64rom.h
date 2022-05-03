@@ -186,6 +186,8 @@ extern s32 gExtractAudio;
 extern s32 gPrintInfo;
 extern s32 gGenericNames;
 extern s32 gInfoFlag;
+extern s32 gMakeForce;
+extern const char* gMakeStr;
 
 void fix_crc(unsigned char* rom);
 

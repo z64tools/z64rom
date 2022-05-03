@@ -26,6 +26,8 @@ s32 gGenericNames;
 s32 sDumpFlag;
 s32 gInfoFlag;
 s32 gLogOutput;
+s32 gMakeForce;
+const char* gMakeStr;
 extern u32 gThreading;
 
 static void Main_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
@@ -123,6 +125,9 @@ s32 Main(s32 argc, char* argv[]) {
 					
 					goto free;
 				}
+				
+				if (XARG("B")) gMakeForce = true;
+				if (XARG("M")) gMakeStr = argv[parArg];
 				
 				if (Sys_Stat("z64project.cfg")) {
 					if (!XARG("no-make")) {

@@ -163,9 +163,6 @@ s32 Main(s32 argc, char* argv[]) {
 	if (Arg("info"))
 		gPrintInfo = true;
 	
-	if (Arg("debug"))
-		printf_SetSuppressLevel(PSL_DEBUG);
-	
 	if (Arg("compress"))
 		gCompressFlag = true;
 	

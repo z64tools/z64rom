@@ -729,7 +729,7 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			f32 tuning;
 			
 			if (cfg == NULL)
-				printf_error("Could not locate sample in [%s]", (itemList.item[i]));
+				printf_error("Could not locate sample in [%s]", itemList.item[i]);
 			if (file == NULL)
 				printf_error("Could not locate sample in [%s]", itemList.item[i]);
 			
@@ -778,6 +778,23 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	MemFile_Free(&sample);
 	ItemList_Free(&itemList);
+}
+
+static void Audio_Error_LogSampleNames(const char* sampleName) {
+	MemFile mem = MemFile_Initialize();
+	
+	Log("Dumping [audio_log]");
+	MemFile_Malloc(&mem, 0x90000);
+	
+	for (s32 i = 0; i < sSampleTblNum; i++)
+		MemFile_Printf(&mem, "%s\n", sSampleTbl[i].name);
+	
+	MemFile_SaveFile_String(&mem, "audio_log");
+	MemFile_Free(&mem);
+	
+	Log("Check the latest loaded instrument in the logs above and compare it to [audio_log] to fix the name mismatch!");
+	Log("You can also provide screenshot of this and [audio_log] to the developer.");
+	printf_error("Could not find sample [%s]!", sampleName);
 }
 
 void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
@@ -907,7 +924,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					
 					for (s32 sampleID = 0;; sampleID++) {
 						if (sampleID >= sSampleTblNum)
-							printf_error("Could not locate sample [%s]", sampleName[soundID]);
+							Audio_Error_LogSampleNames(sampleName[soundID]);
 						
 						if (!strcmp(sSampleTbl[sampleID].name, sampleName[soundID])) {
 							instrument.sound[soundID].tuning = sSampleTbl[sampleID].tuninOverride;
@@ -1059,7 +1076,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					s32 l = 0;
 					for (;; l++) {
 						if (l == sSampleTblNum)
-							printf_error("Could not locate sample [%s]", sample);
+							Audio_Error_LogSampleNames(sample);
 						if (!strcmp(sSampleTbl[l].name, sample))
 							break;
 					}
@@ -1198,7 +1215,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					
 					for (;; sampleID++) {
 						if (sampleID == sSampleTblNum)
-							printf_error("Could not locate sample [%s]", sample);
+							Audio_Error_LogSampleNames(sample);
 						if (!strcmp(sSampleTbl[sampleID].name, sample))
 							break;
 					}

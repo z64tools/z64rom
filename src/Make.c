@@ -833,10 +833,10 @@ void Make(Rom* rom) {
 	gFlagsCode = Config_GetString(&rom->config, "mips64_gcc_flags_code");
 	gFlagsLink = Config_GetString(&rom->config, "mips64_ld_flags");
 	
-	if (gMakeStr) {
-		if (StrStrCase(gMakeStr, "sound"))
+	if (gMakeTarget) {
+		if (StrStrCase(gMakeTarget, "sound"))
 			Make_Sound();
-		if (StrStrCase(gMakeStr, "code"))
+		if (StrStrCase(gMakeTarget, "code"))
 			Make_Code();
 	} else {
 		Make_Sound();

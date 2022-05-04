@@ -833,6 +833,9 @@ void Make(Rom* rom) {
 	gFlagsCode = Config_GetString(&rom->config, "mips64_gcc_flags_code");
 	gFlagsLink = Config_GetString(&rom->config, "mips64_ld_flags");
 	
+	if (!gFlags || !gFlagsCode || !gFlagsLink)
+		printf_error("[z64project.cfg] is missing mips64 flags! Please, do fresh dump!");
+	
 	if (gMakeTarget) {
 		if (StrStrCase(gMakeTarget, "sound"))
 			Make_Sound();

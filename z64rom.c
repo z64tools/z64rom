@@ -307,14 +307,14 @@ s32 Main(s32 argc, char* argv[]) {
 	printf_toolinfo(gToolName, sToolUsage);
 free:
 	
+	if (rom->config.dataSize)
+		MemFile_SaveFile_String(&rom->config, "z64project.cfg");
+	
 #ifdef _WIN32
 	if (!Arg("no-wait")) {
 		printf_getchar("Press enter to exit.");
 	}
 #endif
-	
-	if (rom->config.dataSize)
-		MemFile_SaveFile_String(&rom->config, "z64project.cfg");
 	
 	Rom_Free(rom);
 	Free(rom);

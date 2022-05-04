@@ -739,15 +739,14 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			if (MemFile_LoadFile(&sample, file))
 				printf_error_align("Failed to load file", "%s", file);
 			
-			if (MemFile_LoadFile(config, cfg))
+			if (MemFile_LoadFile_String(config, cfg))
 				printf_error_align("Failed to load file", "%s", cfg);
 			
 			Config_SuppressNext();
 			tuning = Config_GetFloat(config, "tuning");
 			
-			if (tuning != 0) {
+			if (tuning > 0.0f)
 				sSampleTbl[sSampleTblNum].tuninOverride = tuning;
-			}
 			
 			sSampleTbl[sSampleTblNum].segment = dataFile->seekPoint;
 			if (dataFile->seekPoint & 0xF)

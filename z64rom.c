@@ -9,7 +9,7 @@
 
  */
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.4"
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.5"
 #ifndef NDEBUG
 	PRNT_DGRY " DEBUG BUILD"
 #endif

@@ -779,7 +779,18 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	ItemList_Free(&itemList);
 }
 
-static void Audio_Error_LogSampleNames(const char* sampleName) {
+const char* sSFSampleName[3] = {
+	"low_sample",
+	"prim_sample",
+	"hi_sample",
+};
+const char* sSFSampleTuning[3] = {
+	"low_tuning",
+	"prim_tuning",
+	"hi_tuning",
+};
+
+static void SoundFont_Error_NotFound(const char* sampleName) {
 	MemFile mem = MemFile_Initialize();
 	
 	Log("Dumping [audio_log]");
@@ -794,6 +805,201 @@ static void Audio_Error_LogSampleNames(const char* sampleName) {
 	Log("Check the latest loaded instrument in the logs above and compare it to [audio_log] to fix the name mismatch!");
 	Log("You can also provide screenshot of this and [audio_log] to the developer.");
 	printf_error("Could not find sample [%s]!", sampleName);
+}
+
+static s32 SoundFont_SmplID(const char* smpl) {
+	s32 sampleID = 0;
+	
+	for (;; sampleID++) {
+		if (sampleID == sSampleTblNum)
+			SoundFont_Error_NotFound(smpl);
+		if (!strcmp(sSampleTbl[sampleID].name, smpl))
+			break;
+	}
+	
+	return sampleID;
+}
+
+static void SoundFont_Instrument_Validate(MemFile* mem, const char* file, Instrument* inst, char** smpl) {
+	u32 smplNum = 0;
+	
+	for (s32 i = 0; i < 3; i++)
+		if (smpl[i] != NULL)
+			smplNum++;
+	
+	if (inst->splitHi < inst->splitLo) {
+		printf_error("Instrument [%s] [split_hi] is lower than [split_lo]");
+	}
+	
+	if (smpl[1] && smpl[2] && smpl[0] && inst->splitHi == 127 && inst->splitLo == 0) {
+		printf_warning("\aInstrument [%s] uses [prim_sample], [hi_sample] and [low_sample] but splits are set to [0, 127]", file);
+		printf_warning("[hi_sample] and [low_sample] sounds are not going to play with these splits!");
+	}
+	
+	if (smpl[1] && smpl[2] && inst->splitHi == 127) {
+		printf_warning("\aInstrument [%s] uses [prim_sample] and [hi_sample] but split is set to highest value [127]", file);
+		printf_warning("[hi_sample] sounds is not going to play with this splitting!");
+	}
+	
+	if ((smplNum == 1 && inst->splitHi != 127) || inst->splitHi == 0) {
+		Config_Replace(mem, "split_hi", "127");
+		MemFile_SaveFile_String(mem, file);
+		inst->splitHi = 127;
+	}
+}
+
+static s32 SoundFont_Instrument_AssignNames(MemFile* mem, char** smplNam, MemFile* memBank) {
+	u32 smplNum = 0;
+	
+	for (s32 soundID = 0; soundID < 3; soundID++) {
+		smplNam[soundID] = Config_GetString(mem, sSFSampleName[soundID]);
+		if (smplNam[soundID] == NULL) {
+			smplNam[soundID] = NULL;
+			continue;
+		} else if (!memcmp(smplNam[soundID], "NULL", 4)) {
+			smplNam[soundID] = NULL;
+			continue;
+		}
+		smplNum++;
+	}
+	
+	if (smplNum == 0) {
+		u32 null = 0xFFFF; // Empty Instrument Entry
+		MemFile_Write(memBank, &null, sizeof(u32));
+		
+		return 1;
+	}
+	
+	return 0;
+}
+
+static void SoundFont_Instrument_AssignIndexes(MemFile* mem, char** smplNam, s32* smplID, Instrument* inst) {
+	for (s32 soundID = 0; soundID < 3; soundID++) {
+		if (smplNam[soundID] == NULL)
+			continue;
+		
+		for (s32 sampleID = 0;; sampleID++) {
+			if (sampleID >= sSampleTblNum)
+				SoundFont_Error_NotFound(smplNam[soundID]);
+			
+			if (!strcmp(sSampleTbl[sampleID].name, smplNam[soundID])) {
+				inst->sound[soundID].tuning = sSampleTbl[sampleID].tuninOverride;
+				
+				if (inst->sound[soundID].tuning == 0)
+					inst->sound[soundID].tuning = Config_GetFloat(mem, sSFSampleTuning[soundID]);
+				
+				SwapBE(inst->sound[soundID].swap32);
+				smplNam[soundID] = NULL;
+				smplID[soundID] = sampleID;
+				break;
+			}
+		}
+	}
+}
+
+static void SoundFont_Read_Instrument(MemFile* mem, Instrument* inst) {
+	inst->loaded = Config_GetInt(mem, "loaded");
+	inst->splitLo = Config_GetInt(mem, "split_lo");
+	inst->splitHi = Config_GetInt(mem, "split_hi");
+	inst->release = Config_GetInt(mem, "release");
+}
+
+static void SoundFont_Read_Adsr(MemFile* mem, Adsr* adsr) {
+	adsr[0].rate = Config_GetInt(mem, "attack_rate"); SwapBE(adsr[0].rate);
+	adsr[0].level = Config_GetInt(mem, "attack_level"); SwapBE(adsr[0].level);
+	adsr[1].rate = Config_GetInt(mem, "hold_rate"); SwapBE(adsr[1].rate);
+	adsr[1].level = Config_GetInt(mem, "hold_level"); SwapBE(adsr[1].level);
+	adsr[2].rate = Config_GetInt(mem, "decay_rate"); SwapBE(adsr[2].rate);
+	adsr[2].level = Config_GetInt(mem, "decay_level"); SwapBE(adsr[2].level);
+	adsr[3].rate = Config_GetInt(mem, "decay2_rate"); SwapBE(adsr[3].rate);
+	adsr[3].level = Config_GetInt(mem, "decay2_level"); SwapBE(adsr[3].level);
+}
+
+static void SoundFont_Write_Adsr(MemFile* mem, Adsr* adsr, void32* setPtr) {
+	if (!MemMemAlign(16, mem->data, mem->dataSize, adsr, 16)) {
+		setPtr[0] = mem->seekPoint;
+		MemFile_Write(mem, adsr, 16);
+		MemFile_Align(mem, 16);
+	} else {
+		void* ptr = MemMemAlign(16, mem->data, mem->dataSize, adsr, 16);
+		setPtr[0] = (uPtr)ptr - (uPtr)mem->data;
+	}
+}
+
+static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setPtr, MemFile* memSample, MemFile* memBook, MemFile* memLoopBook, u32* sampleNum) {
+	char* restoreDir = Tmp_String(Dir_Current(&gDir));
+	Sample smpl = { 0 };
+	u32 loop[4 + 8];
+	u32 loopSize = 4 * 4;
+	
+	if (sampleID < 0)
+		return;
+	
+	Dir_Set(&gDir, sSampleTbl[sampleID].dir);
+	MemFile_Reset(dataFile);
+	MemFile_LoadFile(dataFile, Dir_File(&gDir, "config.cfg"));
+	
+	smpl.sampleAddr = ReadBE(sSampleTbl[sampleID].segment);
+	smpl.data = sSampleTbl[sampleID].size;
+	smpl.data |= Config_GetInt(dataFile, "codec") << (32 - 4);
+	smpl.data |= Config_GetInt(dataFile, "medium") << (32 - 6);
+	smpl.data |= Config_GetInt(dataFile, "bitA") << (32 - 7);
+	smpl.data |= Config_GetInt(dataFile, "bitB") << (32 - 8);
+	SwapBE(smpl.data);
+	
+	loop[0] = Config_GetInt(dataFile, "loop_start");
+	loop[1] = Config_GetInt(dataFile, "loop_end");
+	loop[2] = Config_GetInt(dataFile, "loop_count");
+	loop[3] = Config_GetInt(dataFile, "tail_end");
+	SwapBE(loop[0]);
+	SwapBE(loop[1]);
+	SwapBE(loop[2]);
+	SwapBE(loop[3]);
+	if (loop[2]) {
+		MemFile_Reset(dataFile);
+		if (Audio_LoadFile(dataFile, "*.loopbook.bin")) {
+			printf_warning("" PRNT_REDD "[%s]" PRNT_RSET " has looppoints but could not find " PRNT_REDD "loopbook", sSampleTbl[sampleID].name);
+			loop[0] = 0;
+			WriteBE(loop[2], 0);
+			loopSize = 0;
+		} else {
+			for (s32 i = 0; i < 8; i++) {
+				loop[4 + i] = dataFile->cast.u32[i];
+			}
+			
+			loopSize = 4 * (4 + 8);
+		}
+	}
+	
+	if (!MemMemAlign(0x10, memLoopBook->data, memLoopBook->dataSize, loop, loopSize)) {
+		smpl.loop = memLoopBook->seekPoint;
+		MemFile_Write(memLoopBook, loop, loopSize);
+		MemFile_Align(memLoopBook, 16);
+	} else {
+		void* ptr = MemMemAlign(0x10, memLoopBook->data, memLoopBook->dataSize, loop, loopSize);
+		smpl.loop = (uPtr)ptr - (uPtr)memLoopBook->data;
+	}
+	
+	MemFile_Reset(dataFile);
+	Audio_LoadFile(dataFile, "*.book.bin");
+	if (!MemMemAlign(0x10, memBook->data, memBook->dataSize, dataFile->data, dataFile->dataSize)) {
+		smpl.book = memBook->seekPoint;
+		MemFile_Append(memBook, dataFile);
+		MemFile_Align(memBook, 16);
+	} else {
+		void* ptr = MemMemAlign(0x10, memBook->data, memBook->dataSize, dataFile->data, dataFile->dataSize);
+		smpl.book = (uPtr)ptr - (uPtr)memBook->data;
+	}
+	
+	if (!MemMemAlign(0x10, memSample->data, memSample->dataSize, &smpl, sizeof(struct Sample))) {
+		setPtr[0] = memSample->seekPoint;
+		MemFile_Write(memSample, &smpl, sizeof(struct Sample));
+		sampleNum[0]++;
+	} else {
+		void* ptr = MemMemAlign(0x10, memSample->data, memSample->dataSize, &smpl, sizeof(struct Sample));
+		setPtr[0] = (uPtr)ptr - (uPtr)memSample->data;
+	}
+	Dir_Set(&gDir, restoreDir);
 }
 
 void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
@@ -845,50 +1051,36 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		Dir_Enter(&gDir, itemList.item[i]); {
 			u32 smplNum = 0;
+			char* dirs[] = {
+				"instrument/",
+				"sfx/",
+				"drum/",
+			};
+			ItemList* lists[] = {
+				&listInst,
+				&listSfx,
+				&listDrum
+			};
 			
-			if (Dir_Stat(&gDir, "instrument/")) {
-				Dir_Enter(&gDir, "instrument/");
-				Dir_ItemList(&gDir, &listInst, false);
-				ItemList_NumericalSort(&listInst);
-				
-				Dir_Leave(&gDir);
-			}
-			
-			if (Dir_Stat(&gDir, "sfx/")) {
-				Dir_Enter(&gDir, "sfx/");
-				Dir_ItemList(&gDir, &listSfx, false);
-				ItemList_NumericalSort(&listSfx);
-				
-				Dir_Leave(&gDir);
-			}
-			
-			if (Dir_Stat(&gDir, "drum/")) {
-				Dir_Enter(&gDir, "drum/");
-				Dir_ItemList(&gDir, &listDrum, false);
-				ItemList_NumericalSort(&listDrum);
-				
-				Dir_Leave(&gDir);
+			for (s32 y = 0; y < 3; y++) {
+				if (Dir_Stat(&gDir, dirs[y])) {
+					Dir_Enter(&gDir, dirs[y]);
+					Dir_ItemList(&gDir, lists[y], false);
+					ItemList_NumericalSort(lists[y]);
+					
+					Dir_Leave(&gDir);
+				}
 			}
 			
 			// DDDDDDDD SSSSSSSS Drum Segment | Sfx Segment
 			MemFile_Write(&memBank, "\0\0\0\0\0\0\0\0", 8);
 			
 			for (s32 j = 0; j < listInst.num; j++) {
-				char* restoreDir = Tmp_String(Dir_Current(&gDir));
 				Instrument instrument = { 0 };
-				Adsr confEnv[4];
+				Adsr adsr[4];
+				char* instFile = Dir_File(&gDir, "instrument/%s", listInst.item[j]);
 				char* sampleName[3];
 				s32 sampleIndex[3] = { -1, -1, -1 };
-				char* confSample[3] = {
-					"low_sample",
-					"prim_sample",
-					"hi_sample",
-				};
-				char* confTuning[3] = {
-					"low_tuning",
-					"prim_tuning",
-					"hi_tuning",
-				};
 				
 				// List does not have entry for j index
 				if (listInst.item[j] == NULL) {
@@ -898,145 +1090,18 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				}
 				
 				MemFile_Reset(config);
-				Log("Load File: %s", Dir_File(&gDir, "instrument/%s", listInst.item[j]));
-				MemFile_LoadFile_String(config, Dir_File(&gDir, "instrument/%s", listInst.item[j]));
+				Log("Load File: %s", instFile);
+				MemFile_LoadFile_String(config, instFile);
 				
-				for (s32 soundID = 0; soundID < 3; soundID++) {
-					sampleName[soundID] = Config_GetString(config, confSample[soundID]);
-					if (sampleName[soundID] == NULL)
-						sampleName[soundID] = NULL;
-					else if (!memcmp(sampleName[soundID], "NULL", 4)) {
-						sampleName[soundID] = NULL;
-					}
-				}
+				if (SoundFont_Instrument_AssignNames(config, sampleName, &memBank)) continue;
+				SoundFont_Instrument_AssignIndexes(config, sampleName, sampleIndex, &instrument);
+				SoundFont_Read_Instrument(config, &instrument);
+				SoundFont_Read_Adsr(config, adsr);
+				SoundFont_Instrument_Validate(config, instFile, &instrument, sampleName);
+				SoundFont_Write_Adsr(&memEnv, adsr, &instrument.envelope);
 				
-				if (sampleName[0] == NULL && sampleName[1] == NULL && sampleName[2] == NULL) {
-					u32 null = 0xFFFF; // Empty Instrument Entry
-					MemFile_Write(&memBank, &null, sizeof(u32));
-					
-					continue;
-				}
-				
-				for (s32 soundID = 0; soundID < 3; soundID++) {
-					if (sampleName[soundID] == NULL)
-						continue;
-					
-					for (s32 sampleID = 0;; sampleID++) {
-						if (sampleID >= sSampleTblNum)
-							Audio_Error_LogSampleNames(sampleName[soundID]);
-						
-						if (!strcmp(sSampleTbl[sampleID].name, sampleName[soundID])) {
-							instrument.sound[soundID].tuning = sSampleTbl[sampleID].tuninOverride;
-							
-							if (instrument.sound[soundID].tuning == 0)
-								instrument.sound[soundID].tuning = Config_GetFloat(config, confTuning[soundID]);
-							
-							SwapBE(instrument.sound[soundID].swap32);
-							sampleName[soundID] = NULL;
-							sampleIndex[soundID] = sampleID;
-							break;
-						}
-					}
-				}
-				
-				instrument.loaded = Config_GetInt(config, "loaded");
-				instrument.splitLo = Config_GetInt(config, "split_lo");
-				instrument.splitHi = Config_GetInt(config, "split_hi");
-				if (instrument.splitHi == 0) instrument.splitHi = 127;
-				instrument.release = Config_GetInt(config, "release");
-				confEnv[0].rate = Config_GetInt(config, "attack_rate"); SwapBE(confEnv[0].rate);
-				confEnv[0].level = Config_GetInt(config, "attack_level"); SwapBE(confEnv[0].level);
-				confEnv[1].rate = Config_GetInt(config, "hold_rate"); SwapBE(confEnv[1].rate);
-				confEnv[1].level = Config_GetInt(config, "hold_level"); SwapBE(confEnv[1].level);
-				confEnv[2].rate = Config_GetInt(config, "decay_rate"); SwapBE(confEnv[2].rate);
-				confEnv[2].level = Config_GetInt(config, "decay_level"); SwapBE(confEnv[2].level);
-				confEnv[3].rate = Config_GetInt(config, "decay2_rate"); SwapBE(confEnv[3].rate);
-				confEnv[3].level = Config_GetInt(config, "decay2_level"); SwapBE(confEnv[3].level);
-				
-				if (!MemMemAlign(0x10, memEnv.data, memEnv.dataSize, confEnv, 0x10)) {
-					instrument.envelope = memEnv.seekPoint;
-					MemFile_Write(&memEnv, confEnv, 0x10);
-					MemFile_Align(&memEnv, 16);
-				} else {
-					void* ptr = MemMemAlign(0x10, memEnv.data, memEnv.dataSize, confEnv, 0x10);
-					instrument.envelope = (uPtr)ptr - (uPtr)memEnv.data;
-				}
-				
-				for (s32 soundID = 0; soundID < 3; soundID++) {
-					Sample smpl = { 0 };
-					s32 sampleID = sampleIndex[soundID];
-					u32 loop[4 + 8];
-					u32 loopSize = 4 * 4;
-					
-					if (sampleID < 0)
-						continue;
-					
-					Dir_Set(&gDir, sSampleTbl[sampleID].dir);
-					MemFile_Reset(dataFile);
-					MemFile_LoadFile(dataFile, Dir_File(&gDir, "config.cfg"));
-					
-					smpl.sampleAddr = ReadBE(sSampleTbl[sampleID].segment);
-					smpl.data = sSampleTbl[sampleID].size;
-					smpl.data |= Config_GetInt(dataFile, "codec") << (32 - 4);
-					smpl.data |= Config_GetInt(dataFile, "medium") << (32 - 6);
-					smpl.data |= Config_GetInt(dataFile, "bitA") << (32 - 7);
-					smpl.data |= Config_GetInt(dataFile, "bitB") << (32 - 8);
-					SwapBE(smpl.data);
-					
-					loop[0] = Config_GetInt(dataFile, "loop_start");
-					loop[1] = Config_GetInt(dataFile, "loop_end");
-					loop[2] = Config_GetInt(dataFile, "loop_count");
-					loop[3] = Config_GetInt(dataFile, "tail_end");
-					SwapBE(loop[0]);
-					SwapBE(loop[1]);
-					SwapBE(loop[2]);
-					SwapBE(loop[3]);
-					if (loop[2]) {
-						MemFile_Reset(dataFile);
-						if (Audio_LoadFile(dataFile, "*.loopbook.bin")) {
-							printf_warning("" PRNT_REDD "[%s]" PRNT_RSET " has looppoints but could not find " PRNT_REDD "loopbook", sSampleTbl[sampleID].name);
-							loop[0] = 0;
-							WriteBE(loop[2], 0);
-							loopSize = 0;
-						} else {
-							for (s32 i = 0; i < 8; i++) {
-								loop[4 + i] = dataFile->cast.u32[i];
-							}
-							
-							loopSize = 4 * (4 + 8);
-						}
-					}
-					
-					if (!MemMemAlign(0x10, memLoopBook.data, memLoopBook.dataSize, loop, loopSize)) {
-						smpl.loop = memLoopBook.seekPoint;
-						MemFile_Write(&memLoopBook, loop, loopSize);
-						MemFile_Align(&memLoopBook, 16);
-					} else {
-						void* ptr = MemMemAlign(0x10, memLoopBook.data, memLoopBook.dataSize, loop, loopSize);
-						smpl.loop = (uPtr)ptr - (uPtr)memLoopBook.data;
-					}
-					
-					MemFile_Reset(dataFile);
-					Audio_LoadFile(dataFile, "*.book.bin");
-					if (!MemMemAlign(0x10, memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize)) {
-						smpl.book = memBook.seekPoint;
-						MemFile_Append(&memBook, dataFile);
-						MemFile_Align(&memBook, 16);
-					} else {
-						void* ptr = MemMemAlign(0x10, memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize);
-						smpl.book = (uPtr)ptr - (uPtr)memBook.data;
-					}
-					
-					if (!MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample))) {
-						instrument.sound[soundID].sample = memSample.seekPoint;
-						MemFile_Write(&memSample, &smpl, sizeof(struct Sample));
-						smplNum++;
-					} else {
-						void* ptr = MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample));
-						instrument.sound[soundID].sample = (uPtr)ptr - (uPtr)memSample.data;
-					}
-					Dir_Set(&gDir, restoreDir);
-				}
+				for (s32 soundID = 0; soundID < 3; soundID++)
+					SoundFont_Write_Sample(dataFile, sampleIndex[soundID], &instrument.sound[soundID].sample, &memSample, &memBook, &memLoopBook, &smplNum);
 				
 				SwapBE(memInst.seekPoint);
 				MemFile_Write(&memBank, &memInst.seekPoint, sizeof(u32));
@@ -1049,6 +1114,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				char* restoreDir = Tmp_String(Dir_Current(&gDir));
 				Sound sfx = { 0 };
 				char* prim;
+				s32 idx;
 				
 				if (listSfx.item[j] == NULL) {
 					MemFile_Write(&memSfx, &sfx, sizeof(struct Sound));
@@ -1065,85 +1131,12 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				}
 				
 				sfx.tuning = Config_GetFloat(config, "prim_tuning");
+				idx = SoundFont_SmplID(prim);
 				
-				/* SAMPLE */ {
-					char* sample = prim;
-					Sample smpl = { 0 };
-					u32 loop[4 + 8];
-					u32 loopSize = 4 * 4;
-					
-					s32 l = 0;
-					for (;; l++) {
-						if (l == sSampleTblNum)
-							Audio_Error_LogSampleNames(sample);
-						if (!strcmp(sSampleTbl[l].name, sample))
-							break;
-					}
-					
-					Dir_Set(&gDir, sSampleTbl[l].dir);
-					
-					MemFile_Reset(config);
-					MemFile_LoadFile_String(config, Dir_File(&gDir, "config.cfg"));
-					
-					if (sSampleTbl[l].tuninOverride > 0)
-						sfx.tuning = sSampleTbl[l].tuninOverride;
-					SwapBE(sfx.swap32);
-					
-					smpl.sampleAddr = ReadBE(sSampleTbl[l].segment);
-					smpl.data = sSampleTbl[l].size;
-					smpl.data |= Config_GetInt(config, "codec") << (32 - 4);
-					smpl.data |= Config_GetInt(config, "medium") << (32 - 6);
-					smpl.data |= Config_GetInt(config, "bitA") << (32 - 7);
-					smpl.data |= Config_GetInt(config, "bitB") << (32 - 8);
-					SwapBE(smpl.data);
-					
-					loop[0] = Config_GetInt(config, "loop_start");
-					loop[1] = Config_GetInt(config, "loop_end");
-					loop[2] = Config_GetInt(config, "loop_count");
-					loop[3] = Config_GetInt(config, "tail_end");
-					SwapBE(loop[0]);
-					SwapBE(loop[1]);
-					SwapBE(loop[2]);
-					SwapBE(loop[3]);
-					if (loop[2]) {
-						MemFile_Reset(dataFile);
-						Audio_LoadFile(dataFile, "*.loopbook.bin");
-						for (s32 i = 0; i < 8; i++) {
-							loop[4 + i] = dataFile->cast.u32[i];
-						}
-						
-						loopSize = 4 * (4 + 8);
-					}
-					
-					if (!MemMemAlign(0x10, memLoopBook.data, memLoopBook.dataSize, loop, loopSize)) {
-						smpl.loop = memLoopBook.seekPoint;
-						MemFile_Write(&memLoopBook, loop, loopSize);
-						MemFile_Align(&memLoopBook, 16);
-					} else {
-						void* ptr = MemMemAlign(0x10, memLoopBook.data, memLoopBook.dataSize, loop, loopSize);
-						smpl.loop = (uPtr)ptr - (uPtr)memLoopBook.data;
-					}
-					
-					MemFile_Reset(dataFile);
-					Audio_LoadFile(dataFile, "*.book.bin");
-					if (!MemMemAlign(0x10, memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize)) {
-						smpl.book = memBook.seekPoint;
-						MemFile_Append(&memBook, dataFile);
-						MemFile_Align(&memBook, 16);
-					} else {
-						void* ptr = MemMemAlign(0x10, memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize);
-						smpl.book = (uPtr)ptr - (uPtr)memBook.data;
-					}
-					
-					if (!MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample))) {
-						sfx.sample = memSample.seekPoint;
-						MemFile_Write(&memSample, &smpl, sizeof(struct Sample));
-						smplNum++;
-					} else {
-						void* ptr = MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample));
-						sfx.sample = (uPtr)ptr - (uPtr)memSample.data;
-					}
-				} Dir_Set(&gDir, restoreDir);
+				if (sSampleTbl[idx].tuninOverride > 0)
+					sfx.tuning = sSampleTbl[idx].tuninOverride;
+				SwapBE(sfx.swap32);
+				SoundFont_Write_Sample(dataFile, idx, &sfx.sample, &memSample, &memBook, &memLoopBook, &smplNum);
 				
 				MemFile_Write(&memSfx, &sfx, sizeof(struct Sound));
 			}
@@ -1151,7 +1144,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			for (s32 j = 0; j < listDrum.num; j++) {
 				char* restoreDir = Tmp_String(Dir_Current(&gDir));
 				Drum drum = { 0 };
-				Adsr confEnv[4] = { 0 };
+				Adsr adsr[4] = { 0 };
 				char* currentConf = Tmp_String(Dir_File(&gDir, "drum/%s", listDrum.item[j]));
 				char* prim;
 				
@@ -1187,100 +1180,9 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				drum.release = Config_GetInt(config, "release");
 				SwapBE(drum.sound.swap32);
 				
-				confEnv[0].rate = Config_GetInt(config, "attack_rate"); SwapBE(confEnv[0].rate);
-				confEnv[0].level = Config_GetInt(config, "attack_level"); SwapBE(confEnv[0].level);
-				confEnv[1].rate = Config_GetInt(config, "hold_rate"); SwapBE(confEnv[1].rate);
-				confEnv[1].level = Config_GetInt(config, "hold_level"); SwapBE(confEnv[1].level);
-				confEnv[2].rate = Config_GetInt(config, "decay_rate"); SwapBE(confEnv[2].rate);
-				confEnv[2].level = Config_GetInt(config, "decay_level"); SwapBE(confEnv[2].level);
-				confEnv[3].rate = Config_GetInt(config, "decay2_rate"); SwapBE(confEnv[3].rate);
-				confEnv[3].level = Config_GetInt(config, "decay2_level"); SwapBE(confEnv[3].level);
-				
-				if (!MemMemAlign(0x10, memEnv.data, memEnv.dataSize, confEnv, 0x10)) {
-					drum.envelope = memEnv.seekPoint;
-					MemFile_Write(&memEnv, confEnv, 0x10);
-					MemFile_Align(&memEnv, 16);
-				} else {
-					void* ptr = MemMemAlign(0x10, memEnv.data, memEnv.dataSize, confEnv, 0x10);
-					drum.envelope = (uPtr)ptr - (uPtr)memEnv.data;
-				}
-				
-				/* SAMPLE */ {
-					char* sample = prim;
-					Sample smpl = { 0 };
-					s32 sampleID = 0;
-					u32 loop[4 + 8];
-					u32 loopSize = 4 * 4;
-					
-					for (;; sampleID++) {
-						if (sampleID == sSampleTblNum)
-							Audio_Error_LogSampleNames(sample);
-						if (!strcmp(sSampleTbl[sampleID].name, sample))
-							break;
-					}
-					
-					Dir_Set(&gDir, sSampleTbl[sampleID].dir);
-					MemFile_Reset(config);
-					MemFile_LoadFile_String(config, Dir_File(&gDir, "config.cfg"));
-					
-					smpl.sampleAddr = ReadBE(sSampleTbl[sampleID].segment);
-					smpl.data = sSampleTbl[sampleID].size;
-					smpl.data |= Config_GetInt(config, "codec") << (32 - 4);
-					smpl.data |= Config_GetInt(config, "medium") << (32 - 6);
-					smpl.data |= Config_GetInt(config, "bitA") << (32 - 7);
-					smpl.data |= Config_GetInt(config, "bitB") << (32 - 8);
-					SwapBE(smpl.data);
-					
-					loop[0] = Config_GetInt(config, "loop_start");
-					loop[1] = Config_GetInt(config, "loop_end");
-					loop[2] = Config_GetInt(config, "loop_count");
-					loop[3] = Config_GetInt(config, "tail_end");
-					SwapBE(loop[0]);
-					SwapBE(loop[1]);
-					SwapBE(loop[2]);
-					SwapBE(loop[3]);
-					if (loop[2]) {
-						MemFile_Reset(dataFile);
-						Audio_LoadFile(dataFile, "*.loopbook.bin");
-						for (s32 i = 0; i < 8; i++) {
-							loop[4 + i] = dataFile->cast.u32[i];
-						}
-						
-						loopSize = 4 * (4 + 8);
-					}
-					
-					if (!MemMemAlign(0x10, memLoopBook.data, memLoopBook.dataSize, loop, loopSize)) {
-						smpl.loop = memLoopBook.seekPoint;
-						MemFile_Write(&memLoopBook, loop, loopSize);
-						MemFile_Align(&memLoopBook, 16);
-					} else {
-						void* ptr = MemMemAlign(0x10, memLoopBook.data, memLoopBook.dataSize, loop, loopSize);
-						smpl.loop = (uPtr)ptr - (uPtr)memLoopBook.data;
-					}
-					
-					MemFile_Reset(dataFile);
-					Audio_LoadFile(dataFile, "*.book.bin");
-					smpl.book = memBook.seekPoint;
-					if (!MemMemAlign(0x10, memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize)) {
-						MemFile_Append(&memBook, dataFile);
-						MemFile_Align(&memBook, 16);
-					} else {
-						void* ptr = MemMemAlign(0x10, memBook.data, memBook.dataSize, dataFile->data, dataFile->dataSize);
-						smpl.book = (uPtr)ptr - (uPtr)memBook.data;
-					}
-					
-					if (!MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample))) {
-						drum.sound.sample = memSample.seekPoint;
-						MemFile_Write(&memSample, &smpl, sizeof(struct Sample));
-						smplNum++;
-					} else {
-						void* ptr = MemMemAlign(0x10, memSample.data, memSample.dataSize, &smpl, sizeof(struct Sample));
-						drum.sound.sample = (uPtr)ptr - (uPtr)memSample.data;
-					}
-					
-					MemFile_Reset(config);
-					MemFile_LoadFile_String(config, currentConf);
-				} Dir_Set(&gDir, restoreDir);
+				SoundFont_Read_Adsr(config, adsr);
+				SoundFont_Write_Adsr(&memEnv, adsr, &drum.envelope);
+				SoundFont_Write_Sample(dataFile, SoundFont_SmplID(prim), &drum.sound.sample, &memSample, &memBook, &memLoopBook, &smplNum);
 				
 				MemFile_Write(&memDrum, &drum, sizeof(struct Drum));
 				MemFile_Align(&memDrum, 16);

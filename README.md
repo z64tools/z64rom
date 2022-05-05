@@ -35,6 +35,7 @@ z64rom will convert the newest audio file it finds from this folder so you do no
 | --make-only     | Compile/convert only                              |
 | --single-thread | Process only on single thread. Good for debugging |
 | --no-wait       | Do not ask to press enter on exit [successful]    |
+| --log           | Print Log before closing                          |
 
 ## Credits
 

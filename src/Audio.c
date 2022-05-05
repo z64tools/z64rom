@@ -1111,7 +1111,6 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			}
 			
 			for (s32 j = 0; j < listSfx.num; j++) {
-				char* restoreDir = Tmp_String(Dir_Current(&gDir));
 				Sound sfx = { 0 };
 				char* prim;
 				s32 idx;
@@ -1142,7 +1141,6 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			}
 			
 			for (s32 j = 0; j < listDrum.num; j++) {
-				char* restoreDir = Tmp_String(Dir_Current(&gDir));
 				Drum drum = { 0 };
 				Adsr adsr[4] = { 0 };
 				char* currentConf = Tmp_String(Dir_File(&gDir, "drum/%s", listDrum.item[j]));

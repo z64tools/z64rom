@@ -307,6 +307,9 @@ free:
 	if (rom->config.dataSize)
 		MemFile_SaveFile_String(&rom->config, "z64project.cfg");
 	
+	if (Arg("log"))
+		Log_Print();
+	
 #ifdef _WIN32
 	if (!Arg("no-wait")) {
 		printf_getchar("Press enter to exit.");

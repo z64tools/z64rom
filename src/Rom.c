@@ -2,12 +2,6 @@
 
 DirCtx gDir;
 
-u32 TestSwap(u32 swapMe) {
-	SwapBE(swapMe);
-	
-	return swapMe;
-}
-
 void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 	ItemList vanilla = ItemList_Initialize();
 	ItemList modified = ItemList_Initialize();
@@ -147,7 +141,7 @@ RestrictionFlag* Rom_GetRestrictionFlags(Rom* rom, u32 sceneIndex) {
 }
 
 void Rom_WriteRestrictionFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
-	char* flags = Config_Get(config, "restriction_flags");
+	char* flags = Config_GetVariable(config->str, "restriction_flags");
 	RestrictionFlag* rf = Rom_GetRestrictionFlags(rom, sceneIndex);
 	
 	if (flags == NULL || rf == NULL)
@@ -360,42 +354,73 @@ static void Rom_Config_Scene(Rom* rom, MemFile* config, u32 id, const char* name
 
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
 
+typedef struct PatchNode {
+	struct PatchNode* prev;
+	struct PatchNode* next;
+	u32  start;
+	u32  end;
+	char source[64];
+} PatchNode;
+
+PatchNode* sPatchHead;
+
 static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char* file) {
+	const char* ptch = Dir_File(&gDir, file);
 	s32 lineNum;
+	char* line;
 	
 	MemFile_Reset(config);
-	MemFile_LoadFile_String(config, Dir_File(&gDir, file));
+	Log("Loading Patch [%s]", ptch);
+	MemFile_LoadFile_String(config, ptch);
+	MemFile_Realloc(config, config->memSize * 2);
 	lineNum = String_GetLineCount(config->data);
 	
-	for (s32 i = 0; i < lineNum; i++) {
-		char* line = String_Line(config->data, i);
-		char* word = String_Word(line, 2);
+	line = config->str;
+	
+	for (s32 i = 0; i < lineNum; i++, line = String_Line(line, 1)) {
+		PatchNode* node;
+		char* word;
 		
-		if (line[0] != '0' && line[1] != 'x')
+		// Process "macros"
+		if (line[0] == '@') {
+			char* cmd = String_GetWord(line, 0);
+			String_Replace(config->str, cmd + 1, Config_GetVariable(line, cmd));
+			
+			continue;
+		}
+		
+		if (String_Validate_Hex(String_GetWord(line, 0)) == false)
 			continue;
 		
+		word = Config_Variable(line, String_GetWord(line, 0));
 		rom->file.seekPoint = String_GetHexInt(String_GetWord(line, 0));
 		
 		if (word[0] == '"') {
-			word = Tmp_String(String_GetLine(String_Word(line, 2), 0));
-			word = &word[1];
+			word = Config_GetVariable(line, String_GetWord(line, 0));
 			
-			for (s32 c = 0, j = 0; j < strlen(word); j++) {
-				if (word[j] == '"')
-					c = 1;
-				if (c)
-					word[j] = '\0';
-			}
+			node = Calloc(0, sizeof(struct PatchNode));
+			node->start = rom->file.seekPoint;
+			node->end = rom->file.seekPoint + strlen(word);
+			strncpy(node->source, file, 63);
+			Node_Add(sPatchHead, node);
 			
+			Log("STR: 0x%08X = \"%s\"", rom->file.seekPoint, word);
 			MemFile_Printf(&rom->file, word);
-		}
-		if (word[0] == '0' && word[1] == 'x') {
-			word = String_GetLine(word, 0);
 			
-			for (s32 o = 0, j = 2; j < strlen(word); j++) {
-				u8* data = &rom->file.cast.u8[rom->file.seekPoint];
+			continue;
+		}
+		
+		word = Config_GetVariable(line, String_GetWord(line, 0));
+		
+		if (String_Validate_Hex_Spaced(word)) {
+			u8* data = &rom->file.cast.u8[rom->file.seekPoint];
+			u32 size = 0;
+			
+			Log("HEX: 0x%08X = %s", rom->file.seekPoint, word);
+			
+			for (s32 o = 0, j = word[1] == 'x' ? 2 : 0; j < strlen(word); j++) {
 				u8 new;
-				char strval[2] = {
+				char strval[] = {
 					word[j],
 					'\0'
 				};
@@ -403,22 +428,36 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 				if (word[j] == '#' || word[j] < ' ' || word[j] == '\0')
 					break;
 				
-				if (word[j] == ' ' || (word[j] == '0' && word[j + 1] == 'x') || word[j] == 'x') {
+				if (word[j] == ' ' || word[j] == '\t' || (word[j] == '0' && word[j + 1] == 'x') || word[j] == 'x')
 					continue;
+				
+				if (word[j] == '.') {
+					if (o % 2 != 0) {
+						data++;
+						size++;
+					}
+				} else {
+					if (o % 2 == 0) {
+						new = data[0] & 0x0F;
+						new |= String_GetHexInt(strval) << 4;
+						data[0] = new;
+					} else {
+						new = data[0] & 0xF0;
+						new |= String_GetHexInt(strval) & 0xF;
+						data[0] = new;
+						data++;
+						size++;
+					}
 				}
 				
-				if (o % 2 == 0) {
-					new = data[0] & 0x0F;
-					new |= String_GetHexInt(strval) << 4;
-					data[0] = new;
-				} else {
-					new = data[0] & 0xF0;
-					new |= String_GetHexInt(strval) & 0xF;
-					data[0] = new;
-					rom->file.seekPoint++;
-				}
 				o++;
 			}
+			
+			node = Calloc(0, sizeof(struct PatchNode));
+			node->start = rom->file.seekPoint;
+			node->end = rom->file.seekPoint + size;
+			strncpy(node->source, file, 63);
+			Node_Add(sPatchHead, node);
 		}
 	}
 }
@@ -458,6 +497,8 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 	Dir_ItemList_Recursive(&gDir, &list, ".bin");
 	
 	for (s32 i = 0; i < list.num; i++) {
+		PatchNode* node = sPatchHead;
+		u32 nodeID = 0;
 		char* fileCfg = Dir_File(&gDir, "%s%s.cfg", String_GetPath(list.item[i]), String_GetBasename(list.item[i]));
 		
 		MemFile_Reset(dataFile);
@@ -470,10 +511,33 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 		if (MemFile_LoadFile_String(config, fileCfg)) printf_error("Exiting...");
 		
 		rom->file.seekPoint = Config_GetInt(config, "rom");
+		
+		while (node) {
+			if (Intersect(node->start, node->end, rom->file.seekPoint, rom->file.seekPoint + dataFile->dataSize)) {
+				printf_warning(
+					"Patch to "
+					"[" PRNT_REDD "0x%08X" PRNT_RSET "]"
+					" from "
+					"[" PRNT_REDD "patch/%s" PRNT_RSET "]"
+					" has been overwritten by "
+					"[" PRNT_REDD "rom/lib_code/%s" PRNT_RSET "]!",
+					node->start,
+					node->source,
+					list.item[i]
+				);
+			}
+			
+			nodeID++;
+			node = node->next;
+		}
+		
 		MemFile_Append(&rom->file, dataFile);
 	}
 	
 	ItemList_Free(&list);
+	
+	while (sPatchHead)
+		Node_Kill(sPatchHead, sPatchHead);
 }
 
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
@@ -1281,7 +1345,7 @@ void Rom_New(Rom* rom, char* romName) {
 	hdr = SegmentedToVirtual(0x0, 0xDB70);
 	
 	if (rom->type == NoRom) {
-		char* romType = Config_Get(&rom->config, "z_rom_type");
+		char* romType = Config_GetVariable(rom->config.str, "z_rom_type");
 		
 		if (!strcmp(romType, "__PLACEHOLDER__")) {
 			if (hdr[0] != 0) {

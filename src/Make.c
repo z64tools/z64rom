@@ -70,7 +70,7 @@ static void Sound_Convert(ThreadArg* targ) {
 		} else {
 			for (s32 j = 0; j < ArrayCount(fmt); j++) {
 				if (StrEndCase(list->item[i], fmt[j]))
-					if (Sys_Stat_Ex(audio) < Sys_Stat_Ex(list->item[i]))
+					if (Sys_Stat(audio) < Sys_Stat(list->item[i]))
 						audio = list->item[i];
 			}
 		}
@@ -83,7 +83,7 @@ static void Sound_Convert(ThreadArg* targ) {
 	if (audio == NULL)
 		goto free;
 	
-	if (vadpcm == NULL || Sys_Stat_Ex(audio) > Sys_Stat_Ex(vadpcm) || gMakeForce) {
+	if (vadpcm == NULL || Sys_Stat(audio) > Sys_Stat(vadpcm) || gMakeForce) {
 		char command[512];
 		Tools_Command(command, z64audio, "\"%s\"", audio);
 		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
@@ -478,7 +478,7 @@ void Code_GCC(const char* source, const char* output, const char* flags, Binutil
 		}
 	}
 	
-	if (Sys_Stat(output) && Sys_Stat(output) >= Sys_Stat(source))
+	if (Sys_Stat(output) && Sys_Stat(output) >= Sys_Stat(source) && !gMakeForce)
 		return;
 	
 build:

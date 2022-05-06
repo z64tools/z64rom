@@ -412,7 +412,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		
 		word = Config_GetVariable(line, String_GetWord(line, 0));
 		
-		if (String_Validate_Hex_Spaced(word)) {
+		if (String_Validate_Hex(word)) {
 			u8* data = &rom->file.cast.u8[rom->file.seekPoint];
 			u32 size = 0;
 			
@@ -551,7 +551,7 @@ void Rom_Dump(Rom* rom) {
 	MemFile_Malloc(&dataFile, 0x460000); // Slightly larger than audiotable
 	MemFile_Malloc(&config, 0x25000);
 	
-	printf_info_align("Dumping Rom", PRNT_REDD "%s", rom->file.info.name);
+	printf_info_align("Dumping Rom", PRNT_REDD "%s", String_GetFilename(rom->file.info.name));
 	
 	Dir_Enter(&gDir, "rom/"); {
 		Dir_Enter(&gDir, "actor/.vanilla/"); {
@@ -765,7 +765,7 @@ void Rom_Build(Rom* rom) {
 	MemFile_Malloc(&config, 0x25000);
 	MemFile_Params(&config, MEM_FILENAME, true, MEM_END);
 	
-	printf_info_align("Load Baserom", PRNT_REDD "%s", rom->file.info.name);
+	printf_info_align("Load Baserom", PRNT_REDD "%s", String_GetFilename(rom->file.info.name));
 	printf_info_align("Build Rom", PRNT_BLUE "build.z64");
 	
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_3, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_3, false);
@@ -1305,12 +1305,6 @@ void Rom_Build(Rom* rom) {
 		}
 		
 		Dir_Leave(&gDir);
-	}
-	
-	if (gCompressFlag) {
-		Dma_PrintfSlots(rom);
-		
-		rom->file.dataSize = Dma_GetRomSize();
 	}
 	
 	fix_crc(rom->file.data);

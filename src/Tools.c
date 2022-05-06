@@ -20,6 +20,7 @@ const char* sTools[] = {
 	"tools\\mips64-binutils\\bin\\mips64-objcopy.exe",
 	"tools\\z64audio.exe",
 	"tools\\z64convert.exe",
+	"tools\\z64compress.exe",
 	"tools\\novl.exe",
 	"tools\\wget.exe",
 #else
@@ -29,6 +30,7 @@ const char* sTools[] = {
 	"tools/mips64-binutils/bin/mips64-objcopy",
 	"tools/z64audio",
 	"tools/z64convert",
+	"tools/z64compress",
 	"tools/novl",
 	"wget",
 #endif
@@ -315,7 +317,7 @@ s32 Tools_Validate_ReqrTools(void) {
 	for (s32 i = 0; i < ArrayCount(toolList); i++) {
 		if (!Sys_Stat(toolList[i])) {
 			fail = true;
-			printf_toolinfo(gToolName, PRNT_REDD "Failure\n\n");
+			printf_toolinfo(gToolName, PRNT_REDD "Failure");
 			printf_warning_align("Missing Component", PRNT_REDD "%s", toolList[i]);
 		}
 	}
@@ -430,7 +432,6 @@ redo:
 					goto redo;
 				goto redo;
 			}
-			Terminal_ClearLines(2);
 		}
 	}
 	
@@ -466,7 +467,7 @@ s32 Tools_Init(void) {
 			Tools_Clean();
 		
 		Sys_Touch("tools/.installing");
-		printf_toolinfo(gToolName, PRNT_BLUE "Initialization Setup\n\n");
+		printf_toolinfo(gToolName, PRNT_BLUE "Initialization Setup");
 		printf_info("Play some chill music? " PRNT_DGRY "[y/n]");
 		
 		if (Terminal_YesOrNo())
@@ -474,7 +475,7 @@ s32 Tools_Init(void) {
 				dll.data,
 				dll.dataSize
 			);
-		Terminal_ClearLines(3);
+		Terminal_ClearLines(2);
 		SleepF(0.2);
 		
 		printf_warning("Would you like to let z64rom handle installation automatically? " PRNT_DGRY "[y/n]");
@@ -483,7 +484,7 @@ s32 Tools_Init(void) {
 		} else {
 			gAutoDownload = false;
 		}
-		Terminal_ClearLines(3);
+		Terminal_ClearLines(2);
 		SleepF(0.2);
 		
 		/* INIT */ {
@@ -495,6 +496,7 @@ s32 Tools_Init(void) {
 		
 		if (!Tools_Validate_AddiTools() && Sys_Stat("include/z64hdr/")) {
 			printf_info("All required tools have been installed succesfully!");
+			printf("\n");
 		}
 		Sys_Delete("tools/.installing");
 	}

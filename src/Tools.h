@@ -9,6 +9,7 @@ typedef enum {
 	mips64_objcopy,
 	z64audio,
 	z64convert,
+	z64compress,
 	nOVL,
 	wget
 } ToolIndex;

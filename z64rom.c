@@ -30,76 +30,95 @@ s32 gMakeForce;
 const char* gMakeTarget;
 extern u32 gThreading;
 
-static void Main_Config(char** input, Rom* rom, s32 argc, char* argv[]) {
-	const char* confRom = "z64project.cfg";
-	MemFile* config = &rom->config;
-	u32 parArg = 0;
+s32 Main_IsSameRom(char* new, char* cur) {
+	if (Sys_StatF(new, STAT_ACCS) != Sys_StatF(cur, STAT_ACCS))
+		return false;
+	if (Sys_StatF(new, STAT_MODF) != Sys_StatF(cur, STAT_MODF))
+		return false;
+	if (Sys_StatF(new, STAT_CREA) != Sys_StatF(cur, STAT_CREA))
+		return false;
 	
-	*config = MemFile_Initialize();
+	const char* pathA = String_GetPath(String_Unquote(new));
+	const char* pathB = Sys_AppDir();
 	
-	if (input[0] == NULL) {
-		if (ParseArgs(argv, "input", &parArg) || ParseArgs(argv, "i", &parArg)) {
-			input[0] = argv[parArg];
-		} else if (argc == 2) {
-			if (StrEndCase(argv[1], ".z64")) {
-				input[0] = argv[1];
-				sDumpFlag = true;
-				Sys_Delete(confRom);
-			}
-		}
-	}
+	if (strlen(pathB) != strlen(pathA))
+		return false;
 	
-	if (!Sys_Stat(confRom)) {
-		sDumpFlag = true;
-		MemFile_Reset(config);
-		MemFile_Malloc(config, MbToBin(2.5));
-		
-		MemFile_Printf(config, "# Project Settings\n");
-		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", String_GetFilename(input[0]));
-		MemFile_Printf(config, "%-15s = \"%s\" # [oot_debug/oot_u10]\n", "z_rom_type", "__PLACEHOLDER__");
-		
-		MemFile_Printf(config, "\n# Mips64 Flags\n");
-		
-		MemFile_Printf(
-			config,
-			"%-15s = \"%s\"\n",
-			"mips64_gcc_flags",
-			"-c -Iinclude/z64hdr -Iinclude/z64hdr/include -Iinclude/ "
-			"-Isrc/lib_user -G 0 -O1 -fno-reorder-blocks -std=gnu99 -march=vr4300 -mabi=32"
-			" -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division -Wall"
-			" -Wno-builtin-declaration-mismatch -Wno-unused-variable"
-		);
-		MemFile_Printf(
-			config,
-			"%-15s = \"%s\"\n",
-			"mips64_gcc_flags_code",
-			"-mno-gpopt -fomit-frame-pointer"
-		);
-		MemFile_Printf(
-			config,
-			"%-15s = \"%s\"\n",
-			"mips64_ld_flags",
-			"-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld -T z_lib_user.ld --emit-relocs"
-		);
-	} else {
-		MemFile_Reset(config);
-		MemFile_LoadFile_String(config, confRom);
-		
-		if (sDumpFlag == false) {
-			input[0] = Config_GetString(config, "z_baserom");
-			
-			if (!Sys_Stat(Tmp_Printf("%s%s", Sys_AppDir(), input[0]))) {
-				printf_error("Could not locate your baserom [%s]", Tmp_Printf("%s%s", Sys_AppDir(), input[0]));
-			}
-		}
-	}
+	if (!StrMtch(pathA, pathB))
+		return false;
+	
+	return true;
 }
 
-static void Main_RenameRooms(const char* from, const char* to) {
+void Main_SuperCompression() {
+	s32 dropTo = 0;
+	
+	printf_toolinfo(gToolName, "Compressing!");
+	printf_info("Attempting to compress [" PRNT_REDD "build-yaz.z64" PRNT_RSET "] to achieve negative file size.");
+	printf_info("This might take a while...\n");
+	
+	for (s32 i = 0; i < 100; i++) {
+		f32 sec;
+		
+		sec = RandF() + RandF() * 1.56;
+		
+		printf_progressFst("" PRNT_BLUE "Compressing...", i, 100);
+		sec = WrapF(sec, 0.656, 1.367);
+		
+		if (dropTo) {
+			Sys_Sleep(sec * 0.001);
+			i -= 2;
+			if (i <= dropTo)
+				dropTo = 0;
+			continue;
+		}
+		
+		if (i % 6 == 0) {
+			if (25 + RandF() * 125 < i) {
+				dropTo = i * 0.77;
+				Sys_Sleep(1.0f);
+				continue;
+			}
+		}
+		
+		Sys_Sleep(sec * 0.7);
+	}
+	
+	printf("\n");
+	printf_info("I think this didn't work out after all...");
+	printf_getchar("Press enter to exit.");
+	
+	exit(0);
+}
+
+void Main_CompressRom() {
+	char cmd[512];
+	
+	printf_toolinfo(gToolName, "Compressing");
+	
+	Tools_Command(
+		cmd,
+		z64compress,
+		"--in %s "
+		"--out %s "
+		"--mb 32 "
+		"--codec yaz "
+		"--cache rom/cache/ "
+		"--dma \"0x12F70,1548\" "
+		"--compress \"9-14,28-END\" "
+		"--threads 8",
+		
+		"build.z64",
+		"build-yaz.z64"
+	);
+	Sys_Command(cmd);
+}
+
+void Main_RenameRooms(const char* from, const char* to) {
 	ItemList list = ItemList_Initialize();
 	u32 times = 0;
 	
-	printf_toolinfo(gToolName, "Room Extension Rename\n\n");
+	printf_toolinfo(gToolName, "Room Extension Rename");
 	
 	if (!Sys_Stat("z64project.cfg"))
 		printf_warning("No project found " PRNT_DGRY "[z64project.cfg]");
@@ -124,27 +143,19 @@ static void Main_RenameRooms(const char* from, const char* to) {
 	printf_info("%d rooms renamed to *%s.", times, to);
 }
 
-s32 Main(s32 argc, char* argv[]) {
-	char* input = NULL;
-	Rom* rom;
+s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 	u32 parArg = 0;
-	u32 setupFlag = false;
-	
-	Log_Init();
-	printf_WinFix();
-	printf_SetPrefix("");
-	Sys_SetWorkDir(Sys_AppDir());
-	
-	rom = Calloc(0, sizeof(struct Rom));
 	
 	if (Arg("zmap")) {
 		Main_RenameRooms(".zroom", ".zmap");
-		goto free;
+		
+		return 1;
 	}
 	
 	if (Arg("zroom")) {
 		Main_RenameRooms(".zmap", ".zroom");
-		goto free;
+		
+		return 1;
 	}
 	
 	if (Arg("B")) gMakeForce = true;
@@ -163,81 +174,187 @@ s32 Main(s32 argc, char* argv[]) {
 	if (Arg("info"))
 		gPrintInfo = true;
 	
-	if (Arg("compress"))
-		gCompressFlag = true;
-	
-	if (Arg("actor")) {
-		u32 id = String_GetInt(argv[parArg]);
+	if (gCompressFlag) {
+		Main_CompressRom();
 		
-		if (Arg("i")) {
-			input = argv[parArg];
-			rom->type = Zelda_OoT_Debug;
-			Rom_New(rom, input);
-			Rom_Debug_ActorEntry(rom, id);
-		}
-		
-		goto free;
+		return 1;
 	}
 	
-	if (Arg("dma")) {
+	if (Arg("actor") && input) {
+		u32 id = String_GetInt(argv[parArg]);
+		
+		rom->type = Zelda_OoT_Debug;
+		Rom_New(rom, input);
+		Rom_Debug_ActorEntry(rom, id);
+		
+		return 1;
+	}
+	
+	if (Arg("dma") && input) {
 		u32 id = String_GetInt(argv[parArg]);
 		
 		gInfoFlag = true;
-		if (Arg("i")) {
-			input = argv[parArg];
-			rom->type = Zelda_OoT_Debug;
-			Rom_New(rom, input);
-			Rom_Debug_DmaEntry(rom, id);
-		}
+		rom->type = Zelda_OoT_Debug;
+		Rom_New(rom, input);
+		Rom_Debug_DmaEntry(rom, id);
 		
-		goto free;
+		return 1;
 	}
 	
-	switch (setupFlag = Tools_Init()) {
-		case -1:
-			goto free;
-			break;
-			
-		case 0:
-			Main_Config(&input, rom, argc, argv);
-			
-			if (sDumpFlag == false) {
-				if (Arg("update")) {
-					printf_toolinfo(gToolName, "Updating z64hdr...\n\n");
-					Tools_Update_Header();
-					
-					goto free;
-				}
+	return 0;
+}
+
+void Main_Config(char** input, Rom* rom) {
+	const char* projectConfig = "z64project.cfg";
+	MemFile* config = &rom->config;
+	
+	*config = MemFile_Initialize();
+	
+	if (Sys_Stat(projectConfig)) {
+		char* projectRom;
+		
+		MemFile_LoadFile_String(config, projectConfig);
+		projectRom = Config_GetString(config, "z_baserom");
+		
+		if (!Sys_Stat(projectRom))
+			printf_error("Could not locate your baserom [%s]", projectRom);
+		
+		if (*input) {
+			if (Main_IsSameRom(*input, "build.z64")) {
+				gCompressFlag = true;
 				
-				if (Sys_Stat("z64project.cfg")) {
-					if (!Arg("no-make")) {
-						printf_toolinfo(gToolName, "\n");
-						Make(rom);
-					}
-					if (Arg("make-only")) goto free;
-				}
+				return;
 			}
 			
-			break;
+			if (Main_IsSameRom(*input, "build-yaz.z64"))
+				Main_SuperCompression();
 			
-		case 1:
-#if 0
-			printf("\n");
-			printf_info("If you have a copy of " PRNT_REDD "Blender" PRNT_RSET ", drag n drop it here.");
-			printf_info("If you're not planning to use custom objects,");
-			printf_info("just answer " PRNT_BLUE "n" PRNT_RSET ".");
+			if (Main_IsSameRom(*input, projectRom))
+				return;
 			
-			MemFile mem =  MemFile_Initialize();
+			printf_toolinfo(gToolName, "");
 			
-			MemFile_Malloc(&mem, 0x800);
-			MemFile_Printf(&mem, "\n# Additional Tools\n");
-			MemFile_Printf(&mem, "%-15s = %s", "blender_path\n", Terminal_GetStr());
+			printf_warning("Dump rom [%s] ? " PRNT_DGRY "[y/n]", *input);
+			if (Terminal_YesOrNo() == false) {
+				*input = projectRom;
+				
+				printf_getchar("Press enter to exit.");
+				exit(0);
+			}
 			
-			MemFile_SaveFile_String(&mem, "tools/ToolPaths.cfg");
+			MemFile_Clear(config);
+			Sys_Delete(projectConfig);
+		} else {
+			*input = projectRom;
 			
-			Terminal_ClearLines(2);
-#endif
-			printf("\n");
+			return;
+		}
+	}
+	
+	sDumpFlag = true;
+	if (*input && !Sys_Stat(String_GetFilename(*input))) {
+		printf_info("Copying provided rom to z64rom directory.");
+		Sys_Copy(*input, String_GetFilename(*input), false);
+		
+		*input = strdup(String_GetFilename(*input));
+	}
+	
+	MemFile_Reset(config);
+	MemFile_Malloc(config, MbToBin(2.5));
+	
+	MemFile_Printf(config, "# Project Settings\n");
+	if (*input)
+		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", *input);
+	else
+		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", "__ROM_NAME__");
+	MemFile_Printf(config, "%-15s = \"%s\" # [oot_debug/oot_u10]\n", "z_rom_type", "__PLACEHOLDER__");
+	
+	MemFile_Printf(config, "\n# Mips64 Flags\n");
+	
+	MemFile_Printf(
+		config,
+		"%-15s = \"%s\"\n",
+		"mips64_gcc_flags",
+		"-c -Iinclude/z64hdr -Iinclude/z64hdr/include -Iinclude/ "
+		"-Isrc/lib_user -G 0 -O1 -fno-reorder-blocks -std=gnu99 -march=vr4300 -mabi=32"
+		" -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division -Wall"
+		" -Wno-builtin-declaration-mismatch -Wno-unused-variable"
+	);
+	MemFile_Printf(
+		config,
+		"%-15s = \"%s\"\n",
+		"mips64_gcc_flags_code",
+		"-mno-gpopt -fomit-frame-pointer"
+	);
+	MemFile_Printf(
+		config,
+		"%-15s = \"%s\"\n",
+		"mips64_ld_flags",
+		"-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld -T z_lib_user.ld --emit-relocs"
+	);
+	
+	return;
+}
+
+s32 Main_GiveProject() {
+	const char* msg[] = {
+		"insert funny text here",
+		"insert funny text here",
+		"insert funny text here",
+		"insert funny text here",
+		"insert funny text here",
+		"insert funny text here",
+	};
+	
+	s32 t = Wrap(RandF(), 0, ArrayCount(msg));
+	
+	printf_toolinfo(gToolName, msg[t]);
+	
+	return 0;
+}
+
+s32 Main(s32 argc, char* argv[]) {
+	char* input = NULL;
+	Rom* rom;
+	u32 parArg = 0;
+	u32 setupFlag = false;
+	u32 romCount = 0;
+	
+	Log_Init();
+	printf_WinFix();
+	printf_SetPrefix("");
+	Sys_SetWorkDir(Sys_AppDir());
+	
+	for (s32 i = 0; i < 32; i++) {
+		printf_info("%d - %d", i, Wrap(i, 16, 32));
+	} exit(0);
+	
+	rom = Calloc(0, sizeof(struct Rom));
+	
+	for (s32 i = 1; i < argc; i++) {
+		if (StrEndCase(argv[i], ".z64")) {
+			if (romCount > 0)
+				printf_error("Too many roms provided as arguments!");
+			input = argv[i];
+			romCount++;
+		}
+		
+		if (StrStr(argv[i], "z64project.cfg") && Main_GiveProject())
+			goto free;
+	}
+	
+	Main_Config(&input, rom);
+	if (Main_Arguments(rom, input, argv))
+		goto free;
+	
+	switch (Tools_Init()) {
+		case -1: {
+			goto free;
+		}
+		
+		case 1: {
+			setupFlag = true;
+			
 			for (s32 i = 0; i < argc; i++) {
 				if (StrEnd(argv[i], ".z64") || StrEnd(argv[i], ".Z64")) {
 					char* filename = String_GetFilename(argv[i]);
@@ -250,45 +367,68 @@ s32 Main(s32 argc, char* argv[]) {
 				}
 			}
 			
-			if (input == NULL) {
-				ItemList list = ItemList_Initialize();
-				
-				ItemList_List(&list, "", 0, LIST_FILES);
-				
-				for (s32 i = 0; i < list.num; i++) {
-					if (StrEndCase(list.item[i], ".z64") && !StrStr(list.item[i], "build")) {
-						printf_info("Looks like you have a rom called " PRNT_REDD "%s " PRNT_RSET "in the same directory.", list.item[i]);
-						
-						printf_info("Want to use it as your baserom and dump it now? " PRNT_DGRY "[y/n]");
-						
-						if (Terminal_YesOrNo()) {
-							input = strdup(list.item[i]);
-							sDumpFlag = true;
-						}
-						
-						Terminal_ClearLines(2);
-						printf("\n");
-						
-						break;
-					}
+			break;
+		}
+		
+		default: {
+			if (sDumpFlag == false) {
+				if (Arg("update")) {
+					printf_toolinfo(gToolName, "Updating z64hdr...");
+					Tools_Update_Header();
+					
+					goto free;
 				}
 				
-				ItemList_Free(&list);
+				if (Sys_Stat("z64project.cfg")) {
+					if (!Arg("no-make")) {
+						printf_toolinfo(gToolName, "");
+						Make(rom);
+					}
+					if (Arg("make-only")) goto free;
+				}
 			}
 			
-			Main_Config(&input, rom, argc, argv);
-			
 			break;
+		}
+	}
+	
+	if (input == NULL) {
+		ItemList list = ItemList_Initialize();
+		
+		ItemList_List(&list, "", 0, LIST_FILES);
+		
+		for (s32 i = 0; i < list.num; i++) {
+			if (StrEndCase(list.item[i], ".z64") && !StrStr(list.item[i], "build")) {
+				printf_toolinfo(gToolName, "");
+				printf_info("Looks like you have a rom called " PRNT_REDD "%s " PRNT_RSET "in the same directory.", list.item[i]);
+				
+				printf_info("Want to use it as your baserom and dump it now? " PRNT_DGRY "[y/n]");
+				
+				if (Terminal_YesOrNo()) {
+					input = strdup(list.item[i]);
+					sDumpFlag = true;
+					
+					String_Replace(rom->config.str, "__ROM_NAME__", input);
+				}
+				
+				printf("\n");
+				
+				break;
+			}
+		}
+		
+		ItemList_Free(&list);
 	}
 	
 	if (input) {
-		printf_toolinfo(gToolName, "\n");
+		printf_toolinfo(gToolName, "");
+		
 		if (sDumpFlag) {
 			if ((argc == 2 || setupFlag) && gExtractAudio) {
 				printf_info("Extract " PRNT_REDD "wav audio samples" PRNT_RSET "?");
 				printf_info("This is optional and will slow down dumping process. " PRNT_DGRY "[y/n]");
 				if (!Terminal_YesOrNo()) gExtractAudio = false;
-				Terminal_ClearLines(2);
+				
 				printf("\n");
 			}
 			
@@ -301,10 +441,10 @@ s32 Main(s32 argc, char* argv[]) {
 		printf_info("Done!\n");
 	}
 	
-	printf_toolinfo(gToolName, sToolUsage);
+	printf_toolinfo(gToolName, "Nothing provided, nothing happens!");
 free:
 	
-	if (rom->config.dataSize)
+	if (input && rom->config.dataSize)
 		MemFile_SaveFile_String(&rom->config, "z64project.cfg");
 	
 	if (Arg("log"))

@@ -173,9 +173,9 @@ void __Gameplay_Init(GameState* thisx) {
 	Flags_UnsetAllEnv(globalCtx);
 	
 	zAllocSize = THA_GetSize(&globalCtx->state.tha);
-	zAlloc = GameState_Alloc(&globalCtx->state, zAllocSize, "../z_play.c", 2918);
+	zAlloc = (u32)GameState_Alloc(&globalCtx->state, zAllocSize, "../z_play.c", 2918);
 	zAllocAligned = (zAlloc + 8) & ~0xF;
-	ZeldaArena_Init(zAllocAligned, zAllocSize - zAllocAligned + zAlloc);
+	ZeldaArena_Init((void*)zAllocAligned, zAllocSize - zAllocAligned + zAlloc);
 	
 	Fault_AddClient(&D_801614B8, ZeldaArena_Display, NULL, NULL);
 	func_800304DC(globalCtx, &globalCtx->actorCtx, globalCtx->linkActorEntry);

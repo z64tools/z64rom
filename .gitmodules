@@ -8,3 +8,6 @@
 	path = tools/z64convert
 	url = https://github.com/turpaan64/z64convert.git
 	branch = document-print
+[submodule "tools/z64compress"]
+	path = tools/z64compress
+	url = https://github.com/z64me/z64compress

@@ -1,4 +1,4 @@
-CFLAGS         := -s -flto -Wall -DEXTLIB=117 -DNDEBUG
+CFLAGS         := -s -flto -Wall -DEXTLIB=118 -DNDEBUG
 CFLAGS_MAIN    := -s -Wall -pthread -DNDEBUG
 OPT_WIN32      := -O2
 OPT_LINUX      := -Ofast
@@ -73,7 +73,7 @@ hdrup.exe: tools/hdrup.c
 # 	project/tools/depper \
 # 	project/tools/novl.exe
 
-project-files-linux: project/tools/novl project/tools/z64audio project/tools/z64convert
+project-files-linux: project/tools/novl project/tools/z64audio project/tools/z64convert project/tools/z64compress
 	@mkdir -p             app_linux/src/actor
 	@mkdir -p             app_linux/src/object
 	@cp -r project/patch  app_linux/
@@ -84,8 +84,9 @@ project-files-linux: project/tools/novl project/tools/z64audio project/tools/z64
 	@rm -f                app_linux/*/*.txt
 	@rm -f                app_linux/tools/z64audio.exe
 	@rm -f                app_linux/tools/novl.exe
+	@rm -f                app_linux/tools/z64compress.exe
 
-project-files-win32: project/tools/novl.exe project/tools/z64audio.exe project/tools/z64convert.exe
+project-files-win32: project/tools/novl.exe project/tools/z64audio.exe project/tools/z64convert.exe project/tools/z64compress.exe
 	@mkdir -p             app_win32/src/actor
 	@mkdir -p             app_win32/src/object
 	@cp -r project/patch  app_win32/
@@ -97,6 +98,7 @@ project-files-win32: project/tools/novl.exe project/tools/z64audio.exe project/t
 	@rm -f                app_win32/*/*.txt
 	@rm -f                app_win32/tools/z64audio
 	@rm -f                app_win32/tools/novl
+	@rm -f                app_linux/tools/z64compress
 
 # # # # # # # # # # # # # # # # # # # #
 # CLEAN                               #
@@ -106,6 +108,7 @@ clean-all: clean-sub clean-release clean
 
 clean-sub:
 	@$(MAKE) -C tools/z64audio clean --no-print-directory --silent
+	@$(MAKE) -C tools/z64compress clean --no-print-directory --silent
 	@rm -f project/tools/z64audio
 	@rm -f project/tools/z64audio.exe
 	@rm -f project/tools/novl
@@ -164,6 +167,16 @@ project/tools/z64convert.exe: tools/z64convert/src/z64convert.c
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@$(MAKE) -C tools/z64convert wincli -j --no-print-directory --silent
 	@cp tools/z64convert/z64convert-cli.exe $@
+
+project/tools/z64compress.exe:
+	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
+	@$(MAKE) -C tools/z64compress win32 -j --no-print-directory --silent
+	@cp tools/z64compress/z64compress.exe $@
+
+project/tools/z64compress:
+	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
+	@$(MAKE) -C tools/z64compress linux -j --no-print-directory --silent
+	@cp tools/z64compress/z64compress $@
 
 # # # # # # # # # # # # # # # # # # # #
 # LINUX BUILD                         #

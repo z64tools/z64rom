@@ -19,7 +19,7 @@ s32 Tools_RegisterBlender(MemFile* mem);
 void Tools_Clean();
 s32 Tools_Validate_ReqrTools(void);
 s32 Tools_Validate_AddiTools(void);
-void Tools_Update_Header(void);
+void Tools_Update_Header(bool install);
 void Tools_Update_Binutils(void);
 s32 Tools_Init(void);
 

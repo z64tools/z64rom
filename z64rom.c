@@ -416,7 +416,7 @@ s32 Main(s32 argc, char* argv[]) {
 			
 			if (Arg("update")) {
 				printf_toolinfo(gToolName, "Updating z64hdr...");
-				Tools_Update_Header();
+				Tools_Update_Header(false);
 				
 				goto free;
 			}

@@ -397,12 +397,14 @@ redo:
 	printf_info("Installed successfully!\n");
 }
 
-void Tools_Update_Header(void) {
+void Tools_Update_Header(bool install) {
 	char command[512];
 	char* output;
 	char* line;
 	char* word;
 	MemFile ver = MemFile_Initialize();
+	
+	if (install) goto install;
 	
 	Tools_Command(command, wget, "%s -q -O -", URL_Z64HDR_UPDT_API);
 	output = Sys_CommandOut(command);
@@ -420,6 +422,7 @@ void Tools_Update_Header(void) {
 	String_Replace(word, ",", "");
 	
 	if (!Sys_Stat("include/.version")) {
+install:
 		Tools__InstallHdr(false);
 		
 		MemFile_Malloc(&ver, 0x800);
@@ -488,7 +491,7 @@ s32 Tools_Init(void) {
 			if (Tools_Validate_AddiTools() || Sys_Stat("tools/.failsafe"))
 				Tools_Update_Binutils();
 			if (!Sys_Stat("include/oot_mq_debug/z64hdr.h"))
-				Tools_Update_Header();
+				Tools_Update_Header(true);
 		}
 		
 		if (!Tools_Validate_AddiTools() && Sys_Stat("include/z64hdr/")) {

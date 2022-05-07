@@ -379,8 +379,8 @@ redo:
 			if (Sys_Command(command)) {
 				printf("\n");
 				printf_warning("Failed to initialize download... Try again? Otherwise we'll do this manually. " PRNT_DGRY "[y/n]");
-				if (Terminal_YesOrNo())
-					goto redo;
+				if (Terminal_YesOrNo() == false)
+					gAutoDownload = false;
 				goto redo;
 			}
 			Terminal_ClearLines(2);

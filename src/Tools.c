@@ -82,12 +82,7 @@ static void Tools__CloseDialog(const char* toolName, bool askClose) {
 }
 
 static s32 Tools__FileDialog(const char* output) {
-	char buffer[512];
-	
-	strcpy(buffer, Terminal_GetStr());
-	
-	String_Replace(buffer, "\n", "");
-	String_Replace(buffer, "\"", "");
+	char* buffer = String_Unquote(Terminal_GetStr());
 	
 	if (!StrEnd(output, String_Extension(buffer))) {
 		Terminal_ClearLines(3);

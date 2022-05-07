@@ -766,7 +766,7 @@ void Rom_Build(Rom* rom) {
 	MemFile_Params(&config, MEM_FILENAME, true, MEM_END);
 	
 	printf_info_align("Load Baserom", PRNT_REDD "%s", String_GetFilename(rom->file.info.name));
-	printf_info_align("Build Rom", PRNT_BLUE "build.z64");
+	printf_info_align("Build Rom", PRNT_BLUE "%s",  gRomName_Output[gDevBuild]);
 	
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_3, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_3, false);
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_4, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_4, false);
@@ -1308,7 +1308,7 @@ void Rom_Build(Rom* rom) {
 	}
 	
 	fix_crc(rom->file.data);
-	MemFile_SaveFile(&rom->file, "build.z64");
+	MemFile_SaveFile(&rom->file, gRomName_Output[gDevBuild]);
 	
 	MemFile_Free(&dataFile);
 	MemFile_Free(&config);

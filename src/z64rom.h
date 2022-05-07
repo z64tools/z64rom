@@ -189,6 +189,9 @@ extern s32 gInfoFlag;
 extern s32 gMakeForce;
 extern const char* gMakeTarget;
 
+extern s32 gDevBuild;
+extern const char* gRomName_Output[];
+
 void fix_crc(unsigned char* rom);
 
 #endif

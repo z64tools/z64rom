@@ -9,28 +9,26 @@
 
  */
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.5"
-#ifndef NDEBUG
-	PRNT_DGRY " DEBUG BUILD"
-#endif
-;
-char* sToolUsage = {
-	EXT_INFO_TITLE("Usage:")
-	EXT_INFO("Dump", 12, "Drag and drop a rom on z64rom")
-	EXT_INFO("Build", 12, "Launch z64rom (after dump)")
-	PRNT_NL
-};
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.6";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gGenericNames;
 s32 sDumpFlag;
 s32 gInfoFlag;
-s32 gLogOutput;
 s32 gMakeForce;
 const char* gMakeTarget;
 extern u32 gThreading;
 
-s32 Main_IsSameRom(char* new, char* cur) {
+#define ROM_RELEASE 0
+#define ROM_DEV     1
+
+s32 gDevBuild = true;
+const char* gRomName_Output[] = {
+	"build-release.z64",
+	"build-dev.z64",
+};
+
+s32 Main_IsSameFile(const char* new, const char* cur) {
 	if (Sys_StatF(new, STAT_ACCS) != Sys_StatF(cur, STAT_ACCS))
 		return false;
 	if (Sys_StatF(new, STAT_MODF) != Sys_StatF(cur, STAT_MODF))
@@ -50,19 +48,19 @@ s32 Main_IsSameRom(char* new, char* cur) {
 	return true;
 }
 
-void Main_SuperCompression() {
+void Main_SuperCompression(const char* input) {
 	s32 dropTo = 0;
 	
-	printf_toolinfo(gToolName, "Compressing!");
-	printf_info("Attempting to compress [" PRNT_REDD "build-yaz.z64" PRNT_RSET "] to achieve negative file size.");
+	printf_toolinfo(gToolName, "The Most Overtuned Ultimate Compressor");
+	printf_info("Attempting to compress [" PRNT_REDD "%s" PRNT_RSET "] to achieve negative file size.", input);
 	printf_info("This might take a while...\n");
 	
-	for (s32 i = 0; i < 100; i++) {
+	for (s32 i = 0; i < 99; i++) {
 		f32 sec;
 		
 		sec = RandF() + RandF() * 1.56;
 		
-		printf_progressFst("" PRNT_BLUE "Compressing...", i, 100);
+		printf_progressFst("" PRNT_BLUE "Compressing", i, 100);
 		sec = WrapF(sec, 0.656, 1.367);
 		
 		if (dropTo) {
@@ -84,15 +82,18 @@ void Main_SuperCompression() {
 		Sys_Sleep(sec * 0.7);
 	}
 	
-	printf("\n");
-	printf_info("I think this didn't work out after all...");
+	printf_warning("Something went wrong...");
 	printf_getchar("Press enter to exit.");
 	
 	exit(0);
 }
 
-void Main_CompressRom() {
+void Main_CompressRom(const char* input) {
 	char cmd[512];
+	char romName[64];
+	
+	strcpy(romName, input);
+	String_Insert(StrEnd(romName, ".z64"), "-yaz");
 	
 	printf_toolinfo(gToolName, "Compressing");
 	
@@ -108,8 +109,8 @@ void Main_CompressRom() {
 		"--compress \"9-14,28-END\" "
 		"--threads 8",
 		
-		"build.z64",
-		"build-yaz.z64"
+		input,
+		romName
 	);
 	Sys_Command(cmd);
 }
@@ -174,12 +175,6 @@ s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 	if (Arg("info"))
 		gPrintInfo = true;
 	
-	if (gCompressFlag) {
-		Main_CompressRom();
-		
-		return 1;
-	}
-	
 	if (Arg("actor") && input) {
 		u32 id = String_GetInt(argv[parArg]);
 		
@@ -220,16 +215,25 @@ void Main_Config(char** input, Rom* rom) {
 			printf_error("Could not locate your baserom [%s]", projectRom);
 		
 		if (*input) {
-			if (Main_IsSameRom(*input, "build.z64")) {
-				gCompressFlag = true;
-				
-				return;
+			if (!Sys_Stat(*input))
+				printf_error("File does not exist [%s]", *input);
+			
+			for (s32 i = 0; i < 2; i++) {
+				if (Main_IsSameFile(*input, gRomName_Output[i])) {
+					Main_CompressRom(gRomName_Output[i]);
+					
+					Terminal_GetChar();
+					exit(0);
+				}
 			}
 			
-			if (Main_IsSameRom(*input, "build-yaz.z64"))
-				Main_SuperCompression();
+			if (Main_IsSameFile(*input, "build-dev-yaz.z64"))
+				Main_SuperCompression("build-dev-yaz.z64");
 			
-			if (Main_IsSameRom(*input, projectRom))
+			if (Main_IsSameFile(*input, "build-release-yaz.z64"))
+				Main_SuperCompression("build-release-yaz.z64");
+			
+			if (Main_IsSameFile(*input, projectRom))
 				return;
 			
 			printf_toolinfo(gToolName, "");
@@ -296,21 +300,14 @@ void Main_Config(char** input, Rom* rom) {
 	return;
 }
 
-s32 Main_GiveProject() {
-	const char* msg[] = {
-		"insert funny text here",
-		"insert funny text here",
-		"insert funny text here",
-		"insert funny text here",
-		"insert funny text here",
-		"insert funny text here",
-	};
+void Main_z64project() {
+	printf_toolinfo(gToolName, "Release Build");
 	
-	s32 t = WrapS(RandF(), 0, ArrayCount(msg));
+	gDevBuild = false;
 	
-	printf_toolinfo(gToolName, msg[t]);
-	
-	return 0;
+	if (Sys_Stat(gRomName_Output[ROM_DEV]) > Sys_Stat(gRomName_Output[ROM_RELEASE])) {
+		gMakeForce = true;
+	}
 }
 
 s32 Main(s32 argc, char* argv[]) {
@@ -335,8 +332,8 @@ s32 Main(s32 argc, char* argv[]) {
 			romCount++;
 		}
 		
-		if (StrStr(argv[i], "z64project.cfg") && Main_GiveProject())
-			goto free;
+		if (Main_IsSameFile(argv[i], "z64project.cfg"))
+			Main_z64project();
 	}
 	
 	Main_Config(&input, rom);
@@ -360,27 +357,6 @@ s32 Main(s32 argc, char* argv[]) {
 					input = filename;
 					
 					break;
-				}
-			}
-			
-			break;
-		}
-		
-		default: {
-			if (sDumpFlag == false) {
-				if (Arg("update")) {
-					printf_toolinfo(gToolName, "Updating z64hdr...");
-					Tools_Update_Header();
-					
-					goto free;
-				}
-				
-				if (Sys_Stat("z64project.cfg")) {
-					if (!Arg("no-make")) {
-						printf_toolinfo(gToolName, "");
-						Make(rom);
-					}
-					if (Arg("make-only")) goto free;
 				}
 			}
 			
@@ -431,6 +407,27 @@ s32 Main(s32 argc, char* argv[]) {
 			Rom_New(rom, input);
 			Rom_Dump(rom);
 		} else {
+			if (gDevBuild == true) {
+				if (Sys_Stat(gRomName_Output[ROM_RELEASE]) > Sys_Stat(gRomName_Output[ROM_DEV])) {
+					gMakeForce = true;
+				}
+			}
+			
+			if (Arg("update")) {
+				printf_toolinfo(gToolName, "Updating z64hdr...");
+				Tools_Update_Header();
+				
+				goto free;
+			}
+			
+			if (Sys_Stat("z64project.cfg")) {
+				if (!Arg("no-make")) {
+					printf_toolinfo(gToolName, "");
+					Make(rom);
+				}
+				if (Arg("make-only")) goto free;
+			}
+			
 			Rom_New(rom, input);
 			Rom_Build(rom);
 		}

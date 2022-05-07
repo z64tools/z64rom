@@ -3,7 +3,6 @@
 
 #define THREAD_NUM 42
 
-extern s32 gLogOutput;
 const char* gFlags;
 const char* gFlagsCode;
 const char* gFlagsLink;
@@ -832,6 +831,9 @@ void Make(Rom* rom) {
 	gFlags = Config_GetString(&rom->config, "mips64_gcc_flags");
 	gFlagsCode = Config_GetString(&rom->config, "mips64_gcc_flags_code");
 	gFlagsLink = Config_GetString(&rom->config, "mips64_ld_flags");
+	
+	if (gDevBuild)
+		gFlags = Tmp_Printf("%s -DDEV_BUILD", gFlags);
 	
 	Tools_Get(z64audio);
 	

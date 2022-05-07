@@ -10,11 +10,13 @@ asm ("D_801333E0 = 0x801333E0");
 asm ("D_801333E8 = 0x801333E8");
 
 void ULib_Update(GameState* gameState) {
+#ifdef DEV_BUILD
 	if (CHK_ALL(press, BTN_Z) && CHK_ALL(cur, BTN_L | BTN_R)) {
 		gSaveContext.gameMode = 0;
 		SET_NEXT_GAMESTATE(gameState, Select_Init, SelectContext);
 		gameState->running = false;
 	}
+#endif
 	
 	/* Skip current textbox when pressing B */
 	if (gSaveContext.gameMode == 0) {
@@ -54,6 +56,7 @@ void ULib_DmaDebug(DmaRequest* req, DmaEntry* dma) {
 		name++;
 	}
 	
+#ifdef DEV_BUILD
 	wow = (u32*)*name;
 	
 	if (wow && wow[0] == 0x6C696E6B && wow[1] == 0x5F616E69)
@@ -73,4 +76,5 @@ void ULib_DmaDebug(DmaRequest* req, DmaEntry* dma) {
 	if (dma->romEnd)
 		osSyncPrintf("[ " VT_FGCOL(YELLOW) "Yaz" VT_RST " ]", *name);
 	osSyncPrintf("\n");
+#endif
 }

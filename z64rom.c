@@ -255,13 +255,14 @@ void Main_Config(char** input, Rom* rom) {
 		}
 	}
 	
-	sDumpFlag = true;
 	if (*input && !Sys_Stat(String_GetFilename(*input))) {
 		printf_info("Copying provided rom to z64rom directory.");
 		Sys_Copy(*input, String_GetFilename(*input), false);
 		
 		*input = strdup(String_GetFilename(*input));
 	}
+	
+	sDumpFlag = true;
 	
 	MemFile_Reset(config);
 	MemFile_Malloc(config, MbToBin(2.5));

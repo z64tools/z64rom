@@ -27,6 +27,7 @@ HEADER := src/z64rom.h src/Audio.h
 $(shell mkdir -p bin/ $(foreach dir, \
 	$(dir $(RELEASE_EXECUTABLE_WIN32)) \
 	$(dir $(SOURCE_O_WIN32)) \
+	\
 	$(dir $(RELEASE_EXECUTABLE_LINUX)) \
 	$(dir $(SOURCE_O_LINUX)) \
 	, $(dir)))
@@ -45,7 +46,8 @@ $(shell mkdir -p app_linux/tools/)
 		clean-sub \
 		clean-release \
 		clean \
-		update-z64audio
+		update-z64audio \
+		debug
 
 default: linux
 all: linux win32
@@ -181,11 +183,6 @@ project/tools/z64compress:
 # # # # # # # # # # # # # # # # # # # #
 # LINUX BUILD                         #
 # # # # # # # # # # # # # # # # # # # #
-
-bin/linux/src/lib/%.o: src/lib/%.c src/lib/%.h
-bin/linux/src/lib/%.o: src/lib/%.c
-	@echo "$(PRNT_RSET)[$(PRNT_YELW)$(notdir $@)$(PRNT_RSET)]"
-	@gcc -c -o $@ $<
 	
 bin/linux/%.o: %.c %.h $(HEADER) $(ExtLib_H)
 bin/linux/%.o: %.c $(HEADER) $(ExtLib_H)
@@ -193,20 +190,19 @@ bin/linux/%.o: %.c $(HEADER) $(ExtLib_H)
 	@gcc -c -o $@ $< $(OPT_LINUX) $(CFLAGS)
 	@objdump -drz $@ > $(@:.o=.s)
 
+Debug_C  = $(foreach f, $(ExtLib_C) $(Zip_C) $(Xm_C) $(Audio_C), $(C_INCLUDE_PATH)/$f)
+debug: z64rom.c $(SOURCE_C) $(Debug_C)
+	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
+	@gcc -g $^ -lm -ldl -pthread -Og
+
 $(RELEASE_EXECUTABLE_LINUX): z64rom.c $(SOURCE_O_LINUX) $(ExtLib_Linux_O) $(Zip_Linux_O) $(Xm_Linux_O) $(Audio_Linux_O)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@gcc -o $@ $^ -L$(C_INCLUDE_PATH) -L$(C_INCLUDE_PATH) -lm -ldl $(OPT_LINUX) $(CFLAGS_MAIN)
+	@gcc -o $@ $^ -lm -ldl $(OPT_LINUX) $(CFLAGS_MAIN)
 
 # # # # # # # # # # # # # # # # # # # #
 # WINDOWS-32 BUILD                    #
 # # # # # # # # # # # # # # # # # # # #
-
-bin/win32/src/lib/%.o: src/lib/%.c src/lib/%.h
-bin/win32/src/lib/%.o: src/lib/%.c
-	@echo "$(PRNT_RSET)[$(PRNT_YELW)$(notdir $@)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -c -o $@ $<
 	
-bin/win32/src/External.o: src/External.c $(ExtLib_H)
 bin/win32/%.o: %.c %.h $(HEADER) $(ExtLib_H)
 bin/win32/%.o: %.c $(HEADER) $(ExtLib_H)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
@@ -218,5 +214,5 @@ bin/win32/icon.o: src/icon.rc src/icon.ico
 
 $(RELEASE_EXECUTABLE_WIN32): z64rom.c bin/win32/icon.o $(SOURCE_O_WIN32) $(ExtLib_Win32_O) $(Zip_Win32_O) $(Xm_Win32_O) $(Audio_Win32_O)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -o $@ $^ -L$(C_INCLUDE_PATH) -lm $(OPT_WIN32) $(CFLAGS_MAIN) -D_WIN32
+	@i686-w64-mingw32.static-gcc -o $@ $^ -lm $(OPT_WIN32) $(CFLAGS_MAIN) -D_WIN32
 	

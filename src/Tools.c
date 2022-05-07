@@ -122,17 +122,18 @@ static s32 Tools__BinutilsSHA256(const char* zip, const char* shaFile) {
 	u8* hash;
 	char* comp;
 	
-	MemFile_LoadFile(&code, shaFile);
-	MemFile_LoadFile(&arcmem, zip);
+	if (MemFile_LoadFile_String(&code, shaFile)) printf_error("Could not open [%s]", shaFile);
+	if (MemFile_LoadFile(&arcmem, zip)) printf_error("Could not open [%s]", zip);
 	
 	hash = Sys_Sha256(arcmem.data, arcmem.dataSize);
 	
 #ifdef _WIN32
 	comp = StrStr(code.str, "win32 = ");
+	comp += strlen("win32 = ");
 #else
 	comp = StrStr(code.str, "linux = ");
+	comp += strlen("linux = ");
 #endif
-	comp += strlen("win32 = ");
 	
 	for (s32 i = 0; i < 32; i++) {
 		char* a = &comp[i * 2];
@@ -344,56 +345,6 @@ s32 Tools_Validate_AddiTools(void) {
 	return 0;
 }
 
-void Tools_Update_Header(void) {
-	char command[512];
-	char* output;
-	char* line;
-	char* word;
-	MemFile ver = MemFile_Initialize();
-	
-	Tools_Command(command, wget, "%s -q -O -", URL_Z64HDR_UPDT_API);
-	output = Sys_CommandOut(command);
-	
-	line = StrStr(output, "\"pushed_at\":");
-	
-	if (line == NULL) {
-		printf_warning("Could not retrieve update information of z64hdr...");
-		
-		goto free;
-	}
-	
-	word = String_GetWord(line, 1);
-	String_Replace(word, "\"", "");
-	String_Replace(word, ",", "");
-	
-	if (!Sys_Stat("include/.version")) {
-		Tools__InstallHdr(false);
-		
-		MemFile_Malloc(&ver, 0x800);
-		MemFile_Write(&ver, word, strlen(word));
-		MemFile_SaveFile_String(&ver, "include/.version");
-		Terminal_ClearLines(2);
-		printf_info("Installed succesfully!");
-	} else {
-		MemFile_LoadFile_String(&ver, "include/.version");
-		
-		if (!strcmp(ver.str, word)) {
-			printf_info("z64hdr is already up to date.");
-			goto free;
-		}
-		
-		Tools__InstallHdr(true);
-		
-		MemFile_Write(&ver, word, strlen(word));
-		MemFile_SaveFile_String(&ver, "include/.version");
-		printf_info("z64hdr is up to date!");
-	}
-	
-free:
-	printf("\n");
-	MemFile_Free(&ver);
-}
-
 void Tools_Update_Binutils(void) {
 	char command[512];
 	
@@ -424,7 +375,7 @@ redo:
 				goto redo;
 			}
 		} else {
-			Tools_Command(command, wget, "%s -q --show-progress -O %s", URL_BINUTIL_DOWNLOAD, ZIP_BINUTIL);
+			Tools_Command(command, wget, "%s -q --no-hsts --show-progress -O %s", URL_BINUTIL_DOWNLOAD, ZIP_BINUTIL);
 			if (Sys_Command(command)) {
 				printf("\n");
 				printf_warning("Failed to initialize download... Try again? Otherwise we'll do this manually. " PRNT_DGRY "[y/n]");
@@ -432,6 +383,7 @@ redo:
 					goto redo;
 				goto redo;
 			}
+			Terminal_ClearLines(2);
 		}
 	}
 	
@@ -447,7 +399,57 @@ redo:
 	Sys_Delete("tools/.failsafe");
 	
 	Terminal_ClearLines(2);
-	printf_info("Installed succesfully!\n");
+	printf_info("Installed successfully!\n");
+}
+
+void Tools_Update_Header(void) {
+	char command[512];
+	char* output;
+	char* line;
+	char* word;
+	MemFile ver = MemFile_Initialize();
+	
+	Tools_Command(command, wget, "%s -q -O -", URL_Z64HDR_UPDT_API);
+	output = Sys_CommandOut(command);
+	
+	line = StrStr(output, "\"pushed_at\":");
+	
+	if (line == NULL) {
+		printf_warning("Could not retrieve update information of z64hdr...");
+		
+		goto free;
+	}
+	
+	word = String_GetWord(line, 1);
+	String_Replace(word, "\"", "");
+	String_Replace(word, ",", "");
+	
+	if (!Sys_Stat("include/.version")) {
+		Tools__InstallHdr(false);
+		
+		MemFile_Malloc(&ver, 0x800);
+		MemFile_Write(&ver, word, strlen(word));
+		MemFile_SaveFile_String(&ver, "include/.version");
+		Terminal_ClearLines(2);
+		printf_info("Installed successfully!");
+	} else {
+		MemFile_LoadFile_String(&ver, "include/.version");
+		
+		if (!strcmp(ver.str, word)) {
+			printf_info("z64hdr is already up to date.");
+			goto free;
+		}
+		
+		Tools__InstallHdr(true);
+		
+		MemFile_Write(&ver, word, strlen(word));
+		MemFile_SaveFile_String(&ver, "include/.version");
+		printf_info("z64hdr is up to date!");
+	}
+	
+free:
+	printf("\n");
+	MemFile_Free(&ver);
 }
 
 s32 Tools_Init(void) {
@@ -495,7 +497,7 @@ s32 Tools_Init(void) {
 		}
 		
 		if (!Tools_Validate_AddiTools() && Sys_Stat("include/z64hdr/")) {
-			printf_info("All required tools have been installed succesfully!");
+			printf_info("All required tools have been installed successfully!");
 			printf("\n");
 		}
 		Sys_Delete("tools/.installing");

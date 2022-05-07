@@ -306,7 +306,7 @@ s32 Main_GiveProject() {
 		"insert funny text here",
 	};
 	
-	s32 t = Wrap(RandF(), 0, ArrayCount(msg));
+	s32 t = WrapS(RandF(), 0, ArrayCount(msg));
 	
 	printf_toolinfo(gToolName, msg[t]);
 	
@@ -324,10 +324,6 @@ s32 Main(s32 argc, char* argv[]) {
 	printf_WinFix();
 	printf_SetPrefix("");
 	Sys_SetWorkDir(Sys_AppDir());
-	
-	for (s32 i = 0; i < 32; i++) {
-		printf_info("%d - %d", i, Wrap(i, 16, 32));
-	} exit(0);
 	
 	rom = Calloc(0, sizeof(struct Rom));
 	

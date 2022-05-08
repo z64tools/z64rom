@@ -322,7 +322,7 @@ s32 Main(s32 argc, char* argv[]) {
 	printf_SetPrefix("");
 	Sys_SetWorkDir(Sys_AppDir());
 	
-	rom = Calloc(0, sizeof(struct Rom));
+	rom = Calloc(rom, sizeof(struct Rom));
 	
 	for (s32 i = 1; i < argc; i++) {
 		if (StrEndCase(argv[i], ".z64")) {

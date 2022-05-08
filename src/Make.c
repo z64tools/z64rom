@@ -45,7 +45,7 @@ static void Sound_Convert(ThreadArg* targ) {
 	if (StrEnd(targ->path, ".vanilla/"))
 		return;
 	
-	ItemList* list = Calloc(0, sizeof(ItemList));
+	ItemList* list;
 	char* vadpcm = NULL;
 	char* audio = NULL;
 	const char* fmt[] = {
@@ -54,7 +54,8 @@ static void Sound_Convert(ThreadArg* targ) {
 		".mp3"
 	};
 	
-	list[0] = ItemList_Initialize();
+	list = Calloc(list, sizeof(ItemList))
+	*list = ItemList_Initialize();
 	
 	ItemList_List(list, targ->path, 0, LIST_FILES);
 	
@@ -369,7 +370,7 @@ static s32 Callback_Actor(const char* input, PassType type, void* arg, void* arg
 				}
 			}
 			
-			varName = Malloc(0, 64);
+			varName = Malloc(varName, 64);
 			strcpy(varName, String_GetWord(temp, 0));
 			String_Replace(varName, "=", "");
 			String_Replace(varName, "[", "");
@@ -481,7 +482,7 @@ void Code_GCC(const char* source, const char* output, const char* flags, Binutil
 		return;
 	
 build:
-	command = Calloc(0, 2048);
+	command = Calloc(command, 2048);
 	
 	Tools_Command(command, mips64_gcc, "%s %s %s -o %s", gFlags, flags, source, output);
 	if (!Sys_Stat(String_GetPath(output)))
@@ -519,7 +520,7 @@ void Code_LD(const char* source, const char* output, const char* flags, BinutilC
 		return;
 	
 build:
-	command = Calloc(0, 2048);
+	command = Calloc(command, 2048);
 	
 	strcpy(entryDir, String_GetPath(output));
 	strcat(entryDir, ".entry/");
@@ -666,7 +667,7 @@ static void Make_Code_Thread_Elf(ThreadArg* arg) {
 		return;
 	}
 	
-	output = Calloc(0, strlen(input) + 10);
+	output = Calloc(output, strlen(input) + 10);
 	strcpy(output, input);
 	String_Replace(output, ".o", ".elf");
 	String_Replace(output, "src/", "rom/");
@@ -685,7 +686,7 @@ static void Make_Code_Thread_Obj(ThreadArg* arg) {
 		return;
 	}
 	
-	output = Calloc(0, strlen(input) + 10);
+	output = Calloc(output, strlen(input) + 10);
 	strcpy(output, input);
 	String_Replace(output, ".c", ".o");
 	String_Replace(output, "src/", "rom/");

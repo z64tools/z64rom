@@ -87,8 +87,8 @@ void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 	}
 	
 	result.num = list->num;
-	result.buffer = Calloc(0, size);
-	result.item = Calloc(0, sizeof(u8*) * list->num);
+	result.buffer = Calloc(result.buffer, size);
+	result.item = Calloc(result.item, sizeof(u8*) * list->num);
 	
 	for (s32 i = 0; i < list->num; i++) {
 		if (!list->item[i])
@@ -404,7 +404,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		if (word[0] == '"') {
 			word = Config_GetVariable(line, String_GetWord(line, 0));
 			
-			node = Calloc(0, sizeof(struct PatchNode));
+			node = Calloc(node, sizeof(struct PatchNode));
 			node->start = rom->file.seekPoint;
 			node->end = rom->file.seekPoint + strlen(word);
 			strncpy(node->source, file, 63);
@@ -459,7 +459,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 				o++;
 			}
 			
-			node = Calloc(0, sizeof(struct PatchNode));
+			node = Calloc(node, sizeof(struct PatchNode));
 			node->start = rom->file.seekPoint;
 			node->end = rom->file.seekPoint + size;
 			strncpy(node->source, file, 63);

@@ -592,6 +592,9 @@ static void Make_Linker_Thread(ThreadArg* arg) {
 	if (!Sys_Stat(bin))
 		breaker = false;
 	
+	if (!Sys_Stat(ld))
+		breaker = false;
+	
 	for (s32 i = 0; i < itemList.num; i++) {
 		if (!StrEnd(itemList.item[i], ".o"))
 			continue;

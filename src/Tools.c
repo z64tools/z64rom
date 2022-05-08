@@ -248,7 +248,7 @@ const char* Tools_Get(ToolIndex id) {
 #ifdef _WIN32
 					"set PATH=%stools\\mips64-binutils\\bin;%s && "
 #else
-					"export PATH=\"%s%stools\\mips64-binutils\\bin\" && "
+					"export PATH=\"%s%stools/mips64-binutils/bin\" && "
 #endif
 					"%s",
 					

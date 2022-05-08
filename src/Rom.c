@@ -378,16 +378,22 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 	line = config->str;
 	
 	for (s32 i = 0; i < lineNum; i++, line = String_Line(line, 1)) {
+		if (line[0] != '@')
+			continue;
+		
+		char* cmd = String_GetWord(line, 0);
+		
+		String_Replace(config->str, cmd + 1, Config_GetVariable(line, cmd));
+	}
+	
+	line = config->str;
+	
+	for (s32 i = 0; i < lineNum; i++, line = String_Line(line, 1)) {
 		PatchNode* node;
 		char* word;
 		
-		// Process "macros"
-		if (line[0] == '@') {
-			char* cmd = String_GetWord(line, 0);
-			String_Replace(config->str, cmd + 1, Config_GetVariable(line, cmd));
-			
+		if (line[0] == '@')
 			continue;
-		}
 		
 		if (String_Validate_Hex(String_GetWord(line, 0)) == false)
 			continue;
@@ -492,7 +498,7 @@ static void Rom_Build_Patch(Rom* rom, MemFile* dataFile, MemFile* config) {
 }
 
 static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
-	ItemList list;
+	ItemList list = ItemList_Initialize();
 	
 	Dir_ItemList_Recursive(&gDir, &list, ".bin");
 	
@@ -907,7 +913,7 @@ void Rom_Build(Rom* rom) {
 		}
 		
 		Dir_Enter(&gDir, "object/"); {
-			ItemList objectList;
+			ItemList objectList = ItemList_Initialize();
 			ObjectEntry* entry = rom->table.object;
 			Rom_ItemList(&objectList, SORT_NUMERICAL, IS_DIR);
 			
@@ -1060,7 +1066,7 @@ void Rom_Build(Rom* rom) {
 		}
 		
 		Dir_Enter(&gDir, "system/"); {
-			ItemList gameSysList;
+			ItemList gameSysList = ItemList_Initialize();
 			
 			Rom_ItemList(&gameSysList, SORT_NO, IS_DIR);
 			

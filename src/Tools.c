@@ -396,6 +396,11 @@ redo:
 	Sys_Touch("tools/.failsafe");
 	if (zip_extract(ZIP_BINUTIL, "tools/mips64-binutils/", Tools__ZipExtractCallback, 0)) printf_error_align("zip_extract", "Failed");
 	Terminal_ClearLines(1);
+	
+#ifndef _WIN32
+	SysExe("chmod -R u+x tools/mips64-binutils/*");
+#endif
+	
 	Sys_Delete("tools/.failsafe");
 	
 	Terminal_ClearLines(2);

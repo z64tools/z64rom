@@ -54,7 +54,7 @@ static void Sound_Convert(ThreadArg* targ) {
 		".mp3"
 	};
 	
-	list = Calloc(list, sizeof(ItemList))
+	list = Calloc(list, sizeof(ItemList));
 	*list = ItemList_Initialize();
 	
 	ItemList_List(list, targ->path, 0, LIST_FILES);

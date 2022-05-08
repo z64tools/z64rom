@@ -313,7 +313,7 @@ void Main_z64project() {
 
 s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
-	Rom* rom;
+	Rom* rom = NULL;
 	u32 parArg = 0;
 	u32 romCount = 0;
 	

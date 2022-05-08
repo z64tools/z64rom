@@ -85,7 +85,7 @@ static void Sound_Convert(ThreadArg* targ) {
 	if (vadpcm == NULL || Sys_Stat(audio) > Sys_Stat(vadpcm) || gMakeForce) {
 		char command[512];
 		Tools_Command(command, z64audio, "\"%s\"", audio);
-		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
+		if (Sys_Command(command) > 0) printf_error_align("Sys_Command", "Failed");
 		Make_Info("z64audio", audio);
 	}
 	
@@ -270,7 +270,7 @@ static s32 Callback_System(const char* input, PassType type, void* arg, void* ar
 		Log("novl %s", info);
 		
 		Tools_Command(command, nOVL, "-v -c -s -A 0x80800000 -o %s %s", ovl, input);
-		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
+		if (Sys_Command(command) > 0) printf_error_align("Sys_Command", "Failed");
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
 		dump = Sys_CommandOut(command); {
@@ -335,7 +335,7 @@ static s32 Callback_Actor(const char* input, PassType type, void* arg, void* arg
 		Log("novl %s", info);
 		
 		Tools_Command(command, nOVL, "-v -c -s -A 0x80800000 -o %s %s", ovl, input);
-		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
+		if (Sys_Command(command) > 0) printf_error_align("Sys_Command", "Failed");
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
 		dump = Sys_CommandOut(command); {
@@ -454,7 +454,7 @@ error:
 		String_Replace(output, ".elf", ".bin");
 		
 		Tools_Command(command, mips64_objcopy, "-R .MIPS.abiflags -O binary %s %s", input, output);
-		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
+		if (Sys_Command(command) > 0) printf_error_align("Sys_Command", "Failed");
 	}
 	
 	return 0;
@@ -486,7 +486,7 @@ build:
 	Tools_Command(command, mips64_gcc, "%s %s %s -o %s", gFlags, flags, source, output);
 	if (!Sys_Stat(String_GetPath(output)))
 		Sys_MakeDir(output);
-	if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
+	if (Sys_Command(command) > 0) printf_error_align("Sys_Command", "Failed");
 	
 	Make_Info("mips64-gcc", source);
 	
@@ -535,7 +535,7 @@ build:
 	Tools_Command(command, mips64_ld, "-o %s %s -L%s %s", output, source, String_GetPath(entryDir), flags);
 	if (!Sys_Stat(String_GetPath(output)))
 		Sys_MakeDir(output);
-	if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
+	if (Sys_Command(command) > 0) printf_error_align("Sys_Command", "Failed");
 	
 	Make_Info("mips64-ld", source);
 	
@@ -633,12 +633,12 @@ static void Make_Linker_Thread(ThreadArg* arg) {
 		Tools_Command(command, mips64_ld, "-o %s %s %s", elf, inputList, arg->flag);
 		if (!Sys_Stat(String_GetPath(elf)))
 			Sys_MakeDir(elf);
-		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
+		if (Sys_Command(command) > 0) printf_error_align("Sys_Command", "Failed");
 		Log("Compiled: [%s]", elf);
 	}
 	if (true == true /* BIN */) {
 		Tools_Command(command, mips64_objcopy, "-R .MIPS.abiflags -O binary %s %s", elf, bin);
-		if (Sys_Command(command)) printf_error_align("Sys_Command", "Failed");
+		if (Sys_Command(command) > 0) printf_error_align("Sys_Command", "Failed");
 		Log("Compiled: [%s]", bin);
 	}
 	if (false == false /* mips64_ld */) {

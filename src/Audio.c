@@ -1,4 +1,5 @@
 #include "z64rom.h"
+#include "Tools.h"
 
 extern DirCtx gDir;
 
@@ -452,7 +453,6 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 	char buff[16];
 	char* name;
 	u32 sampRate;
-	char sysbuf[256 * 2];
 	
 	for (s32 i = 0; i < sDumpID; i++) {
 		if (smallest->sampleAddr > sUnsortedSampleTbl[i].sampleAddr) {
@@ -519,40 +519,30 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 				}
 				
 				if (gExtractAudio) {
-#ifndef _WIN32
-					strcpy(sysbuf, "./tools/z64audio --i ");
-#else
-					strcpy(sysbuf, "tools\\z64audio.exe --i ");
-#endif
-					strcat(sysbuf, Dir_File(&gDir, "sample.vadpcm.bin"));
-					strcat(sysbuf, " --o ");
-					strcat(sysbuf, Dir_File(&gDir, "Sample.wav"));
+					char cmd[2048];
 					
-#ifndef NDEBUG
-					if (gPrintfSuppress == PSL_DEBUG)
-						strcat(sysbuf, " --D");
-					else
-						strcat(sysbuf, " --S");
-#else
-					strcat(sysbuf, " --S");
-#endif
-					
-					strcat(sysbuf, " --srate ");
-					strcat(sysbuf, Tmp_Printf("%d", sampRate));
-					strcat(sysbuf, " --tuning ");
-					strcat(sysbuf, Tmp_Printf("%f", tbl[i]->tuning));
+					Tools_Command(
+						cmd,
+						z64audio,
+						"--i %s "
+						"--o %s "
+						"--S "
+						"--srate %d "
+						"--tuning %f ",
+						Dir_File(&gDir, "sample.vadpcm.bin"),
+						Dir_File(&gDir, "Sample.wav"),
+						sampRate,
+						tbl[i]->tuning
+					);
 					
 					if (tbl[i]->isPrim && (tbl[i]->splitHi != 127 || tbl[i]->splitLo != 0)) {
-						strcat(sysbuf, " --split-hi ");
-						strcat(sysbuf, Tmp_Printf("%d", tbl[i]->splitHi + 21));
-						if (tbl[i]->splitLo) {
-							strcat(sysbuf, " --split-lo ");
-							strcat(sysbuf, Tmp_Printf("%d", tbl[i]->splitLo + 21));
-						}
+						catprintf(cmd, "--split-hi %d", tbl[i]->splitHi + 21);
+						if (tbl[i]->splitLo)
+							catprintf(cmd, "--split-lo %d", tbl[i]->splitLo + 21);
 					}
 					
-					if (system(sysbuf))
-						printf_error(sysbuf);
+					if (Sys_Command(cmd) > 0)
+						printf_error("z64audio Failed!");
 					
 					MemFile_Reset(dataFile);
 					s8* instInfo;

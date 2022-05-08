@@ -112,7 +112,7 @@ void Main_CompressRom(const char* input) {
 		input,
 		romName
 	);
-	Sys_Command(cmd);
+	SysExe(cmd);
 }
 
 void Main_RenameRooms(const char* from, const char* to) {
@@ -315,7 +315,6 @@ s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
 	Rom* rom;
 	u32 parArg = 0;
-	u32 setupFlag = false;
 	u32 romCount = 0;
 	
 	Log_Init();
@@ -347,8 +346,6 @@ s32 Main(s32 argc, char* argv[]) {
 		}
 		
 		case 1: {
-			setupFlag = true;
-			
 			for (s32 i = 0; i < argc; i++) {
 				if (StrEnd(argv[i], ".z64") || StrEnd(argv[i], ".Z64")) {
 					char* filename = String_GetFilename(argv[i]);
@@ -397,7 +394,7 @@ s32 Main(s32 argc, char* argv[]) {
 		printf_toolinfo(gToolName, "");
 		
 		if (sDumpFlag) {
-			if ((argc == 2 || setupFlag) && gExtractAudio) {
+			if (gExtractAudio) {
 				printf_info("Extract " PRNT_REDD "wav audio samples" PRNT_RSET "?");
 				printf_info("This is optional and will slow down dumping process. " PRNT_DGRY "[y/n]");
 				if (!Terminal_YesOrNo()) gExtractAudio = false;

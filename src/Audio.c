@@ -541,7 +541,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 							catprintf(cmd, "--split-lo %d", tbl[i]->splitLo + 21);
 					}
 					
-					if (Sys_Command(cmd) > 0)
+					if (SysExe(cmd) > 0)
 						printf_error("z64audio Failed!");
 					
 					MemFile_Reset(dataFile);

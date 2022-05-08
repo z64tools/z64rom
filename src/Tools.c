@@ -189,7 +189,7 @@ static void Tools__InstallHdr(s32 isUpdate) {
 redo:
 	if (gAutoDownload == true) {
 		Tools_Command(command, wget, "%s -q --show-progress -O %s", URL_Z64HDR_DOWNLOAD, ZIP_Z64HDR);
-		if (Sys_Command(command) > 0) printf_error_align("Sys_Command", "Failed");
+		if (SysExe(command) > 0) printf_error_align("SysExe", "Failed");
 		Terminal_ClearLines(2);
 	} else {
 		printf_info("" PRNT_GRAY "%s", URL_Z64HDR_DOWNLOAD);
@@ -376,7 +376,7 @@ redo:
 			}
 		} else {
 			Tools_Command(command, wget, "%s -q --no-hsts --show-progress -O %s", URL_BINUTIL_DOWNLOAD, ZIP_BINUTIL);
-			if (Sys_Command(command) > 0) {
+			if (SysExe(command) > 0) {
 				printf("\n");
 				printf_warning("Failed to initialize download... Try again? Otherwise we'll do this manually. " PRNT_DGRY "[y/n]");
 				if (Terminal_YesOrNo() == false)
@@ -412,7 +412,7 @@ void Tools_Update_Header(bool install) {
 	if (install) goto install;
 	
 	Tools_Command(command, wget, "%s -q -O -", URL_Z64HDR_UPDT_API);
-	output = Sys_CommandOut(command);
+	output = SysExeO(command);
 	
 	line = StrStr(output, "\"pushed_at\":");
 	

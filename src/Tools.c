@@ -84,7 +84,7 @@ static void Tools__CloseDialog(const char* toolName, bool askClose) {
 static s32 Tools__FileDialog(const char* output) {
 	char* buffer = String_Unquote(Terminal_GetStr());
 	
-	if (!StrEnd(output, String_Extension(buffer))) {
+	if (buffer == NULL || !StrEnd(output, String_Extension(buffer))) {
 		Terminal_ClearLines(3);
 		printf_warning(
 			"This does not seem to be valid " PRNT_REDD "%s " PRNT_RSET "file. Try again.",
@@ -210,8 +210,10 @@ redo:
 	
 	if (zip_extract(ZIP_Z64HDR, "include/", Tools__ZipExtractCallback, 0)) printf_error_align("zip_extract", "Failed");
 	Terminal_ClearLines(1);
-	ItemList_Recursive(&itemList, extract, NULL, PATH_RELATIVE);
 	
+	ItemList_List(&itemList, extract, -1, LIST_FILES);
+	
+	Log("Move z64hdr files");
 	for (s32 i = 0; i < itemList.num; i++) {
 		char* input = itemList.item[i];
 		char* output = strdup(input);
@@ -223,7 +225,10 @@ redo:
 		Free(output);
 	}
 	
+	Log("Create objects.ld");
 	Sys_Touch("include/objects.ld");
+	
+	Log("Clean Temporal Extraction");
 	if (Sys_Delete_Recursive(extract)) printf_error("Could not delete [%s]", extract);
 	
 	ItemList_Free(&itemList);

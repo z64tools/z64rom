@@ -214,51 +214,29 @@ u32 Overlay_GetInit(void* overlay, u32 size) {
 	return 0x80800000 + (uPtr)ptr - (uPtr)overlay;
 }
 
-s32 Overlay_StatFiles(const char* input, const char* stonks) {
-	s32 a = 0;
-	s32 b = 0;
-	s32 r = false;
-	
-	while (b < strlen(input)) {
-		char* file = NULL;
-		
-		while (input[b] != ' ') b++;
-		
-		file = Calloc(file, b - a + 2);
-		memcpy(file, &input[a], b - a);
-		
-		Log("Stat: [%s]", file);
-		if (Sys_Stat(file) > Sys_Stat(stonks))
-			r = true;
-		Free(file);
-		
-		if (r)
-			break;
-	}
-	
-	return r;
-}
-
 static s32 Callback_System(const char* input, PassType type, void* arg, void* arg2) {
-	char* ovl;
+	char* ovl = NULL;
 	
 	if (type == POST_GCC) return 0;
 	
-	ovl = Tmp_Printf("%sactor.zovl", String_GetPath(input));
-	String_Replace(ovl, "src/", "rom/");
-	
 	if (type == PRE_GCC) {
+		ovl = Tmp_Printf("%soverlay.zovl", String_GetPath(input));
+		String_Replace(ovl, "src/", "rom/");
+		
 		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
 			return CB_BUILD;
 		
-		return 0;
+		return CB_BREAK;
 	}
 	
 	if (type == PRE_LD) {
-		if (!Sys_Stat(ovl))
+		if (!Sys_Stat(arg2))
 			return CB_BUILD;
 		
-		if (Overlay_StatFiles(input, ovl))
+		ItemList list = ItemList_Initialize();
+		
+		ItemList_SpacedStr(&list, input);
+		if (Sys_Stat(arg2) < ItemList_StatMax(&list))
 			return CB_BUILD;
 		
 		return CB_BREAK;
@@ -268,6 +246,9 @@ static s32 Callback_System(const char* input, PassType type, void* arg, void* ar
 		char* command = arg;
 		char* info;
 		char* dump;
+		
+		ovl = Tmp_Printf("%soverlay.zovl", String_GetPath(input));
+		String_Replace(ovl, "src/", "rom/");
 		
 		info = String_GetFolder(input, -1);
 		if (StrMtch(info, "0x"))
@@ -314,20 +295,23 @@ static s32 Callback_Actor(const char* input, PassType type, void* arg, void* arg
 	if (type == POST_GCC) return 0;
 	
 	if (type == PRE_GCC) {
-		ovl = Tmp_Printf("%sactor.zovl", String_GetPath(input));
+		ovl = Tmp_Printf("%soverlay.zovl", String_GetPath(input));
 		String_Replace(ovl, "src/", "rom/");
 		
 		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
 			return CB_BUILD;
 		
-		return 0;
+		return CB_BREAK;
 	}
 	
 	if (type == PRE_LD) {
-		if (!Sys_Stat(ovl))
+		if (!Sys_Stat(arg2))
 			return CB_BUILD;
 		
-		if (Overlay_StatFiles(input, ovl))
+		ItemList list = ItemList_Initialize();
+		
+		ItemList_SpacedStr(&list, input);
+		if (Sys_Stat(arg2) < ItemList_StatMax(&list))
 			return CB_BUILD;
 		
 		return CB_BREAK;
@@ -338,11 +322,11 @@ static s32 Callback_Actor(const char* input, PassType type, void* arg, void* arg
 		char* info;
 		char* dump;
 		
-		ovl = Tmp_Printf("%sactor.zovl", String_GetPath(input));
+		ovl = Tmp_Printf("%soverlay.zovl", String_GetPath(input));
 		String_Replace(ovl, "src/", "rom/");
 		
 		conf = Tmp_Printf("%sconfig.cfg", String_GetPath(input));
-		String_Replace(ovl, "src/", "rom/");
+		String_Replace(conf, "src/", "rom/");
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
 		dump = SysExeO(command); {
@@ -487,10 +471,6 @@ error:
 
 void Code_GCC(const char* source, const char* output, const char* flags, BinutilCallback callback) {
 	char* command;
-	volatile static u32 num;
-	
-	if (!Sys_Stat(source))
-		printf_error_align("Code_GCC", "Source not found [%s]", source);
 	
 	if (callback) {
 		switch (callback(source, PRE_GCC, NULL, NULL)) {

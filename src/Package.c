@@ -1,19 +1,37 @@
 #include "z64rom.h"
 #include <zip.h>
 
+static inline char* __ForSection(char* cfg) {
+	u32 lineCount = String_GetLineCount(cfg);
+	char* scfg = cfg;
+	
+	for (s32 k = 0; k < lineCount; k++) {
+		scfg = String_Line(cfg, k);
+		
+		while (scfg[0] == ' ' || scfg[0] == '\t')
+			scfg++;
+		
+		if (scfg[0] == '[')
+			break;
+		
+		for (s32 i = 0;; i++) {
+			if (scfg[i] == '\n')
+				break;
+			if (scfg[i] == '\0')
+				return NULL;
+		}
+	}
+	
+	return scfg;
+}
+
 static char* Package_GetSection(char* cfg, s32 i) {
 	char* ret;
 	char* scfg;
 	u32 size;
 	
-	Log("Find Start");
 	for (s32 j = 0; j <= i; j++) {
-		do {
-			while (cfg[0] == ' ' || cfg[0] == '\t')
-				cfg++;
-			if (cfg[0] == '[')
-				break;
-		} while ((cfg = String_Line(cfg, 1)));
+		cfg = __ForSection(cfg);
 		
 		if (cfg == NULL)
 			return NULL;
@@ -24,17 +42,8 @@ static char* Package_GetSection(char* cfg, s32 i) {
 	}
 	
 	scfg = cfg + 1;
-	
-	Log("Find End");
-	do {
-		while (scfg[0] == ' ' || scfg[0] == '\t')
-			scfg++;
-		if (scfg[0] == '[')
-			break;
-	} while ((scfg = String_Line(scfg, 1)));
-	
-	if (scfg == NULL)
-		scfg = &cfg[strlen(cfg)];
+	scfg = __ForSection(scfg);
+	scfg = &cfg[strlen(cfg)];
 	
 	size = (uPtr)scfg - (uPtr)cfg;
 	
@@ -50,6 +59,9 @@ static void Package_Sound(struct zip_t* pkg, char* cfg) {
 	char* name = Config_GetVariable(cfg, "name");
 	char* file = Config_GetVariable(cfg, "file");
 	ItemList list = ItemList_Initialize();
+	MemFile mem = MemFile_Initialize();
+	void* f;
+	size_t size;
 	
 	if (name == NULL || file == NULL) {
 		Log("Package:\n%s", cfg);
@@ -60,40 +72,39 @@ static void Package_Sound(struct zip_t* pkg, char* cfg) {
 	}
 	
 	char* fldr = Tmp_Printf("rom/sound/sample/.vanilla/%s/", name);
+	char* mkfldr = Tmp_Printf("rom/sound/sample/%s/", name);
 	
-	if (!Sys_Stat(fldr))
-		printf_error("Could not find source folder named [%s]", name);
+	Sys_MakeDir(mkfldr);
 	
-	ItemList_List(&list, fldr, -1, LIST_FILES);
-	
-	for (s32 i = 0; i < list.num; i++) {
-		if (!StrEndCase(list.item[i], ".cfg") && !StrEndCase(list.item[i], ".book.bin"))
-			break;
+	if (Sys_Stat(fldr)) {
+		ItemList_List(&list, fldr, -1, LIST_FILES);
 		
-		char* target = Tmp_String(list.item[i]);
+		for (s32 i = 0; i < list.num; i++) {
+			if (!StrEndCase(list.item[i], ".cfg") && !StrEndCase(list.item[i], ".book.bin"))
+				break;
+			
+			char* target = Tmp_String(list.item[i]);
+			
+			Sys_Copy(list.item[i], target, StrEndCase(list.item[i], ".cfg") ? true : false);
+		}
 		
-		String_Replace(target, ".vanilla/", "");
-		Sys_MakeDir(target);
-		
-		Sys_Copy(list.item[i], target, StrEndCase(list.item[i], ".cfg") ? true : false);
+		ItemList_Free(&list);
 	}
-	
-	MemFile mem = MemFile_Initialize();
-	void* f;
-	size_t size;
 	
 	zip_entry_open(pkg, file);
 	if (zip_entry_read(pkg, &f, &size) < 0)
 		printf_error("Could not extract [%s]", file);
 	zip_entry_close(pkg);
 	
-	MemFile_Malloc(&mem, size * 2);
+	MemFile_Malloc(&mem, size);
 	MemFile_Write(&mem, f, size);
 	MemFile_SaveFile(&mem, Tmp_Printf("rom/sound/sample/%s/%s", name, String_GetFilename(file)));
 	
 	MemFile_Free(&mem);
-	ItemList_Free(&list);
 	Free(f);
+}
+
+static void Package_Actor(struct zip_t* pkg, char* cfg) {
 }
 
 void Package_Load(const char* item) {

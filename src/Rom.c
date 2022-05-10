@@ -366,6 +366,7 @@ PatchNode* sPatchHead;
 
 static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char* file) {
 	const char* ptch = Dir_File(&gDir, file);
+	u32 lineCount;
 	char* line;
 	
 	MemFile_Reset(config);
@@ -374,8 +375,9 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 	MemFile_Realloc(config, config->memSize * 2);
 	
 	line = config->str;
+	lineCount = String_GetLineCount(config->str);
 	
-	for (s32 i = 0;; i++, line = String_Line(line, 1)) {
+	for (s32 i = 0; i < lineCount; i++, line = String_Line(line, 1)) {
 		if (line == NULL)
 			break;
 		if (line[0] != '@')
@@ -388,7 +390,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 	
 	line = config->str;
 	
-	for (s32 i = 0;; i++, line = String_Line(line, 1)) {
+	for (s32 i = 0; i < lineCount; i++, line = String_Line(line, 1)) {
 		PatchNode* node;
 		char* word;
 		if (line == NULL)

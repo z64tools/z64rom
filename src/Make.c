@@ -90,26 +90,24 @@ static void Sound_Convert(ThreadArg* targ) {
 				vadpcm = list->item[i];
 	}
 	
-	Log("Audio [%s] Vadpcm [%s]", audio, vadpcm);
-	
-	if (audio == NULL) {
+	if (audio == NULL)
 		goto free;
-	}
 	
 	if (vadpcm == NULL || (Sys_Stat(audio) > Sys_Stat(vadpcm)) || gMakeForce) {
 		char command[512];
 		
-		if (vadpcm == NULL) {
+		if (vadpcm == NULL)
 			vadpcm = Tmp_Printf("%ssample.bin", targ->path);
-		}
+		
+		Log("Audio [%s] Vadpcm [%s]", audio, vadpcm);
 		
 		Tools_Command(command, z64audio, "-S --i \"%s\" --o \"%s\"", audio, vadpcm);
 		if (table)
-			catprintf(command, " -design \"%s\"", table);
+			catprintf(command, " --design \"%s\"", table);
 		else if (book)
-			catprintf(command, " -book \"%s\"", book);
+			catprintf(command, " --book \"%s\"", book);
 		if (normalize)
-			catprintf(command, " -m -n");
+			catprintf(command, " --m --n");
 		
 		if (SysExe(command)) printf_error("z64audio failed to run");
 		Make_Info("z64audio", audio);
@@ -162,48 +160,6 @@ free:
 // # # # # # # # # # # # # # # # # # # # #
 // # MAKE_CODE                           #
 // # # # # # # # # # # # # # # # # # # # #
-
-static s32 Overlay_ValidateMainFile(const char* input, char** oldInput) {
-	ItemList list = ItemList_Initialize();
-	char* newInput;
-	char* sourcePath = String_GetPath(input);
-	
-	String_Replace(sourcePath, "rom/", "src/");
-	ItemList_List(&list, sourcePath, 0, LIST_FILES);
-	
-	if (list.num > 2) {
-		for (s32 h = 0; h < list.num; h++) {
-			if (StrEnd(list.item[h], ".h")) {
-				if (StrStr(input, String_GetBasename(list.item[h]))) {
-					for (s32 c = 0; c < list.num; c++) {
-						if (StrEnd(list.item[c], ".c")) {
-							if (!strncmp(list.item[c], list.item[h], strlen(list.item[c]) - 2)) {
-								ItemList_Free(&list);
-								ItemList_List(&list, String_GetPath(input), 0, LIST_FILES);
-								
-								newInput = Tmp_Alloc(512);
-								
-								for (s32 i = 0; i < list.num; i++) {
-									if (StrEnd(list.item[i], ".o")) {
-										strcat(newInput, list.item[i]);
-										if (i + 1 < list.num)
-											strcat(newInput, " ");
-									}
-								}
-								
-								*oldInput = newInput;
-								
-								return 0;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	
-	return 1;
-}
 
 u32 Overlay_GetInit(void* overlay, u32 size) {
 	u32* ptr = overlay;
@@ -258,6 +214,31 @@ u32 Overlay_GetInit(void* overlay, u32 size) {
 	return 0x80800000 + (uPtr)ptr - (uPtr)overlay;
 }
 
+s32 Overlay_StatFiles(const char* input, const char* stonks) {
+	s32 a = 0;
+	s32 b = 0;
+	s32 r = false;
+	
+	while (b < strlen(input)) {
+		char* file = NULL;
+		
+		while (input[b] != ' ') b++;
+		
+		file = Calloc(file, b - a + 2);
+		memcpy(file, &input[a], b - a);
+		
+		Log("Stat: [%s]", file);
+		if (Sys_Stat(file) > Sys_Stat(stonks))
+			r = true;
+		Free(file);
+		
+		if (r)
+			break;
+	}
+	
+	return r;
+}
+
 static s32 Callback_System(const char* input, PassType type, void* arg, void* arg2) {
 	char* ovl;
 	
@@ -274,14 +255,13 @@ static s32 Callback_System(const char* input, PassType type, void* arg, void* ar
 	}
 	
 	if (type == PRE_LD) {
-		if (Overlay_ValidateMainFile(input, arg2)) {
-			return CB_BREAK;
-		}
-		
-		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
+		if (!Sys_Stat(ovl))
 			return CB_BUILD;
 		
-		return 0;
+		if (Overlay_StatFiles(input, ovl))
+			return CB_BUILD;
+		
+		return CB_BREAK;
 	}
 	
 	if (type == POST_LD) {
@@ -333,24 +313,24 @@ static s32 Callback_Actor(const char* input, PassType type, void* arg, void* arg
 	
 	if (type == POST_GCC) return 0;
 	
-	ovl = Tmp_Printf("%sactor.zovl", String_GetPath(input));
-	String_Replace(ovl, "src/", "rom/");
-	
-	conf = Tmp_Printf("%sconfig.cfg", String_GetPath(input));
-	String_Replace(ovl, "src/", "rom/");
-	
 	if (type == PRE_GCC) {
-		if (!Sys_Stat(ovl) || !Sys_Stat(conf) || Sys_Stat(input) > Sys_Stat(ovl))
+		ovl = Tmp_Printf("%sactor.zovl", String_GetPath(input));
+		String_Replace(ovl, "src/", "rom/");
+		
+		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
 			return CB_BUILD;
 		
 		return 0;
 	}
 	
 	if (type == PRE_LD) {
-		if (!Sys_Stat(ovl) || !Sys_Stat(conf) || Sys_Stat(input) > Sys_Stat(ovl))
+		if (!Sys_Stat(ovl))
 			return CB_BUILD;
 		
-		return 0;
+		if (Overlay_StatFiles(input, ovl))
+			return CB_BUILD;
+		
+		return CB_BREAK;
 	}
 	
 	if (type == POST_LD) {
@@ -358,43 +338,56 @@ static s32 Callback_Actor(const char* input, PassType type, void* arg, void* arg
 		char* info;
 		char* dump;
 		
-		info = String_GetFolder(input, -1); String_Remove(info, strlen("0x0000-")); String_Replace(info, "/", " ");
-		Log("novl %s", info);
+		ovl = Tmp_Printf("%sactor.zovl", String_GetPath(input));
+		String_Replace(ovl, "src/", "rom/");
 		
-		Tools_Command(command, nOVL, "-v -c -s -A 0x80800000 -o %s %s", ovl, input);
-		if (SysExe(command)) printf_error_align("SysExe", "Failed");
+		conf = Tmp_Printf("%sconfig.cfg", String_GetPath(input));
+		String_Replace(ovl, "src/", "rom/");
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
 		dump = SysExeO(command); {
-			MemFile mC = MemFile_Initialize();
-			MemFile mConf = MemFile_Initialize();
-			char* inC = strdup(input);
+			MemFile srcFile = MemFile_Initialize();
+			MemFile newConf = MemFile_Initialize();
+			char* sourceFolder = String_GetPath(input);
 			char* temp;
 			char* varName;
+			ItemList list = ItemList_Initialize();
 			
-			String_Replace(inC, "rom/", "src/");
-			String_Replace(inC, ".elf", ".c");
+			String_Replace(sourceFolder, "rom/", "src/");
+			ItemList_List(&list, sourceFolder, -1, LIST_FILES);
 			
-			MemFile_Malloc(&mConf, 0x80);
-			if (MemFile_LoadFile(&mC, inC)) printf_error("Could not open [%s]", inC);
+			MemFile_Malloc(&srcFile, MbToBin(1.0f));
+			MemFile_Params(&srcFile, MEM_REALLOC, true, MEM_END);
+			MemFile_Malloc(&newConf, MbToBin(1.0f));
 			
-			temp = StrStr(mC.str, "\nActorInit ");
-			if (temp)
-				temp += strlen("\nActorInit ");
-			else {
-				temp = StrStr(mC.str, "\nconst ActorInit ");
+			for (s32 i = 0; i < list.num; i++) {
+				if (!StrEndCase(list.item[i], ".c"))
+					continue;
+				
+				MemFile_Clear(&srcFile);
+				if (MemFile_LoadFile_String(&srcFile, list.item[i]))
+					printf_error("Could not open file [%s]", list.item[i]);
+				
+				temp = StrStr(srcFile.str, "\nActorInit ");
 				if (temp)
-					temp += strlen("\nconst ActorInit ");
+					temp += strlen("\nActorInit ");
 				else {
-					temp = StrStr(mC.str, " ActorInit ");
+					temp = StrStr(srcFile.str, "\nconst ActorInit ");
 					if (temp)
-						temp += strlen(" ActorInit ");
+						temp += strlen("\nconst ActorInit ");
 					else {
-						printf_WinFix();
-						printf_error_align("ActorInit", "Could not locate ActorInit in [%s]", inC);
+						temp = StrStr(srcFile.str, " ActorInit ");
+						if (temp)
+							temp += strlen(" ActorInit ");
 					}
 				}
+				
+				if (temp)
+					break;
 			}
+			
+			if (temp == NULL)
+				printf_error("Could not locate [ActorInit] from files in [%s]", sourceFolder);
 			
 			varName = Malloc(varName, 64);
 			strcpy(varName, String_GetWord(temp, 0));
@@ -403,19 +396,24 @@ static s32 Callback_Actor(const char* input, PassType type, void* arg, void* arg
 			String_Insert(varName, " ");
 			temp = String_LineHead(StrStr(dump, varName));
 			
-			MemFile_Printf(&mConf, "# %s\n", String_GetBasename(input));
-			MemFile_Printf(&mConf, "alloc_type = 0\n");
-			MemFile_Printf(&mConf, "vram_addr  = 0x80800000\n");
-			MemFile_Printf(&mConf, "# %s\n", String_GetLine(temp, 0));
-			MemFile_Printf(&mConf, "init_vars  = 0x%.8s\n", temp);
+			MemFile_Printf(&newConf, "# %s\n", String_GetBasename(input));
+			MemFile_Printf(&newConf, "alloc_type = 0\n");
+			MemFile_Printf(&newConf, "vram_addr  = 0x80800000\n");
+			MemFile_Printf(&newConf, "# %s\n", String_GetLine(temp, 0));
+			MemFile_Printf(&newConf, "init_vars  = 0x%.8s\n", temp);
 			
-			if (MemFile_SaveFile_String(&mConf, conf)) printf_error("Could not save [%s]", conf);
+			if (MemFile_SaveFile_String(&newConf, conf)) printf_error("Could not save [%s]", conf);
 			
-			MemFile_Free(&mC);
-			MemFile_Free(&mConf);
-			Free(inC);
+			MemFile_Free(&srcFile);
+			MemFile_Free(&newConf);
 			Free(varName);
 		}
+		
+		info = String_GetFolder(input, -1); String_Remove(info, strlen("0x0000-")); String_Replace(info, "/", " ");
+		Log("novl %s", info);
+		
+		Tools_Command(command, nOVL, "-v -c -s -A 0x80800000 -o %s %s", ovl, input);
+		if (SysExe(command)) printf_error_align("SysExe", "Failed");
 		
 		Free(dump);
 		
@@ -509,7 +507,28 @@ void Code_GCC(const char* source, const char* output, const char* flags, Binutil
 		return;
 	
 build:
+	(void)0;
+	char* newFlags = NULL;
+	char* flagFile = Tmp_Printf("%sflags.cfg", String_GetPath(source));
+	
 	command = Calloc(command, 2048);
+	
+	if (Sys_Stat(flagFile)) {
+		MemFile mem = MemFile_Initialize();
+		
+		MemFile_LoadFile_String(&mem, flagFile);
+		
+		if (Config_Variable(mem.str, "flags")) {
+			newFlags = Calloc(newFlags, 1024 * 2);
+			
+			strcpy(newFlags, flags);
+			catprintf(newFlags, " %s", Config_GetVariable(mem.str, "flags"));
+			
+			flags = newFlags;
+		}
+		
+		MemFile_Free(&mem);
+	}
 	
 	Tools_Command(command, mips64_gcc, "%s %s %s -o %s", gFlags, flags, source, output);
 	Sys_MakeDir(output);
@@ -521,6 +540,8 @@ build:
 	if (callback)
 		callback(output, POST_GCC, command, NULL);
 	Free(command);
+	if (newFlags)
+		Free(newFlags);
 }
 
 void Code_LD(const char* source, const char* output, const char* flags, BinutilCallback callback) {
@@ -529,11 +550,8 @@ void Code_LD(const char* source, const char* output, const char* flags, BinutilC
 	char entryDir[1024] = { 0 };
 	u32 entryPoint = 0x80800000;
 	
-	if (!Sys_Stat(source))
-		printf_error_align("Code_LD", "Source not found [%s]", source);
-	
 	if (callback) {
-		switch (callback(source, PRE_LD, &entryPoint, &source)) {
+		switch (callback(source, PRE_LD, &entryPoint, (void*)output)) {
 			case CB_BREAK:
 				return;
 			case 0:
@@ -705,23 +723,52 @@ static void Make_Code_Thread_C(ThreadArg* arg) {
 static void Make_Code_Thread_O(ThreadArg* arg) {
 	char* output;
 	char* input = arg->itemList->item[arg->i];
+	ItemList* list = NULL;
+	char* ninput = NULL;
 	
-	if (!StrEnd(input, ".o")) {
-		Log("Skipped " PRNT_DGRY "[%s]", input);
+	if (Sys_IsDir(input)) {
+		if (StrEnd(input, ".vanilla/"))
+			return;
 		
-		return;
+		list = Malloc(list, sizeof(ItemList));
+		*list = ItemList_Initialize();
+		
+		ItemList_List(list, input, -1, LIST_FILES);
+		
+		for (s32 i = 0; i < list->num; i++) {
+			if (i == 0)
+				ninput = Calloc(ninput, list->writePoint * 2);
+			if (StrEndCase(list->item[i], ".o"))
+				catprintf(ninput, "%s ", list->item[i]);
+		}
+		
+		input = ninput;
+		
+		output = Calloc(output, strlen(input));
+		sprintf(output, "%sfile.elf", arg->itemList->item[arg->i]);
+		String_Replace(output, "src/", "rom/");
+	} else {
+		if (!StrEnd(input, ".o")) {
+			Log("Skipped " PRNT_DGRY "[%s]", input);
+			
+			return;
+		}
+		
+		output = Calloc(output, strlen(input) + 10);
+		strcpy(output, input);
+		String_Replace(output, ".o", ".elf");
+		String_Replace(output, "src/", "rom/");
 	}
 	
-	output = Calloc(output, strlen(input) + 10);
-	strcpy(output, input);
-	String_Replace(output, ".o", ".elf");
-	String_Replace(output, "src/", "rom/");
+	Log("Input: %s", input);
+	Log("Output: %s", output);
 	
 	Code_LD(input, output, arg->flag, arg->callback);
 	Free(output);
+	Free(ninput);
 }
 
-void Make_Code_Thread(ThreadArg* arg) {
+void Make_Code_Thread_Single(ThreadArg* arg) {
 	s32 i = 0;
 	Thread thread[THREAD_NUM];
 	ThreadArg passArg[THREAD_NUM];
@@ -734,6 +781,45 @@ void Make_Code_Thread(ThreadArg* arg) {
 	}
 	
 	ItemList_List(&itemList, arg->path, -1, LIST_FILES);
+	
+	while (i < itemList.num) {
+		u32 target = Clamp(itemList.num - i, 0, THREAD_NUM);
+		
+		for (s32 j = 0; j < target; j++) {
+			memcpy(&passArg[j], arg, sizeof(ThreadArg));
+			passArg[j].itemList = &itemList;
+			passArg[j].i = i + j;
+			
+			if (gThreading) {
+				Thread_Create(&thread[j], arg->func, &passArg[j]);
+			} else {
+				arg->func(&passArg[j]);
+			}
+		}
+		
+		if (gThreading)
+			for (s32 j = 0; j < target; j++)
+				Thread_Join(&thread[j]);
+		
+		i += THREAD_NUM;
+	}
+	
+	ItemList_Free(&itemList);
+}
+
+void Make_Code_Thread_Folder(ThreadArg* arg) {
+	s32 i = 0;
+	Thread thread[THREAD_NUM];
+	ThreadArg passArg[THREAD_NUM];
+	ItemList itemList = ItemList_Initialize();
+	
+	if (!Sys_Stat(arg->path)) {
+		Log("Path not found [%s]", arg->path);
+		
+		return;
+	}
+	
+	ItemList_List(&itemList, arg->path, 1, LIST_FOLDERS);
 	
 	while (i < itemList.num) {
 		u32 target = Clamp(itemList.num - i, 0, THREAD_NUM);
@@ -808,9 +894,9 @@ void Make_Code(void) {
 		args[set].func = Make_Code_Thread_C;
 		args[set].callback = callback[set];
 		if (gThreading) {
-			Thread_Create(&thread[set], Make_Code_Thread, &args[set]);
+			Thread_Create(&thread[set], Make_Code_Thread_Single, &args[set]);
 		} else {
-			Make_Code_Thread(&args[set]);
+			Make_Code_Thread_Single(&args[set]);
 		}
 	}
 	
@@ -838,10 +924,20 @@ void Make_Code(void) {
 		args[set].func = Make_Code_Thread_O;
 		args[set].callback = callback[set];
 		args[set].flag = flagLinker[set];
-		if (gThreading) {
-			Thread_Create(&thread[set], Make_Code_Thread, &args[set]);
+		
+		// Process as folders if Actor, System or Effect
+		if (set >= 2) {
+			if (gThreading) {
+				Thread_Create(&thread[set], Make_Code_Thread_Folder, &args[set]);
+			} else {
+				Make_Code_Thread_Folder(&args[set]);
+			}
 		} else {
-			Make_Code_Thread(&args[set]);
+			if (gThreading) {
+				Thread_Create(&thread[set], Make_Code_Thread_Single, &args[set]);
+			} else {
+				Make_Code_Thread_Single(&args[set]);
+			}
 		}
 	}
 	

@@ -48,6 +48,9 @@ static void Sound_Convert(ThreadArg* targ) {
 	ItemList* list;
 	char* vadpcm = NULL;
 	char* audio = NULL;
+	char* book = NULL;
+	char* table = NULL;
+	bool normalize = false;
 	const char* fmt[] = {
 		".wav",
 		".aiff",
@@ -60,6 +63,13 @@ static void Sound_Convert(ThreadArg* targ) {
 	ItemList_List(list, targ->path, 0, LIST_FILES);
 	
 	for (s32 i = 0; i < list->num; i++) {
+		if (StrStr(list->item[i], "normalize"))
+			normalize = true; ;
+		if (StrEndCase(list->item[i], ".book.bin"))
+			book = list->item[i];
+		if (StrEndCase(list->item[i], "/design.confg"))
+			table = list->item[i];
+		
 		if (audio == NULL) {
 			for (s32 j = 0; j < ArrayCount(fmt); j++) {
 				if (StrEndCase(list->item[i], fmt[j])) {
@@ -88,8 +98,20 @@ static void Sound_Convert(ThreadArg* targ) {
 	
 	if (vadpcm == NULL || (Sys_Stat(audio) > Sys_Stat(vadpcm)) || gMakeForce) {
 		char command[512];
-		Tools_Command(command, z64audio, "\"%s\"", audio);
-		if (SysExe(command)) printf_error_align("SysExe", "Failed");
+		
+		if (vadpcm == NULL) {
+			vadpcm = Tmp_Printf("%ssample.bin", targ->path);
+		}
+		
+		Tools_Command(command, z64audio, "-S --i \"%s\" --o \"%s\"", audio, vadpcm);
+		if (table)
+			catprintf(command, " -design \"%s\"", table);
+		else if (book)
+			catprintf(command, " -book \"%s\"", book);
+		if (normalize)
+			catprintf(command, " -m -n");
+		
+		if (SysExe(command)) printf_error("z64audio failed to run");
 		Make_Info("z64audio", audio);
 	}
 	

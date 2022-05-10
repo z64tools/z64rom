@@ -390,7 +390,7 @@ s32 Main(s32 argc, char* argv[]) {
 		if (sDumpFlag) {
 			if (gExtractAudio) {
 				printf_info("Extract " PRNT_REDD "wav audio samples" PRNT_RSET "?");
-				printf_info("This is optional and will slow down dumping process. " PRNT_DGRY "[y/n]");
+				printf_info("This is required if you want to make changes to audio. " PRNT_DGRY "[y/n]");
 				if (!Terminal_YesOrNo()) gExtractAudio = false;
 				
 				printf("\n");

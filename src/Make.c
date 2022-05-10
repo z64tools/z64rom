@@ -80,10 +80,13 @@ static void Sound_Convert(ThreadArg* targ) {
 				vadpcm = list->item[i];
 	}
 	
-	if (audio == NULL)
-		goto free;
+	Log("Audio [%s] Vadpcm [%s]", audio, vadpcm);
 	
-	if (vadpcm == NULL || Sys_Stat(audio) > Sys_Stat(vadpcm) || gMakeForce) {
+	if (audio == NULL) {
+		goto free;
+	}
+	
+	if (vadpcm == NULL || (Sys_Stat(audio) > Sys_Stat(vadpcm)) || gMakeForce) {
 		char command[512];
 		Tools_Command(command, z64audio, "\"%s\"", audio);
 		if (SysExe(command)) printf_error_align("SysExe", "Failed");
@@ -101,7 +104,7 @@ void Make_Sound(void) {
 	Thread thread[THREAD_NUM];
 	s32 i = 0;
 	
-	ItemList_List(&list, "rom/sound/sample/", 0, LIST_FOLDERS);
+	ItemList_List(&list, "rom/sound/sample/", 1, LIST_FOLDERS);
 	
 	if (list.num <= 1)
 		goto free;

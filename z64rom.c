@@ -1,8 +1,9 @@
 #include "src/z64rom.h"
 #include "src/Make.h"
+#include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.6";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.7";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gGenericNames;
@@ -398,6 +399,11 @@ s32 Main(s32 argc, char* argv[]) {
 			Rom_New(rom, input);
 			Rom_Dump(rom);
 		} else {
+			for (s32 i = 0; i < argc; i++) {
+				if (StrStrCase(argv[i], ".zip"))
+					Package_Load(argv[i]);
+			}
+			
 			if (gDevBuild == true) {
 				if (Sys_Stat(gRomName_Output[ROM_RELEASE]) > Sys_Stat(gRomName_Output[ROM_DEV])) {
 					gMakeForce = true;

@@ -399,9 +399,19 @@ s32 Main(s32 argc, char* argv[]) {
 			Rom_New(rom, input);
 			Rom_Dump(rom);
 		} else {
+			u32 pkgInstalled = 0;
 			for (s32 i = 0; i < argc; i++) {
-				if (StrStrCase(argv[i], ".zip"))
+				if (StrStrCase(argv[i], ".zip")) {
+					printf_toolinfo(gToolName, "Installing Package(s)");
+					printf_info_align("Package", "" PRNT_BLUE "%s", argv[i]);
 					Package_Load(argv[i]);
+					pkgInstalled = true;
+				}
+			}
+			
+			if (pkgInstalled) {
+				printf_info("All packages have been imported successfully!\n");
+				goto free;
 			}
 			
 			if (gDevBuild == true) {

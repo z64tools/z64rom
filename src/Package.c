@@ -55,7 +55,7 @@ static char* Package_GetSection(char* cfg, s32 i) {
 	return ret;
 }
 
-static void Package_Sound(struct zip_t* pkg, char* cfg) {
+void Package_Sound(struct zip_t* pkg, char* cfg) {
 	char* name = Config_GetVariable(cfg, "name");
 	char* file = Config_GetVariable(cfg, "file");
 	ItemList list = ItemList_Initialize();
@@ -84,6 +84,7 @@ static void Package_Sound(struct zip_t* pkg, char* cfg) {
 				break;
 			
 			char* target = Tmp_String(list.item[i]);
+			String_Replace(target, ".vanilla/", "");
 			
 			Sys_Copy(list.item[i], target, StrEndCase(list.item[i], ".cfg") ? true : false);
 		}
@@ -104,7 +105,21 @@ static void Package_Sound(struct zip_t* pkg, char* cfg) {
 	Free(f);
 }
 
-static void Package_Actor(struct zip_t* pkg, char* cfg) {
+void Package_Actor(struct zip_t* pkg, char* cfg) {
+	ItemList list = ItemList_Initialize();
+	char* file = Config_GetVariable(cfg, "file");
+	char* name = Config_GetVariable(cfg, "name");
+	s32 actorID = 0;
+	s32 objectID = 0;
+	char buffer[512] = { 0 };
+	
+	if (file == NULL) {
+		Config_GetArray(&list, cfg, "files");
+		
+		for (s32 i = 0; i < list.num; i++)
+			if (StrEndCase(list.item[i], ".zobj"))
+				objectID = true;
+	}
 }
 
 void Package_Load(const char* item) {
@@ -134,7 +149,7 @@ void Package_Load(const char* item) {
 		};
 		void (*func[])(struct zip_t*, char*) = {
 			Package_Sound,
-			NULL,
+			Package_Actor,
 			NULL,
 		};
 		

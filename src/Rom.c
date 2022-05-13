@@ -521,6 +521,8 @@ void Rom_Dump(Rom* rom) {
 		
 		Dir_Enter(&gDir, "scene/.vanilla/"); {
 			for (s32 i = 0; i < rom->table.num.scene; i++) {
+				SceneEntry* scene = &rom->table.scene[i];
+				RomFile png;
 				rf = Dma_RomFile_Scene(rom, i);
 				
 				if (rf.size == 0)
@@ -565,6 +567,22 @@ void Rom_Dump(Rom* rom) {
 								);
 							}
 						}
+					}
+					
+					png.romStart = ReadBE(scene->titleVromStart);
+					png.romEnd = ReadBE(scene->titleVromEnd);
+					png.data = SegmentedToVirtual(0, png.romStart);
+					png.size = png.romEnd - png.romStart;
+					
+					if (png.romStart != 0 && png.size > 0) {
+						Texel_Dump(
+							&png,
+							Dir_File(&gDir, "title.png"),
+							TEX_FMT_IA,
+							TEX_BSIZE_8,
+							144,
+							24
+						);
 					}
 					
 					Dir_Leave(&gDir);
@@ -689,6 +707,7 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeGroup(rom, DMA_EFFECT);
 	Dma_FreeGroup(rom, DMA_OBJECT);
 	Dma_FreeGroup(rom, DMA_SCENES);
+	Dma_FreeGroup(rom, DMA_PLACE_NAME);
 	Dma_FreeGroup(rom, DMA_SKYBOX_TEXEL);
 	Dma_FreeGroup(rom, DMA_UNUSED);
 	Dma_CombineSlots();
@@ -958,6 +977,16 @@ void Rom_Build(Rom* rom) {
 					entry[i].vromEnd = Dma_GetVRomEnd();
 					SwapBE(entry[i].vromStart);
 					SwapBE(entry[i].vromEnd);
+					entry[i].titleVromStart = 0;
+					entry[i].titleVromEnd = 0;
+					
+					if (Dir_Stat(&gDir, "title.png")) {
+						Texel_Import(&dataFile, Dir_File(&gDir, "title.png"), TEX_FMT_IA, TEX_BSIZE_8, 144, 24);
+						entry[i].titleVromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
+						entry[i].titleVromEnd = Dma_GetVRomEnd();
+						SwapBE(entry[i].titleVromStart);
+						SwapBE(entry[i].titleVromEnd);
+					}
 					
 					Dir_Leave(&gDir);
 				}
@@ -1447,6 +1476,12 @@ void Rom_Debug_DmaEntry(Rom* rom, u32 id) {
 	printf_info("Dma Entry\t[%08d] [%08X]", id, VirtualToSegmented(0x0, &rom->table.dma[id]));
 	printf_info("vROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.dma[id].vromStart), ReadBE(rom->table.dma[id].vromEnd), ReadBE(rom->table.dma[id].vromEnd) - ReadBE(rom->table.dma[id].vromStart));
 	printf_info("pROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.dma[id].romStart), ReadBE(rom->table.dma[id].romEnd), ClampMin((s32)(ReadBE(rom->table.dma[id].romEnd) - ReadBE(rom->table.dma[id].romStart)), 0));
+}
+
+void Rom_Debug_SceneEntry(Rom* rom, u32 id) {
+	printf_info("Dma Entry\t[%08d] [%08X]", id, VirtualToSegmented(0x0, &rom->table.scene[id]));
+	printf_info("scene ROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.scene[id].vromStart), ReadBE(rom->table.scene[id].vromEnd), ReadBE(rom->table.scene[id].vromEnd) - ReadBE(rom->table.scene[id].vromStart));
+	printf_info("title ROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.scene[id].titleVromStart), ReadBE(rom->table.scene[id].titleVromEnd), ClampMin((s32)(ReadBE(rom->table.scene[id].titleVromEnd) - ReadBE(rom->table.scene[id].titleVromStart)), 0));
 }
 
 void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {

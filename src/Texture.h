@@ -26,8 +26,16 @@ typedef enum {
 
 struct RomFile;
 
-void Texel_SaveToPNG(
+void Texel_Dump(
 	struct RomFile* romFile,
+	const char* filename,
+	TexelFormat fmt,
+	TexelBitSize bs,
+	s32 w, s32 h
+);
+
+void Texel_Import(
+	MemFile* mem,
 	const char* filename,
 	TexelFormat fmt,
 	TexelBitSize bs,

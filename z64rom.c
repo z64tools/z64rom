@@ -169,27 +169,6 @@ s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 	if (Arg("info"))
 		gPrintInfo = true;
 	
-	if (Arg("actor") && input) {
-		u32 id = String_GetInt(argv[parArg]);
-		
-		rom->type = Zelda_OoT_Debug;
-		Rom_New(rom, input);
-		Rom_Debug_ActorEntry(rom, id);
-		
-		return 1;
-	}
-	
-	if (Arg("dma") && input) {
-		u32 id = String_GetInt(argv[parArg]);
-		
-		gInfoFlag = true;
-		rom->type = Zelda_OoT_Debug;
-		Rom_New(rom, input);
-		Rom_Debug_DmaEntry(rom, id);
-		
-		return 1;
-	}
-	
 	return 0;
 }
 
@@ -328,6 +307,36 @@ s32 Main(s32 argc, char* argv[]) {
 		
 		if (Main_IsSameFile(argv[i], "z64project.cfg"))
 			Main_z64project();
+	}
+	
+	if (Arg("actor") && input) {
+		u32 id = String_GetInt(argv[parArg]);
+		
+		rom->type = Zelda_OoT_Debug;
+		Rom_New(rom, input);
+		Rom_Debug_ActorEntry(rom, id);
+		
+		exit(0);
+	}
+	
+	if (Arg("dma") && input) {
+		u32 id = String_GetInt(argv[parArg]);
+		
+		rom->type = Zelda_OoT_Debug;
+		Rom_New(rom, input);
+		Rom_Debug_DmaEntry(rom, id);
+		
+		exit(0);
+	}
+	
+	if (Arg("scene") && input) {
+		u32 id = String_GetInt(argv[parArg]);
+		
+		rom->type = Zelda_OoT_Debug;
+		Rom_New(rom, input);
+		Rom_Debug_SceneEntry(rom, id);
+		
+		exit(0);
 	}
 	
 	Main_Config(&input, rom);

@@ -153,9 +153,9 @@ s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 		return 1;
 	}
 	
-	if (Arg("B")) gMakeForce = true;
+	if (Arg("force")) gMakeForce = true;
 	
-	if (Arg("M")) gMakeTarget = argv[parArg];
+	if (Arg("target")) gMakeTarget = argv[parArg];
 	
 	if (Arg("single-thread"))
 		gThreading = false;

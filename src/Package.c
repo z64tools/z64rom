@@ -105,6 +105,13 @@ void Package_Sound(struct zip_t* pkg, char* cfg) {
 	Free(f);
 }
 
+static s32 Window_Index(Terminal* terminal, void* a1, void* a2, s32 key) {
+	if (key == '\n')
+		return 1;
+	
+	return 0;
+}
+
 void Package_Actor(struct zip_t* pkg, char* cfg) {
 	ItemList list = ItemList_Initialize();
 	char* file = Config_GetVariable(cfg, "file");
@@ -120,6 +127,8 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 			if (StrEndCase(list.item[i], ".zobj"))
 				objectID = true;
 	}
+	
+	Terminal_Window(Window_Index, 0, 0);
 }
 
 void Package_Load(const char* item) {

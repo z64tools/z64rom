@@ -6,7 +6,7 @@ struct {
 	struct {
 		u8 writable : 1;
 		u8 compress : 1;
-	} entry[4000];
+	} entry[8000];
 	u32 highest;
 } gDma;
 
@@ -88,14 +88,15 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 	u32 start;
 	
 	if (compress && gCompressFlag) {
-		char* yazFile = Tmp_Alloc(strlen(memFile->info.name) + 0x20);
+		char* yazFile = Tmp_Alloc(strlen(memFile->info.name) + 0x80);
 		
 		if (gYazBuf == NULL) {
 			gYazBuf = Calloc(0, MbToBin(32));
 		}
 		
 		strcpy(yazFile, memFile->info.name);
-		String_SwapExtension(yazFile, memFile->info.name, ".yaz");
+		String_Replace(yazFile, "rom/", "rom/yaz-cache/");
+		strcat(yazFile, ".yaz");
 		
 		if (Sys_Stat(yazFile) >= memFile->info.age) {
 			MemFile_LoadFile(memFile, yazFile);
@@ -144,11 +145,14 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 	
 	start = slot->romStart;
 	rom->file.seekPoint = start;
-	dma->vromStart = dma->romStart = start;
 	
 	MemFile_Append(&rom->file, memFile);
 	MemFile_Align(&rom->file, 16);
+	
+	dma->vromStart = start;
 	dma->vromEnd = start + memFile->dataSize;
+	
+	dma->romStart = start;
 	dma->romEnd = (start + size) * (compress && gCompressFlag);
 	
 	SwapBE(dma->romStart);

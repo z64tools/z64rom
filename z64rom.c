@@ -16,7 +16,7 @@ extern u32 gThreading;
 #define ROM_RELEASE 0
 #define ROM_DEV     1
 
-s32 gDevBuild = true;
+s32 gBuildTarget = ROM_DEV;
 const char* gRomName_Output[] = {
 	"build-release.z64",
 	"build-dev.z64",
@@ -298,7 +298,7 @@ void Main_Config(char** input, Rom* rom) {
 void Main_z64project() {
 	printf_toolinfo(gToolName, "Release Build");
 	
-	gDevBuild = false;
+	gBuildTarget = false;
 	
 	if (Sys_Stat(gRomName_Output[ROM_DEV]) > Sys_Stat(gRomName_Output[ROM_RELEASE])) {
 		gMakeForce = true;
@@ -414,7 +414,7 @@ s32 Main(s32 argc, char* argv[]) {
 				goto free;
 			}
 			
-			if (gDevBuild == true) {
+			if (gBuildTarget == true) {
 				if (Sys_Stat(gRomName_Output[ROM_RELEASE]) > Sys_Stat(gRomName_Output[ROM_DEV])) {
 					gMakeForce = true;
 				}

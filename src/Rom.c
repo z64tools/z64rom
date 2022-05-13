@@ -2,122 +2,7 @@
 
 DirCtx gDir;
 
-void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
-	ItemList vanilla = ItemList_Initialize();
-	ItemList modified = ItemList_Initialize();
-	ItemList result = ItemList_Initialize();
-	
-	Dir_Enter(&gDir, ".vanilla/"); {
-		Dir_ItemList(&gDir, &vanilla, isDir);
-		
-		Dir_Leave(&gDir);
-	}
-	Dir_ItemList(&gDir, &modified, isDir);
-	
-	if (isNum) {
-		ItemList_NumericalSort(&vanilla);
-		ItemList_NumericalSort(&modified);
-	}
-	
-	*list = (ItemList) { 0 };
-	list->item = Tmp_Alloc(sizeof(u8*) * (modified.num + vanilla.num));
-	
-	if (isNum) {
-		u32 maxNum = 0;
-		
-		for (s32 i = 0; i < modified.num; i++) {
-			if (modified.item[i] == NULL)
-				continue;
-			if (String_GetInt(modified.item[i]) > maxNum) {
-				maxNum = String_GetInt(modified.item[i]);
-			}
-		}
-		
-		for (s32 i = 0; i < vanilla.num; i++) {
-			if (vanilla.item[i] == NULL)
-				continue;
-			if (String_GetInt(vanilla.item[i]) > maxNum)
-				maxNum = String_GetInt(vanilla.item[i]);
-		}
-		
-		for (s32 i = 0; i < maxNum + 1; i++) {
-			if (i < modified.num && modified.item[i] && String_GetInt(modified.item[i]) == i) {
-				list->item[list->num] = Tmp_String(modified.item[i]);
-			} else if (i < vanilla.num && vanilla.item[i] && String_GetInt(vanilla.item[i]) == i) {
-				list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
-			} else {
-				list->item[list->num] = NULL;
-			}
-			list->num++;
-		}
-	} else {
-		u32 i = 0;
-		
-		while (i < modified.num) {
-			list->item[list->num] = Tmp_String(modified.item[i]);
-			list->num++;
-			i++;
-		}
-		
-		i = 0;
-		while (i < vanilla.num) {
-			u32 cont = 0;
-			for (s32 j = 0; j < list->num; j++) {
-				if (!strcmp(vanilla.item[i], list->item[j])) {
-					cont = 1;
-					i++;
-					break;
-				}
-			}
-			
-			if (cont) continue;
-			
-			list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
-			list->num++;
-			i++;
-		}
-	}
-	
-	u32 size = 0;
-	
-	for (s32 i = 0; i < list->num; i++) {
-		if (!list->item[i])
-			continue;
-		size += strlen(list->item[i]) + 1;
-	}
-	
-	result.num = list->num;
-	result.buffer = Calloc(result.buffer, size);
-	result.item = Calloc(result.item, sizeof(u8*) * list->num);
-	
-	for (s32 i = 0; i < list->num; i++) {
-		if (!list->item[i])
-			continue;
-		
-		result.item[i] = &result.buffer[result.writePoint];
-		strcpy(result.item[i], list->item[i]);
-		result.writePoint += strlen(result.item[i]) + 1;
-	}
-	
-	list[0] = result;
-	
-	ItemList_Free(&vanilla);
-	ItemList_Free(&modified);
-}
-
-s32 Rom_Extract(MemFile* mem, RomFile rom, char* name) {
-	if (rom.size == 0)
-		return 0;
-	MemFile_Reset(mem);
-	mem->dataSize = rom.size;
-	MemFile_Realloc(mem, rom.size);
-	MemFile_Write(mem, rom.data, rom.size);
-	MemFile_SaveFile(mem, name);
-	
-	return 1;
-}
-
-u32 Rom_Ovl_GetBssSize(MemFile* dataFile) {
+static u32 Rom_Ovl_GetBssSize(MemFile* dataFile) {
 	u32* bssSize;
 	
 	SetSegment(0x1, dataFile->data);
@@ -127,7 +12,7 @@ u32 Rom_Ovl_GetBssSize(MemFile* dataFile) {
 	return ReadBE(bssSize[3]);
 }
 
-RestrictionFlag* Rom_GetRestrictionFlags(Rom* rom, u32 sceneIndex) {
+static RestrictionFlag* Rom_GetRestrictionFlags(Rom* rom, u32 sceneIndex) {
 	RestrictionFlag* flagList = rom->table.restrictionFlags;
 	
 	while (flagList->sceneIndex != 0xFF) {
@@ -140,7 +25,7 @@ RestrictionFlag* Rom_GetRestrictionFlags(Rom* rom, u32 sceneIndex) {
 	return NULL;
 }
 
-void Rom_WriteRestrictionFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
+static void Rom_WriteRestrictionFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
 	char* flags = Config_GetVariable(config->str, "restriction_flags");
 	RestrictionFlag* rf = Rom_GetRestrictionFlags(rom, sceneIndex);
 	
@@ -190,7 +75,9 @@ void Rom_WriteRestrictionFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
 	}
 }
 
-/* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
+// # # # # # # # # # # # # # # # # # # # #
+// # CONFIG                              #
+// # # # # # # # # # # # # # # # # # # # #
 
 static void Rom_Config_Actor(MemFile* config, ActorEntry* actorOvl, const char* name, char* out) {
 	MemFile_Reset(config);
@@ -352,7 +239,9 @@ static void Rom_Config_Scene(Rom* rom, MemFile* config, u32 id, const char* name
 #undef FIWI
 }
 
-/* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
+// # # # # # # # # # # # # # # # # # # # #
+// # PATCH                               #
+// # # # # # # # # # # # # # # # # # # # #
 
 typedef struct PatchNode {
 	struct PatchNode* prev;
@@ -365,13 +254,12 @@ typedef struct PatchNode {
 PatchNode* sPatchHead;
 
 static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char* file) {
-	const char* ptch = Dir_File(&gDir, file);
 	u32 lineCount;
 	char* line;
 	
 	MemFile_Reset(config);
-	Log("Loading Patch [%s]", ptch);
-	MemFile_LoadFile_String(config, ptch);
+	Log("Loading Patch [%s]", file);
+	MemFile_LoadFile_String(config, file);
 	MemFile_Realloc(config, config->memSize * 2);
 	
 	line = config->str;
@@ -403,6 +291,34 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		
 		word = Config_Variable(line, String_GetWord(line, 0));
 		rom->file.seekPoint = String_GetHexInt(String_GetWord(line, 0));
+		
+		if (StrMtch(word, "FILE(\"")) {
+			word = Config_GetVariable(line, String_GetWord(line, 0));
+			
+			// Config_GetVariable sees that this is a string and does magics
+			String_Remove(word, strlen("ILE(\""));
+			
+			Sys_SetWorkDir(String_GetPath(file));
+			if (Sys_Stat(word)) {
+				MemFile ptch = MemFile_Initialize();
+				
+				if (MemFile_LoadFile(&ptch, word))
+					printf_error("Could not open a file that should exist [%s]", word);
+				
+				node = Calloc(node, sizeof(struct PatchNode));
+				node->start = rom->file.seekPoint;
+				node->end = rom->file.seekPoint + strlen(word);
+				strncpy(node->source, file, 63);
+				Node_Add(sPatchHead, node);
+				
+				MemFile_Append(&rom->file, &ptch);
+			} else {
+				printf_warning("Could not locate patch file [%s] provided by [%s]", word, file);
+			}
+			Sys_SetWorkDir(Sys_AppDir());
+			
+			continue;
+		}
 		
 		if (word[0] == '"') {
 			word = Config_GetVariable(line, String_GetWord(line, 0));
@@ -471,32 +387,14 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 	}
 }
 
-static void Rom_Patch_Binary(Rom* rom, MemFile* dataFile, MemFile* config, char* file) {
-	char* tmp = StrStr(String_GetBasename(file), "_0x");
-	
-	if (tmp == NULL)
-		return;
-	
-	tmp = &tmp[1];
-	rom->file.seekPoint = String_GetHexInt(tmp);
-	MemFile_Reset(dataFile);
-	MemFile_LoadFile(dataFile, Dir_File(&gDir, file));
-	MemFile_Append(&rom->file, dataFile);
-}
-
 static void Rom_Build_Patch(Rom* rom, MemFile* dataFile, MemFile* config) {
 	ItemList list = ItemList_Initialize();
 	
-	Dir_ItemList_Recursive(&gDir, &list, ".cfg");
+	ItemList_List(&list, "patch/", -1, LIST_FILES);
 	
 	for (s32 i = 0; i < list.num; i++) {
-		Rom_Patch_Config(rom, dataFile, config, list.item[i]);
-	}
-	
-	Dir_ItemList_Recursive(&gDir, &list, ".bin");
-	
-	for (s32 i = 0; i < list.num; i++) {
-		Rom_Patch_Binary(rom, dataFile, config, list.item[i]);
+		if (StrEndCase(list.item[i], ".cfg"))
+			Rom_Patch_Config(rom, dataFile, config, list.item[i]);
 	}
 }
 
@@ -549,7 +447,9 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 		Node_Kill(sPatchHead, sPatchHead);
 }
 
-/* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
+// # # # # # # # # # # # # # # # # # # # #
+// # MAIN                                #
+// # # # # # # # # # # # # # # # # # # # #
 
 void Rom_Dump(Rom* rom) {
 	MemFile dataFile = MemFile_Initialize();
@@ -775,7 +675,7 @@ void Rom_Build(Rom* rom) {
 	MemFile_Params(&config, MEM_FILENAME, true, MEM_END);
 	
 	printf_info_align("Load Baserom", PRNT_REDD "%s", String_GetFilename(rom->file.info.name));
-	printf_info_align("Build Rom", PRNT_BLUE "%s",  gRomName_Output[gDevBuild]);
+	printf_info_align("Build Rom", PRNT_BLUE "%s",  gRomName_Output[gBuildTarget]);
 	
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_3, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_3, false);
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_4, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_4, false);
@@ -1283,14 +1183,8 @@ void Rom_Build(Rom* rom) {
 		Dir_Leave(&gDir);
 	}
 	
-	if (Dir_Stat(&gDir, "patch/")) {
-		Dir_Enter(&gDir, "patch/"); {
-			printf_info("Applying Patches");
-			Rom_Build_Patch(rom, &dataFile, &config);
-			
-			Dir_Leave(&gDir);
-		}
-	}
+	printf_info("Applying Patches");
+	Rom_Build_Patch(rom, &dataFile, &config);
 	
 	Dir_Enter(&gDir, "rom/"); {
 		if (Dir_Stat(&gDir, "lib_code/")) {
@@ -1317,7 +1211,7 @@ void Rom_Build(Rom* rom) {
 	}
 	
 	fix_crc(rom->file.data);
-	MemFile_SaveFile(&rom->file, gRomName_Output[gDevBuild]);
+	MemFile_SaveFile(&rom->file, gRomName_Output[gBuildTarget]);
 	
 	MemFile_Free(&dataFile);
 	MemFile_Free(&config);
@@ -1520,8 +1414,6 @@ void Rom_Free(Rom* rom) {
 	memset(rom, 0, sizeof(struct Rom));
 }
 
-/* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
-
 void Rom_Debug_ActorEntry(Rom* rom, u32 id) {
 	ActorEntry* actorTable = rom->table.actor;
 	s32 i = 0;
@@ -1555,4 +1447,119 @@ void Rom_Debug_DmaEntry(Rom* rom, u32 id) {
 	printf_info("Dma Entry\t[%08d] [%08X]", id, VirtualToSegmented(0x0, &rom->table.dma[id]));
 	printf_info("vROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.dma[id].vromStart), ReadBE(rom->table.dma[id].vromEnd), ReadBE(rom->table.dma[id].vromEnd) - ReadBE(rom->table.dma[id].vromStart));
 	printf_info("pROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.dma[id].romStart), ReadBE(rom->table.dma[id].romEnd), ClampMin((s32)(ReadBE(rom->table.dma[id].romEnd) - ReadBE(rom->table.dma[id].romStart)), 0));
+}
+
+void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
+	ItemList vanilla = ItemList_Initialize();
+	ItemList modified = ItemList_Initialize();
+	ItemList result = ItemList_Initialize();
+	
+	Dir_Enter(&gDir, ".vanilla/"); {
+		Dir_ItemList(&gDir, &vanilla, isDir);
+		
+		Dir_Leave(&gDir);
+	}
+	Dir_ItemList(&gDir, &modified, isDir);
+	
+	if (isNum) {
+		ItemList_NumericalSort(&vanilla);
+		ItemList_NumericalSort(&modified);
+	}
+	
+	*list = (ItemList) { 0 };
+	list->item = Tmp_Alloc(sizeof(u8*) * (modified.num + vanilla.num));
+	
+	if (isNum) {
+		u32 maxNum = 0;
+		
+		for (s32 i = 0; i < modified.num; i++) {
+			if (modified.item[i] == NULL)
+				continue;
+			if (String_GetInt(modified.item[i]) > maxNum) {
+				maxNum = String_GetInt(modified.item[i]);
+			}
+		}
+		
+		for (s32 i = 0; i < vanilla.num; i++) {
+			if (vanilla.item[i] == NULL)
+				continue;
+			if (String_GetInt(vanilla.item[i]) > maxNum)
+				maxNum = String_GetInt(vanilla.item[i]);
+		}
+		
+		for (s32 i = 0; i < maxNum + 1; i++) {
+			if (i < modified.num && modified.item[i] && String_GetInt(modified.item[i]) == i) {
+				list->item[list->num] = Tmp_String(modified.item[i]);
+			} else if (i < vanilla.num && vanilla.item[i] && String_GetInt(vanilla.item[i]) == i) {
+				list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
+			} else {
+				list->item[list->num] = NULL;
+			}
+			list->num++;
+		}
+	} else {
+		u32 i = 0;
+		
+		while (i < modified.num) {
+			list->item[list->num] = Tmp_String(modified.item[i]);
+			list->num++;
+			i++;
+		}
+		
+		i = 0;
+		while (i < vanilla.num) {
+			u32 cont = 0;
+			for (s32 j = 0; j < list->num; j++) {
+				if (!strcmp(vanilla.item[i], list->item[j])) {
+					cont = 1;
+					i++;
+					break;
+				}
+			}
+			
+			if (cont) continue;
+			
+			list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
+			list->num++;
+			i++;
+		}
+	}
+	
+	u32 size = 0;
+	
+	for (s32 i = 0; i < list->num; i++) {
+		if (!list->item[i])
+			continue;
+		size += strlen(list->item[i]) + 1;
+	}
+	
+	result.num = list->num;
+	result.buffer = Calloc(result.buffer, size);
+	result.item = Calloc(result.item, sizeof(u8*) * list->num);
+	
+	for (s32 i = 0; i < list->num; i++) {
+		if (!list->item[i])
+			continue;
+		
+		result.item[i] = &result.buffer[result.writePoint];
+		strcpy(result.item[i], list->item[i]);
+		result.writePoint += strlen(result.item[i]) + 1;
+	}
+	
+	list[0] = result;
+	
+	ItemList_Free(&vanilla);
+	ItemList_Free(&modified);
+}
+
+s32 Rom_Extract(MemFile* mem, RomFile rom, char* name) {
+	if (rom.size == 0)
+		return 0;
+	MemFile_Reset(mem);
+	mem->dataSize = rom.size;
+	MemFile_Realloc(mem, rom.size);
+	MemFile_Write(mem, rom.data, rom.size);
+	MemFile_SaveFile(mem, name);
+	
+	return 1;
 }

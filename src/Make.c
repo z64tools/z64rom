@@ -938,7 +938,7 @@ void Make(Rom* rom) {
 	gFlagsCode = Config_GetString(&rom->config, "mips64_gcc_flags_code");
 	gFlagsLink = Config_GetString(&rom->config, "mips64_ld_flags");
 	
-	if (gDevBuild)
+	if (gBuildTarget)
 		gFlags = Tmp_Printf("%s -DDEV_BUILD", gFlags);
 	
 	Tools_Get(z64audio);

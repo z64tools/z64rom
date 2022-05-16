@@ -217,25 +217,26 @@ u32 Overlay_GetInit(void* overlay, u32 size) {
 static s32 Callback_System(const char* input, PassType type, void* arg, void* arg2) {
 	char* ovl = NULL;
 	
-	if (type == POST_GCC) return 0;
-	
 	if (type == PRE_GCC) {
 		ovl = Tmp_Printf("%soverlay.zovl", String_GetPath(input));
 		String_Replace(ovl, "src/", "rom/");
 		
-		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
+		if ((!Sys_Stat(ovl) && Sys_Stat(input)) || Sys_Stat(input) > Sys_Stat(ovl))
 			return CB_BUILD;
 		
 		return CB_BREAK;
 	}
 	
 	if (type == PRE_LD) {
+		ItemList list = ItemList_Initialize();
+		ItemList_SpacedStr(&list, input);
+		
+		if (!ItemList_StatMin(&list))
+			return CB_BREAK;
+		
 		if (!Sys_Stat(arg2))
 			return CB_BUILD;
 		
-		ItemList list = ItemList_Initialize();
-		
-		ItemList_SpacedStr(&list, input);
 		if (Sys_Stat(arg2) < ItemList_StatMax(&list))
 			return CB_BUILD;
 		
@@ -292,25 +293,27 @@ static s32 Callback_Actor(const char* input, PassType type, void* arg, void* arg
 	char* ovl;
 	char* conf;
 	
-	if (type == POST_GCC) return 0;
-	
 	if (type == PRE_GCC) {
 		ovl = Tmp_Printf("%soverlay.zovl", String_GetPath(input));
 		String_Replace(ovl, "src/", "rom/");
 		
-		if (!Sys_Stat(ovl) || Sys_Stat(input) > Sys_Stat(ovl))
+		if ((!Sys_Stat(ovl) && Sys_Stat(input)) || Sys_Stat(input) > Sys_Stat(ovl))
 			return CB_BUILD;
 		
 		return CB_BREAK;
 	}
 	
 	if (type == PRE_LD) {
-		if (!Sys_Stat(arg2))
-			return CB_BUILD;
-		
 		ItemList list = ItemList_Initialize();
 		
 		ItemList_SpacedStr(&list, input);
+		
+		if (!ItemList_StatMin(&list))
+			return CB_BREAK;
+		
+		if (!Sys_Stat(arg2))
+			return CB_BUILD;
+		
 		if (Sys_Stat(arg2) < ItemList_StatMax(&list))
 			return CB_BUILD;
 		

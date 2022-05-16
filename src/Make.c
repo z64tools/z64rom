@@ -33,7 +33,7 @@ typedef struct ThreadArg {
 } ThreadArg;
 
 static void Make_Info(const char* tool, const char* target) {
-	printf("[#]: %-16s %s\n", tool, String_GetFilename(target));
+	Thread_Print("[#]: %-16s %s\n", tool, String_GetFilename(target));
 	sMake = 1;
 }
 
@@ -87,7 +87,7 @@ static void Sound_Convert(ThreadArg* targ) {
 		
 		if (vadpcm == NULL)
 			if (StrEndCase(list->item[i], ".vadpcm.bin"))
-				vadpcm = list->item[i];
+				vadpcm = strdup(list->item[i]);
 	}
 	
 	if (audio == NULL)
@@ -98,6 +98,8 @@ static void Sound_Convert(ThreadArg* targ) {
 		
 		if (vadpcm == NULL)
 			vadpcm = Tmp_Printf("%ssample.bin", targ->path);
+		else
+			String_Replace(vadpcm, ".vadpcm", "");
 		
 		Log("Audio [%s] Vadpcm [%s]", audio, vadpcm);
 		
@@ -116,6 +118,7 @@ static void Sound_Convert(ThreadArg* targ) {
 free:
 	ItemList_Free(list);
 	Free(list);
+	Free(vadpcm);
 }
 
 void Make_Sound(void) {
@@ -704,12 +707,13 @@ static void Make_Code_Thread_C(ThreadArg* arg) {
 }
 
 static void Make_Code_Thread_O(ThreadArg* arg) {
-	char* output;
+	char* output = NULL;
 	char* input = arg->itemList->item[arg->i];
 	ItemList* list = NULL;
 	char* ninput = NULL;
 	
 	if (Sys_IsDir(input)) {
+		u32 files = 0;
 		if (StrEnd(input, ".vanilla/"))
 			return;
 		
@@ -720,10 +724,15 @@ static void Make_Code_Thread_O(ThreadArg* arg) {
 		
 		for (s32 i = 0; i < list->num; i++) {
 			if (i == 0)
-				ninput = Calloc(ninput, list->writePoint * 2);
-			if (StrEndCase(list->item[i], ".o"))
+				ninput = Calloc(ninput, 1024 * 8);
+			if (StrEndCase(list->item[i], ".o")){
 				catprintf(ninput, "%s ", list->item[i]);
+				files++;
+			}
 		}
+		
+		if (files == 0)
+			goto free;
 		
 		input = ninput;
 		
@@ -734,7 +743,7 @@ static void Make_Code_Thread_O(ThreadArg* arg) {
 		if (!StrEnd(input, ".o")) {
 			Log("Skipped " PRNT_DGRY "[%s]", input);
 			
-			return;
+			goto free;
 		}
 		
 		output = Calloc(output, strlen(input) + 10);
@@ -743,12 +752,14 @@ static void Make_Code_Thread_O(ThreadArg* arg) {
 		String_Replace(output, "src/", "rom/");
 	}
 	
-	Log("Input: %s", input);
-	Log("Output: %s", output);
-	
 	Code_LD(input, output, arg->flag, arg->callback);
+	
+free:
 	Free(output);
 	Free(ninput);
+	if (list)
+		ItemList_Free(list);
+	Free(list);
 }
 
 void Make_Code_Thread_Single(ThreadArg* arg) {

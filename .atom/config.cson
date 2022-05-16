@@ -11,6 +11,7 @@
       "nOVL"
       "z64audio"
       "z64convert"
+      "z64compress"
       
       # Hide build folder
       "bin"

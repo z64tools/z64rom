@@ -60,7 +60,7 @@ static void Sound_Convert(ThreadArg* targ) {
 	list = Calloc(list, sizeof(ItemList));
 	*list = ItemList_Initialize();
 	
-	ItemList_List(list, targ->path, 0, LIST_FILES);
+	ItemList_List(list, targ->path, 0, LIST_FILES | LIST_NO_DOT);
 	
 	for (s32 i = 0; i < list->num; i++) {
 		if (StrStr(list->item[i], "normalize"))
@@ -147,7 +147,7 @@ void Make_Sound(void) {
 	Thread thread[THREAD_NUM];
 	s32 i = 0;
 	
-	ItemList_List(&list, "rom/sound/sample/", 1, LIST_FOLDERS);
+	ItemList_List(&list, "rom/sound/sample/", 0, LIST_FOLDERS | LIST_NO_DOT);
 	
 	if (list.num <= 1)
 		goto free;
@@ -366,7 +366,7 @@ static s32 Callback_Actor(const char* input, PassType type, void* arg, void* arg
 			ItemList list = ItemList_Initialize();
 			
 			String_Replace(sourceFolder, "rom/", "src/");
-			ItemList_List(&list, sourceFolder, -1, LIST_FILES);
+			ItemList_List(&list, sourceFolder, -1, LIST_FILES | LIST_NO_DOT);
 			
 			MemFile_Malloc(&srcFile, MbToBin(1.0f));
 			MemFile_Params(&srcFile, MEM_REALLOC, true, MEM_END);
@@ -641,7 +641,7 @@ static void Make_Linker_Thread(ThreadArg* arg) {
 	u32 inputStrLen = 0;
 	u32 breaker = true;
 	
-	ItemList_List(&itemList, arg->path, -1, LIST_FILES);
+	ItemList_List(&itemList, arg->path, -1, LIST_FILES | LIST_NO_DOT);
 	
 	if (!Sys_Stat(bin))
 		breaker = false;
@@ -742,7 +742,7 @@ static void Make_Code_Thread_O(ThreadArg* arg) {
 		list = Malloc(list, sizeof(ItemList));
 		*list = ItemList_Initialize();
 		
-		ItemList_List(list, input, -1, LIST_FILES);
+		ItemList_List(list, input, -1, LIST_FILES | LIST_NO_DOT);
 		
 		for (s32 i = 0; i < list->num; i++) {
 			if (i == 0)
@@ -796,7 +796,7 @@ void Make_Code_Thread_Single(ThreadArg* arg) {
 		return;
 	}
 	
-	ItemList_List(&itemList, arg->path, -1, LIST_FILES);
+	ItemList_List(&itemList, arg->path, -1, LIST_FILES | LIST_NO_DOT);
 	
 	while (i < itemList.num) {
 		u32 target = Clamp(itemList.num - i, 0, THREAD_NUM);
@@ -835,7 +835,7 @@ void Make_Code_Thread_Folder(ThreadArg* arg) {
 		return;
 	}
 	
-	ItemList_List(&itemList, arg->path, 1, LIST_FOLDERS);
+	ItemList_List(&itemList, arg->path, 0, LIST_FOLDERS | LIST_NO_DOT);
 	
 	while (i < itemList.num) {
 		u32 target = Clamp(itemList.num - i, 0, THREAD_NUM);

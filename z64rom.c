@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.10";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.11";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gGenericNames;
@@ -17,12 +17,12 @@ extern u32 gThreading;
 #define ROM_DEV     1
 
 s32 gBuildTarget = ROM_DEV;
-const char* gRomName_Output[] = {
-	"build-release.z64",
-	"build-dev.z64",
+char gRomName_Output[2][64] = {
+	/* "build-release.z64", */
+	/* "build-dev.z64", */
 };
 
-s32 Main_IsSameFile(const char* new, const char* cur) {
+s32 Main_IsSameFile(char* new, char* cur) {
 	if (Sys_StatF(new, STAT_ACCS) != Sys_StatF(cur, STAT_ACCS))
 		return false;
 	if (Sys_StatF(new, STAT_MODF) != Sys_StatF(cur, STAT_MODF))
@@ -82,7 +82,7 @@ void Main_SuperCompression(const char* input) {
 	exit(0);
 }
 
-void Main_CompressRom(const char* input) {
+void Main_CompressRom(char* input) {
 	char cmd[512];
 	char romName[64];
 	
@@ -182,9 +182,17 @@ void Main_Config(char** input, Rom* rom) {
 	
 	if (Sys_Stat(projectConfig)) {
 		char* projectRom;
+		char* buildRom;
 		
 		MemFile_LoadFile_String(config, projectConfig);
 		projectRom = Config_GetString(config, "z_baserom");
+		buildRom = Config_GetString(config, "z_buildrom");
+		
+		if (strlen(buildRom) > 64 - strlen("-release.z64"))
+			printf_error("z_buildrom is too long");
+		
+		sprintf(gRomName_Output[0], "%s-release.z64", Config_GetString(config, "z_buildrom"));
+		sprintf(gRomName_Output[1], "%s-dev.z64", Config_GetString(config, "z_buildrom"));
 		
 		if (!Sys_Stat(projectRom))
 			printf_error("Could not locate your baserom [%s]", projectRom);
@@ -245,9 +253,11 @@ void Main_Config(char** input, Rom* rom) {
 	
 	MemFile_Printf(config, "# Project Settings\n");
 	if (*input)
-		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", *input);
+		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", String_GetFilename(*input));
 	else
 		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", "__ROM_NAME__");
+	
+	MemFile_Printf(config, "%-15s = \"%s\"\n", "z_buildrom", "build");
 	MemFile_Printf(config, "%-15s = \"%s\" # [oot_debug/oot_u10]\n", "z_rom_type", "__PLACEHOLDER__");
 	
 	MemFile_Printf(config, "\n# Mips64 Flags\n");
@@ -403,7 +413,36 @@ s32 Main(s32 argc, char* argv[]) {
 		printf_toolinfo(gToolName, "");
 		
 		if (sDumpFlag) {
-			if (gExtractAudio) {
+			s32 soundsDumped = false;
+			
+			if (Sys_Stat("rom/sound/sample/")) {
+				ItemList list = ItemList_Initialize();
+				
+				ItemList_List(&list, "rom/sound/sample/.vanilla/", -1, LIST_FILES | LIST_RELATIVE);
+				
+				for (s32 i = 0, j = 0; i < list.num; i++) {
+					if (StrEndCase(list.item[i], ".wav")) {
+						j++;
+						if (j > 400) {
+							printf_info("WAV dump already exists.");
+							printf_info("Want to redump WAV anyway? " PRNT_DGRY "[y/n]");
+							if (Terminal_YesOrNo()) {
+								gExtractAudio = true;
+							} else {
+								gExtractAudio = false;
+							}
+							
+							soundsDumped = true;
+							
+							break;
+						}
+					}
+				}
+				
+				ItemList_Free(&list);
+			}
+			
+			if (gExtractAudio && soundsDumped == false) {
 				printf_info("Extract " PRNT_REDD "wav audio samples" PRNT_RSET "?");
 				printf_info("This is required if you want to make changes to audio. " PRNT_DGRY "[y/n]");
 				if (!Terminal_YesOrNo()) gExtractAudio = false;
@@ -412,6 +451,7 @@ s32 Main(s32 argc, char* argv[]) {
 			}
 			
 			Rom_New(rom, input);
+			
 			Rom_Dump(rom);
 		} else {
 			u32 pkgInstalled = 0;
@@ -425,7 +465,7 @@ s32 Main(s32 argc, char* argv[]) {
 			}
 			
 			if (pkgInstalled) {
-				printf_info("All packages have been imported successfully!\n");
+				printf_info("All packages have been installed successfully!\n");
 				goto free;
 			}
 			
@@ -457,6 +497,7 @@ s32 Main(s32 argc, char* argv[]) {
 	}
 	
 	printf_toolinfo(gToolName, "Nothing provided, nothing happens!");
+	
 free:
 	
 	if (input && rom->config.dataSize)

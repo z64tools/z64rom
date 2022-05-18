@@ -1,4 +1,4 @@
-CFLAGS         := -s -flto -Wall -DEXTLIB=129 -DNDEBUG
+CFLAGS         := -s -flto -Wall -DEXTLIB=130 -DNDEBUG
 CFLAGS_MAIN    := -s -Wall -pthread -DNDEBUG
 OPT_WIN32      := -O2
 OPT_LINUX      := -Ofast

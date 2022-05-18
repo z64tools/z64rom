@@ -111,6 +111,7 @@ typedef struct Rom {
 			u16 state;
 			u16 scene;
 			u16 kaleido;
+			u16 skybox;
 		} num;
 	} table;
 	struct {
@@ -190,7 +191,7 @@ extern s32 gMakeForce;
 extern const char* gMakeTarget;
 
 extern s32 gBuildTarget;
-extern const char* gRomName_Output[];
+extern char gRomName_Output[2][64];
 
 void fix_crc(unsigned char* rom);
 

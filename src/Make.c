@@ -94,7 +94,14 @@ static void Sound_Convert(ThreadArg* targ) {
 		goto free;
 	
 	if (vadpcm == NULL || (Sys_Stat(audio) > Sys_Stat(vadpcm)) || gMakeForce) {
-		char command[512];
+		char command[2056];
+		char* config;
+		
+		config = Malloc(config, 0x1024);
+		
+		strcpy(config, targ->path);
+		String_Replace(config, "rom/sound/sample/", "rom/sound/sample/.vanilla/");
+		strcat(config, "config.cfg");
 		
 		if (vadpcm == NULL)
 			vadpcm = Tmp_Printf("%ssample.bin", targ->path);
@@ -110,6 +117,19 @@ static void Sound_Convert(ThreadArg* targ) {
 			catprintf(command, " --book \"%s\"", book);
 		if (normalize)
 			catprintf(command, " --m --n");
+		
+		if (Sys_Stat(config)) {
+			MemFile mem = MemFile_Initialize();
+			
+			MemFile_LoadFile_String(&mem, config);
+			catprintf(
+				command,
+				" --z64rom --basenote %d --finetune %d",
+				Config_GetInt(&mem, "basenote"),
+				Config_GetInt(&mem, "finetune")
+			);
+			MemFile_Free(&mem);
+		}
 		
 		if (SysExe(command)) printf_error("z64audio failed to run");
 		Make_Info("z64audio", audio);
@@ -133,7 +153,7 @@ void Make_Sound(void) {
 		goto free;
 	
 	if (gThreading)
-		Thread_Init();
+		ThreadLock_Init();
 	while (i < list.num) {
 		u32 target = Clamp(list.num - i, 0, THREAD_NUM);
 		
@@ -141,20 +161,22 @@ void Make_Sound(void) {
 			targ[j].path = list.item[i + j];
 			
 			if (gThreading) {
-				Thread_Create(&thread[j], Sound_Convert, &targ[j]);
+				Log("Sound Thread Path [%s]", targ[j].path);
+				ThreadLock_Create(&thread[j], Sound_Convert, &targ[j]);
 			} else {
+				Log("Sound Path [%s]", targ[j].path);
 				Sound_Convert(&targ[j]);
 			}
 		}
 		
 		if (gThreading)
 			for (s32 j = 0; j < target; j++)
-				Thread_Join(&thread[j]);
+				ThreadLock_Join(&thread[j]);
 		
 		i += THREAD_NUM;
 	}
 	if (gThreading)
-		Thread_Free();
+		ThreadLock_Free();
 	
 free:
 	ItemList_Free(&list);
@@ -725,7 +747,7 @@ static void Make_Code_Thread_O(ThreadArg* arg) {
 		for (s32 i = 0; i < list->num; i++) {
 			if (i == 0)
 				ninput = Calloc(ninput, 1024 * 8);
-			if (StrEndCase(list->item[i], ".o")){
+			if (StrEndCase(list->item[i], ".o")) {
 				catprintf(ninput, "%s ", list->item[i]);
 				files++;
 			}
@@ -785,7 +807,7 @@ void Make_Code_Thread_Single(ThreadArg* arg) {
 			passArg[j].i = i + j;
 			
 			if (gThreading) {
-				Thread_Create(&thread[j], arg->func, &passArg[j]);
+				ThreadLock_Create(&thread[j], arg->func, &passArg[j]);
 			} else {
 				arg->func(&passArg[j]);
 			}
@@ -793,7 +815,7 @@ void Make_Code_Thread_Single(ThreadArg* arg) {
 		
 		if (gThreading)
 			for (s32 j = 0; j < target; j++)
-				Thread_Join(&thread[j]);
+				ThreadLock_Join(&thread[j]);
 		
 		i += THREAD_NUM;
 	}
@@ -824,7 +846,7 @@ void Make_Code_Thread_Folder(ThreadArg* arg) {
 			passArg[j].i = i + j;
 			
 			if (gThreading) {
-				Thread_Create(&thread[j], arg->func, &passArg[j]);
+				ThreadLock_Create(&thread[j], arg->func, &passArg[j]);
 			} else {
 				arg->func(&passArg[j]);
 			}
@@ -832,7 +854,7 @@ void Make_Code_Thread_Folder(ThreadArg* arg) {
 		
 		if (gThreading)
 			for (s32 j = 0; j < target; j++)
-				Thread_Join(&thread[j]);
+				ThreadLock_Join(&thread[j]);
 		
 		i += THREAD_NUM;
 	}
@@ -880,7 +902,7 @@ void Make_Code(void) {
 	ThreadArg args[ArrayCount(pathC)] = { 0 };
 	
 	if (gThreading)
-		Thread_Init();
+		ThreadLock_Init();
 	
 	for (s32 set = 0; set < ArrayCount(pathC); set++) {
 		args[set].path = pathC[set];
@@ -888,27 +910,27 @@ void Make_Code(void) {
 		args[set].func = Make_Code_Thread_C;
 		args[set].callback = callback[set];
 		if (gThreading) {
-			Thread_Create(&thread[set], Make_Code_Thread_Single, &args[set]);
+			ThreadLock_Create(&thread[set], Make_Code_Thread_Single, &args[set]);
 		} else {
 			Make_Code_Thread_Single(&args[set]);
 		}
 	}
 	
 	if (gThreading)
-		Thread_Join(&thread[0]);
+		ThreadLock_Join(&thread[0]);
 	memset(&args[0], 0, sizeof(args[0]));
 	args[0].path = pathO[0];
 	args[0].flag = flagLinker[0];
 	
 	if (gThreading) {
-		Thread_Create(&thread[0], Make_Linker_Thread, &args[0]);
+		ThreadLock_Create(&thread[0], Make_Linker_Thread, &args[0]);
 	} else {
 		Make_Linker_Thread(&args[0]);
 	}
 	
 	for (s32 set = 0; set < ArrayCount(pathC); set++) {
 		if (gThreading)
-			Thread_Join(&thread[set]);
+			ThreadLock_Join(&thread[set]);
 		
 		if (set == 0)
 			continue;
@@ -922,13 +944,13 @@ void Make_Code(void) {
 		// Process as folders if Actor, System or Effect
 		if (set >= 2) {
 			if (gThreading) {
-				Thread_Create(&thread[set], Make_Code_Thread_Folder, &args[set]);
+				ThreadLock_Create(&thread[set], Make_Code_Thread_Folder, &args[set]);
 			} else {
 				Make_Code_Thread_Folder(&args[set]);
 			}
 		} else {
 			if (gThreading) {
-				Thread_Create(&thread[set], Make_Code_Thread_Single, &args[set]);
+				ThreadLock_Create(&thread[set], Make_Code_Thread_Single, &args[set]);
 			} else {
 				Make_Code_Thread_Single(&args[set]);
 			}
@@ -937,10 +959,10 @@ void Make_Code(void) {
 	
 	if (gThreading)
 		for (s32 set = 1; set < ArrayCount(pathC); set++)
-			Thread_Join(&thread[set]);
+			ThreadLock_Join(&thread[set]);
 	
 	if (gThreading)
-		Thread_Free();
+		ThreadLock_Free();
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -948,6 +970,7 @@ void Make_Code(void) {
 // # # # # # # # # # # # # # # # # # # # #
 
 void Make(Rom* rom) {
+	Log("Load Flags");
 	gFlags = Config_GetString(&rom->config, "mips64_gcc_flags");
 	gFlagsCode = Config_GetString(&rom->config, "mips64_gcc_flags_code");
 	gFlagsLink = Config_GetString(&rom->config, "mips64_ld_flags");

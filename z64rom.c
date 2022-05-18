@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.8";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.9";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gGenericNames;
@@ -141,6 +141,8 @@ void Main_RenameRooms(const char* from, const char* to) {
 s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 	u32 parArg = 0;
 	
+	Log("Going through arguments...");
+	
 	if (Arg("zmap")) {
 		Main_RenameRooms(".zroom", ".zmap");
 		
@@ -195,7 +197,7 @@ void Main_Config(char** input, Rom* rom) {
 				if (Main_IsSameFile(*input, gRomName_Output[i])) {
 					Main_CompressRom(gRomName_Output[i]);
 					
-					Terminal_GetChar();
+					printf_getchar("Press enter to exit.");
 					exit(0);
 				}
 			}
@@ -237,6 +239,7 @@ void Main_Config(char** input, Rom* rom) {
 	
 	sDumpFlag = true;
 	
+	Log("Writing [%s]", projectConfig);
 	MemFile_Reset(config);
 	MemFile_Malloc(config, MbToBin(2.5));
 	
@@ -277,7 +280,7 @@ void Main_Config(char** input, Rom* rom) {
 void Main_z64project() {
 	printf_toolinfo(gToolName, "Release Build");
 	
-	gBuildTarget = false;
+	gBuildTarget = ROM_RELEASE;
 	
 	if (Sys_Stat(gRomName_Output[ROM_DEV]) > Sys_Stat(gRomName_Output[ROM_RELEASE])) {
 		gMakeForce = true;
@@ -303,6 +306,7 @@ s32 Main(s32 argc, char* argv[]) {
 				printf_error("Too many roms provided as arguments!");
 			input = argv[i];
 			romCount++;
+			Log("Rom [%s]", input);
 		}
 		
 		if (Main_IsSameFile(argv[i], "z64project.cfg"))
@@ -345,10 +349,12 @@ s32 Main(s32 argc, char* argv[]) {
 	
 	switch (Tools_Init()) {
 		case -1: {
+			Log("Tools init [-1]");
 			goto free;
 		}
 		
 		case 1: {
+			Log("Tools init [1]");
 			for (s32 i = 0; i < argc; i++) {
 				if (StrEnd(argv[i], ".z64") || StrEnd(argv[i], ".Z64")) {
 					char* filename = String_GetFilename(argv[i]);

@@ -1251,7 +1251,6 @@ void Rom_New(Rom* rom, char* romName) {
 	u16* addr;
 	
 	rom->file = MemFile_Initialize();
-	MemFile_Params(&rom->file, MEM_FILENAME, true, MEM_END);
 	
 	if (MemFile_LoadFile(&rom->file, romName)) {
 		printf_error_align("Error Opening", "%s", romName);

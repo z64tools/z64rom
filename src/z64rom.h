@@ -191,7 +191,7 @@ extern s32 gMakeForce;
 extern const char* gMakeTarget;
 
 extern s32 gBuildTarget;
-extern char gRomName_Output[2][64];
+extern char gRomName_Output[2][128];
 
 void fix_crc(unsigned char* rom);
 

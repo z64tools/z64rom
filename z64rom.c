@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.11";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.5.12";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gGenericNames;
@@ -17,7 +17,7 @@ extern u32 gThreading;
 #define ROM_DEV     1
 
 s32 gBuildTarget = ROM_DEV;
-char gRomName_Output[2][64] = {
+char gRomName_Output[2][128] = {
 	/* "build-release.z64", */
 	/* "build-dev.z64", */
 };
@@ -188,8 +188,8 @@ void Main_Config(char** input, Rom* rom) {
 		projectRom = Config_GetString(config, "z_baserom");
 		buildRom = Config_GetString(config, "z_buildrom");
 		
-		if (strlen(buildRom) > 64 - strlen("-release.z64"))
-			printf_error("z_buildrom is too long");
+		if (strlen(buildRom) > 128 - strlen("-release.z64"))
+			printf_error("z_buildrom name is too long");
 		
 		sprintf(gRomName_Output[0], "%s-release.z64", Config_GetString(config, "z_buildrom"));
 		sprintf(gRomName_Output[1], "%s-dev.z64", Config_GetString(config, "z_buildrom"));

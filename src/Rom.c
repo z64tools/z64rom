@@ -1237,6 +1237,15 @@ void Rom_Build(Rom* rom) {
 		Dir_Leave();
 	}
 	
+	Slot* slot = gSlotHead;
+	
+	while (slot->next)
+		slot = slot->next;
+	
+	rom->file.dataSize = slot->romStart;
+	
+	rom->file.dataSize = Align(rom->file.dataSize, MbToBin(1));
+	
 	fix_crc(rom->file.data);
 	MemFile_SaveFile(&rom->file, gRomName_Output[gBuildTarget]);
 	
@@ -1249,6 +1258,8 @@ void Rom_New(Rom* rom, char* romName) {
 	u16* addr;
 	
 	rom->file = MemFile_Initialize();
+	
+	MemFile_Malloc(&rom->file, MbToBin(128));
 	
 	if (MemFile_LoadFile(&rom->file, romName)) {
 		printf_error_align("Error Opening", "%s", romName);

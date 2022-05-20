@@ -558,8 +558,9 @@ void Tools_CheckUpdates() {
 	curVer = cnum[0] * 1000 + cnum[1] * 100 + cnum[2];
 	
 	if (newVer > curVer) {
-		printf_info("Update available [%d.%d.%d]", vnum[0], vnum[1], vnum[2]);
-		SleepF(1.0);
+		printf_toolinfo(gToolName, "");
+		Terminal_ClearLines(2);
+		printf_warning("Update available [" PRNT_BLUE "%d.%d.%d" PRNT_RSET "]\n", vnum[0], vnum[1], vnum[2]);
 	}
 	
 	Free(updateApi);

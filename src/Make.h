@@ -3,7 +3,6 @@
 
 struct Rom;
 
-void Tools_CheckUpdates(void);
 void Make(struct Rom* rom);
 u32 Overlay_GetInit(void* overlay, u32 size);
 

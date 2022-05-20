@@ -1,3 +1,4 @@
+#include "z64rom.h"
 #include "Tools.h"
 #include <zip.h>
 
@@ -474,6 +475,8 @@ s32 Tools_Init(void) {
 		return -1;
 	}
 	
+	Tools_CheckUpdates();
+	
 	if (Tools_Validate_AddiTools() || !Sys_Stat("include/z64hdr/") || Sys_Stat("tools/.failsafe") || Sys_Stat("tools/.installing")) {
 		setupFlag = 1;
 		dll = MemFile_Initialize();
@@ -518,4 +521,52 @@ s32 Tools_Init(void) {
 	}
 	
 	return setupFlag;
+}
+
+void Tools_CheckUpdates() {
+	char* updateApi;
+	char* url = "https://api.github.com/repos/z64tools/z64rom/releases/latest";
+	char buffer[1024];
+	char* tag;
+	u32 sz = 0;
+	u32 vnum[3] = { -1, -1, -1 };
+	u32 cnum[3] = { -1, -1, -1 };
+	u32 curVer, newVer;
+	
+	Tools_Command(buffer, wget, "%s -q -O -", url);
+	updateApi = SysExeO(buffer);
+	
+	tag = StrStr(updateApi, "\"tag_name\": ");
+	
+	if (tag == NULL) goto error;
+	
+	tag += strlen("\"tag_name\": \"");
+	
+	while (tag[sz] != '\"') sz++;
+	
+	memset(buffer, 0, sz + 1);
+	memcpy(buffer, tag, sz);
+	
+	sscanf(buffer, "z64rom_%d.%d.%d", &vnum[0], &vnum[1], &vnum[2]);
+	sscanf(gToolName, "" PRNT_BLUE "z64rom " PRNT_GRAY "%d.%d.%d", &cnum[0], &cnum[1], &cnum[2]);
+	
+	for (s32 i = 0; i < 3; i++)
+		if (vnum[i] == -1 || cnum[i] == -1)
+			goto error;
+	
+	newVer = vnum[0] * 1000 + vnum[1] * 100 + vnum[2];
+	curVer = cnum[0] * 1000 + cnum[1] * 100 + cnum[2];
+	
+	if (newVer > curVer) {
+		printf_info("Update available [%d.%d.%d]", vnum[0], vnum[1], vnum[2]);
+		SleepF(1.0);
+	}
+	
+	Free(updateApi);
+	
+	return;
+	
+error:
+	printf_warning("Could not retrieve update information");
+	Free(updateApi);
 }

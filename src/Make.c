@@ -979,8 +979,6 @@ void Make(Rom* rom) {
 	if (gBuildTarget)
 		gFlags = Tmp_Printf("%s -DDEV_BUILD", gFlags);
 	
-	Tools_Get(z64audio);
-	
 	if (!gFlags || !gFlagsCode || !gFlagsLink)
 		printf_error("[z64project.cfg] is missing mips64 flags! Please, do fresh dump!");
 	

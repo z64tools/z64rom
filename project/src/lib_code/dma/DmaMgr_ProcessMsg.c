@@ -6,7 +6,6 @@
  */
 
 void DmaMgr_ProcessMsg(DmaRequest* req) {
-	static u32 s = 0;
 	u32 vrom = req->vromAddr;
 	void* ram = req->dramAddr;
 	u32 size = req->size;

@@ -1,6 +1,9 @@
 #include "z64rom.h"
 #include <zip.h>
 
+MemFile __actor_object_list;
+MemFile* sDepList = &__actor_object_list;
+
 static inline char* __ForSection(char* cfg) {
 	u32 lineCount = String_LineNum(cfg);
 	char* scfg = cfg;
@@ -105,30 +108,144 @@ void Package_Sound(struct zip_t* pkg, char* cfg) {
 	Free(f);
 }
 
-static s32 Window_Index(Terminal* terminal, void* a1, void* a2, s32 key) {
-	if (key == '\n')
-		return 1;
-	
-	return 0;
-}
-
 void Package_Actor(struct zip_t* pkg, char* cfg) {
-	ItemList list = ItemList_Initialize();
-	char* file = Config_GetVariable(cfg, "file");
 	char* name = Config_GetVariable(cfg, "name");
-	s32 actorID = 0;
-	s32 objectID = 0;
-	char buffer[512] = { 0 };
+	ItemList list = ItemList_Initialize();
+	ItemList actorList = ItemList_Initialize();
+	ItemList objectList = ItemList_Initialize();
+	const char* tmp = "NotHex";
+	char buf[512];
+	s32 actorID = -1;
+	s32 objectID = -1;
+	char* object;
+	s32 getFree = false;
+	MemFile mout = MemFile_Initialize();
 	
-	if (file == NULL) {
-		Config_GetArray(&list, cfg, "files");
+	MemFile_Malloc(&mout, MbToBin(32));
+	Config_GetArray(&list, cfg, "files");
+	object = ItemList_GetWildItem(&list, ".zobj");
+	
+	printf_info("Import [%s] to ActorID: " PRNT_DGRY "provide values as hex or [free] to get first free index", name);
+	
+	for (s32 i = 0; !String_Validate_Hex(tmp); i++) {
+		if (i > 0)
+			Terminal_ClearLines(2);
+		tmp = Terminal_GetStr();
 		
-		for (s32 i = 0; i < list.num; i++)
-			if (StrEndCase(list.item[i], ".zobj"))
-				objectID = true;
+		if (StrMtch(tmp, "free")) {
+			getFree = true;
+			break;
+		}
 	}
 	
-	Terminal_Window(Window_Index, 0, 0);
+	Terminal_ClearLines(3);
+	SleepF(0.1);
+	
+	if (getFree) {
+		Rom_ItemList_NDIR(&actorList, "rom/actor/", SORT_NUMERICAL, LIST_FOLDERS);
+		Rom_ItemList_NDIR(&objectList, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
+		
+		for (s32 i = 1; i < actorList.num; i++) {
+			if (actorList.item[i] == NULL) {
+				actorID = i;
+				break;
+			}
+		}
+		if (object) {
+			for (s32 i = 1; i < objectList.num; i++) {
+				if (objectList.item[i] == NULL) {
+					objectID = i;
+					break;
+				}
+			}
+		}
+	} else
+		actorID = String_GetHexInt(tmp);
+	
+	if (actorID == -1 && getFree)
+		printf_error("Could not find free ActorID");
+	if (object && objectID == -1 && getFree)
+		printf_error("Could not find free ObjectID");
+	
+	if (object && objectID == -1) {
+		char fmt[512] = "Import [%s] to ObjectID: " PRNT_DGRY "";
+		ItemList recList = ItemList_Initialize();
+		
+		sprintf(buf, "0x%04X", String_GetHexInt(tmp));
+		Config_GetArray(&recList, sDepList->str, buf);
+		
+		for (s32 i = 0; i < recList.num; i++) {
+			if (i > 0)
+				strcat(fmt, "  ");
+			strcat(fmt, recList.item[i]);
+			strcat(fmt, " - ");
+			strcat(fmt, gObjectName_OoT[String_GetHexInt(recList.item[i])]);
+		}
+		
+		tmp = "NotHex";
+		printf_info(fmt, object);
+		
+		for (s32 i = 0; !String_Validate_Hex(tmp); i++) {
+			if (i > 0)
+				Terminal_ClearLines(2);
+			tmp = Terminal_GetStr();
+		}
+		
+		objectID = String_GetHexInt(tmp);
+		ItemList_Free(&recList);
+	}
+	
+	Terminal_ClearLines(3);
+	printf_info("%s, ActorID 0x%04X ObjectID 0x%04X\n", name, actorID, objectID);
+	
+	for (s32 i = 0; i < list.num; i++) {
+		char* file;
+		u32 size;
+		void* f;
+		s32 write = false;
+		s32 string = false;
+		
+		if (StrEndCase(list.item[i], ".c") || StrEndCase(list.item[i], ".h")) {
+			file = Tmp_Printf("src/actor/0x%04X-%s/%s", actorID, name, list.item[i]);
+			Sys_MakeDir("src/actor/0x%04X-%s/", actorID, name);
+			string = true;
+			write = true;
+		}
+		
+		if (StrEndCase(list.item[i], ".zovl") || StrEndCase(list.item[i], ".cfg")) {
+			file = Tmp_Printf("rom/actor/0x%04X-%s/%s", actorID, name, list.item[i]);
+			Sys_MakeDir("rom/actor/0x%04X-%s/", actorID, name);
+			write = true;
+			if (StrEndCase(list.item[i], ".cfg"))
+				string = true;
+		}
+		
+		if (objectID > 0 && StrEndCase(list.item[i], ".zobj")) {
+			file = Tmp_Printf("rom/object/0x%04X-%s/%s", objectID, name, list.item[i]);
+			Sys_MakeDir("rom/object/0x%04X-%s/", objectID, name);
+			write = true;
+		}
+		
+		if (write == false)
+			continue;
+		
+		zip_entry_open(pkg, list.item[i]);
+		if (zip_entry_read(pkg, &f, &size) < 0)
+			printf_error("Could not extract [%s]", list.item[i]);
+		zip_entry_close(pkg);
+		
+		MemFile_Reset(&mout);
+		MemFile_Write(&mout, f, size);
+		if (string)
+			MemFile_SaveFile_String(&mout, file);
+		else
+			MemFile_SaveFile(&mout, file);
+	}
+	
+	MemFile_Free(&mout);
+	ItemList_Free(&list);
+	ItemList_Free(&actorList);
+	ItemList_Free(&objectList);
 }
 
 void Package_Load(const char* item) {
@@ -148,6 +265,8 @@ void Package_Load(const char* item) {
 		return;
 	}
 	zip_entry_close(pkg);
+	
+	MemFile_LoadFile_String(sDepList, "tools/actor-object-deb.toml");
 	
 	for (s32 i = 0; (sct = Package_GetSection(cfg, i)) != NULL; i++) {
 		s32 j = 0;
@@ -174,6 +293,7 @@ void Package_Load(const char* item) {
 		Free(sct);
 	}
 	
+	MemFile_Free(sDepList);
 	Free(cfg);
 	zip_close(pkg);
 }

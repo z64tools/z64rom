@@ -3,7 +3,7 @@
 
 struct Rom;
 
-void Make(struct Rom* rom);
+void Make(struct Rom* rom, s32 message);
 u32 Overlay_GetInit(void* overlay, u32 size);
 
 typedef enum {

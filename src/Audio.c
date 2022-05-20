@@ -829,8 +829,11 @@ static void SoundFont_Instrument_Validate(MemFile* mem, const char* file, Instru
 		printf_warning("[hi_sample] sounds is not going to play with this splitting!");
 	}
 	
-	if ((smplNum == 1 && inst->splitHi != 127) || inst->splitHi == 0) {
+	if (!smpl[2] && inst->splitHi < 127) {
+		printf_warning("split_hi fixed for [%s]", file);
 		Config_Replace(mem, "split_hi", "127");
+		
+		mem->dataSize = strlen(mem->str);
 		MemFile_SaveFile_String(mem, file);
 		inst->splitHi = 127;
 	}
@@ -842,9 +845,8 @@ static s32 SoundFont_Instrument_AssignNames(MemFile* mem, char** smplNam, MemFil
 	for (s32 soundID = 0; soundID < 3; soundID++) {
 		smplNam[soundID] = Config_GetString(mem, sSFSampleName[soundID]);
 		if (smplNam[soundID] == NULL) {
-			smplNam[soundID] = NULL;
 			continue;
-		} else if (!memcmp(smplNam[soundID], "NULL", 4)) {
+		} else if (StrMtch(smplNam[soundID], "NULL")) {
 			smplNam[soundID] = NULL;
 			continue;
 		}
@@ -877,7 +879,6 @@ static void SoundFont_Instrument_AssignIndexes(MemFile* mem, char** smplNam, s32
 					inst->sound[soundID].tuning = Config_GetFloat(mem, sSFSampleTuning[soundID]);
 				
 				SwapBE(inst->sound[soundID].swap32);
-				smplNam[soundID] = NULL;
 				smplID[soundID] = sampleID;
 				break;
 			}

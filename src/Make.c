@@ -970,7 +970,7 @@ void Make_Code(void) {
 // # MAKE                                #
 // # # # # # # # # # # # # # # # # # # # #
 
-void Make(Rom* rom) {
+void Make(Rom* rom, s32 message) {
 	Log("Load Flags");
 	gFlags = Config_GetString(&rom->config, "mips64_gcc_flags");
 	gFlagsCode = Config_GetString(&rom->config, "mips64_gcc_flags_code");
@@ -994,6 +994,6 @@ void Make(Rom* rom) {
 	
 	printf_WinFix();
 	
-	if (sMake)
+	if (sMake && message)
 		printf_info_align("Make", "OK\n");
 }

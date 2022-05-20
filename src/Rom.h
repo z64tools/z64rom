@@ -16,6 +16,7 @@ void Rom_Debug_DmaEntry(struct Rom* rom, u32 id);
 void Rom_Debug_SceneEntry(struct Rom* rom, u32 id);
 
 void Rom_ItemList(ItemList* list, bool isNum, bool isDir);
+void Rom_ItemList_NDIR(ItemList* list, const char* path, bool isNum, ListFlags flags);
 s32 Rom_Extract(MemFile* mem, struct RomFile rom, char* name);
 
 #endif

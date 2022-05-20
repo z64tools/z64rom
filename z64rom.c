@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.6.1";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.6.2";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gGenericNames;
@@ -485,7 +485,7 @@ s32 Main(s32 argc, char* argv[]) {
 			if (Sys_Stat("z64project.cfg")) {
 				if (!Arg("no-make")) {
 					printf_toolinfo(gToolName, "");
-					Make(rom);
+					Make(rom, true);
 				}
 				if (Arg("make-only")) goto free;
 			}

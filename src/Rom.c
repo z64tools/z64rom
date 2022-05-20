@@ -1587,6 +1587,105 @@ void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 	ItemList_Free(&modified);
 }
 
+void Rom_ItemList_NDIR(ItemList* list, const char* path, bool isNum, ListFlags flags) {
+	ItemList vanilla = ItemList_Initialize();
+	ItemList modified = ItemList_Initialize();
+	ItemList result = ItemList_Initialize();
+	
+	ItemList_List(&vanilla, Tmp_Printf("%s.vanilla/", path), 0, flags | LIST_RELATIVE);
+	ItemList_List(&modified, path, 0, flags | LIST_NO_DOT | LIST_RELATIVE);
+	
+	if (isNum) {
+		ItemList_NumericalSort(&vanilla);
+		ItemList_NumericalSort(&modified);
+	}
+	
+	*list = (ItemList) { 0 };
+	list->item = Tmp_Alloc(sizeof(u8*) * (modified.num + vanilla.num));
+	
+	if (isNum) {
+		u32 maxNum = 0;
+		
+		for (s32 i = 0; i < modified.num; i++) {
+			if (modified.item[i] == NULL)
+				continue;
+			if (String_GetInt(modified.item[i]) > maxNum) {
+				maxNum = String_GetInt(modified.item[i]);
+			}
+		}
+		
+		for (s32 i = 0; i < vanilla.num; i++) {
+			if (vanilla.item[i] == NULL)
+				continue;
+			if (String_GetInt(vanilla.item[i]) > maxNum)
+				maxNum = String_GetInt(vanilla.item[i]);
+		}
+		
+		for (s32 i = 0; i < maxNum + 1; i++) {
+			if (i < modified.num && modified.item[i] && String_GetInt(modified.item[i]) == i) {
+				list->item[list->num] = Tmp_String(modified.item[i]);
+			} else if (i < vanilla.num && vanilla.item[i] && String_GetInt(vanilla.item[i]) == i) {
+				list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
+			} else {
+				list->item[list->num] = NULL;
+			}
+			list->num++;
+		}
+	} else {
+		u32 i = 0;
+		
+		while (i < modified.num) {
+			list->item[list->num] = Tmp_String(modified.item[i]);
+			list->num++;
+			i++;
+		}
+		
+		i = 0;
+		while (i < vanilla.num) {
+			u32 cont = 0;
+			for (s32 j = 0; j < list->num; j++) {
+				if (!strcmp(vanilla.item[i], list->item[j])) {
+					cont = 1;
+					i++;
+					break;
+				}
+			}
+			
+			if (cont) continue;
+			
+			list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
+			list->num++;
+			i++;
+		}
+	}
+	
+	u32 size = 0;
+	
+	for (s32 i = 0; i < list->num; i++) {
+		if (!list->item[i])
+			continue;
+		size += strlen(list->item[i]) + 1;
+	}
+	
+	result.num = list->num;
+	result.buffer = Calloc(result.buffer, size);
+	result.item = Calloc(result.item, sizeof(u8*) * list->num);
+	
+	for (s32 i = 0; i < list->num; i++) {
+		if (!list->item[i])
+			continue;
+		
+		result.item[i] = &result.buffer[result.writePoint];
+		strcpy(result.item[i], list->item[i]);
+		result.writePoint += strlen(result.item[i]) + 1;
+	}
+	
+	list[0] = result;
+	
+	ItemList_Free(&vanilla);
+	ItemList_Free(&modified);
+}
+
 s32 Rom_Extract(MemFile* mem, RomFile rom, char* name) {
 	if (rom.size == 0)
 		return 0;

@@ -138,8 +138,9 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 				id = i;
 				break;
 			}
-			if (i > gDma.highest)
-				printf_error("Coult not find free dma entry");
+			if (i > gDma.highest) {
+				printf_error("Could not find free dma entry");
+			}
 		}
 	}
 	

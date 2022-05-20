@@ -600,7 +600,7 @@ build:
 
 void Code_ObjDump(char* cmd, const char* output) {
 	MemFile linker = MemFile_Initialize();
-	u32 lineNum = String_GetLineCount(cmd);
+	u32 lineNum = String_LineNum(cmd);
 	char* txt = cmd;
 	
 	MemFile_Malloc(&linker, 0x9999);
@@ -745,8 +745,9 @@ static void Make_Code_Thread_O(ThreadArg* arg) {
 		ItemList_List(list, input, -1, LIST_FILES | LIST_NO_DOT);
 		
 		for (s32 i = 0; i < list->num; i++) {
-			if (i == 0)
+			if (i == 0) {
 				ninput = Calloc(ninput, 1024 * 8);
+			}
 			if (StrEndCase(list->item[i], ".o")) {
 				catprintf(ninput, "%s ", list->item[i]);
 				files++;
@@ -868,14 +869,14 @@ void Make_Code(void) {
 		"src/lib_code/",
 		"src/actor/",
 		"src/effect/",
-		"src/system/",
+		"src/system/state/",
 	};
 	const char* pathO[] = {
 		"rom/lib_user/",
 		"rom/lib_code/",
 		"rom/actor/",
 		"rom/effect/",
-		"rom/system/",
+		"rom/system/state/",
 	};
 	const char* flagObject[] = {
 		gFlagsCode,

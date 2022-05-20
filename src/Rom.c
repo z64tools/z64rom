@@ -261,7 +261,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 	MemFile_Realloc(config, config->memSize * 2);
 	
 	line = config->str;
-	lineCount = String_GetLineCount(config->str);
+	lineCount = String_LineNum(config->str);
 	
 	for (s32 i = 0; i < lineCount; i++, line = String_Line(line, 1)) {
 		if (line == NULL)
@@ -590,78 +590,84 @@ void Rom_Dump(Rom* rom) {
 			Dir_Leave();
 		}
 		
-		Dir_Enter("system/.vanilla/"); {
-			for (s32 i = 0; i < rom->table.num.state; i++) {
-				rf = Dma_RomFile_GameState(rom, i);
-				
-				if (rf.size == 0)
-					continue;
-				
-				printf_progress("System", i + 1, rom->table.num.state);
-				Dir_Enter("GameState_%s/", gStateName_OoT[i]); {
-					if (Rom_Extract(&dataFile, rf, Dir_File("state.zovl")))
-						Rom_Config_GameState(&config, &rom->table.state[i], gStateName_OoT[i], Dir_File("config.cfg"));
+		Dir_Enter("system/"); {
+			Dir_Enter("state/.vanilla/"); {
+				for (s32 i = 0; i < rom->table.num.state; i++) {
+					rf = Dma_RomFile_GameState(rom, i);
 					
-					Dir_Leave();
+					if (rf.size == 0)
+						continue;
+					
+					printf_progress("System", i + 1, rom->table.num.state);
+					Dir_Enter("0x%02X-%s/", i, gStateName_OoT[i]); {
+						if (Rom_Extract(&dataFile, rf, Dir_File("state.zovl")))
+							Rom_Config_GameState(&config, &rom->table.state[i], gStateName_OoT[i], Dir_File("config.cfg"));
+						
+						Dir_Leave();
+					}
 				}
+				Dir_Leave();
 			}
 			
-			for (s32 i = 0; i < rom->table.num.kaleido; i++) {
-				Dir_Enter("Kaleido_%s/", gKaleidoName_OoT[i]); {
-					rf.size = ReadBE(rom->table.kaleido[i].vromEnd) - ReadBE(rom->table.kaleido[i].vromStart);
-					rf.data = SegmentedToVirtual(0x0, ReadBE(rom->table.kaleido[i].vromStart));
-					
-					Rom_Extract(&dataFile, rf, Dir_File("overlay.zovl"));
-					Rom_Config_Kaleido(rom, &config, i, gKaleidoName_OoT[i], Dir_File("config.cfg"));
-					
-					Dir_Leave();
+			Dir_Enter("kaleido/.vanilla/"); {
+				for (s32 i = 0; i < rom->table.num.kaleido; i++) {
+					Dir_Enter("0x%02X-%s/", i, gKaleidoName_OoT[i]); {
+						rf.size = ReadBE(rom->table.kaleido[i].vromEnd) - ReadBE(rom->table.kaleido[i].vromStart);
+						rf.data = SegmentedToVirtual(0x0, ReadBE(rom->table.kaleido[i].vromStart));
+						
+						Rom_Extract(&dataFile, rf, Dir_File("overlay.zovl"));
+						Rom_Config_Kaleido(rom, &config, i, gKaleidoName_OoT[i], Dir_File("config.cfg"));
+						
+						Dir_Leave();
+					}
 				}
+				Dir_Leave();
 			}
 			
-			Dir_Leave();
-		}
-		
-		Dir_Enter("static/.vanilla/"); {
-			for (s32 i = 6; i <= DMA_ID_PARAMETER_STATIC; i++) {
-				s32 name = i;
-				if (i > DMA_ID_CODE && i < DMA_ID_OVL_MAP_MARK_DATA)
-					i = DMA_ID_OVL_MAP_MARK_DATA;
-				if (i > DMA_ID_OVL_MAP_MARK_DATA && i < DMA_ID_Z_SELECT_STATIC)
-					i = DMA_ID_Z_SELECT_STATIC;
-				
-				if (name >= DMA_ID_Z_SELECT_STATIC)
-					name -= 901;
-				
-				rf.romStart = ReadBE(rom->table.dma[i].vromStart);
-				rf.romEnd = ReadBE(rom->table.dma[i].vromEnd);
-				rf.size = rf.romEnd - rf.romStart;
-				rf.data = SegmentedToVirtual(0x0, rf.romStart);
-				
-				Rom_Extract(&dataFile, rf, Dir_File("%s.bin", gSystemName_OoT[name]));
-			}
-			
-			Dir_Leave();
-		}
-		
-		Dir_Enter("skybox/.vanilla/"); {
-			for (s32 i = 0; i < 32; i++) {
-				printf_progress("Skybox", i + 1, 32);
-				
-				Dir_Enter("%02d-%s/", i, gSkyboxName_OoT[i]); {
-					rf.romStart = ReadBE(rom->table.dma[941 + i * 2].vromStart);
-					rf.romEnd = ReadBE(rom->table.dma[941 + i * 2].vromEnd);
+			Dir_Enter("static/.vanilla/"); {
+				for (s32 i = 6; i <= DMA_ID_PARAMETER_STATIC; i++) {
+					s32 name = i;
+					if (i > DMA_ID_CODE && i < DMA_ID_OVL_MAP_MARK_DATA)
+						i = DMA_ID_OVL_MAP_MARK_DATA;
+					if (i > DMA_ID_OVL_MAP_MARK_DATA && i < DMA_ID_Z_SELECT_STATIC)
+						i = DMA_ID_Z_SELECT_STATIC;
+					
+					if (name >= DMA_ID_Z_SELECT_STATIC)
+						name -= 901;
+					
+					rf.romStart = ReadBE(rom->table.dma[i].vromStart);
+					rf.romEnd = ReadBE(rom->table.dma[i].vromEnd);
 					rf.size = rf.romEnd - rf.romStart;
 					rf.data = SegmentedToVirtual(0x0, rf.romStart);
-					Rom_Extract(&dataFile, rf, Dir_File("texel.bin"));
 					
-					rf.romStart = ReadBE(rom->table.dma[942 + i * 2].vromStart);
-					rf.romEnd = ReadBE(rom->table.dma[942 + i * 2].vromEnd);
-					rf.size = rf.romEnd - rf.romStart;
-					rf.data = SegmentedToVirtual(0x0, rf.romStart);
-					Rom_Extract(&dataFile, rf, Dir_File("palette.bin"));
-					
-					Dir_Leave();
+					Rom_Extract(&dataFile, rf, Dir_File("%s.bin", gSystemName_OoT[name]));
 				}
+				
+				Dir_Leave();
+			}
+			
+			Dir_Enter("skybox/.vanilla/"); {
+				for (s32 i = 0; i < 32; i++) {
+					printf_progress("Skybox", i + 1, 32);
+					
+					Dir_Enter("%02d-%s/", i, gSkyboxName_OoT[i]); {
+						rf.romStart = ReadBE(rom->table.dma[941 + i * 2].vromStart);
+						rf.romEnd = ReadBE(rom->table.dma[941 + i * 2].vromEnd);
+						rf.size = rf.romEnd - rf.romStart;
+						rf.data = SegmentedToVirtual(0x0, rf.romStart);
+						Rom_Extract(&dataFile, rf, Dir_File("texel.bin"));
+						
+						rf.romStart = ReadBE(rom->table.dma[942 + i * 2].vromStart);
+						rf.romEnd = ReadBE(rom->table.dma[942 + i * 2].vromEnd);
+						rf.size = rf.romEnd - rf.romStart;
+						rf.data = SegmentedToVirtual(0x0, rf.romStart);
+						Rom_Extract(&dataFile, rf, Dir_File("palette.bin"));
+						
+						Dir_Leave();
+					}
+				}
+				
+				Dir_Leave();
 			}
 			
 			Dir_Leave();
@@ -996,43 +1002,16 @@ void Rom_Build(Rom* rom) {
 		}
 		
 		Dir_Enter("system/"); {
-			ItemList gameSysList = ItemList_Initialize();
-			
-			Rom_ItemList(&gameSysList, SORT_NO, IS_DIR);
-			
-			for (s32 i = 0; i < gameSysList.num; i++) {
-				s32 id = 0;
+			Dir_Enter("state/"); {
+				ItemList gameSysList = ItemList_Initialize();
 				
-				printf_progress("System", i + 1, gameSysList.num);
+				Rom_ItemList(&gameSysList, SORT_NUMERICAL, IS_DIR);
 				
-				// Get id based on name
-				for (;; id++) {
-					if (id >= ArrayCount(gStateName_OoT)) {
-						id = 0;
-						break;
-					}
-					if (StrStr(gameSysList.item[i], gStateName_OoT[id])) {
-						id++;
-						break;
-					}
-				}
-				
-				if (id == 0) {
-					for (;; id--) {
-						if (Abs(id) >= ArrayCount(gStateName_OoT)) {
-							id = 0;
-							break;
-						}
-						if (StrStr(gameSysList.item[i], gKaleidoName_OoT[Abs(id)])) {
-							id--;
-							break;
-						}
-					}
-				}
-				
-				// GameState
-				if (id > 0) {
-					id--;
+				for (s32 i = 0; i < gameSysList.num; i++) {
+					printf_progress("System", i + 1, gameSysList.num);
+					
+					if (gameSysList.item[i] == NULL || strlen(gameSysList.item[i]) == 0)
+						continue;
 					
 					Dir_Enter(gameSysList.item[i]); {
 						GameStateEntry* entry = rom->table.state;
@@ -1044,28 +1023,39 @@ void Rom_Build(Rom* rom) {
 						if (MemFile_LoadFile(&dataFile, Dir_File("*.zovl")))
 							printf_error("Exiting");
 						
-						entry[id].init = Config_GetInt(&config, "init_func");
-						entry[id].destroy = Config_GetInt(&config, "dest_func");
+						entry[i].init = Config_GetInt(&config, "init_func");
+						entry[i].destroy = Config_GetInt(&config, "dest_func");
 						
-						entry[id].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-						entry[id].vromEnd = Dma_GetVRomEnd();
+						entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
+						entry[i].vromEnd = Dma_GetVRomEnd();
 						
-						entry[id].vramStart = Config_GetInt(&config, "vram_addr");
-						entry[id].vramEnd = entry[id].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
+						entry[i].vramStart = Config_GetInt(&config, "vram_addr");
+						entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
 						
-						SwapBE(entry[id].init);
-						SwapBE(entry[id].destroy);
-						SwapBE(entry[id].vromStart);
-						SwapBE(entry[id].vromEnd);
-						SwapBE(entry[id].vramStart);
-						SwapBE(entry[id].vramEnd);
+						SwapBE(entry[i].init);
+						SwapBE(entry[i].destroy);
+						SwapBE(entry[i].vromStart);
+						SwapBE(entry[i].vromEnd);
+						SwapBE(entry[i].vramStart);
+						SwapBE(entry[i].vramEnd);
 						
 						Dir_Leave();
 					}
-				} else if (id < 0) {
-					id = Abs(id) - 1;
+				}
+				
+				ItemList_Free(&gameSysList);
+				Dir_Leave();
+			}
+			
+			Dir_Enter("kaleido/"); {
+				ItemList kaleidoList = ItemList_Initialize();
+				
+				Rom_ItemList(&kaleidoList, SORT_NUMERICAL, IS_DIR);
+				
+				for (s32 i = 0; i < kaleidoList.num; i++) {
+					printf_progress("Kaleido", i + 1, kaleidoList.num);
 					
-					Dir_Enter(gameSysList.item[i]); {
+					Dir_Enter(kaleidoList.item[i]); {
 						KaleidoEntry* entry = rom->table.kaleido;
 						RomOffset* romOff = &rom->offset;
 						MemFile_Reset(&config);
@@ -1076,18 +1066,18 @@ void Rom_Build(Rom* rom) {
 						if (MemFile_LoadFile(&dataFile, Dir_File("*.zovl")))
 							printf_error("Exiting");
 						
-						entry[id].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-						entry[id].vromEnd = Dma_GetVRomEnd();
+						entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
+						entry[i].vromEnd = Dma_GetVRomEnd();
 						
-						entry[id].vramStart = Config_GetInt(&config, "vram_addr");
-						entry[id].vramEnd = entry[id].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
+						entry[i].vramStart = Config_GetInt(&config, "vram_addr");
+						entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
 						
-						SwapBE(entry[id].vromStart);
-						SwapBE(entry[id].vromEnd);
-						SwapBE(entry[id].vramStart);
-						SwapBE(entry[id].vramEnd);
+						SwapBE(entry[i].vromStart);
+						SwapBE(entry[i].vromEnd);
+						SwapBE(entry[i].vramStart);
+						SwapBE(entry[i].vramEnd);
 						
-						if (id == 1) { // PLAYER
+						if (i == 1) { // PLAYER
 							Mips64_SplitLoad(
 								SegmentedToVirtual(0x0, romOff->table.player.init.hi),
 								SegmentedToVirtual(0x0, romOff->table.player.init.lo),
@@ -1130,80 +1120,82 @@ void Rom_Build(Rom* rom) {
 						Dir_Leave();
 					}
 				}
+				
+				ItemList_Free(&kaleidoList);
+				Dir_Leave();
 			}
 			
-			ItemList_Free(&gameSysList);
-			Dir_Leave();
-		}
-		
-		Dir_Enter("skybox/"); {
-			ItemList skyList = ItemList_Initialize();
-			
-			Rom_ItemList(&skyList, SORT_NUMERICAL, IS_DIR);
-			
-			for (s32 i = 0; i < skyList.num; i++) {
-				if (skyList.item[i] == NULL)
-					continue;
+			Dir_Enter("skybox/"); {
+				ItemList skyList = ItemList_Initialize();
 				
-				printf_progress("Skybox", i + 1, skyList.num);
+				Rom_ItemList(&skyList, SORT_NUMERICAL, IS_DIR);
 				
-				Dir_Enter(skyList.item[i]); {
-					u32 texId = 941 + i * 2;
-					u32 palId = 942 + i * 2;
+				for (s32 i = 0; i < skyList.num; i++) {
+					if (skyList.item[i] == NULL)
+						continue;
 					
-					MemFile_Reset(&dataFile);
-					MemFile_LoadFile(&dataFile, Dir_File("texel.bin"));
-					Dma_WriteEntry(rom, texId, &dataFile, false);
+					printf_progress("Skybox", i + 1, skyList.num);
 					
-					MemFile_Reset(&dataFile);
-					MemFile_LoadFile(&dataFile, Dir_File("palette.bin"));
-					Dma_WriteEntry(rom, palId, &dataFile, false);
-					
-					Dir_Leave();
-				}
-			}
-			
-			ItemList_Free(&skyList);
-			Dir_Leave();
-		}
-		
-		Dir_Enter("static/"); {
-			ItemList statItem = ItemList_Initialize();
-			
-			Rom_ItemList(&statItem, SORT_NO, IS_FILE);
-			
-			for (s32 item = 0; item < statItem.num; item++) {
-				s32 dmaId;
-				printf_progress("Link Static", item + 1, statItem.num);
-				
-				for (dmaId = 0; dmaId <= ArrayCount(gSystemName_OoT); dmaId++) {
-					if (dmaId == ArrayCount(gSystemName_OoT)) {
-						dmaId = -1;
-						break;
+					Dir_Enter(skyList.item[i]); {
+						u32 texId = 941 + i * 2;
+						u32 palId = 942 + i * 2;
+						
+						MemFile_Reset(&dataFile);
+						MemFile_LoadFile(&dataFile, Dir_File("texel.bin"));
+						Dma_WriteEntry(rom, texId, &dataFile, false);
+						
+						MemFile_Reset(&dataFile);
+						MemFile_LoadFile(&dataFile, Dir_File("palette.bin"));
+						Dma_WriteEntry(rom, palId, &dataFile, false);
+						
+						Dir_Leave();
 					}
-					if (StrStrCase(statItem.item[item], gSystemName_OoT[dmaId]))
-						break;
 				}
 				
-				if (dmaId < 0) continue;
-				if (dmaId == DMA_ID_CODE) continue;
-				if (dmaId >= 36) dmaId += 901;
-				
-#if 1                          // Only these are supported atm
-				if (dmaId != DMA_ID_TITLE_STATIC &&
-					dmaId != DMA_ID_LINK_ANIMATION &&
-					dmaId != DMA_ID_PARAMETER_STATIC
-				)
-					continue;
-#endif
-				
-				MemFile_Reset(&dataFile);
-				MemFile_LoadFile(&dataFile, Dir_File(statItem.item[item]));
-				
-				Dma_WriteEntry(rom, dmaId, &dataFile, false);
+				ItemList_Free(&skyList);
+				Dir_Leave();
 			}
 			
-			ItemList_Free(&statItem);
+			Dir_Enter("static/"); {
+				ItemList statItem = ItemList_Initialize();
+				
+				Rom_ItemList(&statItem, SORT_NO, IS_FILE);
+				
+				for (s32 item = 0; item < statItem.num; item++) {
+					s32 dmaId;
+					printf_progress("Link Static", item + 1, statItem.num);
+					
+					for (dmaId = 0; dmaId <= ArrayCount(gSystemName_OoT); dmaId++) {
+						if (dmaId == ArrayCount(gSystemName_OoT)) {
+							dmaId = -1;
+							break;
+						}
+						if (StrStrCase(statItem.item[item], gSystemName_OoT[dmaId]))
+							break;
+					}
+					
+					if (dmaId < 0) continue;
+					if (dmaId == DMA_ID_CODE) continue;
+					if (dmaId >= 36) dmaId += 901;
+					
+#if 1                          // Only these are supported atm
+					if (dmaId != DMA_ID_TITLE_STATIC &&
+						dmaId != DMA_ID_LINK_ANIMATION &&
+						dmaId != DMA_ID_PARAMETER_STATIC
+					)
+						continue;
+#endif
+					
+					MemFile_Reset(&dataFile);
+					MemFile_LoadFile(&dataFile, Dir_File(statItem.item[item]));
+					
+					Dma_WriteEntry(rom, dmaId, &dataFile, false);
+				}
+				
+				ItemList_Free(&statItem);
+				Dir_Leave();
+			}
+			
 			Dir_Leave();
 		}
 		

@@ -2,7 +2,7 @@
 #include <zip.h>
 
 static inline char* __ForSection(char* cfg) {
-	u32 lineCount = String_GetLineCount(cfg);
+	u32 lineCount = String_LineNum(cfg);
 	char* scfg = cfg;
 	
 	for (s32 k = 0; k < lineCount; k++) {

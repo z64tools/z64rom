@@ -15,7 +15,7 @@ void DmaMgr_ProcessMsg(DmaRequest* req) {
 	DmaEntry* iter;
 	u32 id = 0;
 	
-	iter = gDmaDataTable;
+	iter = gExtDmaTable;
 	
 	while (iter->vromEnd) {
 		if (vrom >= iter->vromStart && vrom < iter->vromEnd) {

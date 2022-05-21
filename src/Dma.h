@@ -177,6 +177,7 @@ typedef enum {
 } DmaParam;
 
 u32 Dma_WriteEntry(struct Rom* rom, s32 id, MemFile* memFile, s32 compress);
+u32 Dma_AllocEntry(struct Rom* rom, s32 id, Size size);
 u32 Dma_GetRomSize(void);
 u32 Dma_GetVRomEnd(void);
 

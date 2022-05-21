@@ -31,5 +31,6 @@ asm ("gGlobalContext = 0x80212020");
 
 void ULib_Update(GameState* gameState);
 void ULib_DmaDebug(DmaRequest* req, DmaEntry* dma);
+void ULib_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn);
 
 #endif

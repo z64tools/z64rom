@@ -688,6 +688,76 @@ void Rom_Dump(Rom* rom) {
 	MemFile_Free(&config);
 }
 
+static void Rom_ExtTableNum(Rom* rom) {
+	MemFile ulib = MemFile_Initialize();
+	char* fname = "src/lib_user/ULib.h";
+	char* word;
+	
+	if (MemFile_LoadFile_String(&ulib, fname))
+		return;
+	
+	word = StrStr(ulib.str, "EXT_DMA_MAX");
+	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_DMA_MAX", fname);
+	rom->ext.dmaNum = String_GetInt(String_Word(word, 1));
+	
+	word = StrStr(ulib.str, "EXT_ACTOR_MAX");
+	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_ACTOR_MAX", fname);
+	rom->ext.actorNum = String_GetInt(String_Word(word, 1));
+	
+	word = StrStr(ulib.str, "EXT_OBJECT_MAX");
+	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_OBJECT_MAX", fname);
+	rom->ext.objectNum = String_GetInt(String_Word(word, 1));
+	
+	word = StrStr(ulib.str, "EXT_SCENE_MAX");
+	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_SCENE_MAX", fname);
+	rom->ext.sceneNum = String_GetInt(String_Word(word, 1));
+	
+	word = StrStr(ulib.str, "EXT_EFFECT_MAX");
+	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_EFFECT_MAX", fname);
+	rom->ext.effectNum = String_GetInt(String_Word(word, 1));
+	
+	Log("DmaNum: %d", rom->ext.dmaNum);
+	Log("ActorNum: %d", rom->ext.actorNum);
+	Log("ObjectNum: %d", rom->ext.objectNum);
+	Log("SceneNum: %d", rom->ext.sceneNum);
+	Log("EffectNum: %d", rom->ext.effectNum);
+	
+	MemFile_Free(&ulib);
+}
+
+static void Rom_AllocDmaTable(Rom* rom) {
+	u32 size = 0;
+	
+	if (rom->ext.dmaNum == 0)
+		return;
+	
+	size += sizeof(struct DmaEntry) * rom->ext.dmaNum;
+	size = Align(size, 16);
+	
+	size += sizeof(struct ActorEntry) * rom->ext.actorNum;
+	size = Align(size, 16);
+	
+	size += sizeof(struct ObjectEntry) * rom->ext.objectNum;
+	size = Align(size, 16);
+	
+	// rom->offset.table.sceneTable = rom->offset.table.dmaTable + size;
+	// rom->table.scene = SegmentedToVirtual(0, rom->offset.table.sceneTable);
+	// rom->table.num.scene = rom->ext.sceneNum;
+	size += sizeof(struct SceneEntry) * rom->ext.sceneNum;
+	size = Align(size, 16);
+	
+	size += sizeof(struct EffectEntry) * rom->ext.effectNum;
+	size = Align(size, 16);
+	
+	if (rom->offset.table.dmaTable != Dma_AllocEntry(rom, 2, size))
+		printf_error("Tables have turned!");
+	
+	memset(&rom->table.dma[rom->table.num.dma], 0, size - sizeof(DmaEntry) * rom->table.num.dma);
+	
+	for (s32 i = rom->table.num.dma; i < rom->ext.dmaNum - 1; i++)
+		rom->table.dma[i] = (DmaEntry) { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
+}
+
 void Rom_Build(Rom* rom) {
 	MemFile dataFile = MemFile_Initialize();
 	MemFile config = MemFile_Initialize();
@@ -701,6 +771,9 @@ void Rom_Build(Rom* rom) {
 	printf_info_align("Load Baserom", PRNT_REDD "%s", String_GetFilename(rom->file.info.name));
 	printf_info_align("Build Rom", PRNT_BLUE "%s",  gRomName_Output[gBuildTarget]);
 	
+	Rom_ExtTableNum(rom);
+	
+	Dma_FreeEntry(rom, DMA_ID_UNUSED_2, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_2, false);
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_3, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_3, false);
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_4, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_4, false);
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_5, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_5, false);
@@ -718,10 +791,13 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeGroup(rom, DMA_PLACE_NAME);
 	Dma_FreeGroup(rom, DMA_SKYBOX_TEXEL);
 	Dma_FreeGroup(rom, DMA_UNUSED);
+	
 	Dma_CombineSlots();
 	
 	if (gPrintInfo)
 		Dma_PrintfSlots(rom, "Marked Free");
+	
+	Rom_AllocDmaTable(rom);
 	
 	Dir_Enter("rom/"); {
 		Dir_Enter("sound/"); {
@@ -1294,16 +1370,6 @@ void Rom_New(Rom* rom, char* romName) {
 	
 	if (MemFile_LoadFile(&rom->file, romName)) {
 		printf_error_align("Error Opening", "%s", romName);
-	}
-	
-	if (gInfoFlag == false && rom->file.dataSize < MbToBin(64)) {
-		printf_warning_align("Rom Size", "[%.2fMb / %.2fMb]", BinToMb(rom->file.dataSize), 64.0f);
-		printf_warning("Bad things " PRNT_REDD "might " PRNT_RSET "happen...");
-		printf_warning("Do you want to continue the process? [y/n]");
-		
-		if (!Terminal_YesOrNo()) {
-			exit(0);
-		}
 	}
 	
 	SetSegment(0x0, rom->file.data);

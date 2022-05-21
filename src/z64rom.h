@@ -80,14 +80,6 @@ typedef struct {
 	} segment;
 } RomOffset;
 
-typedef struct {
-	u32 start : 28;
-	// 4
-	u32 size  : 24;
-	u32 free  : 1;
-	// 7
-} Dma;
-
 typedef struct Rom {
 	RomType   type;
 	MemFile   file;
@@ -120,7 +112,9 @@ typedef struct Rom {
 		MemFile seqTbl;
 		MemFile seqFontTbl;
 	} mem;
-	Dma dma[2000];
+	struct {
+		u32 dmaNum, actorNum, objectNum, sceneNum, effectNum;
+	} ext;
 } Rom;
 
 typedef struct N64AudioInfo {

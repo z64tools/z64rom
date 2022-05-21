@@ -1,4 +1,4 @@
-#include <oot_mq_debug/z64hdr.h>
+#include <ULib.h>
 
 /*
    z64ram = 0x80084B30
@@ -10,7 +10,7 @@ void Interface_LoadItemIcon2(GlobalContext* globalCtx, u16 button) {
 	DmaMgr_SendRequest2(
 		&globalCtx->interfaceCtx.dmaRequest_180,
 		(u32)globalCtx->interfaceCtx.iconItemSegment + button * 0x1000,
-		gDmaDataTable[7].vromStart + (gSaveContext.equips.buttonItems[button] * 0x1000),
+		gExtDmaTable[7].vromStart + (gSaveContext.equips.buttonItems[button] * 0x1000),
 		0x1000,
 		0,
 		&globalCtx->interfaceCtx.loadQueue,

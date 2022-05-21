@@ -12,7 +12,6 @@ struct {
 
 u32 sVromEnd;
 u8* gYazBuf;
-
 s32 gEntries;
 
 RomFile Rom_GetRomFile(Rom* rom, u32 vromA, u32 vromB) {
@@ -172,6 +171,68 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 	return start;
 }
 
+u32 Dma_AllocEntry(Rom* rom, s32 id, Size size) {
+	DmaEntry* dma = &rom->table.dma[id];
+	Slot* slot = gSlotHead;
+	u32 start;
+	
+	while (slot != NULL) {
+		if (Slot_Size(slot) > size + 0x10)
+			break;
+		slot = slot->next;
+	}
+	
+	if (slot == NULL)
+		printf_error("Could not find slot for DMA");
+	
+	if (id < -1) {
+		start = slot->romStart;
+		
+		slot->romStart = start + size;
+		
+		if (Slot_Size(slot) <= 0x10) {
+			Node_Remove(gSlotHead, slot);
+		}
+		
+		return start;
+	}
+	
+	if (id == -1) {
+		for (s32 i = 0;; i++) {
+			if (gDma.entry[i].writable) {
+				gDma.entry[i].writable = false;
+				dma = &rom->table.dma[i];
+				id = i;
+				break;
+			}
+			if (i > gDma.highest) {
+				printf_error("Ran out of free DMA entries! Run " PRNT_BLUE "[z64rom.exe --no-beta]" PRNT_RSET " to remove unused content");
+			}
+		}
+	}
+	
+	gDma.entry[id].writable = false;
+	
+	start = slot->romStart;
+	
+	dma->vromStart = start;
+	dma->vromEnd = start + size;
+	dma->romStart = start;
+	dma->romEnd = 0;
+	
+	SwapBE(dma->romStart);
+	SwapBE(dma->romEnd);
+	SwapBE(dma->vromEnd);
+	SwapBE(dma->vromStart);
+	slot->romStart = Align(start + size, 16);
+	
+	sVromEnd = start + size;
+	
+	gEntries--;
+	
+	return start;
+}
+
 u32 Dma_GetRomSize(void) {
 	Slot* slot = gSlotHead;
 	u32 romEnd = 0;
@@ -205,8 +266,12 @@ void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 	gDma.highest = Max(gDma.highest, id);
 	gEntries++;
 	
-	if (ReadBE(dma->vromStart) - ReadBE(dma->vromEnd) == 0)
+	if (ReadBE(dma->vromStart) - ReadBE(dma->vromEnd) == 0) {
+		dma->romStart = dma->romEnd = 0xFFFFFFFF;
+		dma->vromStart = dma->vromEnd = 0xFFFFFFFF;
+		
 		return;
+	}
 	slot = Tmp_Alloc(sizeof(struct Slot));
 	slot->romStart = ReadBE(dma->vromStart);
 	slot->romEnd = ReadBE(dma->vromEnd);
@@ -286,10 +351,15 @@ void Dma_FreeGroup(Rom* rom, DmaBank type) {
 			}
 			break;
 		case DMA_UNUSED:
-			for (s32 i = 1518; i <= 1530 + 17; i++) {
+			for (s32 i = 1518; i < rom->table.num.dma; i++) {
 				// Unused
 				Dma_FreeEntry(rom, i, 0x1000);
 			}
+			for (s32 i = rom->table.num.dma; i < rom->ext.dmaNum; i++) {
+				gDma.entry[i].writable = true;
+				gEntries++;
+			}
+			
 			Dma_FreeSegment(rom, 0x35CE000, 0x4000000);
 			break;
 	}

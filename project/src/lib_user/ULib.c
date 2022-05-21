@@ -1,11 +1,12 @@
 #include <ULib.h>
 #include "vt.h"
 
-DmaEntry gExtDmaTable[EXT_DMA_MAX] = { 1 };
-ActorOverlay gExtActorTable[EXT_ACTOR_MAX] = { 1 };
-RomFile gExtObjectTable[EXT_OBJECT_MAX] = { 1 };
-SceneTableEntry gExtSceneTable[EXT_SCENE_MAX] = { 1 };
-EffectSsOverlay gExtEffectTable[EXT_EFFECT_MAX] = { 1 };
+__attribute__((no_reorder, aligned(0x10))) DmaEntry gExtDmaTable[EXT_DMA_MAX] = { 1 };
+__attribute__((no_reorder, aligned(0x10))) ActorOverlay gExtActorTable[EXT_ACTOR_MAX] = { 1 };
+__attribute__((no_reorder, aligned(0x10))) RomFile gExtObjectTable[EXT_OBJECT_MAX] = { 1 };
+__attribute__((no_reorder, aligned(0x10))) SceneTableEntry gExtSceneTable[EXT_SCENE_MAX] = { 1 };
+__attribute__((no_reorder, aligned(0x10))) EffectSsOverlay gExtEffectTable[EXT_EFFECT_MAX] = { 1 };
+__attribute__((no_reorder, aligned(0x10))) u32 ____padding[100] = { 1 };
 
 LibContext gLibCtx = {
 	.myMagicValue = 0xDEADBEEF,
@@ -50,7 +51,7 @@ void ULib_Update(GameState* gameState) {
 void ULib_DmaDebug(DmaRequest* req, DmaEntry* dma) {
 	const char** name = sDmaMgrFileNames;
 	u32 id = 0;
-	DmaEntry* iter = gDmaDataTable;
+	DmaEntry* iter = gExtDmaTable;
 	u32* wow;
 	
 	while (iter->vromEnd) {
@@ -83,4 +84,10 @@ void ULib_DmaDebug(DmaRequest* req, DmaEntry* dma) {
 		osSyncPrintf("[ " VT_FGCOL(YELLOW) "Yaz" VT_RST " ]", *name);
 	osSyncPrintf("\n");
 #endif
+}
+
+void ULib_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn) {
+	SceneTableEntry* scene = &gExtSceneTable[sceneNum];
+	
+	osSyncPrintf("" VT_FGCOL(RED) "\nGet Scene num 0x%02X" VT_FGCOL(BLUE) " %08X > %08X\n", sceneNum, scene, gExtSceneTable);
 }

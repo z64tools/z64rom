@@ -1,4 +1,4 @@
-#include <oot_mq_debug/z64hdr.h>
+#include <ULib.h>
 
 /*
    z64ram = 0x8006EF10
@@ -28,7 +28,7 @@ void Font_LoadOrderedFont(Font* font) {
 	
 	DmaMgr_SendRequest1(
 		font->msgBuf,
-		gDmaDataTable[21].vromStart + font->msgOffset,
+		gExtDmaTable[21].vromStart + font->msgOffset,
 		len,
 		"",
 		0
@@ -41,7 +41,7 @@ void Font_LoadOrderedFont(Font* font) {
 		
 		if (font->msgBuf[codePointIndex] != MESSAGE_NEWLINE) {
 			fontBuf = (u32)font->fontBuf + fontBufIndex * 8;
-			fontStatic = gDmaDataTable[20].vromStart;
+			fontStatic = gExtDmaTable[20].vromStart;
 			
 			offset = (font->msgBuf[codePointIndex] - '\x20') * FONT_CHAR_TEX_SIZE;
 			DmaMgr_SendRequest1((void*)fontBuf, fontStatic + offset, FONT_CHAR_TEX_SIZE, "", 0);

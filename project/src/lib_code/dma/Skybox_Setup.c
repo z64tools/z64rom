@@ -1,4 +1,4 @@
-#include <oot_mq_debug/z64hdr.h>
+#include <ULib.h>
 
 /*
    z64ram = 0x800AF218
@@ -29,7 +29,7 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 	osSyncPrintf("Skybox_Setup ");
 	
 	if (gSkyboxDmaIdTable[skyboxId] > -1) {
-		DmaEntry* entry = &gDmaDataTable[gSkyboxDmaIdTable[skyboxId] + 941];
+		DmaEntry* entry = &gExtDmaTable[gSkyboxDmaIdTable[skyboxId] + 941];
 		
 		start = entry->vromStart;
 		size = entry->vromEnd - entry->vromStart;
@@ -135,16 +135,16 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 			break;
 			
 		case SKYBOX_OVERCAST_SUNSET:
-			start = gDmaDataTable[953].vromStart;
-			size = gDmaDataTable[953].vromEnd - start;
+			start = gExtDmaTable[953].vromStart;
+			size = gExtDmaTable[953].vromEnd - start;
 			
 			skyboxCtx->staticSegments[0] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
 			DmaMgr_SendRequest1(skyboxCtx->staticSegments[0], start, size, "Skybox_Setup", 1159);
 			skyboxCtx->staticSegments[1] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
 			DmaMgr_SendRequest1(skyboxCtx->staticSegments[1], start, size, "Skybox_Setup", 1166);
 			
-			start = gDmaDataTable[953 + 1].vromStart;
-			size = gDmaDataTable[953 + 1].vromEnd - start;
+			start = gExtDmaTable[953 + 1].vromStart;
+			size = gExtDmaTable[953 + 1].vromEnd - start;
 			skyboxCtx->palettes = GameState_Alloc(&globalCtx->state, size * 2, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(skyboxCtx->palettes, start, size, "Skybox_Setup", __LINE__);
@@ -152,26 +152,26 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 			break;
 			
 		case SKYBOX_CUTSCENE_MAP:
-			start = gDmaDataTable[957].vromStart;
-			size = gDmaDataTable[957].vromEnd - start;
+			start = gExtDmaTable[957].vromStart;
+			size = gExtDmaTable[957].vromEnd - start;
 			skyboxCtx->staticSegments[0] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(skyboxCtx->staticSegments[0], start, size, "Skybox_Setup", __LINE__);
 			
-			start = gDmaDataTable[957 + 2].vromStart;
-			size = gDmaDataTable[957 + 2].vromEnd - start;
+			start = gExtDmaTable[957 + 2].vromStart;
+			size = gExtDmaTable[957 + 2].vromEnd - start;
 			skyboxCtx->staticSegments[1] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(skyboxCtx->staticSegments[1], start, size, "Skybox_Setup", __LINE__);
 			
-			start = gDmaDataTable[958].vromStart;
-			size = gDmaDataTable[958].vromEnd - start;
+			start = gExtDmaTable[958].vromStart;
+			size = gExtDmaTable[958].vromEnd - start;
 			skyboxCtx->palettes = GameState_Alloc(&globalCtx->state, size * 2, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(skyboxCtx->palettes, start, size, "Skybox_Setup", __LINE__);
 			DmaMgr_SendRequest1(
 				(void*)((u32)skyboxCtx->palettes + size),
-				gDmaDataTable[958 + 2].vromStart,
+				gExtDmaTable[958 + 2].vromStart,
 				size,
 				"Skybox_Setup",
 				__LINE__

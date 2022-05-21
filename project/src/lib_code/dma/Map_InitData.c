@@ -1,4 +1,4 @@
-#include <oot_mq_debug/z64hdr.h>
+#include <ULib.h>
 
 /*
    z64ram = 0x80080AB4
@@ -57,7 +57,7 @@ void Map_InitData(GlobalContext* globalCtx, s16 room) {
 			sEntranceIconMapIndex = extendedMapIndex;
 			DmaMgr_SendRequest1(
 				interfaceCtx->mapSegment,
-				gDmaDataTable[25].vromStart + gMapData->owMinimapTexOffset[extendedMapIndex],
+				gExtDmaTable[25].vromStart + gMapData->owMinimapTexOffset[extendedMapIndex],
 				gMapData->owMinimapTexSize[mapIndex],
 				"",
 				0
@@ -84,7 +84,7 @@ void Map_InitData(GlobalContext* globalCtx, s16 room) {
 		case SCENE_HAKADAN_BS:
 			DmaMgr_SendRequest1(
 				globalCtx->interfaceCtx.mapSegment,
-				gDmaDataTable[26].vromStart +
+				gExtDmaTable[26].vromStart +
 				((gMapData->dgnMinimapTexIndexOffset[mapIndex] + room) * 0xFF0),
 				0xFF0,
 				"",

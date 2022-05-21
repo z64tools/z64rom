@@ -603,7 +603,7 @@ void Code_ObjDump(char* cmd, const char* output) {
 	u32 lineNum = String_LineNum(cmd);
 	char* txt = cmd;
 	
-	MemFile_Malloc(&linker, 0x9999);
+	MemFile_Malloc(&linker, MbToBin(1));
 	
 	for (s32 i = 0; i < lineNum; i++) {
 		char* line = String_GetLine(txt, 0);

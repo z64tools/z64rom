@@ -10,7 +10,7 @@ void Main_ThreadEntry(void* arg) {
 	
 	DmaMgr_Init();
 	time = osGetTime();
-	DmaMgr_SendRequest1(_codeSegmentStart, gDmaDataTable[28].vromStart, gDmaDataTable[28].vromEnd - gDmaDataTable[28].vromStart, "Main_ThreadEntry", __LINE__);
+	DmaMgr_SendRequest1(_codeSegmentStart, gExtDmaTable[28].vromStart, gExtDmaTable[28].vromEnd - gExtDmaTable[28].vromStart, "Main_ThreadEntry", __LINE__);
 	time -= osGetTime();
 	MemSet(_codeSegmentBssStart, 0, _codeSegmentBssEnd - _codeSegmentBssStart);
 	Main(arg);

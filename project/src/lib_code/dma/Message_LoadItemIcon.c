@@ -1,4 +1,4 @@
-#include <oot_mq_debug/z64hdr.h>
+#include <ULib.h>
 
 /*
    z64ram = 0x80109968
@@ -54,7 +54,7 @@ void Message_LoadItemIcon(GlobalContext* globalCtx, u16 itemId, s16 y) {
 		R_TEXTBOX_ICON_SIZE = 32;
 		DmaMgr_SendRequest1(
 			(void*)((u32)msgCtx->textboxSegment + MESSAGE_STATIC_TEX_SIZE),
-			gDmaDataTable[7].vromStart + (itemId * 0x1000),
+			gExtDmaTable[7].vromStart + (itemId * 0x1000),
 			0x1000,
 			"",
 			0
@@ -65,7 +65,7 @@ void Message_LoadItemIcon(GlobalContext* globalCtx, u16 itemId, s16 y) {
 		R_TEXTBOX_ICON_SIZE = 24;
 		DmaMgr_SendRequest1(
 			(void*)((u32)msgCtx->textboxSegment + MESSAGE_STATIC_TEX_SIZE),
-			gDmaDataTable[8].vromStart + (itemId - ITEM_MEDALLION_FOREST) * 0x900,
+			gExtDmaTable[8].vromStart + (itemId - ITEM_MEDALLION_FOREST) * 0x900,
 			0x900,
 			"",
 			0

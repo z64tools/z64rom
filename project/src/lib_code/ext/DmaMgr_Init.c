@@ -33,15 +33,20 @@ void DmaMgr_Init(void) {
 		sizeof(DmaEntry) * 0x60C
 	);
 	
-	// Load ULib
 	DmaMgr_DmaRomToRam(
 		gDmaDataTable[3].vromStart,
 		0x80600000,
 		gDmaDataTable[3].vromEnd - gDmaDataTable[3].vromStart
 	);
 	
+	DmaMgr_DmaRomToRam(
+		gDmaDataTable[2].vromStart,
+		(u32)gExtDmaTable,
+		gDmaDataTable[2].vromEnd - gDmaDataTable[2].vromStart
+	);
+	
 	sDmaMgrIsRomCompressed = false;
-	iter = gDmaDataTable;
+	iter = gExtDmaTable;
 	
 	while (iter->vromEnd != 0) {
 		if (iter->romEnd != 0) {
@@ -50,9 +55,6 @@ void DmaMgr_Init(void) {
 		
 		iter++;
 	}
-	
-	if ((u32)_bootSegmentRomStart != gDmaDataTable[0].vromEnd)
-		Fault_AddHungupAndCrash("../z_std_dma.c", 1055);
 	
 	osCreateMesgQueue(&sDmaMgrMsgQueue, sDmaMgrMsgBuf, 32);
 	StackCheck_Init(&sDmaMgrStackInfo, sDmaMgrStack, STACK_TOP(sDmaMgrStack), 0, 0x100, "dmamgr");

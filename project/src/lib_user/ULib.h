@@ -12,6 +12,18 @@
 #include "ULib_Macros.h"
 #include "ULib_Types.h"
 
+#define EXT_DMA_MAX    3800
+#define EXT_ACTOR_MAX  1000
+#define EXT_OBJECT_MAX 1000
+#define EXT_SCENE_MAX  300
+#define EXT_EFFECT_MAX 64
+
+extern DmaEntry gExtDmaTable[EXT_DMA_MAX];
+extern ActorOverlay gExtActorTable[EXT_ACTOR_MAX];
+extern RomFile gExtObjectTable[EXT_OBJECT_MAX];
+extern SceneTableEntry gExtSceneTable[EXT_SCENE_MAX];
+extern EffectSsOverlay gExtEffectTable[EXT_EFFECT_MAX];
+
 extern LibContext gLibCtx;
 extern GraphicsContext* __gfxCtx;
 asm ("__gfxCtx = 0x80212020");

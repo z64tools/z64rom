@@ -189,10 +189,11 @@ extern s32 gBetaFlag_Scene_OoT[9];
 
 extern s32 gExtractAudio;
 extern s32 gPrintInfo;
-extern s32 gGenericNames;
 extern s32 gInfoFlag;
 extern s32 gMakeForce;
 extern const char* gMakeTarget;
+extern u32 gCompressFlag;
+extern u32 gThreading;
 
 extern s32 gBuildTarget;
 extern char gRomName_Output[2][128];

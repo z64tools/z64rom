@@ -49,20 +49,21 @@ z64rom will convert the newest audio file it finds from this folder so you do no
 | ----------------- | ------------------------------------------------- | ------------------------- |
 | --zmap            | Renames all `.zroom`s to `.zmap`                  |                           |
 | --zroom           | Renames all `.zmap`s to `.zroom`                  |                           |
-| --force           | Force compile/convert                             |                           |
 | --target [option] | Make only `sound / code`                          | `--target sound`          |
-| --info            | Print extra info                                  |                           |
 | --actor [id]      | Actor info, provide .z64 rom also as an argument  | `--actor 7 oot-debug.z64` |
-| --dma [id]        | Dma info, provide .z64 rom also as an argument    | `--dma 7 oot-debug.z64`   |
-| --scene [id]      | Dma info, provide .z64 rom also as an argument    | `--scene 7 oot-debug.z64` |
-| --update          | Check for z64hdr update                           |                           |
-| --no-make         | Do not compile/convert                            |                           |
-| --make-only       | Compile/convert only                              |                           |
-| --no-wav          | Do not dump wavs                                  |                           |
+| --dma [id]        | DMA info, provide .z64 rom also as an argument    | `--dma 7 oot-debug.z64`   |
+| --scene [id]      | Scene info, provide .z64 rom also as an argument  | `--scene 7 oot-debug.z64` |
+| --info            | Print extra info, DMA entries, rom visualization  |                           |
+| --force           | Force compile/convert                             |                           |
+| --make-only       | Do not build, only make                           |                           |
+| --update          | Update z64hdr                                     |                           |
 | --generic         | Use generic names on dump `Sample_001`            |                           |
 | --single-thread   | Process only on single thread. Good for debugging |                           |
-| --no-wait         | Do not ask to press enter on exit, if successful  |                           |
 | --log             | Print Log before closing                          |                           |
+| --no-wait         | Do not ask to press enter on exit, if successful  |                           |
+| --no-make         | Do not compile/convert                            |                           |
+| --no-wav          | Do not dump wavs                                  |                           |
+| --no-beta         | Remove all OoT unused assets from the project     |                           |
 
 ## Credits
 

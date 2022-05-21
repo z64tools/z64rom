@@ -485,11 +485,6 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 			name = gSampleInfo[i].dublicate == NULL ? gSampleInfo[i].name : gSampleInfo[i].dublicate->name;
 			sampRate = gSampleInfo[i].dublicate == NULL ? gSampleInfo[i].sampleRate : gSampleInfo[i].dublicate->sampleRate;
 			
-			if (gGenericNames) {
-				name = Tmp_Printf("Sample_%03d", i);
-				sampRate = 16000;
-			}
-			
 			if (name == NULL)
 				printf_error("Sample ID [%D] is missing name", i);
 			
@@ -574,10 +569,6 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 			MemFile_LoadFile_String(config, sBankFiles[j]);
 			for (s32 i = 0; i < sSortID; i++) {
 				name = gSampleInfo[i].dublicate == NULL ? gSampleInfo[i].name : gSampleInfo[i].dublicate->name;
-				if (gGenericNames) {
-					name = Tmp_Printf("Sample_%03d", i);
-					sampRate = 16000;
-				}
 				
 				sprintf(buff, "0x%X", sSortedSampleTbl[i]->sampleAddr);
 				if (String_Replace(config->data, buff, name)) {
@@ -618,7 +609,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 			}
 		}
 		
-		if (gExtractAudio && !gGenericNames)
+		if (gExtractAudio)
 			Rom_Dump_Samples_PatchWavFiles(dataFile, config);
 		
 		Dir_Leave();
@@ -704,7 +695,7 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Malloc(&sample, MbToBin(0.25));
 	MemFile_Reset(dataFile);
 	Rom_ItemList(&itemList, SORT_NO, IS_DIR);
-	MemFile_Params(dataFile, MEM_ALIGN, 16, MEM_REALLOC, true, MEM_END);
+	MemFile_Params(dataFile, MEM_ALIGN, 16, MEM_END);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
 		printf_progress("Append Sample", i + 1, itemList.num);
@@ -761,7 +752,7 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Write(&rom->mem.sampleTbl, &entry, 16);
 	
 	rom->offset.segment.smplRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, dataFile, false);
-	MemFile_Params(dataFile, MEM_ALIGN, 0, MEM_REALLOC, 0, MEM_END);
+	MemFile_Params(dataFile, MEM_ALIGN, 0, MEM_END);
 	
 	MemFile_Free(&sample);
 	ItemList_Free(&itemList);

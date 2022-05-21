@@ -694,7 +694,9 @@ void Rom_Build(Rom* rom) {
 	
 	MemFile_Malloc(&dataFile, 0x460000);
 	MemFile_Malloc(&config, 0x25000);
-	MemFile_Params(&config, MEM_FILENAME, true, MEM_END);
+	
+	MemFile_Params(&dataFile, MEM_REALLOC, true, MEM_END);
+	MemFile_Params(&config, MEM_REALLOC, true, MEM_END);
 	
 	printf_info_align("Load Baserom", PRNT_REDD "%s", String_GetFilename(rom->file.info.name));
 	printf_info_align("Build Rom", PRNT_BLUE "%s",  gRomName_Output[gBuildTarget]);
@@ -719,7 +721,7 @@ void Rom_Build(Rom* rom) {
 	Dma_CombineSlots();
 	
 	if (gPrintInfo)
-		Dma_PrintfSlots(rom);
+		Dma_PrintfSlots(rom, "Marked Free");
 	
 	Dir_Enter("rom/"); {
 		Dir_Enter("sound/"); {
@@ -755,7 +757,7 @@ void Rom_Build(Rom* rom) {
 					continue;
 				}
 				
-				if (i >= 471) {
+				if (i >= rom->table.num.actor) {
 					printf_warning("Illegal action! Can't have more than " PRNT_REDD "0x01D6" PRNT_RSET " actors!", i);
 					break;
 				} else
@@ -875,10 +877,15 @@ void Rom_Build(Rom* rom) {
 		Dir_Enter("scene/"); {
 			MemFile memRoom = MemFile_Initialize();
 			ItemList sceneList = ItemList_Initialize();
+			ItemList titleList = ItemList_Initialize();
 			SceneEntry* entry = rom->table.scene;
+			u32* titleID;
 			
 			MemFile_Malloc(&memRoom, MbToBin(2));
 			Rom_ItemList(&sceneList, SORT_NUMERICAL, IS_DIR);
+			
+			ItemList_Alloc(&titleList, sceneList.num, sceneList.writePoint * 4);
+			titleID = Calloc(titleID, sizeof(u32) * sceneList.num);
 			
 			for (s32 i = 0; i < sceneList.num; i++) {
 				if (sceneList.item[i] == NULL) {
@@ -987,19 +994,45 @@ void Rom_Build(Rom* rom) {
 					entry[i].titleVromEnd = 0;
 					
 					if (Dir_Stat("title.png")) {
-						Texel_Import(&dataFile, Dir_File("title.png"), TEX_FMT_IA, TEX_BSIZE_8, 144, 24);
-						entry[i].titleVromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-						entry[i].titleVromEnd = Dma_GetVRomEnd();
-						SwapBE(entry[i].titleVromStart);
-						SwapBE(entry[i].titleVromEnd);
+						titleID[titleList.num] = i;
+						ItemList_AddItem(&titleList, Dir_File("title.png"));
 					}
 					
 					Dir_Leave();
 				}
 			}
 			
+			// Check for unique Place Names
+			for (s32 i = 0; i < titleList.num; i++) {
+				u32 useSame = false;
+				Texel_Import(&dataFile, titleList.item[i], TEX_FMT_IA, TEX_BSIZE_8, 144, 24);
+				
+				for (s32 j = 0; j < i; j++) {
+					u32 id = titleID[j];
+					void* data;
+					Size sz;
+					
+					data = SegmentedToVirtual(0, ReadBE(entry[id].titleVromStart));
+					sz = ReadBE(entry[id].titleVromEnd) - ReadBE(entry[id].titleVromStart);
+					
+					if (!memcmp(data, dataFile.data, sz)) {
+						useSame = true;
+						
+						entry[titleID[i]].titleVromStart = entry[id].titleVromStart;
+						entry[titleID[i]].titleVromEnd = entry[id].titleVromEnd;
+					}
+				}
+				
+				if (useSame == false) {
+					entry[titleID[i]].titleVromStart = ReadBE(Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false));
+					entry[titleID[i]].titleVromEnd = ReadBE(Dma_GetVRomEnd());
+				}
+			}
+			
 			MemFile_Free(&memRoom);
 			ItemList_Free(&sceneList);
+			ItemList_Free(&titleList);
+			Free(titleID);
 			Dir_Leave();
 		}
 		
@@ -1231,6 +1264,10 @@ void Rom_Build(Rom* rom) {
 		Dir_Leave();
 	}
 	
+	if (gPrintInfo) {
+		Dma_PrintfSlots(rom, "Left Free");
+	}
+	
 	Slot* slot = gSlotHead;
 	
 	while (slot->next)
@@ -1240,8 +1277,6 @@ void Rom_Build(Rom* rom) {
 	
 	rom->file.dataSize = Align(rom->file.dataSize, MbToBin(1));
 	
-	if (gPrintInfo)
-		Dma_EntriesLeft();
 	fix_crc(rom->file.data);
 	MemFile_SaveFile(&rom->file, gRomName_Output[gBuildTarget]);
 	

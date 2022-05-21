@@ -20,24 +20,6 @@ void Graph_ThreadEntry(void* arg0) {
 	nextOvl = &gGameStateOverlayTable[0];
 	
 	Graph_Init(&gfxCtx);
-	{
-		/**
-		 * DmaRequest Dma Entry 1, which will hold the
-		 * global_lib code. This way it can be accessed
-		 * thourgh actors or other code
-		 */
-		u32* entryPoint = (u32*)0x80600000;
-		
-		if (entryPoint[0] != 0)
-			return;
-		
-		DmaMgr_SendRequest0(
-			0x80600000,
-			gDmaDataTable[3].vromStart,
-			gDmaDataTable[3].vromEnd - gDmaDataTable[3].vromStart
-		);
-		sSceneDrawHandlers[4] = SceneAnim_Update;
-	}
 	
 	while (nextOvl) {
 		ovl = nextOvl;

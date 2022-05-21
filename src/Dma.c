@@ -10,7 +10,6 @@ struct {
 	u32 highest;
 } gDma;
 
-u32 gCompressFlag = false;
 u32 sVromEnd;
 u8* gYazBuf;
 
@@ -190,10 +189,6 @@ u32 Dma_GetVRomEnd(void) {
 	return sVromEnd;
 }
 
-void Dma_EntriesLeft(void) {
-	printf_info("DMA Entries Left: %d", gEntries);
-}
-
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
 
 void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
@@ -291,7 +286,7 @@ void Dma_FreeGroup(Rom* rom, DmaBank type) {
 			}
 			break;
 		case DMA_UNUSED:
-			for (s32 i = 1518; i <= 1530; i++) {
+			for (s32 i = 1518; i <= 1530 + 17; i++) {
 				// Unused
 				Dma_FreeEntry(rom, i, 0x1000);
 			}
@@ -327,7 +322,7 @@ void Dma_CombineSlots(void) {
 	}
 }
 
-void Dma_PrintfSlots(Rom* rom) {
+void Dma_PrintfSlots(Rom* rom, const char* message) {
 	Slot* slot = gSlotHead;
 	char* color[] = {
 		PRNT_REDD,
@@ -338,7 +333,9 @@ void Dma_PrintfSlots(Rom* rom) {
 		PRNT_CYAN,
 	};
 	
-	printf("[ ");
+	printf("\n");
+	printf_warning("Slots: %s", message);
+	printf("" PRNT_DGRY "[" PRNT_YELW ">" PRNT_DGRY "]: [ " PRNT_GRAY);
 	for (f32 i = 0; i < rom->file.dataSize; i += MbToBin(1.00)) {
 		u32 val = MbToBin(10.00);
 		if (((u32)i % val) < 100) {
@@ -347,40 +344,41 @@ void Dma_PrintfSlots(Rom* rom) {
 			printf(" ");
 		}
 	}
-	printf(" ]\n");
+	printf("" PRNT_DGRY " ]\n");
 	
 	f32 i = 0;
 	s32 c = 0;
 	
-	printf("[ ");
+	printf("" PRNT_DGRY "[" PRNT_YELW ">" PRNT_DGRY "]: [ ");
 	while (slot != NULL) {
 		s32 begn = 0;
 		
 		for (; i < rom->file.dataSize; i += MbToBin(1.00)) {
 			if (i >= slot->romStart && (i <= slot->romEnd || begn == 0)) {
-				printf("" "%s" "@", color[c % ArrayCount(color)]);
+				printf("" "%s" "=", color[c % ArrayCount(color)]);
 				begn = 1;
 			} else if (i > slot->romEnd) {
 				c++;
 				break;
 			} else {
-				printf("" PRNT_DGRY "O");
+				printf("" PRNT_DGRY "-");
 			}
 		}
 		
 		slot = slot->next;
 	}
-	printf("" PRNT_RSET " ]\n");
+	printf("" PRNT_DGRY " ]\n");
+	printf_warning("DMA Entries: %d\n", gEntries);
 	
-	slot = gSlotHead;
-	while (slot != NULL) {
-		if (BinToMb(slot->romEnd - slot->romStart) < 1.0f)
-			printf("%08X-%08X " PRNT_GREN "%12.2f kB" PRNT_RSET "\n", slot->romStart, slot->romEnd, BinToKb(slot->romEnd - slot->romStart));
-		else
-			printf("%08X-%08X " PRNT_CYAN "%12.2f mB" PRNT_RSET "\n", slot->romStart, slot->romEnd, BinToMb(slot->romEnd - slot->romStart));
-		
-		slot = slot->next;
-	}
+	// slot = gSlotHead;
+	// while (slot != NULL) {
+	// 	if (BinToMb(slot->romEnd - slot->romStart) < 1.0f)
+	// 		printf("%08X-%08X " PRNT_GREN "%12.2f kB" PRNT_RSET "\n", slot->romStart, slot->romEnd, BinToKb(slot->romEnd - slot->romStart));
+	// 	else
+	// 		printf("%08X-%08X " PRNT_CYAN "%12.2f mB" PRNT_RSET "\n", slot->romStart, slot->romEnd, BinToMb(slot->romEnd - slot->romStart));
+	//
+	// 	slot = slot->next;
+	// }
 }
 
 void Dma_WriteFlag(u32 id, bool value) {

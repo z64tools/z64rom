@@ -1,6 +1,12 @@
 #include <ULib.h>
 #include "vt.h"
 
+DmaEntry gExtDmaTable[EXT_DMA_MAX] = { 1 };
+ActorOverlay gExtActorTable[EXT_ACTOR_MAX] = { 1 };
+RomFile gExtObjectTable[EXT_OBJECT_MAX] = { 1 };
+SceneTableEntry gExtSceneTable[EXT_SCENE_MAX] = { 1 };
+EffectSsOverlay gExtEffectTable[EXT_EFFECT_MAX] = { 1 };
+
 LibContext gLibCtx = {
 	.myMagicValue = 0xDEADBEEF,
 };

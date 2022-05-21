@@ -207,6 +207,7 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 		if (StrEndCase(list.item[i], ".c") || StrEndCase(list.item[i], ".h")) {
 			file = Tmp_Printf("src/actor/0x%04X-%s/%s", actorID, name, list.item[i]);
 			Sys_MakeDir("src/actor/0x%04X-%s/", actorID, name);
+			Sys_MakeDir("rom/actor/0x%04X-%s/", actorID, name);
 			string = true;
 			write = true;
 		}
@@ -228,6 +229,7 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 		if (write == false)
 			continue;
 		
+		printf_info("Import: [%s]", file);
 		zip_entry_open(pkg, list.item[i]);
 		if (zip_entry_read(pkg, &f, &size) < 0)
 			printf_error("Could not extract [%s]", list.item[i]);
@@ -239,7 +241,6 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 			MemFile_SaveFile_String(&mout, file);
 		else
 			MemFile_SaveFile(&mout, file);
-		printf_info("Wrote: [%s]", file);
 	}
 	
 	MemFile_Free(&mout);

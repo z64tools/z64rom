@@ -6,12 +6,11 @@
 const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.6.2";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
-s32 gGenericNames;
 s32 sDumpFlag;
 s32 gInfoFlag;
 s32 gMakeForce;
 const char* gMakeTarget;
-extern u32 gThreading;
+u32 gCompressFlag = false;
 
 #define ROM_RELEASE 0
 #define ROM_DEV     1
@@ -162,9 +161,6 @@ s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 	if (Arg("single-thread"))
 		gThreading = false;
 	
-	if (Arg("generic"))
-		gGenericNames = true;
-	
 	if (Arg("no-wav"))
 		gExtractAudio = false;
 	
@@ -194,7 +190,7 @@ void Main_Config(char** input, Rom* rom) {
 		projectRom = Config_GetString(config, "z_baserom");
 		buildRom = Config_GetString(config, "z_buildrom");
 		
-		if (strlen(buildRom) > 128 - strlen("-release.z64"))
+		if (strlen(buildRom) > 128 - strlen("-yaz-release.z64"))
 			printf_error("z_buildrom name is too long");
 		
 		sprintf(gRomName_Output[0], "%s-release.z64", Config_GetString(config, "z_buildrom"));
@@ -209,10 +205,12 @@ void Main_Config(char** input, Rom* rom) {
 			
 			for (s32 i = 0; i < 2; i++) {
 				if (Main_IsSameFile(*input, gRomName_Output[i])) {
-					Main_CompressRom(gRomName_Output[i]);
+					gCompressFlag = true;
 					
-					printf_getchar("Press enter to exit.");
-					exit(0);
+					sprintf(gRomName_Output[0], "%s-yaz-release.z64", Config_GetString(config, "z_buildrom"));
+					sprintf(gRomName_Output[1], "%s-yaz-dev.z64", Config_GetString(config, "z_buildrom"));
+					
+					return;
 				}
 			}
 			

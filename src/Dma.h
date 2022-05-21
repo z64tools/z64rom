@@ -111,6 +111,8 @@ typedef struct Slot {
 
 typedef enum {
 	DMA_ACTOR,
+	DMA_STATE,
+	DMA_KALEIDO,
 	DMA_EFFECT,
 	DMA_OBJECT,
 	DMA_PLACE_NAME,
@@ -177,6 +179,7 @@ typedef enum {
 u32 Dma_WriteEntry(struct Rom* rom, s32 id, MemFile* memFile, s32 compress);
 u32 Dma_GetRomSize(void);
 u32 Dma_GetVRomEnd(void);
+void Dma_EntriesLeft(void);
 
 void Dma_FreeEntry(struct Rom* rom, u32 id, u32 dmaAlign);
 void Dma_FreeSegment(struct Rom* rom, u32 romStart, u32 romEnd);

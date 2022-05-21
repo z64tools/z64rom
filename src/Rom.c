@@ -708,6 +708,8 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeEntry(rom, DMA_ID_PARAMETER_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_PARAMETER_STATIC, false);
 	
 	Dma_FreeGroup(rom, DMA_ACTOR);
+	Dma_FreeGroup(rom, DMA_STATE);
+	Dma_FreeGroup(rom, DMA_KALEIDO);
 	Dma_FreeGroup(rom, DMA_EFFECT);
 	Dma_FreeGroup(rom, DMA_OBJECT);
 	Dma_FreeGroup(rom, DMA_SCENES);
@@ -1238,6 +1240,8 @@ void Rom_Build(Rom* rom) {
 	
 	rom->file.dataSize = Align(rom->file.dataSize, MbToBin(1));
 	
+	if (gPrintInfo)
+		Dma_EntriesLeft();
 	fix_crc(rom->file.data);
 	MemFile_SaveFile(&rom->file, gRomName_Output[gBuildTarget]);
 	
@@ -1441,6 +1445,59 @@ void Rom_Free(Rom* rom) {
 	MemFile_Free(&rom->mem.seqTbl);
 	MemFile_Free(&rom->mem.seqFontTbl);
 	memset(rom, 0, sizeof(struct Rom));
+}
+
+void Rom_DeleteUnusedContent(s32 romType) {
+	ItemList list = ItemList_Initialize();
+	char* item;
+	u32 id;
+	
+	if (romType == Zelda_OoT_Debug) {
+		ItemList_List(&list, "rom/actor/.vanilla/", 0, LIST_FOLDERS | LIST_RELATIVE);
+		ItemList_NumericalSort(&list);
+		for (s32 i = 0; i < ArrayCount(gBetaFlag_Actor_OoT); i++) {
+			id = gBetaFlag_Actor_OoT[i];
+			
+			if (list.item[id] == NULL || id >= list.num)
+				continue;
+			
+			item = Tmp_Printf("rom/actor/.vanilla/%s", list.item[id]);
+			
+			printf_info("Delete [%s]", item);
+			Sys_Delete_Recursive(item);
+		}
+		ItemList_Free(&list);
+		
+		ItemList_List(&list, "rom/object/.vanilla/", 0, LIST_FOLDERS | LIST_RELATIVE);
+		ItemList_NumericalSort(&list);
+		for (s32 i = 0; i < ArrayCount(gBetaFlag_Object_OoT); i++) {
+			id = gBetaFlag_Object_OoT[i];
+			
+			if (list.item[id] == NULL || id >= list.num)
+				continue;
+			
+			item = Tmp_Printf("rom/object/.vanilla/%s", list.item[id]);
+			
+			printf_info("Delete [%s]", item);
+			Sys_Delete_Recursive(item);
+		}
+		ItemList_Free(&list);
+		
+		ItemList_List(&list, "rom/scene/.vanilla/", 0, LIST_FOLDERS | LIST_RELATIVE);
+		ItemList_NumericalSort(&list);
+		for (s32 i = 0; i < ArrayCount(gBetaFlag_Scene_OoT); i++) {
+			id = gBetaFlag_Scene_OoT[i];
+			
+			if (list.item[id] == NULL || id >= list.num)
+				continue;
+			
+			item = Tmp_Printf("rom/scene/.vanilla/%s", list.item[id]);
+			
+			printf_info("Delete [%s]", item);
+			Sys_Delete_Recursive(item);
+		}
+		ItemList_Free(&list);
+	}
 }
 
 void Rom_Debug_ActorEntry(Rom* rom, u32 id) {

@@ -171,6 +171,12 @@ s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 	if (Arg("info"))
 		gPrintInfo = true;
 	
+	if (Arg("no-beta")) {
+		Rom_DeleteUnusedContent(Zelda_OoT_Debug);
+		
+		return 1;
+	}
+	
 	return 0;
 }
 

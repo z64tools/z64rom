@@ -11,6 +11,8 @@ void Rom_Free(struct Rom* rom);
 void Rom_Dump(struct Rom* rom);
 void Rom_Build(struct Rom* rom);
 
+void Rom_DeleteUnusedContent(s32 romType);
+
 void Rom_Debug_ActorEntry(struct Rom* rom, u32 id);
 void Rom_Debug_DmaEntry(struct Rom* rom, u32 id);
 void Rom_Debug_SceneEntry(struct Rom* rom, u32 id);

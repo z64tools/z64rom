@@ -183,6 +183,10 @@ extern const char* gSequenceName_OoT[114];
 extern const char* gSystemName_OoT[40];
 extern const char* gSkyboxName_OoT[32];
 
+extern s32 gBetaFlag_Actor_OoT[7];
+extern s32 gBetaFlag_Object_OoT[47];
+extern s32 gBetaFlag_Scene_OoT[9];
+
 extern s32 gExtractAudio;
 extern s32 gPrintInfo;
 extern s32 gGenericNames;

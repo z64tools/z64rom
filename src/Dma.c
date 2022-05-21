@@ -14,6 +14,8 @@ u32 gCompressFlag = false;
 u32 sVromEnd;
 u8* gYazBuf;
 
+s32 gEntries;
+
 RomFile Rom_GetRomFile(Rom* rom, u32 vromA, u32 vromB) {
 	DmaEntry* dmaTable = rom->table.dma;
 	s32 i;
@@ -139,9 +141,11 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 				break;
 			}
 			if (i > gDma.highest) {
-				printf_error("Could not find free dma entry");
+				printf_error("Ran out of free DMA entries! Run " PRNT_BLUE "[z64rom.exe --no-beta]" PRNT_RSET " to remove unused content");
 			}
 		}
+	} else {
+		gDma.entry[id].writable = false;
 	}
 	
 	start = slot->romStart;
@@ -164,6 +168,8 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 	
 	sVromEnd = start + memFile->dataSize;
 	
+	gEntries--;
+	
 	return start;
 }
 
@@ -184,6 +190,10 @@ u32 Dma_GetVRomEnd(void) {
 	return sVromEnd;
 }
 
+void Dma_EntriesLeft(void) {
+	printf_info("DMA Entries Left: %d", gEntries);
+}
+
 /* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
 
 void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
@@ -197,7 +207,8 @@ void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 	}
 	
 	gDma.entry[id].writable = true;
-	if (id > gDma.highest) gDma.highest = id;
+	gDma.highest = Max(gDma.highest, id);
+	gEntries++;
 	
 	if (ReadBE(dma->vromStart) - ReadBE(dma->vromEnd) == 0)
 		return;
@@ -232,6 +243,18 @@ void Dma_FreeGroup(Rom* rom, DmaBank type) {
 				Dma_FreeEntry(rom, i, 0x10);
 			}
 			for (s32 i = 235; i <= 497; i++) {
+				// Actor Entries
+				Dma_FreeEntry(rom, i, 0x10);
+			}
+			break;
+		case DMA_STATE:
+			for (s32 i = 29; i <= 32; i++) {
+				// Actor Entries
+				Dma_FreeEntry(rom, i, 0x10);
+			}
+			break;
+		case DMA_KALEIDO:
+			for (s32 i = 33; i <= 34; i++) {
 				// Actor Entries
 				Dma_FreeEntry(rom, i, 0x10);
 			}

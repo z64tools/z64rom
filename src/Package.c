@@ -196,7 +196,6 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 	}
 	
 	Terminal_ClearLines(3);
-	printf_info("%s, ActorID 0x%04X ObjectID 0x%04X\n", name, actorID, objectID);
 	
 	for (s32 i = 0; i < list.num; i++) {
 		char* file;
@@ -240,6 +239,7 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 			MemFile_SaveFile_String(&mout, file);
 		else
 			MemFile_SaveFile(&mout, file);
+		printf_info("Wrote: [%s]", file);
 	}
 	
 	MemFile_Free(&mout);

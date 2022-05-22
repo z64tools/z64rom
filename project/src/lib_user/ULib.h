@@ -25,11 +25,11 @@ extern SceneTableEntry __ext_gSceneTable[EXT_SCENE_MAX];
 extern EffectSsOverlay __ext_gEffectSsOverlayTable[EXT_EFFECT_MAX];
 
 #ifndef __NO_EXT_MACROS__
-// #define gDmaDataTable         __ext_gDmaDataTable
-// #define gActorOverlayTable    __ext_gActorOverlayTable
-// #define gObjectTable          __ext_gObjectTable
-// #define gSceneTable           __ext_gSceneTable
-// #define gEffectSsOverlayTable __ext_gEffectSsOverlayTable
+#define gDmaDataTable         __ext_gDmaDataTable
+#define gActorOverlayTable    __ext_gActorOverlayTable
+#define gObjectTable          __ext_gObjectTable
+#define gSceneTable           __ext_gSceneTable
+#define gEffectSsOverlayTable __ext_gEffectSsOverlayTable
 #endif
 
 extern LibContext gLibCtx;

@@ -5,7 +5,7 @@
    z64rom = 0x001FFC
  */
 
-void DmaMgr_ProcessMsg(DmaRequest* req) {
+void __DmaMgr_ProcessMsg(DmaRequest* req) {
 	u32 vrom = req->vromAddr;
 	void* ram = req->dramAddr;
 	u32 size = req->size;
@@ -14,9 +14,6 @@ void DmaMgr_ProcessMsg(DmaRequest* req) {
 	u8 found = false;
 	DmaEntry* iter;
 	u32 id = 0;
-	
-	if (gLibCtx.__ctxInitValue == 0xDEADBEEF)
-		ULib_DmaDebug(req);
 	
 	iter = gDmaDataTable;
 	
@@ -44,4 +41,6 @@ void DmaMgr_ProcessMsg(DmaRequest* req) {
 	if (!found) {
 		DmaMgr_DmaRomToRam(vrom, (u32)ram, size);
 	}
+	
+	ULib_DmaDebug(req);
 }

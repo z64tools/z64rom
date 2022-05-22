@@ -24,7 +24,7 @@
 #define STACK_TOP(stack) \
 	((u8*)(stack) + sizeof(stack))
 
-void DmaMgr_Init(void) {
+void __DmaMgr_Init(void) {
 	DmaEntry* iter;
 	OSMesg* sDmaMgrMsgBuf = (void*)0x800139A8; // [32]
 	
@@ -42,7 +42,7 @@ void DmaMgr_Init(void) {
 	
 	DmaMgr_DmaRomToRam(
 		gDmaDataTable[2].vromStart,
-		(u32)gDmaDataTable,
+		(u32)__ext_gDmaDataTable,
 		gDmaDataTable[2].vromEnd - gDmaDataTable[2].vromStart
 	);
 	

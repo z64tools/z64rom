@@ -26,7 +26,7 @@ void __Gameplay_Init(GameState* thisx) {
 	}
 	
 	SystemArena_Display();
-	GameState_Realloc(&globalCtx->state, 0x3D8000 + 0x3A00);
+	GameState_Realloc(&globalCtx->state, 0x3D8000 + 0x3A60);
 	KaleidoManager_Init(globalCtx);
 	View_Init(&globalCtx->view, gfxCtx);
 	Audio_SetExtraFilter(0);
@@ -109,7 +109,7 @@ void __Gameplay_Init(GameState* thisx) {
 		gSaveContext.sceneSetupIndex = (gSaveContext.eventChkInf[4] & 0x100) ? 3 : 2;
 	}
 	
-	Gameplay_SpawnScene(
+	ULib_SpawnScene(
 		globalCtx,
 		gEntranceTable[((void)0, gSaveContext.entranceIndex) + ((void)0, gSaveContext.sceneSetupIndex)].scene,
 		gEntranceTable[((void)0, gSaveContext.sceneSetupIndex) + ((void)0, gSaveContext.entranceIndex)].spawn
@@ -180,9 +180,7 @@ void __Gameplay_Init(GameState* thisx) {
 	Fault_AddClient(&D_801614B8, ZeldaArena_Display, NULL, NULL);
 	func_800304DC(globalCtx, &globalCtx->actorCtx, globalCtx->linkActorEntry);
 	
-	while (!func_800973FC(globalCtx, &globalCtx->roomCtx)) {
-		; // Empty Loop
-	}
+	while (!func_800973FC(globalCtx, &globalCtx->roomCtx));
 	
 	player = GET_PLAYER(globalCtx);
 	Camera_InitPlayerSettings(&globalCtx->mainCamera, player);

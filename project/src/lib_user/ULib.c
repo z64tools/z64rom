@@ -51,14 +51,17 @@ void ULib_DmaDebug(DmaRequest* req) {
 		iter++;
 	}
 	
-	if (id == 0x14)
+	if (id == 0x14 || id >= EXT_DMA_MAX)
 		return;
 	
-	if (req->filename && strlen(req->filename) > 0)
+#if 0 // Crashes on some names
+	if (req->filename)
 		osLibPrintf("" PRNT_GRAY "[" PRNT_REDD "%s" PRNT_GRAY "::" PRNT_YELW "%d" PRNT_GRAY "]", req->filename, req->line);
 	
 	else
 		osLibPrintf("" PRNT_GRAY " [" PRNT_REDD "null" PRNT_GRAY "::" PRNT_YELW "%d" PRNT_GRAY "]", req->line);
+#endif
+	
 	osLibPrintf(
 		"Dma Request: vrom " PRNT_BLUE "%08X - %08X" PRNT_RSET " size: " PRNT_BLUE "%08X " PRNT_RSET "[ " PRNT_REDD "ID 0x%04X" PRNT_RSET " ]",
 		req->vromAddr,
@@ -80,6 +83,7 @@ static void __p_osLibPrintf(const char* fmt, ...) {
 }
 
 void osLibPrintf(const char* fmt, ...) {
+#ifdef DEV_BUILD
 	va_list args;
 	
 	va_start(args, fmt);
@@ -89,11 +93,36 @@ void osLibPrintf(const char* fmt, ...) {
 	__p_osLibPrintf("" PRNT_RSET "\n");
 	
 	va_end(args);
+#endif
 }
 
 void ULib_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn) {
 	SceneTableEntry* scene = &gSceneTable[sceneNum];
 	
-	osSyncPrintf("\n");
-	osLibPrintf("Get Scene num " PRNT_YELW "0x%02X" PRNT_RSET " %08X > %08X\n", sceneNum, scene, gSceneTable);
+	scene->unk_13 = 0;
+	globalCtx->loadedScene = scene;
+	globalCtx->sceneNum = sceneNum;
+	globalCtx->sceneConfig = scene->config;
+	
+	globalCtx->sceneSegment = Gameplay_LoadFile(globalCtx, &scene->sceneFile);
+	scene->unk_13 = 0;
+	
+	gSegments[2] = VIRTUAL_TO_PHYSICAL(globalCtx->sceneSegment);
+	
+	Gameplay_InitScene(globalCtx, spawn);
+	
+	osLibPrintf(
+		"Scene "
+		PRNT_YELW "0x%02X " PRNT_RSET
+		"SceneEntry "
+		PRNT_YELW "%08X " PRNT_RSET
+		"EntryHead "
+		PRNT_YELW "%08X " PRNT_RSET
+		"Segment "
+		PRNT_YELW "%08X ",
+		sceneNum,
+		scene,
+		gSceneTable,
+		globalCtx->sceneSegment
+	);
 }

@@ -16,4 +16,9 @@
 #define PRNT_CYAN "\e[0;96m"
 #define PRNT_RSET "\e[m"
 
+#define BinToMb(x) ((f32)(x) / (f32)0x100000)
+#define BinToKb(x) ((f32)(x) / (f32)0x400)
+#define MbToBin(x) (u32)(0x100000 * (x))
+#define KbToBin(x) (u32)(0x400 * (x))
+
 #endif

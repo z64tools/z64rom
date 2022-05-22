@@ -26,8 +26,8 @@ void AnimationContext_SetLoadFrame(GlobalContext* globalCtx, LinkAnimationHeader
 			0,
 			&entry->data.load.msgQueue,
 			NULL,
-			__FUNCTION__,
-			__LINE__
+			0,
+			0
 		);
 	}
 }

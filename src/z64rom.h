@@ -9,6 +9,9 @@
 #include "yaz.h"
 #include "Texture.h"
 
+#define ROM_RELEASE 0
+#define ROM_DEV     1
+
 typedef void (* PatchFunc)(struct Rom*, MemFile*, MemFile*, char*);
 
 typedef struct {

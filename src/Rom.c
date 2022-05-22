@@ -841,9 +841,11 @@ void Rom_Build(Rom* rom) {
 					printf_progress("Actor", i + 1, actorList.num);
 				
 				Dir_Enter(actorList.item[i]); {
+					char* ovl = Dir_File("*.zovl");
+					
 					MemFile_Reset(&dataFile);
 					MemFile_Reset(&config);
-					MemFile_LoadFile(&dataFile, Dir_File("*.zovl"));
+					MemFile_LoadFile(&dataFile, ovl);
 					MemFile_LoadFile_String(&config, Dir_File("config.cfg"));
 					
 					entry[i].allocType = Config_GetInt(&config, "alloc_type");
@@ -863,7 +865,18 @@ void Rom_Build(Rom* rom) {
 					SwapBE(entry[i].vromEnd);
 					
 					entry[i].loadedRamAddr = 0;
-					entry[i].name = 0;
+					
+					if (gBuildTarget == ROM_DEV) {
+						u32 romAddr = ReadBE(entry[i].name) - 0x7F588E60;
+						void* target;
+						char buf[64];
+						u32 id;
+						
+						target = SegmentedToVirtual(0, romAddr);
+						ovl = String_GetFolder(actorList.item[i], -1);
+						sscanf(ovl, "0x%04X-%s/", &id, buf);
+						strncpy(target, buf, strlen(target));
+					}
 					
 					Dir_Leave();
 				}

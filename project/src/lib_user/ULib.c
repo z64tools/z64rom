@@ -98,6 +98,7 @@ void osLibPrintf(const char* fmt, ...) {
 
 void ULib_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn) {
 	SceneTableEntry* scene = &gSceneTable[sceneNum];
+	u32 roomSize;
 	
 	scene->unk_13 = 0;
 	globalCtx->loadedScene = scene;
@@ -110,6 +111,7 @@ void ULib_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn) {
 	gSegments[2] = VIRTUAL_TO_PHYSICAL(globalCtx->sceneSegment);
 	
 	Gameplay_InitScene(globalCtx, spawn);
+	roomSize = func_80096FE8(globalCtx, &globalCtx->roomCtx);
 	
 	osLibPrintf(
 		"Scene "
@@ -124,5 +126,11 @@ void ULib_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn) {
 		scene,
 		gSceneTable,
 		globalCtx->sceneSegment
+	);
+	osLibPrintf(
+		"Room Size "
+		PRNT_YELW "%.1f " PRNT_RSET
+		"KB",
+		BinToKb(roomSize)
 	);
 }

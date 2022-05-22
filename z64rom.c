@@ -12,9 +12,6 @@ s32 gMakeForce;
 const char* gMakeTarget;
 u32 gCompressFlag = false;
 
-#define ROM_RELEASE 0
-#define ROM_DEV     1
-
 s32 gBuildTarget = ROM_DEV;
 char gRomName_Output[2][128] = {
 	/* "build-release.z64", */

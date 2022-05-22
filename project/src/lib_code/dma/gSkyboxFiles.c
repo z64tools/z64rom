@@ -12,39 +12,39 @@ typedef struct {
 
 const NewSkyboxFiles gNewSkyboxFiles[] = {
 	{
-		&gExtDmaTable[941],
-		&gExtDmaTable[941 + 1],
+		&gDmaDataTable[941],
+		&gDmaDataTable[941 + 1],
 	},
 	{
-		&gExtDmaTable[943],
-		&gExtDmaTable[943 + 1],
+		&gDmaDataTable[943],
+		&gDmaDataTable[943 + 1],
 	},
 	{
-		&gExtDmaTable[945],
-		&gExtDmaTable[945 + 1],
+		&gDmaDataTable[945],
+		&gDmaDataTable[945 + 1],
 	},
 	{
-		&gExtDmaTable[947],
-		&gExtDmaTable[947 + 1],
+		&gDmaDataTable[947],
+		&gDmaDataTable[947 + 1],
 	},
 	{
-		&gExtDmaTable[949],
-		&gExtDmaTable[949 + 1],
+		&gDmaDataTable[949],
+		&gDmaDataTable[949 + 1],
 	},
 	{
-		&gExtDmaTable[951],
-		&gExtDmaTable[951 + 1],
+		&gDmaDataTable[951],
+		&gDmaDataTable[951 + 1],
 	},
 	{
-		&gExtDmaTable[953],
-		&gExtDmaTable[953 + 1],
+		&gDmaDataTable[953],
+		&gDmaDataTable[953 + 1],
 	},
 	{
-		&gExtDmaTable[955],
-		&gExtDmaTable[955 + 1],
+		&gDmaDataTable[955],
+		&gDmaDataTable[955 + 1],
 	},
 	{
-		&gExtDmaTable[957],
-		&gExtDmaTable[957 + 1],
+		&gDmaDataTable[957],
+		&gDmaDataTable[957 + 1],
 	},
 };

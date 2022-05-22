@@ -57,7 +57,7 @@ void Map_InitData(GlobalContext* globalCtx, s16 room) {
 			sEntranceIconMapIndex = extendedMapIndex;
 			DmaMgr_SendRequest1(
 				interfaceCtx->mapSegment,
-				gExtDmaTable[25].vromStart + gMapData->owMinimapTexOffset[extendedMapIndex],
+				gDmaDataTable[25].vromStart + gMapData->owMinimapTexOffset[extendedMapIndex],
 				gMapData->owMinimapTexSize[mapIndex],
 				"",
 				0
@@ -84,7 +84,7 @@ void Map_InitData(GlobalContext* globalCtx, s16 room) {
 		case SCENE_HAKADAN_BS:
 			DmaMgr_SendRequest1(
 				globalCtx->interfaceCtx.mapSegment,
-				gExtDmaTable[26].vromStart +
+				gDmaDataTable[26].vromStart +
 				((gMapData->dgnMinimapTexIndexOffset[mapIndex] + room) * 0xFF0),
 				0xFF0,
 				"",

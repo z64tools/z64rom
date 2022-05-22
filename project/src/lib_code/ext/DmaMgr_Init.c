@@ -1,3 +1,4 @@
+#define __NO_EXT_MACROS__
 #include <ULib.h>
 
 /*
@@ -30,7 +31,7 @@ void DmaMgr_Init(void) {
 	DmaMgr_DmaRomToRam(
 		0x012F70,
 		(u32)gDmaDataTable,
-		sizeof(DmaEntry) * 0x60C
+		sizeof(DmaEntry) * 4
 	);
 	
 	DmaMgr_DmaRomToRam(
@@ -41,12 +42,12 @@ void DmaMgr_Init(void) {
 	
 	DmaMgr_DmaRomToRam(
 		gDmaDataTable[2].vromStart,
-		(u32)gExtDmaTable,
+		(u32)gDmaDataTable,
 		gDmaDataTable[2].vromEnd - gDmaDataTable[2].vromStart
 	);
 	
 	sDmaMgrIsRomCompressed = false;
-	iter = gExtDmaTable;
+	iter = gDmaDataTable;
 	
 	while (iter->vromEnd != 0) {
 		if (iter->romEnd != 0) {

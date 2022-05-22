@@ -123,7 +123,7 @@ void _Graph_Update(GraphicsContext* gfxCtx, GameState* gameState) {
 		sGraphUpdateTime = time;
 	}
 	
-	if (gLibCtx.myMagicValue == 0xDEADBEEF)
+	if (gLibCtx.__ctxInitValue == 0xDEADBEEF)
 		ULib_Update(gameState);
 	
 	if (gIsCtrlr2Valid && PreNmiBuff_IsResetting(gAppNmiBufferPtr) && !gameState->unk_A0) {

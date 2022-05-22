@@ -723,6 +723,8 @@ static void Rom_ExtTableNum(Rom* rom) {
 	Log("EffectNum: %d", rom->ext.effectNum);
 	
 	MemFile_Free(&ulib);
+	
+	Dma_FreeEntry(rom, DMA_ID_UNUSED_2, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_2, false);
 }
 
 static void Rom_AllocDmaTable(Rom* rom) {
@@ -740,9 +742,9 @@ static void Rom_AllocDmaTable(Rom* rom) {
 	size += sizeof(struct ObjectEntry) * rom->ext.objectNum;
 	size = Align(size, 16);
 	
-	// rom->offset.table.sceneTable = rom->offset.table.dmaTable + size;
-	// rom->table.scene = SegmentedToVirtual(0, rom->offset.table.sceneTable);
-	// rom->table.num.scene = rom->ext.sceneNum;
+	rom->offset.table.sceneTable = rom->offset.table.dmaTable + size;
+	rom->table.scene = SegmentedToVirtual(0, rom->offset.table.sceneTable);
+	rom->table.num.scene = rom->ext.sceneNum;
 	size += sizeof(struct SceneEntry) * rom->ext.sceneNum;
 	size = Align(size, 16);
 	
@@ -771,9 +773,8 @@ void Rom_Build(Rom* rom) {
 	printf_info_align("Load Baserom", PRNT_REDD "%s", String_GetFilename(rom->file.info.name));
 	printf_info_align("Build Rom", PRNT_BLUE "%s",  gRomName_Output[gBuildTarget]);
 	
-	Rom_ExtTableNum(rom);
+	// Rom_ExtTableNum(rom);
 	
-	Dma_FreeEntry(rom, DMA_ID_UNUSED_2, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_2, false);
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_3, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_3, false);
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_4, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_4, false);
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_5, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_5, false);
@@ -797,7 +798,7 @@ void Rom_Build(Rom* rom) {
 	if (gPrintInfo)
 		Dma_PrintfSlots(rom, "Marked Free");
 	
-	Rom_AllocDmaTable(rom);
+	// Rom_AllocDmaTable(rom);
 	
 	Dir_Enter("rom/"); {
 		Dir_Enter("sound/"); {

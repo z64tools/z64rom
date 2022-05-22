@@ -4,7 +4,12 @@
 #include <oot_mq_debug/z64hdr.h>
 
 typedef struct {
-	u32 myMagicValue;
+	u32 vanillaOsPrintf : 1;
+} LibState;
+
+typedef struct {
+	LibState state;
+	u32 __ctxInitValue;
 } LibContext;
 
 typedef struct {

@@ -350,14 +350,14 @@ void Message_Decode(GlobalContext* globalCtx) {
 			msgCtx->textboxBackgroundUnkArg = font->msgBuf[msgCtx->msgBufPos + 3] & 0xF;
 			DmaMgr_SendRequest1(
 				(void*)((u32)msgCtx->textboxSegment + MESSAGE_STATIC_TEX_SIZE),
-				(u32)gExtDmaTable[19].vromStart + msgCtx->textboxBackgroundIdx * 0x900,
+				(u32)gDmaDataTable[19].vromStart + msgCtx->textboxBackgroundIdx * 0x900,
 				0x900,
 				"Message_Decode",
 				1830
 			);
 			DmaMgr_SendRequest1(
 				(void*)((u32)msgCtx->textboxSegment + MESSAGE_STATIC_TEX_SIZE + 0x900),
-				(u32)gExtDmaTable[19].vromStart +
+				(u32)gDmaDataTable[19].vromStart +
 				(msgCtx->textboxBackgroundIdx + 1) * 0x900,
 				0x900,
 				"Message_Decode",

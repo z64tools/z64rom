@@ -12,7 +12,7 @@ void Interface_LoadItemIcon1(GlobalContext* globalCtx, u16 button) {
 	DmaMgr_SendRequest2(
 		&interfaceCtx->dmaRequest_160,
 		(u32)interfaceCtx->iconItemSegment + button * 0x1000,
-		gExtDmaTable[7].vromStart + (gSaveContext.equips.buttonItems[button] * 0x1000),
+		gDmaDataTable[7].vromStart + (gSaveContext.equips.buttonItems[button] * 0x1000),
 		0x1000,
 		0,
 		&interfaceCtx->loadQueue,

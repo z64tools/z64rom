@@ -1,17 +1,6 @@
 #include <ULib.h>
 #include "vt.h"
 
-__attribute__((no_reorder, aligned(0x10))) DmaEntry gExtDmaTable[EXT_DMA_MAX] = { 1 };
-__attribute__((no_reorder, aligned(0x10))) ActorOverlay gExtActorTable[EXT_ACTOR_MAX] = { 1 };
-__attribute__((no_reorder, aligned(0x10))) RomFile gExtObjectTable[EXT_OBJECT_MAX] = { 1 };
-__attribute__((no_reorder, aligned(0x10))) SceneTableEntry gExtSceneTable[EXT_SCENE_MAX] = { 1 };
-__attribute__((no_reorder, aligned(0x10))) EffectSsOverlay gExtEffectTable[EXT_EFFECT_MAX] = { 1 };
-__attribute__((no_reorder, aligned(0x10))) u32 ____padding[100] = { 1 };
-
-LibContext gLibCtx = {
-	.myMagicValue = 0xDEADBEEF,
-};
-
 asm ("D_801333D4 = 0x801333D4");
 asm ("D_801333E0 = 0x801333E0");
 asm ("D_801333E8 = 0x801333E8");
@@ -48,46 +37,63 @@ void ULib_Update(GameState* gameState) {
 	}
 }
 
-void ULib_DmaDebug(DmaRequest* req, DmaEntry* dma) {
-	const char** name = sDmaMgrFileNames;
+void ULib_DmaDebug(DmaRequest* req) {
+#ifdef DEV_BUILD
 	u32 id = 0;
-	DmaEntry* iter = gExtDmaTable;
-	u32* wow;
+	DmaEntry* iter = gDmaDataTable;
 	
 	while (iter->vromEnd) {
 		if (req->vromAddr >= iter->vromStart && req->vromAddr < iter->vromEnd) {
 			break;
 		}
 		
+		id++;
 		iter++;
-		name++;
 	}
 	
-#ifdef DEV_BUILD
-	wow = (u32*)*name;
-	
-	if (wow && wow[0] == 0x6C696E6B && wow[1] == 0x5F616E69)
+	if (id == 0x14)
 		return;
 	
-	osSyncPrintf(VT_FGCOL(YELLOW));
-	osSyncPrintf(">" VT_RST);
-	osSyncPrintf(VT_FGCOL(CYAN));
-	osSyncPrintf("Dma Request: " VT_RST);
-	osSyncPrintf("vrom " VT_FGCOL(BLUE) "%08X - %08X" VT_RST " size: " VT_FGCOL(BLUE) "%08X " VT_RST, req->vromAddr, req->vromAddr + req->size, req->size);
-	osSyncPrintf("[ " VT_FGCOL(RED) "%s" VT_RST " ]\n", *name);
-	osSyncPrintf(VT_FGCOL(YELLOW));
-	osSyncPrintf(" " VT_RST);
-	osSyncPrintf(VT_FGCOL(CYAN));
-	osSyncPrintf("Dma Entry:   " VT_RST);
-	osSyncPrintf("vrom " VT_FGCOL(BLUE) "%08X - %08X" VT_RST " size: " VT_FGCOL(BLUE) "%08X " VT_RST, dma->vromStart, dma->vromEnd, dma->vromEnd - dma->romStart);
-	if (dma->romEnd)
-		osSyncPrintf("[ " VT_FGCOL(YELLOW) "Yaz" VT_RST " ]", *name);
-	osSyncPrintf("\n");
+	if (req->filename && strlen(req->filename) > 0)
+		osLibPrintf("" PRNT_GRAY "[" PRNT_REDD "%s" PRNT_GRAY "::" PRNT_YELW "%d" PRNT_GRAY "]", req->filename, req->line);
+	
+	else
+		osLibPrintf("" PRNT_GRAY " [" PRNT_REDD "null" PRNT_GRAY "::" PRNT_YELW "%d" PRNT_GRAY "]", req->line);
+	osLibPrintf(
+		"Dma Request: vrom " PRNT_BLUE "%08X - %08X" PRNT_RSET " size: " PRNT_BLUE "%08X " PRNT_RSET "[ " PRNT_REDD "ID 0x%04X" PRNT_RSET " ]",
+		req->vromAddr,
+		req->vromAddr + req->size,
+		req->size,
+		id
+	);
 #endif
 }
 
-void ULib_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn) {
-	SceneTableEntry* scene = &gExtSceneTable[sceneNum];
+static void __p_osLibPrintf(const char* fmt, ...) {
+	va_list args;
 	
-	osSyncPrintf("" VT_FGCOL(RED) "\nGet Scene num 0x%02X" VT_FGCOL(BLUE) " %08X > %08X\n", sceneNum, scene, gExtSceneTable);
+	va_start(args, fmt);
+	
+	_Printf(is_proutSyncPrintf, NULL, fmt, args);
+	
+	va_end(args);
+}
+
+void osLibPrintf(const char* fmt, ...) {
+	va_list args;
+	
+	va_start(args, fmt);
+	
+	__p_osLibPrintf("" PRNT_GRAY "[" PRNT_BLUE ">" PRNT_GRAY "]: " PRNT_RSET);
+	_Printf(is_proutSyncPrintf, NULL, fmt, args);
+	__p_osLibPrintf("" PRNT_RSET "\n");
+	
+	va_end(args);
+}
+
+void ULib_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn) {
+	SceneTableEntry* scene = &gSceneTable[sceneNum];
+	
+	osSyncPrintf("\n");
+	osLibPrintf("Get Scene num " PRNT_YELW "0x%02X" PRNT_RSET " %08X > %08X\n", sceneNum, scene, gSceneTable);
 }

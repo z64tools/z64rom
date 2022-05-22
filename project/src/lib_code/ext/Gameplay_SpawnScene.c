@@ -6,9 +6,7 @@
  */
 
 void Gameplay_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn) {
-	SceneTableEntry* scene = &gExtSceneTable[sceneNum];
-	
-	scene = &gSceneTable[sceneNum];
+	SceneTableEntry* scene = &gSceneTable[sceneNum];
 	
 #ifdef DEV_BUILD
 	ULib_SpawnScene(globalCtx, sceneNum, spawn);

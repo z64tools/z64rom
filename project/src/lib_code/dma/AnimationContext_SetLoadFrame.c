@@ -9,7 +9,7 @@ AnimationEntry* AnimationContext_AddEntry(AnimationContext* animationCtx, Animat
 asm ("AnimationContext_AddEntry = 0x800A3334");
 
 #define NEW_LINK_ANIMATION_OFFSET(addr, offset) \
-	((gExtDmaTable[6].vromStart) + ((u32)addr) - (0x07000000) + ((u32)offset))
+	((gDmaDataTable[6].vromStart) + ((u32)addr) - (0x07000000) + ((u32)offset))
 
 void AnimationContext_SetLoadFrame(GlobalContext* globalCtx, LinkAnimationHeader* animation, s32 frame, s32 limbCount, Vec3s* frameTable) {
 	AnimationEntry* entry = AnimationContext_AddEntry(&globalCtx->animationCtx, ANIMENTRY_LOADFRAME);
@@ -26,8 +26,8 @@ void AnimationContext_SetLoadFrame(GlobalContext* globalCtx, LinkAnimationHeader
 			0,
 			&entry->data.load.msgQueue,
 			NULL,
-			NULL,
-			0
+			__FUNCTION__,
+			__LINE__
 		);
 	}
 }

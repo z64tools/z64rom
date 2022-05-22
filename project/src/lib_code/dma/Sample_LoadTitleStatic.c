@@ -6,12 +6,12 @@
  */
 
 void Sample_LoadTitleStatic(SampleContext* this) {
-	u32 size = gExtDmaTable[939].vromEnd - gExtDmaTable[939].vromStart;
+	u32 size = gDmaDataTable[939].vromEnd - gDmaDataTable[939].vromStart;
 	
 	this->staticSegment = GameState_Alloc(&this->state, size, NULL, 0);
 	DmaMgr_SendRequest1(
 		this->staticSegment,
-		gExtDmaTable[939].vromStart,
+		gDmaDataTable[939].vromStart,
 		size,
 		NULL,
 		0

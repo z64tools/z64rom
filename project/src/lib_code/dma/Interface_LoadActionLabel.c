@@ -37,7 +37,7 @@ void Interface_LoadActionLabel(InterfaceContext* interfaceCtx, u16 action, s16 l
 		DmaMgr_SendRequest2(
 			&interfaceCtx->dmaRequest_160,
 			(u32)interfaceCtx->doActionSegment + (loadOffset * DO_ACTION_TEX_SIZE),
-			gExtDmaTable[17].vromStart + (action * DO_ACTION_TEX_SIZE),
+			gDmaDataTable[17].vromStart + (action * DO_ACTION_TEX_SIZE),
 			DO_ACTION_TEX_SIZE,
 			0,
 			&interfaceCtx->loadQueue,

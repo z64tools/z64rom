@@ -28,12 +28,12 @@ void func_801109B0(GlobalContext* globalCtx) {
 		interfaceCtx->cDownAlpha = interfaceCtx->cRightAlpha = interfaceCtx->healthAlpha = interfaceCtx->startAlpha =
 		interfaceCtx->magicAlpha = 0;
 	
-	parameterSize = gExtDmaTable[940].vromEnd - gExtDmaTable[940].vromStart;
+	parameterSize = gDmaDataTable[940].vromEnd - gDmaDataTable[940].vromStart;
 	
 	interfaceCtx->parameterSegment = GameState_Alloc(&globalCtx->state, parameterSize, "", __LINE__);
 	DmaMgr_SendRequest1(
 		interfaceCtx->parameterSegment,
-		gExtDmaTable[940].vromStart,
+		gDmaDataTable[940].vromStart,
 		parameterSize,
 		"",
 		__LINE__
@@ -51,7 +51,7 @@ void func_801109B0(GlobalContext* globalCtx) {
 	
 	DmaMgr_SendRequest1(
 		interfaceCtx->doActionSegment,
-		gExtDmaTable[17].vromStart + doActionOffset,
+		gDmaDataTable[17].vromStart + doActionOffset,
 		0x300,
 		"",
 		__LINE__
@@ -67,7 +67,7 @@ void func_801109B0(GlobalContext* globalCtx) {
 	
 	DmaMgr_SendRequest1(
 		interfaceCtx->doActionSegment + 0x300,
-		gExtDmaTable[17].vromStart + doActionOffset,
+		gDmaDataTable[17].vromStart + doActionOffset,
 		0x180,
 		"",
 		__LINE__
@@ -78,7 +78,7 @@ void func_801109B0(GlobalContext* globalCtx) {
 	if (gSaveContext.equips.buttonItems[0] < 0xF0) {
 		DmaMgr_SendRequest1(
 			interfaceCtx->iconItemSegment,
-			gExtDmaTable[7].vromStart + gSaveContext.equips.buttonItems[0] * 0x1000,
+			gDmaDataTable[7].vromStart + gSaveContext.equips.buttonItems[0] * 0x1000,
 			0x1000,
 			"",
 			__LINE__
@@ -86,7 +86,7 @@ void func_801109B0(GlobalContext* globalCtx) {
 	} else if (gSaveContext.equips.buttonItems[0] != 0xFF) {
 		DmaMgr_SendRequest1(
 			interfaceCtx->iconItemSegment,
-			gExtDmaTable[7].vromStart + gSaveContext.equips.buttonItems[0] * 0x1000,
+			gDmaDataTable[7].vromStart + gSaveContext.equips.buttonItems[0] * 0x1000,
 			0x1000,
 			"",
 			__LINE__
@@ -96,7 +96,7 @@ void func_801109B0(GlobalContext* globalCtx) {
 	if (gSaveContext.equips.buttonItems[1] < 0xF0) {
 		DmaMgr_SendRequest1(
 			interfaceCtx->iconItemSegment + 0x1000,
-			gExtDmaTable[7].vromStart + gSaveContext.equips.buttonItems[1] * 0x1000,
+			gDmaDataTable[7].vromStart + gSaveContext.equips.buttonItems[1] * 0x1000,
 			0x1000,
 			"",
 			__LINE__
@@ -106,7 +106,7 @@ void func_801109B0(GlobalContext* globalCtx) {
 	if (gSaveContext.equips.buttonItems[2] < 0xF0) {
 		DmaMgr_SendRequest1(
 			interfaceCtx->iconItemSegment + 0x2000,
-			gExtDmaTable[7].vromStart + gSaveContext.equips.buttonItems[2] * 0x1000,
+			gDmaDataTable[7].vromStart + gSaveContext.equips.buttonItems[2] * 0x1000,
 			0x1000,
 			"",
 			__LINE__
@@ -116,7 +116,7 @@ void func_801109B0(GlobalContext* globalCtx) {
 	if (gSaveContext.equips.buttonItems[3] < 0xF0) {
 		DmaMgr_SendRequest1(
 			interfaceCtx->iconItemSegment + 0x3000,
-			gExtDmaTable[7].vromStart + gSaveContext.equips.buttonItems[3] * 0x1000,
+			gDmaDataTable[7].vromStart + gSaveContext.equips.buttonItems[3] * 0x1000,
 			0x1000,
 			"",
 			__LINE__

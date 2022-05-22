@@ -15,7 +15,10 @@ void DmaMgr_ProcessMsg(DmaRequest* req) {
 	DmaEntry* iter;
 	u32 id = 0;
 	
-	iter = gExtDmaTable;
+	if (gLibCtx.__ctxInitValue == 0xDEADBEEF)
+		ULib_DmaDebug(req);
+	
+	iter = gDmaDataTable;
 	
 	while (iter->vromEnd) {
 		if (vrom >= iter->vromStart && vrom < iter->vromEnd) {
@@ -40,6 +43,5 @@ void DmaMgr_ProcessMsg(DmaRequest* req) {
 	
 	if (!found) {
 		DmaMgr_DmaRomToRam(vrom, (u32)ram, size);
-	} else if (gLibCtx.myMagicValue == 0xDEADBEEF)
-		ULib_DmaDebug(req, iter);
+	}
 }

@@ -727,13 +727,13 @@ static void Rom_ExtTableNum(Rom* rom) {
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_2, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_2, false);
 }
 
-#define Rom_MoveTable(TYPE, OFFSET, O_TABLE, NUM, NEW_NUM) \
+#define Rom_MoveTable(OFFSET, O_TABLE, NUM, NEW_NUM) \
 	OFFSET = rom->offset.table.dmaTable + size; \
 	table = SegmentedToVirtual(0, OFFSET); \
-	memcpy(table, O_TABLE, sizeof(TYPE) * NUM); \
+	memcpy(table, O_TABLE, sizeof(*O_TABLE) * NUM); \
 	O_TABLE = table; \
 	NUM = NEW_NUM; \
-	size += sizeof(TYPE) * NEW_NUM; \
+	size += sizeof(*O_TABLE) * NEW_NUM; \
 	size = Align(size, 16);
 
 static void Rom_AllocDmaTable(Rom* rom) {
@@ -746,12 +746,12 @@ static void Rom_AllocDmaTable(Rom* rom) {
 	size += sizeof(struct DmaEntry) * rom->ext.dmaNum;
 	size = Align(size, 16);
 	
-	Rom_MoveTable(ActorEntry, rom->offset.table.actorTable, rom->table.actor, rom->table.num.actor, rom->ext.actorNum);
+	Rom_MoveTable(rom->offset.table.actorTable, rom->table.actor, rom->table.num.actor, rom->ext.actorNum);
 	
 	size += sizeof(struct ObjectEntry) * rom->ext.objectNum;
 	size = Align(size, 16);
 	
-	Rom_MoveTable(ObjectEntry, rom->offset.table.sceneTable, rom->table.scene, rom->table.num.scene, rom->ext.sceneNum);
+	Rom_MoveTable(rom->offset.table.sceneTable, rom->table.scene, rom->table.num.scene, rom->ext.sceneNum);
 	
 	size += sizeof(struct EffectEntry) * rom->ext.effectNum;
 	size = Align(size, 16);

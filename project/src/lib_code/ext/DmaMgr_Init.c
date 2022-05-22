@@ -24,7 +24,7 @@
 #define STACK_TOP(stack) \
 	((u8*)(stack) + sizeof(stack))
 
-void __DmaMgr_Init(void) {
+void DmaMgr_Init(void) {
 	DmaEntry* iter;
 	OSMesg* sDmaMgrMsgBuf = (void*)0x800139A8; // [32]
 	

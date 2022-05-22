@@ -5,7 +5,7 @@
    z64rom = 0x001FFC
  */
 
-void __DmaMgr_ProcessMsg(DmaRequest* req) {
+void DmaMgr_ProcessMsg(DmaRequest* req) {
 	u32 vrom = req->vromAddr;
 	void* ram = req->dramAddr;
 	u32 size = req->size;
@@ -42,5 +42,5 @@ void __DmaMgr_ProcessMsg(DmaRequest* req) {
 		DmaMgr_DmaRomToRam(vrom, (u32)ram, size);
 	}
 	
-	ULib_DmaDebug(req);
+	uLib_DmaLog(req);
 }

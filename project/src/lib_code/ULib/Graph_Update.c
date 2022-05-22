@@ -124,7 +124,7 @@ void _Graph_Update(GraphicsContext* gfxCtx, GameState* gameState) {
 	}
 	
 	if (gLibCtx.__ctxInitValue == 0xDEADBEEF)
-		ULib_Update(gameState);
+		uLib_Update(gameState);
 	
 	if (gIsCtrlr2Valid && PreNmiBuff_IsResetting(gAppNmiBufferPtr) && !gameState->unk_A0) {
 		SET_NEXT_GAMESTATE(gameState, PreNMI_Init, PreNMIContext);

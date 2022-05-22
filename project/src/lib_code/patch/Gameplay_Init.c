@@ -109,7 +109,7 @@ void __Gameplay_Init(GameState* thisx) {
 		gSaveContext.sceneSetupIndex = (gSaveContext.eventChkInf[4] & 0x100) ? 3 : 2;
 	}
 	
-	ULib_SpawnScene(
+	__uLib_Gameplay_SpawnScene(
 		globalCtx,
 		gEntranceTable[((void)0, gSaveContext.entranceIndex) + ((void)0, gSaveContext.sceneSetupIndex)].scene,
 		gEntranceTable[((void)0, gSaveContext.sceneSetupIndex) + ((void)0, gSaveContext.entranceIndex)].spawn

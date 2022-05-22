@@ -8,6 +8,7 @@
 #include <SceneRender/SceneRender.h>
 #include <Debug/DebugSys.h>
 #include <Gui/Gui.h>
+#include <Vanilla/Vanilla.h>
 
 #include "ULib_Macros.h"
 #include "ULib_Types.h"
@@ -37,9 +38,8 @@ extern GraphicsContext* __gfxCtx;
 asm ("__gfxCtx = 0x80212020");
 asm ("gGlobalContext = 0x80212020");
 
-void ULib_Update(GameState* gameState);
-void ULib_DmaDebug(DmaRequest* req);
-void ULib_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn);
+void uLib_Update(GameState* gameState);
+void uLib_DmaLog(DmaRequest* req);
 
 void osLibPrintf(const char* fmt, ...);
 

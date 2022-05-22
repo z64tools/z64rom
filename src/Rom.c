@@ -727,8 +727,18 @@ static void Rom_ExtTableNum(Rom* rom) {
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_2, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_2, false);
 }
 
+#define Rom_MoveTable(TYPE, OFFSET, O_TABLE, NUM, NEW_NUM) \
+	OFFSET = rom->offset.table.dmaTable + size; \
+	table = SegmentedToVirtual(0, OFFSET); \
+	memcpy(table, O_TABLE, sizeof(TYPE) * NUM); \
+	O_TABLE = table; \
+	NUM = NEW_NUM; \
+	size += sizeof(TYPE) * NEW_NUM; \
+	size = Align(size, 16);
+
 static void Rom_AllocDmaTable(Rom* rom) {
 	u32 size = 0;
+	void* table;
 	
 	if (rom->ext.dmaNum == 0)
 		return;
@@ -736,17 +746,12 @@ static void Rom_AllocDmaTable(Rom* rom) {
 	size += sizeof(struct DmaEntry) * rom->ext.dmaNum;
 	size = Align(size, 16);
 	
-	size += sizeof(struct ActorEntry) * rom->ext.actorNum;
-	size = Align(size, 16);
+	Rom_MoveTable(ActorEntry, rom->offset.table.actorTable, rom->table.actor, rom->table.num.actor, rom->ext.actorNum);
 	
 	size += sizeof(struct ObjectEntry) * rom->ext.objectNum;
 	size = Align(size, 16);
 	
-	rom->offset.table.sceneTable = rom->offset.table.dmaTable + size;
-	rom->table.scene = SegmentedToVirtual(0, rom->offset.table.sceneTable);
-	rom->table.num.scene = rom->ext.sceneNum;
-	size += sizeof(struct SceneEntry) * rom->ext.sceneNum;
-	size = Align(size, 16);
+	Rom_MoveTable(ObjectEntry, rom->offset.table.sceneTable, rom->table.scene, rom->table.num.scene, rom->ext.sceneNum);
 	
 	size += sizeof(struct EffectEntry) * rom->ext.effectNum;
 	size = Align(size, 16);
@@ -754,10 +759,13 @@ static void Rom_AllocDmaTable(Rom* rom) {
 	if (rom->offset.table.dmaTable != Dma_AllocEntry(rom, 2, size))
 		printf_error("Tables have turned!");
 	
-	memset(&rom->table.dma[rom->table.num.dma], 0, size - sizeof(DmaEntry) * rom->table.num.dma);
-	
-	for (s32 i = rom->table.num.dma; i < rom->ext.dmaNum - 1; i++)
-		rom->table.dma[i] = (DmaEntry) { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
+	for (s32 i = rom->table.num.dma; i < rom->ext.dmaNum; i++) {
+		if (i == rom->ext.dmaNum - 1)
+			rom->table.dma[i] = (DmaEntry) { 0 };
+		
+		else
+			rom->table.dma[i] = (DmaEntry) { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
+	}
 }
 
 void Rom_Build(Rom* rom) {
@@ -835,7 +843,7 @@ void Rom_Build(Rom* rom) {
 				}
 				
 				if (i >= rom->table.num.actor) {
-					printf_warning("Illegal action! Can't have more than " PRNT_REDD "0x01D6" PRNT_RSET " actors!", i);
+					printf_warning("ActorTable Full [%d/%d]", i + 1, rom->table.num.actor);
 					break;
 				} else
 					printf_progress("Actor", i + 1, actorList.num);
@@ -866,11 +874,13 @@ void Rom_Build(Rom* rom) {
 					
 					entry[i].loadedRamAddr = 0;
 					
-					if (gBuildTarget == ROM_DEV) {
+					if (gBuildTarget == ROM_DEV && entry[i].name) {
 						u32 romAddr = ReadBE(entry[i].name) - 0x7F588E60;
 						void* target;
 						char buf[64];
 						u32 id;
+						
+						Log("Filename Offset [%08X]", romAddr);
 						
 						target = SegmentedToVirtual(0, romAddr);
 						ovl = String_GetFolder(actorList.item[i], -1);

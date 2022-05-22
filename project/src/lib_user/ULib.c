@@ -5,7 +5,7 @@ asm ("D_801333D4 = 0x801333D4");
 asm ("D_801333E0 = 0x801333E0");
 asm ("D_801333E8 = 0x801333E8");
 
-void ULib_Update(GameState* gameState) {
+void uLib_Update(GameState* gameState) {
 #ifdef DEV_BUILD
 	if (CHK_ALL(press, BTN_Z) && CHK_ALL(cur, BTN_L | BTN_R)) {
 		gSaveContext.gameMode = 0;
@@ -37,7 +37,7 @@ void ULib_Update(GameState* gameState) {
 	}
 }
 
-void ULib_DmaDebug(DmaRequest* req) {
+void uLib_DmaLog(DmaRequest* req) {
 #ifdef DEV_BUILD
 	u32 id = 0;
 	DmaEntry* iter = gDmaDataTable;
@@ -96,41 +96,9 @@ void osLibPrintf(const char* fmt, ...) {
 #endif
 }
 
-void ULib_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn) {
-	SceneTableEntry* scene = &gSceneTable[sceneNum];
-	u32 roomSize;
+void* memset(void* m, int v, unsigned int s) {
+	for (s32 i = 0; i < s; i++)
+		((u8*)m)[i] = v;
 	
-	scene->unk_13 = 0;
-	globalCtx->loadedScene = scene;
-	globalCtx->sceneNum = sceneNum;
-	globalCtx->sceneConfig = scene->config;
-	
-	globalCtx->sceneSegment = Gameplay_LoadFile(globalCtx, &scene->sceneFile);
-	scene->unk_13 = 0;
-	
-	gSegments[2] = VIRTUAL_TO_PHYSICAL(globalCtx->sceneSegment);
-	
-	Gameplay_InitScene(globalCtx, spawn);
-	roomSize = func_80096FE8(globalCtx, &globalCtx->roomCtx);
-	
-	osLibPrintf(
-		"Scene "
-		PRNT_YELW "0x%02X " PRNT_RSET
-		"SceneEntry "
-		PRNT_YELW "%08X " PRNT_RSET
-		"EntryHead "
-		PRNT_YELW "%08X " PRNT_RSET
-		"Segment "
-		PRNT_YELW "%08X ",
-		sceneNum,
-		scene,
-		gSceneTable,
-		globalCtx->sceneSegment
-	);
-	osLibPrintf(
-		"Room Size "
-		PRNT_YELW "%.1f " PRNT_RSET
-		"KB",
-		BinToKb(roomSize)
-	);
+	return NULL;
 }

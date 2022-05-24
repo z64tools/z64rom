@@ -1,4 +1,4 @@
-#include <ULib.h>
+#include <uLib.h>
 
 static f32 hue2rgb(f32 p, f32 q, f32 t) {
 	if (t < 0.0) t += 1;

@@ -1,4 +1,4 @@
-#include <ULib.h>
+#include <uLib.h>
 
 struct DebugSysContext;
 typedef void (* DebugSysFunc)(GlobalContext*);

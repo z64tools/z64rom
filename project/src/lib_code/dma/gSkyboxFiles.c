@@ -1,4 +1,4 @@
-#include <ULib.h>
+#include <uLib.h>
 
 /*
    z64ram = 0x8011FD40 # 0x8011FD3C, aligned

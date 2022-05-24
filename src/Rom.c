@@ -690,7 +690,7 @@ void Rom_Dump(Rom* rom) {
 
 static void Rom_ExtTableNum(Rom* rom) {
 	MemFile ulib = MemFile_Initialize();
-	char* fname = "src/lib_user/ULib.h";
+	char* fname = "src/lib_user/uLib.h";
 	char* word;
 	
 	if (MemFile_LoadFile_String(&ulib, fname))

@@ -1,4 +1,4 @@
-#include <ULib.h>
+#include <uLib.h>
 
 f32 Math_MaxF(f32 a, f32 b) {
 	return a > b ? a : b;

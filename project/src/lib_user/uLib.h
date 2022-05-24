@@ -10,8 +10,8 @@
 #include <Gui/Gui.h>
 #include <Vanilla/Vanilla.h>
 
-#include "ULib_Macros.h"
-#include "ULib_Types.h"
+#include "uLib_macros.h"
+#include "uLib_types.h"
 
 #define EXT_DMA_MAX    3800
 #define EXT_ACTOR_MAX  1000

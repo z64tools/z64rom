@@ -1,5 +1,5 @@
 #define __NO_EXT_MACROS__
-#include <ULib.h>
+#include <uLib.h>
 
 /*
    z64ram = 0x8000183C

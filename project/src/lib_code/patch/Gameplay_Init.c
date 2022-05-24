@@ -3,7 +3,7 @@
    z64rom = 0xB33C04
  */
 
-#include <ULib.h>
+#include <uLib.h>
 
 void __Gameplay_Init(GameState* thisx) {
 	GlobalContext* globalCtx = (GlobalContext*)thisx;

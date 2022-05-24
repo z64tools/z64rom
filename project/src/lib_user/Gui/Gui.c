@@ -1,4 +1,4 @@
-#include <ULib.h>
+#include <uLib.h>
 
 Vtx* Gui_AllocQuad(GlobalContext* globalCtx, s16 x, s16 y, s16 width, s16 height, s16 u, s16 v) {
 	Vtx* vtx = Graph_Alloc(globalCtx->state.gfxCtx, 4 * sizeof(Vtx));

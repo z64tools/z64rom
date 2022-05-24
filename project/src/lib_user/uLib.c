@@ -1,5 +1,5 @@
 #define __ULIB_C__
-#include <ULib.h>
+#include <uLib.h>
 #include "vt.h"
 
 asm ("D_801333D4 = 0x801333D4");
@@ -79,7 +79,7 @@ void uLib_DmaLog(DmaRequest* req) {
 	}
 	
 	// No Messages || No LinkAnim
-	if (id == 0x14 || id == 0x6 || id >= EXT_DMA_MAX)
+	if (id == 0x14 || id == 0x6 || id == 0x11 || id == 0x12 || id >= EXT_DMA_MAX)
 		return;
 	
 #if 0 // Crashes on some names

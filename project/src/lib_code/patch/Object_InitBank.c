@@ -3,7 +3,7 @@
    z64rom = 0xB0EF78
  */
 
-#include <ULib.h>
+#include <uLib.h>
 
 void _Object_InitBank(GlobalContext* globalCtx, ObjectContext* objectCtx) {
 	u32 spaceSize;

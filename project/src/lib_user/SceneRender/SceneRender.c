@@ -1,5 +1,5 @@
 #define __Z64SCENEREDNER_C__
-#include "ULib.h"
+#include "uLib.h"
 
 void func_8009BEEC(GlobalContext* globalCtx);
 asm ("func_8009BEEC = 0x8009BEEC");

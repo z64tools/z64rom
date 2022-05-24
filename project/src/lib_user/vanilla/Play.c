@@ -48,7 +48,6 @@ void Play_Init(GlobalContext* globalCtx) {
 	s32 playerStartCamId;
 	s32 i;
 	u8 tempSetupIndex;
-	s32 pad[2];
 	
 	if (gSaveContext.entranceIndex == -1) {
 		gSaveContext.entranceIndex = 0;
@@ -506,11 +505,8 @@ Gameplay_Draw_DrawOverlayElements:
 }
 
 void Play_Update(GlobalContext* globalCtx) {
-	s32 pad1;
-	s32 sp80;
+	s32 sp80 = 0;
 	Input* input;
-	u32 i;
-	s32 pad2;
 	
 	input = globalCtx->state.input;
 	
@@ -978,7 +974,6 @@ void Play_Update(GlobalContext* globalCtx) {
 skip:
 	
 	if ((sp80 == 0) || (gDbgCamEnabled)) {
-		s32 pad3[5];
 		s32 i;
 		
 		globalCtx->nextCamera = globalCtx->activeCamera;

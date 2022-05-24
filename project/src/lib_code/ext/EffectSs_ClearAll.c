@@ -7,7 +7,6 @@
 
 void EffectSs_ClearAll(GlobalContext* globalCtx) {
 	u32 i;
-	EffectSs* effectSs;
 	EffectSsOverlay* overlay;
 	void* addr;
 	

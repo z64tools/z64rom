@@ -13,10 +13,20 @@ typedef struct {
 	u8  alpha;
 } Color_HSLA;
 
+void Audio_PlaySys(u16 flag);
 void Color_ToHSL(Color_HSL* dest, Color_RGB8* src);
 void Color_ToRGB(Color_RGB8* dest, Color_HSL* src);
-void DebugMenu_DebugText(u32 rgba, s32 x, s32 y, char* fmt, ...);
+
+#ifdef DEV_BUILD
+void Debug_Text(u32 rgba, s32 x, s32 y, char* fmt, ...);
+void Debug_DmaLog(DmaRequest* req);
 void DebugMenu_Update(GlobalContext* globalCtx);
+#else
+#define Debug_Text(...)       ((void)0)
+#define Debug_DmaLog(...)     ((void)0)
+#define DebugMenu_Update(...) ((void)0)
+#endif
+
 Vtx* Gui_AllocQuad(GlobalContext* globalCtx, s16 x, s16 y, s16 width, s16 height, s16 u, s16 v);
 f32 MaxF(f32 a, f32 b);
 f32 MinF(f32 a, f32 b);

@@ -261,7 +261,6 @@ void FileSelect_ExitToCopySource1(GameState* thisx) {
  */
 void FileSelect_ExitToCopySource2(GameState* thisx) {
 	FileChooseContext* this = (FileChooseContext*)thisx;
-	SramContext* sramCtx = &this->sramCtx;
 	s16 i;
 	s16 yStep;
 	

@@ -1018,7 +1018,6 @@ void FileSelect_DrawWindowContents(GameState* thisx) {
 	s16 i;
 	s16 quadVtxIndex;
 	s16 isActive;
-	s16 pad;
 	
 	OPEN_DISPS(this->state.gfxCtx, __FILE__, __LINE__);
 	
@@ -1813,7 +1812,6 @@ void FileSelect_FadeOut(GameState* thisx) {
 void FileSelect_LoadGame(GameState* thisx) {
 	FileChooseContext* this = (FileChooseContext*)thisx;
 	u16 swordEquipMask;
-	s32 pad;
 	
 	Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
 	gSaveContext.fileNum = this->buttonIndex;

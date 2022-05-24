@@ -15,7 +15,6 @@ void Graph_ThreadEntry(void* arg0) {
 	u32 size;
 	GameStateOverlay* nextOvl;
 	GameStateOverlay* ovl;
-	char faultMsg[0x50];
 	
 	nextOvl = &gGameStateOverlayTable[0];
 	

@@ -42,5 +42,5 @@ void DmaMgr_ProcessMsg(DmaRequest* req) {
 		DmaMgr_DmaRomToRam(vrom, (u32)ram, size);
 	}
 	
-	uLib_DmaLog(req);
+	Debug_DmaLog(req);
 }

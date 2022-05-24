@@ -37,6 +37,23 @@ static void Make_Info(const char* tool, const char* target) {
 	sMake = 1;
 }
 
+static void Make_Run(const char* cmd) {
+#if 0
+	if (SysExe(cmd)) {
+		printf_error("Build Failed...");
+	}
+#else
+	char* out = SysExeO(cmd);
+	
+	if (out[0] != '\0') {
+		fflush(0);
+		Thread_Print(out);
+	}
+	
+	Free(out);
+#endif
+}
+
 // # # # # # # # # # # # # # # # # # # # #
 // # MAKE_SOUND                          #
 // # # # # # # # # # # # # # # # # # # # #
@@ -131,7 +148,7 @@ static void Sound_Convert(ThreadArg* targ) {
 			MemFile_Free(&mem);
 		}
 		
-		if (SysExe(command)) printf_error("z64audio failed to run");
+		Make_Run(command);
 		Make_Info("z64audio", audio);
 	}
 	
@@ -161,10 +178,8 @@ void Make_Sound(void) {
 			targ[j].path = list.item[i + j];
 			
 			if (gThreading) {
-				Log("Sound Thread Path [%s]", targ[j].path);
 				ThreadLock_Create(&thread[j], Sound_Convert, &targ[j]);
 			} else {
-				Log("Sound Path [%s]", targ[j].path);
 				Sound_Convert(&targ[j]);
 			}
 		}
@@ -185,59 +200,6 @@ free:
 // # # # # # # # # # # # # # # # # # # # #
 // # MAKE_CODE                           #
 // # # # # # # # # # # # # # # # # # # # #
-
-u32 Overlay_GetInit(void* overlay, u32 size) {
-	u32* ptr = overlay;
-	
-	while (true) {
-		if (size < sizeof(ActorInit))
-			return 0;
-		u32 match = 0;
-		ActorInit* initData = (ActorInit*)ptr;
-		
-		if ((ReadBE(initData->init) & 0xFF000000) == 0x80000000) {
-			if ((ReadBE(initData->update) & 0xFF000000) == 0x80000000) {
-				if ((ReadBE(initData->destroy) & 0xFF000000) == 0x80000000 || initData->destroy == 0) {
-					if ((ReadBE(initData->draw) & 0xFF000000) == 0x80000000 || initData->draw == 0) {
-						match++;
-					}
-				}
-			}
-		}
-		
-		if (ReadBE(initData->id) <= ACTOR_ID_MAX && ReadBE(initData->objectId) <= OBJECT_ID_MAX)
-			match++;
-		
-		if (initData->category <= ACTORCAT_CHEST)
-			match++;
-		
-		if (!(ReadBE(initData->instanceSize) & 0xFF000000) && initData->instanceSize != 0 && (ReadBE(initData->instanceSize) % 4) == 0)
-			match++;
-		
-		if (match == 4) {
-			ActorInit* in = (void*)ptr;
-			
-			Log("id            %04X", ReadBE(in->id));
-			Log("category      %04X", ReadBE(in->category));
-			Log("flags         %04X", ReadBE(in->flags));
-			Log("objectId      %04X", ReadBE(in->objectId));
-			Log("instanceSize  %04X", ReadBE(in->instanceSize));
-			Log("init          %04X", ReadBE(in->init));
-			Log("destroy       %04X", ReadBE(in->destroy));
-			Log("update        %04X", ReadBE(in->update));
-			Log("draw          %04X", ReadBE(in->draw));
-			break;
-		}
-		
-		ptr++;
-		size -= 4;
-	}
-	
-	if (Overlay_GetInit(ptr + 1, size - 4))
-		return (uPtr)ptr - (uPtr)overlay;
-	
-	return 0x80800000 + (uPtr)ptr - (uPtr)overlay;
-}
 
 static s32 Callback_System(const char* input, PassType type, void* arg, void* arg2) {
 	char* ovl = NULL;
@@ -281,10 +243,8 @@ static s32 Callback_System(const char* input, PassType type, void* arg, void* ar
 			String_Remove(info, strlen("0x0000-"));
 		String_Replace(info, "/", " ");
 		
-		Log("novl %s", info);
-		
 		Tools_Command(command, nOVL, "-v -c -s -A 0x80800000 -o %s %s", ovl, input);
-		if (SysExe(command)) printf_error_align("SysExe", "Failed");
+		Make_Run(command);
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
 		dump = SysExeO(command); {
@@ -422,10 +382,9 @@ static s32 Callback_Actor(const char* input, PassType type, void* arg, void* arg
 		}
 		
 		info = String_GetFolder(input, -1); String_Remove(info, strlen("0x0000-")); String_Replace(info, "/", " ");
-		Log("novl %s", info);
 		
 		Tools_Command(command, nOVL, "-v -c -s -A 0x80800000 -o %s %s", ovl, input);
-		if (SysExe(command)) printf_error_align("SysExe", "Failed");
+		Make_Run(command);
 		
 		Free(dump);
 		
@@ -491,7 +450,7 @@ error:
 		String_Replace(output, ".elf", ".bin");
 		
 		Tools_Command(command, mips64_objcopy, "-R .MIPS.abiflags -O binary %s %s", input, output);
-		if (SysExe(command)) printf_error_align("SysExe", "Failed");
+		Make_Run(command);
 	}
 	
 	return 0;
@@ -551,8 +510,7 @@ build:
 	Tools_Command(command, mips64_gcc, "%s %s %s -o %s", gFlags, flags, source, output);
 	Sys_MakeDir(output);
 	
-	if (SysExe(command)) printf_error_align("SysExe", "Failed");
-	
+	Make_Run(command);
 	Make_Info("mips64-gcc", source);
 	
 	if (callback)
@@ -599,8 +557,7 @@ build:
 	Tools_Command(command, mips64_ld, "-o %s %s -L%s %s", output, source, String_GetPath(entryDir), flags);
 	Sys_MakeDir(output);
 	
-	if (SysExe(command)) printf_error_align("SysExe", "Failed");
-	
+	Make_Run(command);
 	Make_Info("mips64-ld", source);
 	
 	if (callback)
@@ -697,19 +654,16 @@ static void Make_Linker_Thread(ThreadArg* arg) {
 		Tools_Command(command, mips64_ld, "-o %s %s %s", elf, inputList, arg->flag);
 		Sys_MakeDir(elf);
 		
-		if (SysExe(command)) printf_error_align("SysExe", "Failed");
-		Log("Compiled: [%s]", elf);
+		Make_Run(command);
 	}
 	if (true == true /* BIN */) {
 		Tools_Command(command, mips64_objcopy, "-R .MIPS.abiflags -O binary %s %s", elf, bin);
-		if (SysExe(command)) printf_error_align("SysExe", "Failed");
-		Log("Compiled: [%s]", bin);
+		Make_Run(command);
 	}
 	if (false == false /* mips64_ld */) {
 		Tools_Command(command, mips64_objdump, "-x -t %s", elf);
 		Sys_MakeDir(ld);
 		Code_ObjDump(SysExeO(command), ld);
-		Log("Compiled: [%s]", ld);
 	}
 	
 	Free(inputList);
@@ -724,8 +678,6 @@ static void Make_Code_Thread_C(ThreadArg* arg) {
 	char* input = arg->itemList->item[arg->i];
 	
 	if (!StrEnd(input, ".c")) {
-		Log("Skipped " PRNT_DGRY "[%s]", input);
-		
 		return;
 	}
 	
@@ -774,8 +726,6 @@ static void Make_Code_Thread_O(ThreadArg* arg) {
 		String_Replace(output, "src/", "rom/");
 	} else {
 		if (!StrEnd(input, ".o")) {
-			Log("Skipped " PRNT_DGRY "[%s]", input);
-			
 			goto free;
 		}
 		
@@ -801,11 +751,8 @@ void Make_Code_Thread_Single(ThreadArg* arg) {
 	ThreadArg passArg[THREAD_NUM];
 	ItemList itemList = ItemList_Initialize();
 	
-	if (!Sys_Stat(arg->path)) {
-		Log("Path not found [%s]", arg->path);
-		
+	if (!Sys_Stat(arg->path))
 		return;
-	}
 	
 	ItemList_List(&itemList, arg->path, -1, LIST_FILES | LIST_NO_DOT);
 	
@@ -840,11 +787,8 @@ void Make_Code_Thread_Folder(ThreadArg* arg) {
 	ThreadArg passArg[THREAD_NUM];
 	ItemList itemList = ItemList_Initialize();
 	
-	if (!Sys_Stat(arg->path)) {
-		Log("Path not found [%s]", arg->path);
-		
+	if (!Sys_Stat(arg->path))
 		return;
-	}
 	
 	ItemList_List(&itemList, arg->path, 0, LIST_FOLDERS | LIST_NO_DOT);
 	

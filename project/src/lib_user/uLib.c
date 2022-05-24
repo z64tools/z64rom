@@ -6,10 +6,6 @@ asm ("D_801333D4 = 0x801333D4");
 asm ("D_801333E0 = 0x801333E0");
 asm ("D_801333E8 = 0x801333E8");
 
-void Audio_PlaySys(u16 flag) {
-	Audio_PlaySoundGeneral(flag, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
-}
-
 void uLib_Update(GameState* gameState) {
 #ifdef DEV_BUILD
 	static s32 firstMessage;
@@ -66,44 +62,14 @@ void uLib_Update(GameState* gameState) {
 	}
 }
 
-void uLib_DmaLog(DmaRequest* req) {
-#ifdef DEV_BUILD
-	u32 id = 0;
-	DmaEntry* iter = gDmaDataTable;
+void* memset(void* m, int v, unsigned int s) {
+	for (s32 i = 0; i < s; i++)
+		((u8*)m)[i] = v;
 	
-	if (gLibCtx.state.dmaLog == false)
-		return;
-	
-	while (iter->vromEnd) {
-		if (req->vromAddr >= iter->vromStart && req->vromAddr < iter->vromEnd) {
-			break;
-		}
-		
-		id++;
-		iter++;
-	}
-	
-	// No Messages || No LinkAnim
-	if (id == 0x14 || id == 0x6 || id == 0x11 || id == 0x12 || id >= EXT_DMA_MAX)
-		return;
-	
-#if 0 // Crashes on some names
-	if (req->filename)
-		osLibPrintf("" PRNT_GRAY "[" PRNT_REDD "%s" PRNT_GRAY "::" PRNT_YELW "%d" PRNT_GRAY "]", req->filename, req->line);
-	
-	else
-		osLibPrintf("" PRNT_GRAY " [" PRNT_REDD "null" PRNT_GRAY "::" PRNT_YELW "%d" PRNT_GRAY "]", req->line);
-#endif
-	
-	osLibPrintf(
-		"Dma Request: vrom " PRNT_BLUE "%08X - %08X" PRNT_RSET " size: " PRNT_BLUE "%08X " PRNT_RSET "[ " PRNT_REDD "ID 0x%04X" PRNT_RSET " ]",
-		req->vromAddr,
-		req->vromAddr + req->size,
-		req->size,
-		id
-	);
-#endif
+	return NULL;
 }
+
+#ifdef DEV_BUILD
 
 static void __p_osLibPrintf(const char* fmt, ...) {
 	va_list args;
@@ -116,7 +82,6 @@ static void __p_osLibPrintf(const char* fmt, ...) {
 }
 
 void osLibPrintf(const char* fmt, ...) {
-#ifdef DEV_BUILD
 	va_list args;
 	
 	va_start(args, fmt);
@@ -126,12 +91,6 @@ void osLibPrintf(const char* fmt, ...) {
 	__p_osLibPrintf("" PRNT_RSET "\n");
 	
 	va_end(args);
-#endif
 }
 
-void* memset(void* m, int v, unsigned int s) {
-	for (s32 i = 0; i < s; i++)
-		((u8*)m)[i] = v;
-	
-	return NULL;
-}
+#endif

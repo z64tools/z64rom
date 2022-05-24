@@ -193,6 +193,12 @@ void Main_Config(char** input, Rom* rom) {
 		sprintf(gRomName_Output[0], "%s-release.z64", Config_GetString(config, "z_buildrom"));
 		sprintf(gRomName_Output[1], "%s-dev.z64", Config_GetString(config, "z_buildrom"));
 		
+		if (gBuildTarget == ROM_RELEASE) {
+			if (Sys_Stat(gRomName_Output[ROM_DEV]) > Sys_Stat(gRomName_Output[ROM_RELEASE])) {
+				gMakeForce = true;
+			}
+		}
+		
 		if (!Sys_Stat(projectRom))
 			printf_error("Could not locate your baserom [%s]", projectRom);
 		
@@ -270,7 +276,7 @@ void Main_Config(char** input, Rom* rom) {
 		"-c -Iinclude/z64hdr -Iinclude/z64hdr/include -Iinclude/ "
 		"-Isrc/lib_user -G 0 -O1 -fno-reorder-blocks -std=gnu99 -march=vr4300 -mabi=32"
 		" -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division -Wall"
-		" -Wno-builtin-declaration-mismatch -Wno-unused-variable"
+		" -Wno-builtin-declaration-mismatch"
 	);
 	MemFile_Printf(
 		config,
@@ -286,16 +292,6 @@ void Main_Config(char** input, Rom* rom) {
 	);
 	
 	return;
-}
-
-void Main_z64project() {
-	printf_toolinfo(gToolName, "Release Build");
-	
-	gBuildTarget = ROM_RELEASE;
-	
-	if (Sys_Stat(gRomName_Output[ROM_DEV]) > Sys_Stat(gRomName_Output[ROM_RELEASE])) {
-		gMakeForce = true;
-	}
 }
 
 s32 Main(s32 argc, char* argv[]) {
@@ -320,8 +316,10 @@ s32 Main(s32 argc, char* argv[]) {
 			Log("Rom [%s]", input);
 		}
 		
-		if (Main_IsSameFile(argv[i], "z64project.cfg"))
-			Main_z64project();
+		if (StrStr(argv[i], "z64project.cfg")) {
+			printf_toolinfo(gToolName, "Release Build");
+			gBuildTarget = ROM_RELEASE;
+		}
 	}
 	
 	if (Arg("actor") && input) {

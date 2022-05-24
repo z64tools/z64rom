@@ -1,5 +1,8 @@
-#define __NO_EXT_MACROS__
 #include <uLib.h>
+
+u32 __mib_DebugMenuC;
+
+#ifdef DEV_BUILD
 
 typedef void (* PageFunc)(GlobalContext*);
 
@@ -630,8 +633,8 @@ static void DebugMenu_ObjectMemView(GlobalContext* globalCtx) {
 		{ 240, 77, 175, 0xF8 - 0x20 },
 	};
 	
-	DebugMenu_DebugText(
-		0x6E14FFFF,
+	Debug_Text(
+		0x146EFFFF,
 		1,
 		5,
 		"Object Memory View",
@@ -658,7 +661,7 @@ static void DebugMenu_ObjectMemView(GlobalContext* globalCtx) {
 	ObjectContext* objCtx = &globalCtx->objectCtx;
 	u32 objMemSize = (u32)objCtx->spaceEnd - (u32)objCtx->spaceStart;
 	
-	DebugMenu_DebugText(
+	Debug_Text(
 		selectedColor[selectedMem == 0],
 		1,
 		6,
@@ -707,8 +710,8 @@ static void DebugMenu_ZeldaArenaMemView(GlobalContext* globalCtx) {
 		{ 240, 77, 175, 0xF8 - 0x20 },
 	};
 	
-	DebugMenu_DebugText(
-		0x6E14FFFF,
+	Debug_Text(
+		0x146EFFFF,
 		1,
 		5,
 		"ZeldaArena Memory View",
@@ -738,7 +741,7 @@ static void DebugMenu_ZeldaArenaMemView(GlobalContext* globalCtx) {
 	
 	ZeldaArena_GetSizes(&outMaxFree, &outFree, &outAlloc);
 	
-	DebugMenu_DebugText(
+	Debug_Text(
 		selectedColor[selectedMem == 0],
 		1,
 		6,
@@ -833,40 +836,6 @@ static DebugPageInfo sDebugPageInfo[] = {
 		.playerFreeze = false,
 	},
 };
-
-void DebugMenu_DebugText(u32 rgba, s32 x, s32 y, char* fmt, ...) {
-#ifndef NDEBUG
-	#define RED32(RGBA0)   (u8)((RGBA0) >> 24)
-	#define GREEN32(RGBA0) (u8)((RGBA0) >> 16)
-	#define BLUE32(RGBA0)  (u8)((RGBA0) >> 8)
-	#define ALPHA32(RGBA0) (u8)((RGBA0))
-	va_list args;
-	GfxPrint debTex;
-	Gfx* polyOpa = POLY_OPA_DISP;
-	Gfx* gfx = Graph_GfxPlusOne(polyOpa);
-	
-	va_start(args, fmt);
-	gSPDisplayList(OVERLAY_DISP++, gfx);
-	GfxPrint_Init(&debTex);
-	GfxPrint_Open(&debTex, gfx);
-	GfxPrint_SetColor(&debTex, RED32(rgba), GREEN32(rgba), BLUE32(rgba), ALPHA32(rgba));
-	GfxPrint_SetPos(&debTex, x, y);
-	GfxPrint_VPrintf(&debTex, fmt, args);
-	gfx = GfxPrint_Close(&debTex);
-	GfxPrint_Destroy(&debTex);
-	
-	gSPEndDisplayList(gfx++);
-	Graph_BranchDlist(polyOpa, gfx);
-	POLY_OPA_DISP = gfx;
-	
-	va_end(args);
-	
-#undef RED32
-#undef GREEN32
-#undef BLUE32
-#undef ALPHA32
-#endif
-}
 
 static s16 sInterfacePrevAlpha[16];
 static s16 sInterfaceFlag;
@@ -1004,8 +973,8 @@ static void DebugMenu_MenuUpdate(GlobalContext* globalCtx) {
 		Audio_PlaySys(NA_SE_IT_SWORD_IMPACT);
 	}
 	
-	DebugMenu_DebugText(0x6e14ffFF, 1, 5, "DebugMenu Menu");
-	DebugMenu_DebugText(0x404040FF, 1, 5, "               (HoldR, A + DPAD)");
+	Debug_Text(0x146EFFFF, 1, 5, "Debug Menu");
+	Debug_Text(0x404040FF, 1, 5, "               (HoldR, A + DPAD)");
 	
 	for (s32 i = 1; i < infoMax; i++) {
 		u32 color = 0xede1beFF;
@@ -1014,7 +983,7 @@ static void DebugMenu_MenuUpdate(GlobalContext* globalCtx) {
 			color = 0xff6314FF;
 		}
 		
-		DebugMenu_DebugText(
+		Debug_Text(
 			color,
 			1,
 			5 + i,
@@ -1031,3 +1000,5 @@ void DebugMenu_Update(GlobalContext* globalCtx) {
 		DebugMenu_HitboxViewUpdate(globalCtx);
 	}
 }
+
+#endif

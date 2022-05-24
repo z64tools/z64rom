@@ -1,81 +1,35 @@
+#define __NO_EXT_MACROS__
 #include <uLib.h>
 
-struct DebugSysContext;
-typedef void (* DebugSysFunc)(GlobalContext*);
+typedef void (* PageFunc)(GlobalContext*);
 
 typedef enum {
 	DEBUGSYS_PAGE_MAIN,
 	DEBUGSYS_PAGE_MINIMAP
-} DebugSysPage;
+} DebugPage;
 
-typedef struct DebugSysContext {
+typedef struct {
 	struct {
 		u8 on : 1;
 	} state;
-	DebugSysPage page;
-	DebugSysPage setPage;
+	DebugPage page;
+	DebugPage setPage;
 	Vtx* vtx;
 	bool hitViewEnabled;
 	bool colViewEnabled;
 	bool cineModeEnabled;
-} DebugSysContext;
+} DebugState;
 
 typedef struct {
-	DebugSysFunc func;
-	char* name;
-	u8    playerFreeze;
-} DebugSysPageInfo;
+	PageFunc func;
+	char*    name;
+	u8 playerFreeze;
+} DebugPageInfo;
 
 extern Arena sZeldaArena;
 asm ("sZeldaArena = 0x8015FF80");
-asm ("D_801333D4 = 0x801333D4");
-asm ("D_801333E0 = 0x801333E0");
-asm ("D_801333E0 = 0x801333E0");
-asm ("D_801333E8 = 0x801333E8");
 
-/* / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / */
-
-void DebugSys_CollisionViewUpdate(GlobalContext* globalCtx);
-void DebugSys_HitboxViewUpdate(GlobalContext* globalCtx);
-void DebugSys_ObjectMemView(GlobalContext* globalCtx);
-void DebugSys_ZeldaArenaMemView(GlobalContext* globalCtx);
-void DebugSys_HitboxView(GlobalContext* globalCtx);
-void DebugSys_CollisionView(GlobalContext* globalCtx);
-void DebugSys_CineMode(GlobalContext* globalCtx);
-
-static DebugSysContext sDebugSysCtx;
-static DebugSysPageInfo sDebugPageInfo[] = {
-	{
-		.func = NULL,
-		.name = "\0",
-		.playerFreeze = true,
-	},
-	{
-		.func = DebugSys_ObjectMemView,
-		.name = "Object Memory View",
-		.playerFreeze = false,
-	},
-	{
-		.func = DebugSys_ZeldaArenaMemView,
-		.name = "Zelda Arena Memory View",
-		.playerFreeze = false,
-	},
-	{
-		.func = DebugSys_CollisionView,
-		.name = "Toggle Collision Viewer [ ]",
-		.playerFreeze = false,
-	},
-	{
-		.func = DebugSys_HitboxView,
-		.name = "Toggle Hitbox Viewer    [ ]",
-		.playerFreeze = false,
-	},
-	{
-		.func = DebugSys_CineMode,
-		.name = "Toggle Cine Mode        [ ]",
-		.playerFreeze = false,
-	},
-};
+static DebugState sDebugSysCtx;
 static Gfx sPolyGfxInit[] = {
 	gsSPLoadGeometryMode(G_ZBUFFER | G_SHADE | G_LIGHTING),
 	gsSPTexture(0, 0, 0, G_TX_RENDERTILE, G_OFF),
@@ -90,161 +44,9 @@ static Gfx sPolyGfxInit[] = {
 	gsSPEndDisplayList(),
 };
 
-/* / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / */
-
-void DebugSys_PlaySysAudio(u16 flag) {
-	Audio_PlaySoundGeneral(flag, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
-}
-
-void DebugSys_DebugText(u32 rgba, s32 x, s32 y, char* fmt, ...) {
-	#ifndef NDEBUG
-		#define RED32(RGBA0)   (u8)((RGBA0) >> 24)
-		#define GREEN32(RGBA0) (u8)((RGBA0) >> 16)
-		#define BLUE32(RGBA0)  (u8)((RGBA0) >> 8)
-		#define ALPHA32(RGBA0) (u8)((RGBA0))
-		va_list args;
-		GfxPrint debTex;
-		Gfx* polyOpa = POLY_OPA_DISP;
-		Gfx* gfx = Graph_GfxPlusOne(polyOpa);
-		
-		va_start(args, fmt);
-		gSPDisplayList(OVERLAY_DISP++, gfx);
-		GfxPrint_Init(&debTex);
-		GfxPrint_Open(&debTex, gfx);
-		GfxPrint_SetColor(&debTex, RED32(rgba), GREEN32(rgba), BLUE32(rgba), ALPHA32(rgba));
-		GfxPrint_SetPos(&debTex, x, y);
-		GfxPrint_VPrintf(&debTex, fmt, args);
-		gfx = GfxPrint_Close(&debTex);
-		GfxPrint_Destroy(&debTex);
-		
-		gSPEndDisplayList(gfx++);
-		Graph_BranchDlist(polyOpa, gfx);
-		POLY_OPA_DISP = gfx;
-		
-		va_end(args);
-		
-		#undef RED32
-		#undef GREEN32
-		#undef BLUE32
-		#undef ALPHA32
-	#endif
-}
-
-static void DebugSys_MenuUpdate(GlobalContext* globalCtx) {
-	Player* p = GET_PLAYER(globalCtx);
-	DebugSysContext* debugSysCtx = &sDebugSysCtx;
-	u8 holdR = CHK_ALL(cur, BTN_R);
-	u32 infoMax = ARRAY_COUNT(sDebugPageInfo);
-	
-	/* Disable for Release and cutscenes */
-	if (globalCtx->pauseCtx.state != 0)
-		return;
-	
-	if (debugSysCtx->cineModeEnabled) {
-		ShrinkWindow_SetVal(0x20);
-	}
-	
-	/* Flip ON flag */
-	if (CHK_ALL(press, BTN_R | BTN_L | BTN_B)) {
-		debugSysCtx->state.on = ABS(debugSysCtx->state.on - 1);
-		if (p->stateFlags1 & (1 << 29)) {
-			p->stateFlags1 &= ~(1 << 29);
-		}
-		DebugSys_PlaySysAudio(NA_SE_SY_FSEL_DECIDE_S);
-		
-		return;
-	}
-	
-	if (debugSysCtx->state.on == 0)
-		return;
-	
-	if (holdR && CHK_ALL(press, BTN_B)) {
-		if (debugSysCtx->page == DEBUGSYS_PAGE_MAIN) {
-			debugSysCtx->state.on = 0;
-			p->stateFlags1 &= ~(1 << 29);
-			DebugSys_PlaySysAudio(NA_SE_SY_FSEL_CLOSE);
-			
-			return;
-		}
-		debugSysCtx->page = DEBUGSYS_PAGE_MAIN;
-		DebugSys_PlaySysAudio(NA_SE_SY_FSEL_CLOSE);
-	}
-	
-	/* Freeze player based on PAGE info */
-	if (sDebugPageInfo[debugSysCtx->page].playerFreeze == 1) {
-		p->stateFlags1 |= (1 << 29);
-		ShrinkWindow_SetVal(0x20);
-	} else {
-		p->stateFlags1 &= ~(1 << 29);
-	}
-	
-	if (sDebugPageInfo[debugSysCtx->page].func) {
-		sDebugPageInfo[debugSysCtx->page].func(globalCtx);
-		
-		return;
-	}
-	
-	/* MAIN MENU */
-	
-	u32 oldSetPage = debugSysCtx->setPage;
-	
-	if (holdR && CHK_ALL(press, BTN_A)) {
-		debugSysCtx->page = debugSysCtx->setPage;
-		DebugSys_PlaySysAudio(NA_SE_SY_FSEL_DECIDE_S);
-	}
-	if (holdR && CHK_ALL(press, BTN_DUP)) {
-		debugSysCtx->setPage = CLAMP((debugSysCtx->setPage - 1), 1, infoMax - 1);
-	}
-	if (holdR && CHK_ALL(press, BTN_DDOWN)) {
-		debugSysCtx->setPage = CLAMP((debugSysCtx->setPage + 1), 1, infoMax - 1);
-	}
-	debugSysCtx->setPage = CLAMP(debugSysCtx->setPage, 1, infoMax - 1);
-	
-	if (oldSetPage != debugSysCtx->setPage) {
-		DebugSys_PlaySysAudio(NA_SE_IT_SWORD_IMPACT);
-	}
-	
-	DebugSys_DebugText(0x6e14ffFF, 1, 5, "DebugSys Menu");
-	DebugSys_DebugText(0x404040FF, 1, 5, "               (HoldR, A + DPAD)");
-	
-	if (debugSysCtx->hitViewEnabled) {
-		sDebugPageInfo[5].name[25] = 'x';
-	} else {
-		sDebugPageInfo[5].name[25] = '-';
-	}
-	
-	if (debugSysCtx->colViewEnabled) {
-		sDebugPageInfo[4].name[25] = 'x';
-	} else {
-		sDebugPageInfo[4].name[25] = '-';
-	}
-	
-	for (s32 i = 1; i < infoMax; i++) {
-		u32 color = 0xede1beFF;
-		
-		if (i == debugSysCtx->setPage) {
-			color = 0xff6314FF;
-		}
-		
-		DebugSys_DebugText(
-			color,
-			1,
-			5 + i,
-			"%s",
-			sDebugPageInfo[i].name
-		);
-	}
-}
-
-void DebugSys_Update(GlobalContext* globalCtx) {
-	DebugSys_MenuUpdate(globalCtx);
-	if (gSaveContext.gameMode == 0 && globalCtx->pauseCtx.mode == 0) {
-		DebugSys_CollisionViewUpdate(globalCtx);
-		DebugSys_HitboxViewUpdate(globalCtx);
-	}
-}
-
-/* / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / */
+// # # # # # # # # # # # # # # # # # # # #
+// #                                     #
+// # # # # # # # # # # # # # # # # # # # #
 
 static Vec3f DebugSys_TriNorm(Vec3f* v1, Vec3f* v2, Vec3f* v3) {
 	Vec3f norm;
@@ -370,7 +172,7 @@ static void DebugSys_DrawCyl(GlobalContext* globalCtx, Gfx** gfxP, Vec3s* pos, s
 		
 		gSPClearGeometryMode(cylGfxP++, G_CULL_BACK);
 		gSPEndDisplayList(cylGfxP++);
-		#undef CYL_DIVS
+#undef CYL_DIVS
 		
 		pCylGfx = cylGfx;
 	}
@@ -685,28 +487,30 @@ static void DebugSys_DrawCollision(GlobalContext* globalCtx, Gfx** gfxP, Gfx** g
 }
 
 static void DebugSys_DrawQuad(GlobalContext* globalCtx, Vec2f* pos, Vec2f* scale, Color_RGBA8* color) {
-	DebugSysContext* debugSysCtx = &sDebugSysCtx;
+	DebugState* debugSysCtx = &sDebugSysCtx;
 	
 	Matrix_Translate(pos->x, pos->y, 0, MTXMODE_NEW);
 	Matrix_Scale(scale->x, scale->y, 1.0f, MTXMODE_APPLY);
 	
 	func_800949A8(globalCtx->state.gfxCtx);
-	gSPClearGeometryMode(POLY_OPA_DISP++, G_CULL_BOTH | G_ZBUFFER);
-	gDPSetCombineMode(POLY_OPA_DISP++, 0, 0, 0, PRIMITIVE, 0, 0, 0, PRIMITIVE, 0, 0, 0, PRIMITIVE, 0, 0, 0, PRIMITIVE);
-	gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, color->r, color->g, color->b, color->a);
+	gSPClearGeometryMode(OVERLAY_DISP++, G_CULL_BOTH | G_ZBUFFER);
+	gDPSetCombineMode(OVERLAY_DISP++, 0, 0, 0, PRIMITIVE, 0, 0, 0, PRIMITIVE, 0, 0, 0, PRIMITIVE, 0, 0, 0, PRIMITIVE);
+	gDPSetPrimColor(OVERLAY_DISP++, 0, 0, color->r, color->g, color->b, color->a);
 	
-	gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(globalCtx->state.gfxCtx, __FILE__, __LINE__), G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
-	gSPVertex(POLY_OPA_DISP++, debugSysCtx->vtx, 4, 0);
-	gSP1Quadrangle(POLY_OPA_DISP++, 0, 2, 3, 1, 0);
+	gSPMatrix(OVERLAY_DISP++, Matrix_NewMtx(globalCtx->state.gfxCtx, __FILE__, __LINE__), G_MTX_MODELVIEW | G_MTX_LOAD);
+	gSPVertex(OVERLAY_DISP++, debugSysCtx->vtx, 4, 0);
+	gSP1Quadrangle(OVERLAY_DISP++, 0, 2, 3, 1, 0);
 }
 
-/* / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / */
+// # # # # # # # # # # # # # # # # # # # #
+// # PAGE FUNC                           #
+// # # # # # # # # # # # # # # # # # # # #
 
-void DebugSys_CollisionViewUpdate(GlobalContext* globalCtx) {
+static void DebugSys_CollisionViewUpdate(GlobalContext* globalCtx) {
 	#define POLY_GFX_BUF_SIZE 0x4000
 	static Gfx sPolyBuffer[2][POLY_GFX_BUF_SIZE];
 	
-	DebugSysContext* debugSysCtx = &sDebugSysCtx;
+	DebugState* debugSysCtx = &sDebugSysCtx;
 	
 	if (!debugSysCtx->colViewEnabled) {
 		return;
@@ -717,7 +521,7 @@ void DebugSys_CollisionViewUpdate(GlobalContext* globalCtx) {
 	Gfx* dlist = sPolyBuffer[globalCtx->gameplayFrames % 2];
 	Gfx* pGfx = dlist;
 	Gfx* dGfx = dlist + POLY_GFX_BUF_SIZE;
-	#undef POLY_GFX_BUF_SIZE
+#undef POLY_GFX_BUF_SIZE
 	
 	// Setup
 	gSPDisplayList(pGfx++, sPolyGfxInit);
@@ -770,8 +574,8 @@ void DebugSys_CollisionViewUpdate(GlobalContext* globalCtx) {
 	CLOSE_DISPS(globalCtx->state.gfxCtx, __FILE__, __LINE__);
 }
 
-void DebugSys_HitboxViewUpdate(GlobalContext* globalCtx) {
-	DebugSysContext* debugSysCtx = &sDebugSysCtx;
+static void DebugSys_HitboxViewUpdate(GlobalContext* globalCtx) {
+	DebugState* debugSysCtx = &sDebugSysCtx;
 	
 	if (!debugSysCtx->hitViewEnabled) {
 		return;
@@ -808,8 +612,8 @@ void DebugSys_HitboxViewUpdate(GlobalContext* globalCtx) {
 	CLOSE_DISPS(globalCtx->state.gfxCtx, __FILE__, __LINE__);
 }
 
-void DebugSys_ObjectMemView(GlobalContext* globalCtx) {
-	DebugSysContext* debugSysCtx = &sDebugSysCtx;
+static void DebugSys_ObjectMemView(GlobalContext* globalCtx) {
+	DebugState* debugSysCtx = &sDebugSysCtx;
 	static u32 selectedMem = 0;
 	u32 selectedColor[] = {
 		0x404040FF,
@@ -885,8 +689,8 @@ void DebugSys_ObjectMemView(GlobalContext* globalCtx) {
 	}
 }
 
-void DebugSys_ZeldaArenaMemView(GlobalContext* globalCtx) {
-	DebugSysContext* debugSysCtx = &sDebugSysCtx;
+static void DebugSys_ZeldaArenaMemView(GlobalContext* globalCtx) {
+	DebugState* debugSysCtx = &sDebugSysCtx;
 	static u32 selectedMem = 0;
 	u32 selectedColor[] = {
 		0x404040FF,
@@ -972,23 +776,258 @@ void DebugSys_ZeldaArenaMemView(GlobalContext* globalCtx) {
 	}
 }
 
-void DebugSys_HitboxView(GlobalContext* globalCtx) {
-	DebugSysContext* debugSysCtx = &sDebugSysCtx;
+static void DebugSys_HitboxView(GlobalContext* globalCtx) {
+	DebugState* debugSysCtx = &sDebugSysCtx;
 	
 	debugSysCtx->hitViewEnabled ^= 1;
 	debugSysCtx->page = DEBUGSYS_PAGE_MAIN;
 }
 
-void DebugSys_CollisionView(GlobalContext* globalCtx) {
-	DebugSysContext* debugSysCtx = &sDebugSysCtx;
+static void DebugSys_CollisionView(GlobalContext* globalCtx) {
+	DebugState* debugSysCtx = &sDebugSysCtx;
 	
 	debugSysCtx->colViewEnabled ^= 1;
 	debugSysCtx->page = DEBUGSYS_PAGE_MAIN;
 }
 
-void DebugSys_CineMode(GlobalContext* globalCtx) {
-	DebugSysContext* debugSysCtx = &sDebugSysCtx;
+static void DebugSys_CineMode(GlobalContext* globalCtx) {
+	DebugState* debugSysCtx = &sDebugSysCtx;
 	
 	debugSysCtx->cineModeEnabled ^= 1;
 	debugSysCtx->page = DEBUGSYS_PAGE_MAIN;
+}
+
+// # # # # # # # # # # # # # # # # # # # #
+// #                                     #
+// # # # # # # # # # # # # # # # # # # # #
+
+static DebugPageInfo sDebugPageInfo[] = {
+	{
+		.func = NULL,
+		.name = "\0",
+		.playerFreeze = true,
+	},
+	{
+		.func = DebugSys_ObjectMemView,
+		.name = "Object Memory View",
+		.playerFreeze = false,
+	},
+	{
+		.func = DebugSys_ZeldaArenaMemView,
+		.name = "Zelda Arena Memory View",
+		.playerFreeze = false,
+	},
+	{
+		.func = DebugSys_CollisionView,
+		.name = "Toggle Collision Viewer",
+		.playerFreeze = false,
+	},
+	{
+		.func = DebugSys_HitboxView,
+		.name = "Toggle Hitbox Viewer",
+		.playerFreeze = false,
+	},
+	{
+		.func = DebugSys_CineMode,
+		.name = "Toggle Cine Mode",
+		.playerFreeze = false,
+	},
+};
+
+void DebugSys_DebugText(u32 rgba, s32 x, s32 y, char* fmt, ...) {
+#ifndef NDEBUG
+	#define RED32(RGBA0)   (u8)((RGBA0) >> 24)
+	#define GREEN32(RGBA0) (u8)((RGBA0) >> 16)
+	#define BLUE32(RGBA0)  (u8)((RGBA0) >> 8)
+	#define ALPHA32(RGBA0) (u8)((RGBA0))
+	va_list args;
+	GfxPrint debTex;
+	Gfx* polyOpa = POLY_OPA_DISP;
+	Gfx* gfx = Graph_GfxPlusOne(polyOpa);
+	
+	va_start(args, fmt);
+	gSPDisplayList(OVERLAY_DISP++, gfx);
+	GfxPrint_Init(&debTex);
+	GfxPrint_Open(&debTex, gfx);
+	GfxPrint_SetColor(&debTex, RED32(rgba), GREEN32(rgba), BLUE32(rgba), ALPHA32(rgba));
+	GfxPrint_SetPos(&debTex, x, y);
+	GfxPrint_VPrintf(&debTex, fmt, args);
+	gfx = GfxPrint_Close(&debTex);
+	GfxPrint_Destroy(&debTex);
+	
+	gSPEndDisplayList(gfx++);
+	Graph_BranchDlist(polyOpa, gfx);
+	POLY_OPA_DISP = gfx;
+	
+	va_end(args);
+	
+#undef RED32
+#undef GREEN32
+#undef BLUE32
+#undef ALPHA32
+#endif
+}
+
+static s16 sInterfacePrevAlpha[16];
+static s16 sInterfaceFlag;
+static s16 sInterfaceForceHide;
+
+static void DebugSys_Interface_Hide(InterfaceContext* interface) {
+	if (sInterfaceFlag == 0) {
+		sInterfacePrevAlpha[0] = interface->aAlpha;
+		sInterfacePrevAlpha[1] = interface->bAlpha;
+		sInterfacePrevAlpha[2] = interface->healthAlpha;
+		sInterfacePrevAlpha[3] = interface->magicAlpha;
+		sInterfacePrevAlpha[4] = interface->minimapAlpha;
+		sInterfacePrevAlpha[5] = interface->startAlpha;
+		sInterfacePrevAlpha[6] = interface->cDownAlpha;
+		sInterfacePrevAlpha[7] = interface->cLeftAlpha;
+		sInterfacePrevAlpha[8] = interface->cRightAlpha;
+		sInterfaceFlag = 1;
+	}
+	
+	interface->aAlpha = 0;
+	interface->bAlpha = 0;
+	interface->healthAlpha = 0;
+	interface->magicAlpha = 0;
+	interface->minimapAlpha = 0;
+	interface->startAlpha = 0;
+	interface->cDownAlpha = 0;
+	interface->cLeftAlpha = 0;
+	interface->cRightAlpha = 0;
+}
+
+static void DebugSys_Interface_Show(InterfaceContext* interface) {
+	if (sInterfaceForceHide)
+		return;
+	
+	if (sInterfaceFlag == 1) {
+		interface->aAlpha = sInterfacePrevAlpha[0];
+		interface->bAlpha = sInterfacePrevAlpha[1];
+		interface->healthAlpha = sInterfacePrevAlpha[2];
+		interface->magicAlpha = sInterfacePrevAlpha[3];
+		interface->minimapAlpha = sInterfacePrevAlpha[4];
+		interface->startAlpha = sInterfacePrevAlpha[5];
+		interface->cDownAlpha = sInterfacePrevAlpha[6];
+		interface->cLeftAlpha = sInterfacePrevAlpha[7];
+		interface->cRightAlpha = sInterfacePrevAlpha[8];
+		sInterfaceFlag = 0;
+	}
+}
+
+static void DebugSys_MenuUpdate(GlobalContext* globalCtx) {
+	Player* p = GET_PLAYER(globalCtx);
+	DebugState* debugSysCtx = &sDebugSysCtx;
+	u8 holdR = CHK_ALL(cur, BTN_R);
+	u32 infoMax = ARRAY_COUNT(sDebugPageInfo);
+	
+	sInterfaceForceHide = false;
+	
+	if (globalCtx->pauseCtx.state != 0)
+		return;
+	
+	if (debugSysCtx->cineModeEnabled) {
+		ShrinkWindow_SetVal(0x20);
+		
+		DebugSys_Interface_Hide(&globalCtx->interfaceCtx);
+		sInterfaceForceHide = true;
+	}
+	
+	/* Flip ON flag */
+	if (CHK_ALL(press, BTN_R | BTN_L | BTN_B)) {
+		debugSysCtx->state.on ^= 1;
+		if (p->stateFlags1 & (1 << 29)) {
+			p->stateFlags1 &= ~(1 << 29);
+		}
+		
+		if (debugSysCtx->state.on)
+			Audio_PlaySys(NA_SE_SY_FSEL_DECIDE_S);
+		
+		else {
+			Audio_PlaySys(NA_SE_SY_FSEL_CLOSE);
+			DebugSys_Interface_Show(&globalCtx->interfaceCtx);
+		}
+		
+		return;
+	}
+	
+	if (debugSysCtx->state.on == 0) {
+		return;
+	}
+	
+	if (holdR && CHK_ALL(press, BTN_B)) {
+		DebugSys_Interface_Show(&globalCtx->interfaceCtx);
+		if (debugSysCtx->page == DEBUGSYS_PAGE_MAIN) {
+			debugSysCtx->state.on = 0;
+			p->stateFlags1 &= ~(1 << 29);
+			Audio_PlaySys(NA_SE_SY_FSEL_CLOSE);
+			
+			return;
+		}
+		debugSysCtx->page = DEBUGSYS_PAGE_MAIN;
+		Audio_PlaySys(NA_SE_SY_FSEL_CLOSE);
+	}
+	
+	/* Freeze player based on PAGE info */
+	if (sDebugPageInfo[debugSysCtx->page].playerFreeze == 1) {
+		ShrinkWindow_SetVal(0x20);
+		p->stateFlags1 |= (1 << 29);
+		DebugSys_Interface_Hide(&globalCtx->interfaceCtx);
+	} else {
+		p->stateFlags1 &= ~(1 << 29);
+		DebugSys_Interface_Show(&globalCtx->interfaceCtx);
+	}
+	
+	if (sDebugPageInfo[debugSysCtx->page].func) {
+		sDebugPageInfo[debugSysCtx->page].func(globalCtx);
+		
+		return;
+	}
+	
+	/* MAIN MENU */
+	
+	u32 oldSetPage = debugSysCtx->setPage;
+	
+	if (holdR && CHK_ALL(press, BTN_A)) {
+		debugSysCtx->page = debugSysCtx->setPage;
+		Audio_PlaySys(NA_SE_SY_FSEL_DECIDE_S);
+	}
+	if (holdR && CHK_ALL(press, BTN_DUP)) {
+		debugSysCtx->setPage = CLAMP((debugSysCtx->setPage - 1), 1, infoMax - 1);
+	}
+	if (holdR && CHK_ALL(press, BTN_DDOWN)) {
+		debugSysCtx->setPage = CLAMP((debugSysCtx->setPage + 1), 1, infoMax - 1);
+	}
+	debugSysCtx->setPage = CLAMP(debugSysCtx->setPage, 1, infoMax - 1);
+	
+	if (oldSetPage != debugSysCtx->setPage) {
+		Audio_PlaySys(NA_SE_IT_SWORD_IMPACT);
+	}
+	
+	DebugSys_DebugText(0x6e14ffFF, 1, 5, "DebugSys Menu");
+	DebugSys_DebugText(0x404040FF, 1, 5, "               (HoldR, A + DPAD)");
+	
+	for (s32 i = 1; i < infoMax; i++) {
+		u32 color = 0xede1beFF;
+		
+		if (i == debugSysCtx->setPage) {
+			color = 0xff6314FF;
+		}
+		
+		DebugSys_DebugText(
+			color,
+			1,
+			5 + i,
+			"%s",
+			sDebugPageInfo[i].name
+		);
+	}
+}
+
+void DebugSys_Update(GlobalContext* globalCtx) {
+	DebugSys_MenuUpdate(globalCtx);
+	if (gSaveContext.gameMode == 0 && globalCtx->pauseCtx.mode == 0) {
+		DebugSys_CollisionViewUpdate(globalCtx);
+		DebugSys_HitboxViewUpdate(globalCtx);
+	}
 }

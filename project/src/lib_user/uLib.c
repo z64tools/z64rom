@@ -6,14 +6,18 @@ asm ("D_801333D4 = 0x801333D4");
 asm ("D_801333E0 = 0x801333E0");
 asm ("D_801333E8 = 0x801333E8");
 
+void Audio_PlaySys(u16 flag) {
+	Audio_PlaySoundGeneral(flag, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+}
+
 void uLib_Update(GameState* gameState) {
+#ifdef DEV_BUILD
 	static s32 firstMessage;
 	const char* state[] = {
 		"" PRNT_REDD "false",
 		"" PRNT_BLUE "true",
 	};
 	
-#ifdef DEV_BUILD
 	if (firstMessage == 0) {
 		osLibPrintf("" PRNT_BLUE "--- [z64rom] ---\n");
 		osLibPrintf("Vanilla Printf [L + D-UP]");
@@ -36,6 +40,7 @@ void uLib_Update(GameState* gameState) {
 		SET_NEXT_GAMESTATE(gameState, Select_Init, SelectContext);
 		gameState->running = false;
 	}
+	
 #endif
 	
 	/* Skip current textbox when pressing B */
@@ -47,7 +52,7 @@ void uLib_Update(GameState* gameState) {
 		msgCtx->textUnskippable = 1;
 		
 		if (soundFlag == 1 && (msgCtx->msgMode == 52 || msgCtx->textboxEndType == 0x30)) {
-			Audio_PlaySoundGeneral(NA_SE_SY_MESSAGE_END, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+			Audio_PlaySys(NA_SE_SY_MESSAGE_END);
 			soundFlag = 0;
 		}
 		

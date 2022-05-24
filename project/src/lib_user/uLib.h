@@ -38,6 +38,7 @@ extern GraphicsContext* __gfxCtx;
 asm ("__gfxCtx = 0x80212020");
 asm ("gGlobalContext = 0x80212020");
 
+void Audio_PlaySys(u16 flag);
 void uLib_Update(GameState* gameState);
 void uLib_DmaLog(DmaRequest* req);
 

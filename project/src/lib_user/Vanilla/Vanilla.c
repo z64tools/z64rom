@@ -1,7 +1,7 @@
 #include <ULib.h>
 #include "vt.h"
 
-void __uLib_DebugMessages(u32 msgID) {
+void uLib_DebugMessages(u32 msgID) {
 	switch (msgID) {
 		case 1: {
 			ActorOverlay* overlayEntry;
@@ -52,7 +52,7 @@ void __uLib_DebugMessages(u32 msgID) {
 	}
 }
 
-Actor* __uLib_Actor_Spawn(ActorContext* actorCtx, GlobalContext* globalCtx, s16 actorId, f32 posX, f32 posY, f32 posZ, s16 rotX, s16 rotY, s16 rotZ, s16 params) {
+Actor* uLib_Actor_Spawn(ActorContext* actorCtx, GlobalContext* globalCtx, s16 actorId, f32 posX, f32 posY, f32 posZ, s16 rotX, s16 rotY, s16 rotZ, s16 params) {
 	Actor* actor;
 	ActorInit* actorInit;
 	s32 objBankIndex;
@@ -219,7 +219,7 @@ Actor* __uLib_Actor_Spawn(ActorContext* actorCtx, GlobalContext* globalCtx, s16 
 	return actor;
 }
 
-void __uLib_Gameplay_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn) {
+void uLib_Gameplay_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn) {
 	SceneTableEntry* scene = &gSceneTable[sceneNum];
 	u32 roomSize;
 	
@@ -256,4 +256,78 @@ void __uLib_Gameplay_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spaw
 		"KB",
 		BinToKb(roomSize)
 	);
+}
+
+void uLib_EffectSs_Spawn(GlobalContext* globalCtx, s32 type, s32 priority, void* initParams) {
+	s32 index;
+	u32 overlaySize;
+	EffectSsOverlay* overlayEntry;
+	EffectSsInit* initInfo;
+	
+	overlayEntry = &gEffectSsOverlayTable[type];
+	
+	Assert(type < EXT_EFFECT_MAX);
+	
+	if (EffectSs_FindSlot(priority, &index) != 0) {
+		osLibPrintf(osInfo("Break"));
+		osLibPrintf("Could not find free slot!");
+		
+		return;
+	}
+	
+	sEffectSsInfo.searchStartIndex = index + 1;
+	overlaySize = (u32)overlayEntry->vramEnd - (u32)overlayEntry->vramStart;
+	
+	if (overlayEntry->vramStart == NULL) {
+		osLibPrintf("Not an overlay");
+		initInfo = overlayEntry->initInfo;
+	} else {
+		if (overlayEntry->loadedRamAddr == NULL) {
+			overlayEntry->loadedRamAddr = ZeldaArena_MallocRDebug(overlaySize, __FUNCTION__, __LINE__);
+			
+			if (overlayEntry->loadedRamAddr == NULL) {
+				osLibPrintf(osInfo("Break"));
+				osLibPrintf("The memory of [" PRNT_BLUE "%.2f" PRNT_RSET "kB] byte cannot be secured. Therefore, the program cannot be loaded.", BinToKb(overlaySize));
+				osLibPrintf("What a dangerous situation! Naturally, effects will not produced either.");
+				
+				return;
+			}
+			
+			Overlay_Load(
+				overlayEntry->vromStart,
+				overlayEntry->vromEnd,
+				overlayEntry->vramStart,
+				overlayEntry->vramEnd,
+				overlayEntry->loadedRamAddr
+			);
+		}
+		
+		initInfo = (void*)(u32)((overlayEntry->initInfo != NULL)
+				    ? (void*)((u32)overlayEntry->initInfo -
+			(s32)((u32)overlayEntry->vramStart - (u32)overlayEntry->loadedRamAddr))
+				    : NULL);
+	}
+	
+	if (initInfo->init == NULL) {
+		// "Effects have already been loaded, but the constructor is NULL so the addition will not occur.
+		// Please fix this. (Waste of memory) %08x %d"
+		osLibPrintf(osInfo("Break"));
+		osLibPrintf("Effects have already been loaded, but the constructor is NULL so the addition will not occur.");
+		osLibPrintf("Please fix this. InitInfo: %08X ID: %d", initInfo, type);
+		
+		return;
+	}
+	
+	// Delete the previous effect in the slot, in case the slot wasn't free
+	EffectSs_Delete(&sEffectSsInfo.table[index]);
+	
+	sEffectSsInfo.table[index].type = type;
+	sEffectSsInfo.table[index].priority = priority;
+	
+	if (initInfo->init(globalCtx, index, &sEffectSsInfo.table[index], initParams) == 0) {
+		osLibPrintf(osInfo("Break"));
+		osLibPrintf("Construction failed for some reason. The constructor returned an error");
+		osLibPrintf("Ceasing effect addition...");
+		EffectSs_Reset(&sEffectSsInfo.table[index]);
+	}
 }

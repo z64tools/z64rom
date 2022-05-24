@@ -752,9 +752,7 @@ static void Rom_AllocDmaTable(Rom* rom) {
 	size = Align(size, 16);
 	
 	Rom_MoveTable(rom->offset.table.sceneTable, rom->table.scene, rom->table.num.scene, rom->ext.sceneNum);
-	
-	size += sizeof(struct EffectEntry) * rom->ext.effectNum;
-	size = Align(size, 16);
+	Rom_MoveTable(rom->offset.table.effectTable, rom->table.effect, rom->table.num.effect, rom->ext.effectNum);
 	
 	if (rom->offset.table.dmaTable != Dma_AllocEntry(rom, 2, size))
 		printf_error("Tables have turned!");

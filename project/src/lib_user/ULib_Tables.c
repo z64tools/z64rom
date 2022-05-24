@@ -3,7 +3,7 @@
 
 LibContext gLibCtx = {
 	.state = {
-		.vanillaOsPrintf = true,
+		.vanillaOsPrintf = false,
 	},
 	.__ctxInitValue = 0xDEADBEEF,
 };

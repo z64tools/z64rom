@@ -5,6 +5,7 @@
 
 typedef struct {
 	u32 vanillaOsPrintf : 1;
+	u32 dmaLog          : 1;
 } LibState;
 
 typedef struct {

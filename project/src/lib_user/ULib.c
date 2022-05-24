@@ -1,3 +1,4 @@
+#define __ULIB_C__
 #include <ULib.h>
 #include "vt.h"
 
@@ -6,7 +7,30 @@ asm ("D_801333E0 = 0x801333E0");
 asm ("D_801333E8 = 0x801333E8");
 
 void uLib_Update(GameState* gameState) {
+	static s32 firstMessage;
+	const char* state[] = {
+		"" PRNT_REDD "false",
+		"" PRNT_BLUE "true",
+	};
+	
 #ifdef DEV_BUILD
+	if (firstMessage == 0) {
+		osLibPrintf("" PRNT_BLUE "--- [z64rom] ---\n");
+		osLibPrintf("Vanilla Printf [L + D-UP]");
+		osLibPrintf("Dma Info       [L + D-DOWN]");
+		firstMessage++;
+	}
+	
+	if (CHK_ALL(press, BTN_L | BTN_DUP)) {
+		gLibCtx.state.vanillaOsPrintf ^= 1;
+		osLibPrintf("Vanilla Messages: [%s" PRNT_RSET "]", state[gLibCtx.state.vanillaOsPrintf]);
+	}
+	
+	if (CHK_ALL(press, BTN_L | BTN_DDOWN)) {
+		gLibCtx.state.dmaLog ^= 1;
+		osLibPrintf("Dma Info: [%s" PRNT_RSET "]", state[gLibCtx.state.dmaLog]);
+	}
+	
 	if (CHK_ALL(press, BTN_Z) && CHK_ALL(cur, BTN_L | BTN_R)) {
 		gSaveContext.gameMode = 0;
 		SET_NEXT_GAMESTATE(gameState, Select_Init, SelectContext);
@@ -42,6 +66,9 @@ void uLib_DmaLog(DmaRequest* req) {
 	u32 id = 0;
 	DmaEntry* iter = gDmaDataTable;
 	
+	if (gLibCtx.state.dmaLog == false)
+		return;
+	
 	while (iter->vromEnd) {
 		if (req->vromAddr >= iter->vromStart && req->vromAddr < iter->vromEnd) {
 			break;
@@ -51,7 +78,8 @@ void uLib_DmaLog(DmaRequest* req) {
 		iter++;
 	}
 	
-	if (id == 0x14 || id >= EXT_DMA_MAX)
+	// No Messages || No LinkAnim
+	if (id == 0x14 || id == 0x6 || id >= EXT_DMA_MAX)
 		return;
 	
 #if 0 // Crashes on some names

@@ -41,6 +41,8 @@ asm ("gGlobalContext = 0x80212020");
 void uLib_Update(GameState* gameState);
 void uLib_DmaLog(DmaRequest* req);
 
+#ifndef osLibPrintf
 void osLibPrintf(const char* fmt, ...);
+#endif
 
 #endif

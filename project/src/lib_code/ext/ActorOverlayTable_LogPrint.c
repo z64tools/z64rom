@@ -6,5 +6,5 @@
  */
 
 void ActorOverlayTable_LogPrint(void) {
-	__uLib_DebugMessages(1);
+	uLib_DebugMessages(1);
 }

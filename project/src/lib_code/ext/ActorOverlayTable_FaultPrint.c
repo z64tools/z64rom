@@ -6,5 +6,5 @@
  */
 
 void ActorOverlayTable_FaultPrint(void* arg0, void* arg1) {
-	__uLib_DebugMessages(2);
+	uLib_DebugMessages(2);
 }

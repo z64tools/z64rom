@@ -226,7 +226,7 @@ void Main_Config(char** input, Rom* rom) {
 			if (Main_IsSameFile(*input, projectRom))
 				return;
 			
-			printf_toolinfo(gToolName, "");
+			printf_toolinfo(gToolName, "Redump");
 			
 			printf_warning("Dump rom [%s] ? " PRNT_DGRY "[y/n]", *input);
 			if (Terminal_YesOrNo() == false) {
@@ -235,6 +235,7 @@ void Main_Config(char** input, Rom* rom) {
 				printf_getchar("Press enter to exit.");
 				exit(0);
 			}
+			Terminal_ClearLines(2);
 			
 			MemFile_Clear(config);
 			Sys_Delete(projectConfig);
@@ -430,6 +431,7 @@ s32 Main(s32 argc, char* argv[]) {
 							} else {
 								gExtractAudio = false;
 							}
+							Terminal_ClearLines(3);
 							
 							soundsDumped = true;
 							

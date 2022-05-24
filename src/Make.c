@@ -46,7 +46,6 @@ static void Make_Run(const char* cmd) {
 	char* out = SysExeO(cmd);
 	
 	if (out[0] != '\0') {
-		fflush(0);
 		Thread_Print(out);
 	}
 	
@@ -937,6 +936,8 @@ void Make(Rom* rom, s32 message) {
 	if (!gFlags || !gFlagsCode || !gFlagsLink)
 		printf_error("[z64project.cfg] is missing mips64 flags! Please, do fresh dump!");
 	
+	setvbuf(stdout, NULL, _IONBF, 0);
+	
 	if (gMakeTarget) {
 		if (StrStrCase(gMakeTarget, "sound"))
 			Make_Sound();
@@ -946,6 +947,8 @@ void Make(Rom* rom, s32 message) {
 		Make_Sound();
 		Make_Code();
 	}
+	
+	setvbuf(stdout, NULL, _IONBF, 0x1000);
 	
 	printf_WinFix();
 	

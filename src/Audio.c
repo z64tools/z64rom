@@ -441,6 +441,124 @@ void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 	}
 }
 
+typedef struct {
+	const N64AudioInfo* sample;
+	Rom*  rom;
+	SampleInfo* tbl;
+	char* path;
+	u32   i;
+} SampleDumpArg;
+
+static void SampleDump_Thread(SampleDumpArg* arg) {
+	const N64AudioInfo* sample = arg->sample;
+	SampleInfo* tbl = arg->tbl;
+	AdpcmLoop* loop;
+	AdpcmBook* book;
+	MemFile* dataFile;
+	MemFile* config;
+	RomFile rf;
+	Rom* rom = arg->rom;
+	char* name = sample->dublicate == NULL ? sample->name : sample->dublicate->name;
+	u32 sampRate = sample->dublicate == NULL ? sample->sampleRate : sample->dublicate->sampleRate;
+	char FILE_WAV[512];
+	char FILE_VAD[512];
+	char FILE_BOK[512];
+	char FILE_LBK[512];
+	char FILE_CFG[512];
+	
+	if (name == NULL)
+		printf_error("Sample ID [%D] is missing name", arg->i);
+	
+	if (sampRate == 0)
+		printf_error("Sample [%s] is missing samplerate", name);
+	
+	book = SegmentedToVirtual(0x0, tbl->book);
+	loop = SegmentedToVirtual(0x0, tbl->loop);
+	
+	Sys_MakeDir("%s%s/", arg->path, name);
+	snprintf(FILE_WAV, 512, "%s%s/Sample.wav", arg->path, name);
+	snprintf(FILE_VAD, 512, "%s%s/sample.vadpcm.bin", arg->path, name);
+	snprintf(FILE_BOK, 512, "%s%s/sample.book.bin", arg->path, name);
+	snprintf(FILE_LBK, 512, "%s%s/sample.loopbook.bin", arg->path, name);
+	snprintf(FILE_CFG, 512, "%s%s/config.cfg", arg->path, name);
+	
+	dataFile = Malloc(dataFile, sizeof(MemFile));
+	config = Malloc(config, sizeof(MemFile));
+	*dataFile = MemFile_Initialize();
+	*config = MemFile_Initialize();
+	MemFile_Malloc(dataFile, MbToBin(4.0));
+	MemFile_Malloc(config, MbToBin(1.0));
+	
+	MemFile_Params(dataFile, MEM_REALLOC, true, MEM_END);
+	
+	rf.size = ReadBE(tbl->data) & 0x00FFFFFF;
+	rf.data = SegmentedToVirtual(0x0, tbl->sampleAddr);
+	Rom_Extract(dataFile, rf, FILE_VAD);
+	
+	rf.size = sizeof(s16) * 8 * ReadBE(book->order) * ReadBE(book->npredictors) + 8;
+	rf.data = book;
+	Rom_Extract(dataFile, rf, FILE_BOK);
+	
+	Rom_Config_Sample(rom, config, (Sample*)tbl, name, FILE_CFG);
+	
+	if (loop->count) {
+		rf.size = 0x20;
+		rf.data = SegmentedToVirtual(0x0, tbl->loop + 0x10);
+		Rom_Extract(dataFile, rf, FILE_LBK);
+	}
+	
+	if (gExtractAudio) {
+		char cmd[2048];
+		
+		Tools_Command(
+			cmd,
+			z64audio,
+			"--i %s "
+			"--o %s "
+			"--S "
+			"--srate %d "
+			"--tuning %f ",
+			FILE_VAD,
+			FILE_WAV,
+			sampRate,
+			tbl->tuning
+		);
+		
+		if (tbl->isPrim && (tbl->splitHi != 127 || tbl->splitLo != 0)) {
+			catprintf(cmd, "--split-hi %d", tbl->splitHi + 21);
+			if (tbl->splitLo)
+				catprintf(cmd, "--split-lo %d", tbl->splitLo + 21);
+		}
+		
+		if (SysExe(cmd))
+			printf_error("z64audio Failed!");
+		
+		MemFile_Reset(dataFile);
+		s8* instInfo;
+		
+		if (MemFile_LoadFile(dataFile, FILE_WAV)) {
+			printf_warning_align("Sample not found", "%s", FILE_WAV);
+		}
+		
+		instInfo = StrStr(dataFile->data, "inst");
+		
+		if (instInfo) {
+			Config_SPrintf("\n # Instrument Info\n");
+			Config_WriteVar_Int("basenote", instInfo[8]);
+			Config_WriteVar_Int("finetune", instInfo[9]);
+			MemFile_SaveFile_String(config, FILE_CFG);
+		} else {
+			if (dataFile->dataSize == 0)
+				printf_warning_align("Audio", "Empty File [%s]", FILE_WAV);
+		}
+	}
+	
+	MemFile_Free(dataFile);
+	MemFile_Free(config);
+	Free(dataFile);
+	Free(config);
+}
+
 void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 	SampleInfo* smallest = sUnsortedSampleTbl;
 	SampleInfo* largest = sUnsortedSampleTbl;
@@ -480,86 +598,32 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 	tbl = sSortedSampleTbl;
 	
 	Dir_Enter("sample/.vanilla/");  {
-		for (s32 i = 0; i < sSortID; i++) {
+		s32 i = 0;
+		SampleDumpArg arg[32];
+		Thread thread[32];
+		
+		ThreadLock_Init();
+		while (i < sSortID) {
 			printf_progress("Sample", i + 1, sSortID);
-			name = gSampleInfo[i].dublicate == NULL ? gSampleInfo[i].name : gSampleInfo[i].dublicate->name;
-			sampRate = gSampleInfo[i].dublicate == NULL ? gSampleInfo[i].sampleRate : gSampleInfo[i].dublicate->sampleRate;
+			u32 target = Clamp(sSortID - i, 0, 16);
 			
-			if (name == NULL)
-				printf_error("Sample ID [%D] is missing name", i);
-			
-			if (sampRate == 0)
-				printf_error("Sample [%s] is missing samplerate", name);
-			
-			Dir_Enter("%s/", name); {
-				book = SegmentedToVirtual(0x0, tbl[i]->book);
-				loop = SegmentedToVirtual(0x0, tbl[i]->loop);
+			for (s32 j = 0; j < target; j++) {
+				arg[j].i = i + j;
+				arg[j].rom = rom;
+				arg[j].sample = &gSampleInfo[i + j];
+				arg[j].tbl = tbl[i + j];
+				arg[j].path = "rom/sound/sample/.vanilla/";
 				
-				rf.size = ReadBE(tbl[i]->data) & 0x00FFFFFF;
-				rf.data = SegmentedToVirtual(0x0, tbl[i]->sampleAddr);
-				Rom_Extract(dataFile, rf, Dir_File("sample.vadpcm.bin"));
-				
-				rf.size = sizeof(s16) * 8 * ReadBE(book->order) * ReadBE(book->npredictors) + 8;
-				rf.data = book;
-				Rom_Extract(dataFile, rf, Dir_File("sample.book.bin"));
-				
-				Rom_Config_Sample(rom, config, (Sample*)tbl[i], name, Dir_File("config.cfg"));
-				
-				if (loop->count) {
-					rf.size = 0x20;
-					rf.data = SegmentedToVirtual(0x0, tbl[i]->loop + 0x10);
-					Rom_Extract(dataFile, rf, Dir_File("sample.loopbook.bin"));
-				}
-				
-				if (gExtractAudio) {
-					char cmd[2048];
-					
-					Tools_Command(
-						cmd,
-						z64audio,
-						"--i %s "
-						"--o %s "
-						"--S "
-						"--srate %d "
-						"--tuning %f ",
-						Dir_File("sample.vadpcm.bin"),
-						Dir_File("Sample.wav"),
-						sampRate,
-						tbl[i]->tuning
-					);
-					
-					if (tbl[i]->isPrim && (tbl[i]->splitHi != 127 || tbl[i]->splitLo != 0)) {
-						catprintf(cmd, "--split-hi %d", tbl[i]->splitHi + 21);
-						if (tbl[i]->splitLo)
-							catprintf(cmd, "--split-lo %d", tbl[i]->splitLo + 21);
-					}
-					
-					if (SysExe(cmd))
-						printf_error("z64audio Failed!");
-					
-					MemFile_Reset(dataFile);
-					s8* instInfo;
-					
-					if (MemFile_LoadFile(dataFile, Dir_File("Sample.wav"))) {
-						printf_warning_align("Sample not found", "%s", Dir_File("Sample.wav"));
-					}
-					
-					instInfo = MemMem(dataFile->data, dataFile->dataSize, "inst", 4);
-					
-					if (instInfo) {
-						Config_SPrintf("\n # Instrument Info\n");
-						Config_WriteVar_Int("basenote", instInfo[8]);
-						Config_WriteVar_Int("finetune", instInfo[9]);
-						MemFile_SaveFile_String(config, Dir_File("config.cfg"));
-					} else {
-						if (dataFile->dataSize == 0)
-							printf_warning_align("Audio", "Empty File [%s]", Dir_File("Sample.wav"));
-					}
-				}
-				
-				Dir_Leave();
+				ThreadLock_Create(&thread[j], SampleDump_Thread, &arg[j]);
 			}
+			
+			if (gThreading)
+				for (s32 j = 0; j < target; j++)
+					ThreadLock_Join(&thread[j]);
+			
+			i += 16;
 		}
+		ThreadLock_Free();
 		
 		for (s32 j = 0; j < sBankNum; j++) {
 			char* replacedName = NULL;

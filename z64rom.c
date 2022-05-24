@@ -414,7 +414,7 @@ s32 Main(s32 argc, char* argv[]) {
 		if (sDumpFlag) {
 			s32 soundsDumped = false;
 			
-			if (Sys_Stat("rom/sound/sample/")) {
+			if (Sys_Stat("rom/sound/sample/.vanilla/")) {
 				ItemList list = ItemList_Initialize();
 				
 				ItemList_List(&list, "rom/sound/sample/.vanilla/", -1, LIST_FILES | LIST_RELATIVE);

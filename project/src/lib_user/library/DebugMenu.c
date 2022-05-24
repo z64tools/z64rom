@@ -29,7 +29,7 @@ typedef struct {
 extern Arena sZeldaArena;
 asm ("sZeldaArena = 0x8015FF80");
 
-static DebugState sDebugSysCtx;
+static DebugState sDebugMenuCtx;
 static Gfx sPolyGfxInit[] = {
 	gsSPLoadGeometryMode(G_ZBUFFER | G_SHADE | G_LIGHTING),
 	gsSPTexture(0, 0, 0, G_TX_RENDERTILE, G_OFF),
@@ -48,7 +48,7 @@ static Gfx sPolyGfxInit[] = {
 // #                                     #
 // # # # # # # # # # # # # # # # # # # # #
 
-static Vec3f DebugSys_TriNorm(Vec3f* v1, Vec3f* v2, Vec3f* v3) {
+static Vec3f DebugMenu_TriNorm(Vec3f* v1, Vec3f* v2, Vec3f* v3) {
 	Vec3f norm;
 	
 	norm.x = (v2->y - v1->y) * (v3->z - v1->z) - (v2->z - v1->z) * (v3->y - v1->y);
@@ -66,9 +66,9 @@ static Vec3f DebugSys_TriNorm(Vec3f* v1, Vec3f* v2, Vec3f* v3) {
 	return norm;
 }
 
-static void DebugSys_DrawQuad3D(GlobalContext* globalCtx, Gfx** gfxP, Vec3f* v1, Vec3f* v2, Vec3f* v3, Vec3f* v4) {
+static void DebugMenu_DrawQuad3D(GlobalContext* globalCtx, Gfx** gfxP, Vec3f* v1, Vec3f* v2, Vec3f* v3, Vec3f* v4) {
 	Vtx* v = Graph_Alloc(globalCtx->state.gfxCtx, 4 * sizeof(Vtx));
-	Vec3f norm = DebugSys_TriNorm(v1, v2, v4);
+	Vec3f norm = DebugMenu_TriNorm(v1, v2, v4);
 	
 	v[0] = gdSPDefVtxN(v1->x, v1->y, v1->z, 0, 0, norm.x, norm.y, norm.z, 0xFF);
 	v[1] = gdSPDefVtxN(v2->x, v2->y, v2->z, 0, 0, norm.x, norm.y, norm.z, 0xFF);
@@ -79,9 +79,9 @@ static void DebugSys_DrawQuad3D(GlobalContext* globalCtx, Gfx** gfxP, Vec3f* v1,
 	gSP2Triangles((*gfxP)++, 0, 1, 2, 0, 0, 2, 3, 0);
 }
 
-static void DebugSys_DrawTri3D(GlobalContext* globalCtx, Gfx** gfxP, Vec3f* v1, Vec3f* v2, Vec3f* v3) {
+static void DebugMenu_DrawTri3D(GlobalContext* globalCtx, Gfx** gfxP, Vec3f* v1, Vec3f* v2, Vec3f* v3) {
 	Vtx* v = Graph_Alloc(globalCtx->state.gfxCtx, 3 * sizeof(Vtx));
-	Vec3f norm = DebugSys_TriNorm(v1, v2, v3);
+	Vec3f norm = DebugMenu_TriNorm(v1, v2, v3);
 	
 	v[0] = gdSPDefVtxN(v1->x, v1->y, v1->z, 0, 0, norm.x, norm.y, norm.z, 0xFF);
 	v[1] = gdSPDefVtxN(v2->x, v2->y, v2->z, 0, 0, norm.x, norm.y, norm.z, 0xFF);
@@ -91,7 +91,7 @@ static void DebugSys_DrawTri3D(GlobalContext* globalCtx, Gfx** gfxP, Vec3f* v1, 
 	gSP1Triangle((*gfxP)++, 0, 1, 2, 0);
 }
 
-static void DebugSys_DrawCyl(GlobalContext* globalCtx, Gfx** gfxP, Vec3s* pos, s16 radius, s16 height) {
+static void DebugMenu_DrawCyl(GlobalContext* globalCtx, Gfx** gfxP, Vec3s* pos, s16 radius, s16 height) {
 	static Gfx* pCylGfx = NULL;
 	
 	if (pCylGfx == NULL) {
@@ -192,7 +192,7 @@ static void DebugSys_DrawCyl(GlobalContext* globalCtx, Gfx** gfxP, Vec3s* pos, s
 	Matrix_Pop();
 }
 
-static Vec3f DebugSys_IcoSphSubdivideEdge(Vec3f* a, Vec3f* b) {
+static Vec3f DebugMenu_IcoSphSubdivideEdge(Vec3f* a, Vec3f* b) {
 	f32 mag;
 	Vec3f ret;
 	
@@ -207,7 +207,7 @@ static Vec3f DebugSys_IcoSphSubdivideEdge(Vec3f* a, Vec3f* b) {
 	return ret;
 }
 
-static void DebugSys_DrawSph(GlobalContext* globalCtx, Gfx** gfxP, Vec3s* pos, s16 radius) {
+static void DebugMenu_DrawSph(GlobalContext* globalCtx, Gfx** gfxP, Vec3s* pos, s16 radius) {
 	static Gfx* pSphGfx = NULL;
 	static Vtx sphVtx[42];
 	static Gfx sphGfx[45];
@@ -246,17 +246,17 @@ static void DebugSys_DrawSph(GlobalContext* globalCtx, Gfx** gfxP, Vec3s* pos, s
 		
 		for (i = 0; i < 5; ++i) {
 			vtx[r1i + (i * r1m + 0) % r1n] =
-				DebugSys_IcoSphSubdivideEdge(&vtx[r0i + (i * r0m + 0) % r0n], &vtx[r2i + (i * r2m + 0) % r2n]);
+				DebugMenu_IcoSphSubdivideEdge(&vtx[r0i + (i * r0m + 0) % r0n], &vtx[r2i + (i * r2m + 0) % r2n]);
 			vtx[r2i + (i * r2m + 1) % r2n] =
-				DebugSys_IcoSphSubdivideEdge(&vtx[r2i + (i * r2m + 0) % r2n], &vtx[r2i + (i * r2m + 2) % r2n]);
+				DebugMenu_IcoSphSubdivideEdge(&vtx[r2i + (i * r2m + 0) % r2n], &vtx[r2i + (i * r2m + 2) % r2n]);
 			vtx[r3i + (i * r3m + 0) % r3n] =
-				DebugSys_IcoSphSubdivideEdge(&vtx[r2i + (i * r2m + 0) % r2n], &vtx[r4i + (i * r4m + 0) % r4n]);
+				DebugMenu_IcoSphSubdivideEdge(&vtx[r2i + (i * r2m + 0) % r2n], &vtx[r4i + (i * r4m + 0) % r4n]);
 			vtx[r3i + (i * r3m + 1) % r3n] =
-				DebugSys_IcoSphSubdivideEdge(&vtx[r4i + (i * r4m + 0) % r4n], &vtx[r2i + (i * r2m + 2) % r2n]);
+				DebugMenu_IcoSphSubdivideEdge(&vtx[r4i + (i * r4m + 0) % r4n], &vtx[r2i + (i * r2m + 2) % r2n]);
 			vtx[r4i + (i * r4m + 1) % r4n] =
-				DebugSys_IcoSphSubdivideEdge(&vtx[r4i + (i * r4m + 0) % r4n], &vtx[r4i + (i * r4m + 2) % r4n]);
+				DebugMenu_IcoSphSubdivideEdge(&vtx[r4i + (i * r4m + 0) % r4n], &vtx[r4i + (i * r4m + 2) % r4n]);
 			vtx[r5i + (i * r5m + 0) % r5n] =
-				DebugSys_IcoSphSubdivideEdge(&vtx[r4i + (i * r4m + 0) % r4n], &vtx[r6i + (i * r6m + 0) % r6n]);
+				DebugMenu_IcoSphSubdivideEdge(&vtx[r4i + (i * r4m + 0) % r4n], &vtx[r6i + (i * r6m + 0) % r6n]);
 		}
 		
 		for (i = 0; i < 42; ++i) {
@@ -377,7 +377,7 @@ static void DebugSys_DrawSph(GlobalContext* globalCtx, Gfx** gfxP, Vec3s* pos, s
 	CLOSE_DISPS(globalCtx->state.gfxCtx, __FILE__, __LINE__);
 }
 
-static void DebugSys_DrawHitboxList(GlobalContext* globalCtx, Gfx** gfxP, Collider** colList, s32 n) {
+static void DebugMenu_DrawHitboxList(GlobalContext* globalCtx, Gfx** gfxP, Collider** colList, s32 n) {
 	for (s32 i = 0; i < n; i++) {
 		Collider* col = colList[i];
 		
@@ -388,7 +388,7 @@ static void DebugSys_DrawHitboxList(GlobalContext* globalCtx, Gfx** gfxP, Collid
 				for (s32 j = 0; j < colJntSph->count; j++) {
 					ColliderJntSphElement* colSphElem = &colJntSph->elements[j];
 					
-					DebugSys_DrawSph(
+					DebugMenu_DrawSph(
 						globalCtx,
 						gfxP,
 						&colSphElem->dim.worldSphere.center,
@@ -400,7 +400,7 @@ static void DebugSys_DrawHitboxList(GlobalContext* globalCtx, Gfx** gfxP, Collid
 			case COLSHAPE_CYLINDER: {
 				ColliderCylinder* colCyl = (ColliderCylinder*)col;
 				
-				DebugSys_DrawCyl(
+				DebugMenu_DrawCyl(
 					globalCtx,
 					gfxP,
 					&colCyl->dim.pos,
@@ -415,7 +415,7 @@ static void DebugSys_DrawHitboxList(GlobalContext* globalCtx, Gfx** gfxP, Collid
 				for (s32 j = 0; j < colTris->count; j++) {
 					ColliderTrisElement* colTrisElem = &colTris->elements[j];
 					
-					DebugSys_DrawTri3D(
+					DebugMenu_DrawTri3D(
 						globalCtx,
 						gfxP,
 						&colTrisElem->dim.vtx[0],
@@ -428,7 +428,7 @@ static void DebugSys_DrawHitboxList(GlobalContext* globalCtx, Gfx** gfxP, Collid
 			case COLSHAPE_QUAD: {
 				ColliderQuad* colQuad = (ColliderQuad*)col;
 				
-				DebugSys_DrawQuad3D(
+				DebugMenu_DrawQuad3D(
 					globalCtx,
 					gfxP,
 					&colQuad->dim.quad[0],
@@ -444,7 +444,7 @@ static void DebugSys_DrawHitboxList(GlobalContext* globalCtx, Gfx** gfxP, Collid
 	}
 }
 
-static void DebugSys_DrawCollision(GlobalContext* globalCtx, Gfx** gfxP, Gfx** gfxD, CollisionHeader* colHeader) {
+static void DebugMenu_DrawCollision(GlobalContext* globalCtx, Gfx** gfxP, Gfx** gfxD, CollisionHeader* colHeader) {
 	if (colHeader == NULL)
 		return;
 	
@@ -486,8 +486,8 @@ static void DebugSys_DrawCollision(GlobalContext* globalCtx, Gfx** gfxP, Gfx** g
 	}
 }
 
-static void DebugSys_DrawQuad(GlobalContext* globalCtx, Vec2f* pos, Vec2f* scale, Color_RGBA8* color) {
-	DebugState* debugSysCtx = &sDebugSysCtx;
+static void DebugMenu_DrawQuad(GlobalContext* globalCtx, Vec2f* pos, Vec2f* scale, Color_RGBA8* color) {
+	DebugState* debugSysCtx = &sDebugMenuCtx;
 	
 	Matrix_Translate(pos->x, pos->y, 0, MTXMODE_NEW);
 	Matrix_Scale(scale->x, scale->y, 1.0f, MTXMODE_APPLY);
@@ -506,11 +506,11 @@ static void DebugSys_DrawQuad(GlobalContext* globalCtx, Vec2f* pos, Vec2f* scale
 // # PAGE FUNC                           #
 // # # # # # # # # # # # # # # # # # # # #
 
-static void DebugSys_CollisionViewUpdate(GlobalContext* globalCtx) {
+static void DebugMenu_CollisionViewUpdate(GlobalContext* globalCtx) {
 	#define POLY_GFX_BUF_SIZE 0x4000
 	static Gfx sPolyBuffer[2][POLY_GFX_BUF_SIZE];
 	
-	DebugState* debugSysCtx = &sDebugSysCtx;
+	DebugState* debugSysCtx = &sDebugMenuCtx;
 	
 	if (!debugSysCtx->colViewEnabled) {
 		return;
@@ -528,7 +528,7 @@ static void DebugSys_CollisionViewUpdate(GlobalContext* globalCtx) {
 	gSPSetGeometryMode(pGfx++, G_CULL_BACK);
 	gSPMatrix(pGfx++, &gMtxClear, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 	// Draw Static Collision
-	DebugSys_DrawCollision(globalCtx, &pGfx, &dGfx, globalCtx->colCtx.colHeader);
+	DebugMenu_DrawCollision(globalCtx, &pGfx, &dGfx, globalCtx->colCtx.colHeader);
 	// Draw Dynapoly Collision
 	for (s32 i = 0; i < BG_ACTOR_MAX; i++) {
 		if (globalCtx->colCtx.dyna.bgActorFlags[i] & 1) {
@@ -556,7 +556,7 @@ static void DebugSys_CollisionViewUpdate(GlobalContext* globalCtx) {
 				G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_PUSH
 			);
 			
-			DebugSys_DrawCollision(globalCtx, &pGfx, &dGfx, bgActor->colHeader);
+			DebugMenu_DrawCollision(globalCtx, &pGfx, &dGfx, bgActor->colHeader);
 			
 			gSPPopMatrix(pGfx++, G_MTX_MODELVIEW);
 			Matrix_Pop();
@@ -566,7 +566,7 @@ static void DebugSys_CollisionViewUpdate(GlobalContext* globalCtx) {
 	gSPEndDisplayList(pGfx++);
 	
 	if (pGfx > dGfx)
-		Fault_AddHungupAndCrash("[DebugSys] Collision View Gfx out of space! : " __FILE__, __LINE__);
+		Fault_AddHungupAndCrash("[DebugMenu] Collision View Gfx out of space! : " __FILE__, __LINE__);
 	
 	// Add dlist to POLY_OPA
 	gSPDisplayList(POLY_OPA_DISP++, dlist);
@@ -574,8 +574,8 @@ static void DebugSys_CollisionViewUpdate(GlobalContext* globalCtx) {
 	CLOSE_DISPS(globalCtx->state.gfxCtx, __FILE__, __LINE__);
 }
 
-static void DebugSys_HitboxViewUpdate(GlobalContext* globalCtx) {
-	DebugState* debugSysCtx = &sDebugSysCtx;
+static void DebugMenu_HitboxViewUpdate(GlobalContext* globalCtx) {
+	DebugState* debugSysCtx = &sDebugMenuCtx;
 	
 	if (!debugSysCtx->hitViewEnabled) {
 		return;
@@ -592,13 +592,13 @@ static void DebugSys_HitboxViewUpdate(GlobalContext* globalCtx) {
 	gSPMatrix(gfx++, &gMtxClear, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 	// OC
 	gDPSetPrimColor(gfx++, 0, 0, 255, 255, 255, 255);
-	DebugSys_DrawHitboxList(globalCtx, &gfx, globalCtx->colChkCtx.colOC, globalCtx->colChkCtx.colOCCount);
+	DebugMenu_DrawHitboxList(globalCtx, &gfx, globalCtx->colChkCtx.colOC, globalCtx->colChkCtx.colOCCount);
 	// AC
 	gDPSetPrimColor(gfx++, 0, 0, 0, 0, 255, 255);
-	DebugSys_DrawHitboxList(globalCtx, &gfx, globalCtx->colChkCtx.colAC, globalCtx->colChkCtx.colACCount);
+	DebugMenu_DrawHitboxList(globalCtx, &gfx, globalCtx->colChkCtx.colAC, globalCtx->colChkCtx.colACCount);
 	// AT
 	gDPSetPrimColor(gfx++, 0, 0, 255, 0, 0, 255);
-	DebugSys_DrawHitboxList(globalCtx, &gfx, globalCtx->colChkCtx.colAT, globalCtx->colChkCtx.colATCount);
+	DebugMenu_DrawHitboxList(globalCtx, &gfx, globalCtx->colChkCtx.colAT, globalCtx->colChkCtx.colATCount);
 	// End
 	gSPEndDisplayList(gfx++);
 	
@@ -612,8 +612,8 @@ static void DebugSys_HitboxViewUpdate(GlobalContext* globalCtx) {
 	CLOSE_DISPS(globalCtx->state.gfxCtx, __FILE__, __LINE__);
 }
 
-static void DebugSys_ObjectMemView(GlobalContext* globalCtx) {
-	DebugState* debugSysCtx = &sDebugSysCtx;
+static void DebugMenu_ObjectMemView(GlobalContext* globalCtx) {
+	DebugState* debugSysCtx = &sDebugMenuCtx;
 	static u32 selectedMem = 0;
 	u32 selectedColor[] = {
 		0x404040FF,
@@ -630,7 +630,7 @@ static void DebugSys_ObjectMemView(GlobalContext* globalCtx) {
 		{ 240, 77, 175, 0xF8 - 0x20 },
 	};
 	
-	DebugSys_DebugText(
+	DebugMenu_DebugText(
 		0x6E14FFFF,
 		1,
 		5,
@@ -648,17 +648,17 @@ static void DebugSys_ObjectMemView(GlobalContext* globalCtx) {
 	pos.x -= 1.0f;
 	scale.y *= 1.2f;
 	color = (Color_RGBA8) { 0x6E, 0x14, 0xFF, 0xFF };
-	DebugSys_DrawQuad(globalCtx, &pos, &scale, &color);
+	DebugMenu_DrawQuad(globalCtx, &pos, &scale, &color);
 	
 	pos.x = -150.0f;
 	scale = (Vec2f) { 300.0f, 1.10f };
 	color = (Color_RGBA8) { 0x30, 0x30, 0x30, 0xFF };
-	DebugSys_DrawQuad(globalCtx, &pos, &scale, &color);
+	DebugMenu_DrawQuad(globalCtx, &pos, &scale, &color);
 	
 	ObjectContext* objCtx = &globalCtx->objectCtx;
 	u32 objMemSize = (u32)objCtx->spaceEnd - (u32)objCtx->spaceStart;
 	
-	DebugSys_DebugText(
+	DebugMenu_DebugText(
 		selectedColor[selectedMem == 0],
 		1,
 		6,
@@ -685,12 +685,12 @@ static void DebugSys_ObjectMemView(GlobalContext* globalCtx) {
 		
 		pos.x -= 150.0f;
 		scale.x *= 300.0f;
-		DebugSys_DrawQuad(globalCtx, &pos, &scale, &color);
+		DebugMenu_DrawQuad(globalCtx, &pos, &scale, &color);
 	}
 }
 
-static void DebugSys_ZeldaArenaMemView(GlobalContext* globalCtx) {
-	DebugState* debugSysCtx = &sDebugSysCtx;
+static void DebugMenu_ZeldaArenaMemView(GlobalContext* globalCtx) {
+	DebugState* debugSysCtx = &sDebugMenuCtx;
 	static u32 selectedMem = 0;
 	u32 selectedColor[] = {
 		0x404040FF,
@@ -707,7 +707,7 @@ static void DebugSys_ZeldaArenaMemView(GlobalContext* globalCtx) {
 		{ 240, 77, 175, 0xF8 - 0x20 },
 	};
 	
-	DebugSys_DebugText(
+	DebugMenu_DebugText(
 		0x6E14FFFF,
 		1,
 		5,
@@ -725,12 +725,12 @@ static void DebugSys_ZeldaArenaMemView(GlobalContext* globalCtx) {
 	pos.x -= 1.0f;
 	scale.y *= 1.2f;
 	color = (Color_RGBA8) { 0x6E, 0x14, 0xFF, 0xFF };
-	DebugSys_DrawQuad(globalCtx, &pos, &scale, &color);
+	DebugMenu_DrawQuad(globalCtx, &pos, &scale, &color);
 	
 	pos.x = -150.0f;
 	scale = (Vec2f) { 300.0f, 1.10f };
 	color = (Color_RGBA8) { 0x30, 0x30, 0x30, 0xFF };
-	DebugSys_DrawQuad(globalCtx, &pos, &scale, &color);
+	DebugMenu_DrawQuad(globalCtx, &pos, &scale, &color);
 	
 	u32 outMaxFree;
 	u32 outFree;
@@ -738,7 +738,7 @@ static void DebugSys_ZeldaArenaMemView(GlobalContext* globalCtx) {
 	
 	ZeldaArena_GetSizes(&outMaxFree, &outFree, &outAlloc);
 	
-	DebugSys_DebugText(
+	DebugMenu_DebugText(
 		selectedColor[selectedMem == 0],
 		1,
 		6,
@@ -769,29 +769,29 @@ static void DebugSys_ZeldaArenaMemView(GlobalContext* globalCtx) {
 		
 		pos.x -= 150.0f;
 		scale.x *= 300.0f;
-		DebugSys_DrawQuad(globalCtx, &pos, &scale, &color);
+		DebugMenu_DrawQuad(globalCtx, &pos, &scale, &color);
 		i++;
 		
 		arena = arena->next;
 	}
 }
 
-static void DebugSys_HitboxView(GlobalContext* globalCtx) {
-	DebugState* debugSysCtx = &sDebugSysCtx;
+static void DebugMenu_HitboxView(GlobalContext* globalCtx) {
+	DebugState* debugSysCtx = &sDebugMenuCtx;
 	
 	debugSysCtx->hitViewEnabled ^= 1;
 	debugSysCtx->page = DEBUGSYS_PAGE_MAIN;
 }
 
-static void DebugSys_CollisionView(GlobalContext* globalCtx) {
-	DebugState* debugSysCtx = &sDebugSysCtx;
+static void DebugMenu_CollisionView(GlobalContext* globalCtx) {
+	DebugState* debugSysCtx = &sDebugMenuCtx;
 	
 	debugSysCtx->colViewEnabled ^= 1;
 	debugSysCtx->page = DEBUGSYS_PAGE_MAIN;
 }
 
-static void DebugSys_CineMode(GlobalContext* globalCtx) {
-	DebugState* debugSysCtx = &sDebugSysCtx;
+static void DebugMenu_CineMode(GlobalContext* globalCtx) {
+	DebugState* debugSysCtx = &sDebugMenuCtx;
 	
 	debugSysCtx->cineModeEnabled ^= 1;
 	debugSysCtx->page = DEBUGSYS_PAGE_MAIN;
@@ -808,33 +808,33 @@ static DebugPageInfo sDebugPageInfo[] = {
 		.playerFreeze = true,
 	},
 	{
-		.func = DebugSys_ObjectMemView,
+		.func = DebugMenu_ObjectMemView,
 		.name = "Object Memory View",
 		.playerFreeze = false,
 	},
 	{
-		.func = DebugSys_ZeldaArenaMemView,
+		.func = DebugMenu_ZeldaArenaMemView,
 		.name = "Zelda Arena Memory View",
 		.playerFreeze = false,
 	},
 	{
-		.func = DebugSys_CollisionView,
+		.func = DebugMenu_CollisionView,
 		.name = "Toggle Collision Viewer",
 		.playerFreeze = false,
 	},
 	{
-		.func = DebugSys_HitboxView,
+		.func = DebugMenu_HitboxView,
 		.name = "Toggle Hitbox Viewer",
 		.playerFreeze = false,
 	},
 	{
-		.func = DebugSys_CineMode,
+		.func = DebugMenu_CineMode,
 		.name = "Toggle Cine Mode",
 		.playerFreeze = false,
 	},
 };
 
-void DebugSys_DebugText(u32 rgba, s32 x, s32 y, char* fmt, ...) {
+void DebugMenu_DebugText(u32 rgba, s32 x, s32 y, char* fmt, ...) {
 #ifndef NDEBUG
 	#define RED32(RGBA0)   (u8)((RGBA0) >> 24)
 	#define GREEN32(RGBA0) (u8)((RGBA0) >> 16)
@@ -872,7 +872,7 @@ static s16 sInterfacePrevAlpha[16];
 static s16 sInterfaceFlag;
 static s16 sInterfaceForceHide;
 
-static void DebugSys_Interface_Hide(InterfaceContext* interface) {
+static void DebugMenu_Interface_Hide(InterfaceContext* interface) {
 	if (sInterfaceFlag == 0) {
 		sInterfacePrevAlpha[0] = interface->aAlpha;
 		sInterfacePrevAlpha[1] = interface->bAlpha;
@@ -897,7 +897,7 @@ static void DebugSys_Interface_Hide(InterfaceContext* interface) {
 	interface->cRightAlpha = 0;
 }
 
-static void DebugSys_Interface_Show(InterfaceContext* interface) {
+static void DebugMenu_Interface_Show(InterfaceContext* interface) {
 	if (sInterfaceForceHide)
 		return;
 	
@@ -915,9 +915,9 @@ static void DebugSys_Interface_Show(InterfaceContext* interface) {
 	}
 }
 
-static void DebugSys_MenuUpdate(GlobalContext* globalCtx) {
+static void DebugMenu_MenuUpdate(GlobalContext* globalCtx) {
 	Player* p = GET_PLAYER(globalCtx);
-	DebugState* debugSysCtx = &sDebugSysCtx;
+	DebugState* debugSysCtx = &sDebugMenuCtx;
 	u8 holdR = CHK_ALL(cur, BTN_R);
 	u32 infoMax = ARRAY_COUNT(sDebugPageInfo);
 	
@@ -929,7 +929,7 @@ static void DebugSys_MenuUpdate(GlobalContext* globalCtx) {
 	if (debugSysCtx->cineModeEnabled) {
 		ShrinkWindow_SetVal(0x20);
 		
-		DebugSys_Interface_Hide(&globalCtx->interfaceCtx);
+		DebugMenu_Interface_Hide(&globalCtx->interfaceCtx);
 		sInterfaceForceHide = true;
 	}
 	
@@ -945,7 +945,7 @@ static void DebugSys_MenuUpdate(GlobalContext* globalCtx) {
 		
 		else {
 			Audio_PlaySys(NA_SE_SY_FSEL_CLOSE);
-			DebugSys_Interface_Show(&globalCtx->interfaceCtx);
+			DebugMenu_Interface_Show(&globalCtx->interfaceCtx);
 		}
 		
 		return;
@@ -956,7 +956,7 @@ static void DebugSys_MenuUpdate(GlobalContext* globalCtx) {
 	}
 	
 	if (holdR && CHK_ALL(press, BTN_B)) {
-		DebugSys_Interface_Show(&globalCtx->interfaceCtx);
+		DebugMenu_Interface_Show(&globalCtx->interfaceCtx);
 		if (debugSysCtx->page == DEBUGSYS_PAGE_MAIN) {
 			debugSysCtx->state.on = 0;
 			p->stateFlags1 &= ~(1 << 29);
@@ -972,10 +972,10 @@ static void DebugSys_MenuUpdate(GlobalContext* globalCtx) {
 	if (sDebugPageInfo[debugSysCtx->page].playerFreeze == 1) {
 		ShrinkWindow_SetVal(0x20);
 		p->stateFlags1 |= (1 << 29);
-		DebugSys_Interface_Hide(&globalCtx->interfaceCtx);
+		DebugMenu_Interface_Hide(&globalCtx->interfaceCtx);
 	} else {
 		p->stateFlags1 &= ~(1 << 29);
-		DebugSys_Interface_Show(&globalCtx->interfaceCtx);
+		DebugMenu_Interface_Show(&globalCtx->interfaceCtx);
 	}
 	
 	if (sDebugPageInfo[debugSysCtx->page].func) {
@@ -1004,8 +1004,8 @@ static void DebugSys_MenuUpdate(GlobalContext* globalCtx) {
 		Audio_PlaySys(NA_SE_IT_SWORD_IMPACT);
 	}
 	
-	DebugSys_DebugText(0x6e14ffFF, 1, 5, "DebugSys Menu");
-	DebugSys_DebugText(0x404040FF, 1, 5, "               (HoldR, A + DPAD)");
+	DebugMenu_DebugText(0x6e14ffFF, 1, 5, "DebugMenu Menu");
+	DebugMenu_DebugText(0x404040FF, 1, 5, "               (HoldR, A + DPAD)");
 	
 	for (s32 i = 1; i < infoMax; i++) {
 		u32 color = 0xede1beFF;
@@ -1014,7 +1014,7 @@ static void DebugSys_MenuUpdate(GlobalContext* globalCtx) {
 			color = 0xff6314FF;
 		}
 		
-		DebugSys_DebugText(
+		DebugMenu_DebugText(
 			color,
 			1,
 			5 + i,
@@ -1024,10 +1024,10 @@ static void DebugSys_MenuUpdate(GlobalContext* globalCtx) {
 	}
 }
 
-void DebugSys_Update(GlobalContext* globalCtx) {
-	DebugSys_MenuUpdate(globalCtx);
+void DebugMenu_Update(GlobalContext* globalCtx) {
+	DebugMenu_MenuUpdate(globalCtx);
 	if (gSaveContext.gameMode == 0 && globalCtx->pauseCtx.mode == 0) {
-		DebugSys_CollisionViewUpdate(globalCtx);
-		DebugSys_HitboxViewUpdate(globalCtx);
+		DebugMenu_CollisionViewUpdate(globalCtx);
+		DebugMenu_HitboxViewUpdate(globalCtx);
 	}
 }

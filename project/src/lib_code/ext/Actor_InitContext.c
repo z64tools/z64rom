@@ -12,7 +12,7 @@ void func_800304DC(GlobalContext* globalCtx, ActorContext* actorCtx, ActorEntry*
 	
 	savedSceneFlags = &gSaveContext.sceneFlags[globalCtx->sceneNum];
 	
-	bzero(actorCtx, sizeof(*actorCtx));
+	memset(actorCtx, 0, sizeof(*actorCtx));
 	
 	ActorOverlayTable_Init();
 	Matrix_MtxFCopy(&globalCtx->billboardMtxF, &gMtxFClear);

@@ -1,58 +1,7 @@
 #include <uLib.h>
 #include "vt.h"
 
-void uLib_DebugMessages(u32 msgID) {
-	switch (msgID) {
-		case 1: {
-			ActorOverlay* overlayEntry;
-			u32 i;
-			
-			osLibPrintf("OverlayTable %d", EXT_ACTOR_MAX);
-			osLibPrintf("Start   End     SegStart SegEnd   RamAddr profile  segname\n");
-			
-			for (i = 0, overlayEntry = &gActorOverlayTable[0]; i < EXT_ACTOR_MAX; i++, overlayEntry++) {
-				osSyncPrintf(
-					"%08x %08x %08x %08x %08x %08x %s\n",
-					overlayEntry->vromStart,
-					overlayEntry->vromEnd,
-					overlayEntry->vramStart,
-					overlayEntry->vramEnd,
-					overlayEntry->loadedRamAddr,
-					&overlayEntry->initInfo->id,
-					overlayEntry->name != NULL ? overlayEntry->name : "?"
-				);
-			}
-			break;
-		}
-		
-		case 2: {
-			ActorOverlay* overlayEntry;
-			u32 overlaySize;
-			s32 i;
-			
-			FaultDrawer_SetCharPad(-2, 0);
-			
-			FaultDrawer_Printf("actor_dlftbls %u\n", gMaxActorId);
-			FaultDrawer_Printf("No. RamStart- RamEnd cn  Name\n");
-			
-			for (i = 0, overlayEntry = &gActorOverlayTable[0]; i < gMaxActorId; i++, overlayEntry++) {
-				overlaySize = (u32)overlayEntry->vramEnd - (u32)overlayEntry->vramStart;
-				if (overlayEntry->loadedRamAddr != NULL) {
-					FaultDrawer_Printf(
-						"%3d %08x-%08x %3d %s\n",
-						i,
-						overlayEntry->loadedRamAddr,
-						(u32)overlayEntry->loadedRamAddr + overlaySize,
-						overlayEntry->numLoaded,
-						overlayEntry->name != NULL ? overlayEntry->name : ""
-					);
-				}
-			}
-		}
-	}
-}
-
-Actor* uLib_Actor_Spawn(ActorContext* actorCtx, GlobalContext* globalCtx, s16 actorId, f32 posX, f32 posY, f32 posZ, s16 rotX, s16 rotY, s16 rotZ, s16 params) {
+Actor* Overlay_ActorSpawn(ActorContext* actorCtx, GlobalContext* globalCtx, s16 actorId, f32 posX, f32 posY, f32 posZ, s16 rotX, s16 rotY, s16 rotZ, s16 params) {
 	Actor* actor;
 	ActorInit* actorInit;
 	s32 objBankIndex;
@@ -219,46 +168,7 @@ Actor* uLib_Actor_Spawn(ActorContext* actorCtx, GlobalContext* globalCtx, s16 ac
 	return actor;
 }
 
-void uLib_Gameplay_SpawnScene(GlobalContext* globalCtx, s32 sceneNum, s32 spawn) {
-	SceneTableEntry* scene = &gSceneTable[sceneNum];
-	u32 roomSize;
-	
-	scene->unk_13 = 0;
-	globalCtx->loadedScene = scene;
-	globalCtx->sceneNum = sceneNum;
-	globalCtx->sceneConfig = scene->config;
-	
-	globalCtx->sceneSegment = Gameplay_LoadFile(globalCtx, &scene->sceneFile);
-	scene->unk_13 = 0;
-	
-	gSegments[2] = VIRTUAL_TO_PHYSICAL(globalCtx->sceneSegment);
-	
-	Gameplay_InitScene(globalCtx, spawn);
-	roomSize = func_80096FE8(globalCtx, &globalCtx->roomCtx);
-	
-	osLibPrintf(
-		"Scene "
-		PRNT_YELW "0x%02X " PRNT_RSET
-		"SceneEntry "
-		PRNT_YELW "%08X " PRNT_RSET
-		"EntryHead "
-		PRNT_YELW "%08X " PRNT_RSET
-		"Segment "
-		PRNT_YELW "%08X ",
-		sceneNum,
-		scene,
-		gSceneTable,
-		globalCtx->sceneSegment
-	);
-	osLibPrintf(
-		"Room Size "
-		PRNT_YELW "%.1f " PRNT_RSET
-		"KB",
-		BinToKb(roomSize)
-	);
-}
-
-void uLib_EffectSs_Spawn(GlobalContext* globalCtx, s32 type, s32 priority, void* initParams) {
+void Overlay_EffectSpawn(GlobalContext* globalCtx, s32 type, s32 priority, void* initParams) {
 	s32 index;
 	u32 overlaySize;
 	EffectSsOverlay* overlayEntry;

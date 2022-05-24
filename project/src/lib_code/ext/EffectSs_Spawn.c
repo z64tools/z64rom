@@ -6,5 +6,5 @@
  */
 
 void EffectSs_Spawn(GlobalContext* globalCtx, s32 type, s32 priority, void* initParams) {
-	uLib_EffectSs_Spawn(globalCtx, type, priority, initParams);
+	Overlay_EffectSpawn(globalCtx, type, priority, initParams);
 }

@@ -18,8 +18,8 @@ void Color_ToHSL(Color_HSL* dest, Color_RGB8* src) {
 	g = (f32)src->g / 255;
 	b = (f32)src->b / 255;
 	
-	cmax = Math_MaxF(r, (Math_MaxF(g, b)));
-	cmin = Math_MinF(r, (Math_MinF(g, b)));
+	cmax = MaxF(r, (MaxF(g, b)));
+	cmin = MinF(r, (MinF(g, b)));
 	dest->l = (cmax + cmin) / 2;
 	d = cmax - cmin;
 	

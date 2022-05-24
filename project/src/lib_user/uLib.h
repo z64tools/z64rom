@@ -3,12 +3,8 @@
 
 #include <oot_mq_debug/z64hdr.h>
 
-#include <Color/Color.h>
-#include <Math/Math.h>
-#include <SceneRender/SceneRender.h>
-#include <Debug/DebugSys.h>
-#include <Gui/Gui.h>
-#include <Vanilla/Vanilla.h>
+#include <library/Library.h>
+#include <vanilla/Vanilla.h>
 
 #include "uLib_macros.h"
 #include "uLib_types.h"
@@ -41,6 +37,7 @@ asm ("gGlobalContext = 0x80212020");
 void Audio_PlaySys(u16 flag);
 void uLib_Update(GameState* gameState);
 void uLib_DmaLog(DmaRequest* req);
+void* memset(void* m, int v, unsigned int s);
 
 #ifndef osLibPrintf
 void osLibPrintf(const char* fmt, ...);

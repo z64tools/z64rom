@@ -10,7 +10,7 @@ void EffectSs_InitInfo(GlobalContext* globalCtx, s32 tableSize) {
 	EffectSs* effectSs;
 	EffectSsOverlay* overlay;
 	
-	sEffectSsInfo.table = GameState_Alloc(&globalCtx->state, tableSize * sizeof(EffectSs), __FUNCTION__, __LINE__);
+	sEffectSsInfo.table = GameState_Alloc(&globalCtx->state, tableSize * sizeof(EffectSs), (char*)__FUNCTION__, __LINE__);
 	Assert(sEffectSsInfo.table != NULL);
 	
 	sEffectSsInfo.searchStartIndex = 0;

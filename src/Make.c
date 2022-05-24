@@ -523,14 +523,24 @@ build:
 	
 	if (Sys_Stat(flagFile)) {
 		MemFile mem = MemFile_Initialize();
+		char* var;
 		
 		MemFile_LoadFile_String(&mem, flagFile);
 		
-		if (Config_Variable(mem.str, "flags")) {
+		if ((var = Config_Variable(mem.str, "flags"))) {
 			newFlags = Calloc(newFlags, 1024 * 2);
 			
 			strcpy(newFlags, flags);
-			catprintf(newFlags, " %s", Config_GetVariable(mem.str, "flags"));
+			catprintf(newFlags, " %s", var);
+			
+			flags = newFlags;
+		}
+		
+		if ((var = Config_Variable(mem.str, String_GetBasename(source)))) {
+			newFlags = Calloc(newFlags, 1024 * 2);
+			
+			strcpy(newFlags, flags);
+			catprintf(newFlags, " %s", var);
 			
 			flags = newFlags;
 		}

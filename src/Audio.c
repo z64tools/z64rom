@@ -638,7 +638,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 			
 			// Rename SFX To their samples
 			if (StrStr(sBankFiles[j], "-Sfx")) {
-				char* tempName = Tmp_Printf("%s%d-%s.cfg", String_GetPath(sBankFiles[j]), String_GetInt(String_GetBasename(sBankFiles[j])), replacedName);
+				char* tempName = Tmp_Printf("%s%d-%s.cfg", String_GetPath(sBankFiles[j]), Value_Int(String_GetBasename(sBankFiles[j])), replacedName);
 				
 				renamer_remove(sBankFiles[j], tempName);
 			}
@@ -660,7 +660,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 				if (instName[0] == 0)
 					printf_error("String maniplation failed for instrument");
 				
-				tempName = Tmp_Printf("%s%d-%s.cfg", String_GetPath(sBankFiles[j]), String_GetInt(String_GetBasename(sBankFiles[j])), instName);
+				tempName = Tmp_Printf("%s%d-%s.cfg", String_GetPath(sBankFiles[j]), Value_Int(String_GetBasename(sBankFiles[j])), instName);
 				
 				renamer_remove(sBankFiles[j], tempName);
 			}

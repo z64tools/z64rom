@@ -3,9 +3,6 @@
 
 struct Rom;
 
-void Make(struct Rom* rom, s32 message);
-u32 Overlay_GetInit(void* overlay, u32 size);
-
 typedef enum {
 	/* 0x00 */ ACTORCAT_SWITCH,
 	/* 0x01 */ ACTORCAT_BG,
@@ -35,3 +32,30 @@ typedef struct {
 	/* 0x18 */ u32 update;
 	/* 0x1C */ u32 draw;
 } ActorInit; // size = 0x20
+
+typedef enum {
+	PRE_GCC,
+	POST_GCC,
+	PRE_LD,
+	POST_LD,
+} MakeCallType;
+
+typedef enum {
+	CB_BREAK = -1,
+	CB_BUILD = 1
+} MakeCallbackReturn;
+
+typedef s32 (* BinutilCallback)(const char*, MakeCallType, void*, void*);
+
+typedef struct MakeArg {
+	const char* path;
+	const char* flag;
+	ItemList*   itemList;
+	void (* func)(struct MakeArg*);
+	BinutilCallback callback;
+	u32 i;
+} MakeArg;
+
+typedef void ThreadFunc;
+
+void Make(struct Rom* rom, s32 message);

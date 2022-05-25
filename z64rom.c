@@ -6,17 +6,17 @@
 const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.6.7";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
-s32 sDumpFlag;
 s32 gInfoFlag;
 s32 gMakeForce;
 const char* gMakeTarget;
 u32 gCompressFlag = false;
-
 s32 gBuildTarget = ROM_DEV;
 char gRomName_Output[2][128] = {
 	/* "build-release.z64", */
 	/* "build-dev.z64", */
 };
+
+s32 sDumpFlag;
 
 s32 Main_IsSameFile(char* new, char* cur) {
 	if (Sys_StatF(new, STAT_ACCS) != Sys_StatF(cur, STAT_ACCS))
@@ -155,7 +155,7 @@ s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 	
 	if (Arg("target")) gMakeTarget = argv[parArg];
 	
-	if (Arg("single-thread"))
+	if (Arg("no-threading"))
 		gThreading = false;
 	
 	if (Arg("no-wav"))
@@ -324,7 +324,7 @@ s32 Main(s32 argc, char* argv[]) {
 	}
 	
 	if (Arg("actor") && input) {
-		u32 id = String_GetInt(argv[parArg]);
+		u32 id = Value_Int(argv[parArg]);
 		
 		rom->type = Zelda_OoT_Debug;
 		Rom_New(rom, input);
@@ -334,7 +334,7 @@ s32 Main(s32 argc, char* argv[]) {
 	}
 	
 	if (Arg("dma") && input) {
-		u32 id = String_GetInt(argv[parArg]);
+		u32 id = Value_Int(argv[parArg]);
 		
 		rom->type = Zelda_OoT_Debug;
 		Rom_New(rom, input);
@@ -344,7 +344,7 @@ s32 Main(s32 argc, char* argv[]) {
 	}
 	
 	if (Arg("scene") && input) {
-		u32 id = String_GetInt(argv[parArg]);
+		u32 id = Value_Int(argv[parArg]);
 		
 		rom->type = Zelda_OoT_Debug;
 		Rom_New(rom, input);

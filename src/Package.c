@@ -127,7 +127,7 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 	
 	printf_info("Import [%s] to ActorID: " PRNT_DGRY "provide values as hex or [free] to get first free index", name);
 	
-	for (s32 i = 0; !String_Validate_Hex(tmp); i++) {
+	for (s32 i = 0; !Value_ValidateHex(tmp); i++) {
 		if (i > 0)
 			Terminal_ClearLines(2);
 		tmp = Terminal_GetStr();
@@ -160,7 +160,7 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 			}
 		}
 	} else
-		actorID = String_GetHexInt(tmp);
+		actorID = Value_Hex(tmp);
 	
 	if (actorID == -1 && getFree)
 		printf_error("Could not find free ActorID");
@@ -171,7 +171,7 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 		char fmt[512] = "Import [%s] to ObjectID: " PRNT_DGRY "";
 		ItemList recList = ItemList_Initialize();
 		
-		sprintf(buf, "0x%04X", String_GetHexInt(tmp));
+		sprintf(buf, "0x%04X", Value_Hex(tmp));
 		Config_GetArray(&recList, sDepList->str, buf);
 		
 		for (s32 i = 0; i < recList.num; i++) {
@@ -179,19 +179,19 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 				strcat(fmt, "  ");
 			strcat(fmt, recList.item[i]);
 			strcat(fmt, " - ");
-			strcat(fmt, gObjectName_OoT[String_GetHexInt(recList.item[i])]);
+			strcat(fmt, gObjectName_OoT[Value_Hex(recList.item[i])]);
 		}
 		
 		tmp = "NotHex";
 		printf_info(fmt, object);
 		
-		for (s32 i = 0; !String_Validate_Hex(tmp); i++) {
+		for (s32 i = 0; !Value_ValidateHex(tmp); i++) {
 			if (i > 0)
 				Terminal_ClearLines(2);
 			tmp = Terminal_GetStr();
 		}
 		
-		objectID = String_GetHexInt(tmp);
+		objectID = Value_Hex(tmp);
 		ItemList_Free(&recList);
 	}
 	

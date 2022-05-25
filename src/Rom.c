@@ -284,11 +284,11 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		if (line[0] == '@')
 			continue;
 		
-		if (String_Validate_Hex(String_GetWord(line, 0)) == false)
+		if (Value_ValidateHex(String_GetWord(line, 0)) == false)
 			continue;
 		
 		word = Config_Variable(line, String_GetWord(line, 0));
-		rom->file.seekPoint = String_GetHexInt(String_GetWord(line, 0));
+		rom->file.seekPoint = Value_Hex(String_GetWord(line, 0));
 		
 		if (StrMtch(word, "FILE(\"")) {
 			word = Config_GetVariable(line, String_GetWord(line, 0));
@@ -335,7 +335,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		
 		word = Config_GetVariable(line, String_GetWord(line, 0));
 		
-		if (String_Validate_Hex(word)) {
+		if (Value_ValidateHex(word)) {
 			u8* data = &rom->file.cast.u8[rom->file.seekPoint];
 			u32 size = 0;
 			
@@ -362,11 +362,11 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 				} else {
 					if (o % 2 == 0) {
 						new = data[0] & 0x0F;
-						new |= String_GetHexInt(strval) << 4;
+						new |= Value_Hex(strval) << 4;
 						data[0] = new;
 					} else {
 						new = data[0] & 0xF0;
-						new |= String_GetHexInt(strval) & 0xF;
+						new |= Value_Hex(strval) & 0xF;
 						data[0] = new;
 						data++;
 						size++;
@@ -698,23 +698,23 @@ static void Rom_ExtTableNum(Rom* rom) {
 	
 	word = StrStr(ulib.str, "EXT_DMA_MAX");
 	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_DMA_MAX", fname);
-	rom->ext.dmaNum = String_GetInt(String_Word(word, 1));
+	rom->ext.dmaNum = Value_Int(String_Word(word, 1));
 	
 	word = StrStr(ulib.str, "EXT_ACTOR_MAX");
 	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_ACTOR_MAX", fname);
-	rom->ext.actorNum = String_GetInt(String_Word(word, 1));
+	rom->ext.actorNum = Value_Int(String_Word(word, 1));
 	
 	word = StrStr(ulib.str, "EXT_OBJECT_MAX");
 	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_OBJECT_MAX", fname);
-	rom->ext.objectNum = String_GetInt(String_Word(word, 1));
+	rom->ext.objectNum = Value_Int(String_Word(word, 1));
 	
 	word = StrStr(ulib.str, "EXT_SCENE_MAX");
 	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_SCENE_MAX", fname);
-	rom->ext.sceneNum = String_GetInt(String_Word(word, 1));
+	rom->ext.sceneNum = Value_Int(String_Word(word, 1));
 	
 	word = StrStr(ulib.str, "EXT_EFFECT_MAX");
 	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_EFFECT_MAX", fname);
-	rom->ext.effectNum = String_GetInt(String_Word(word, 1));
+	rom->ext.effectNum = Value_Int(String_Word(word, 1));
 	
 	Log("DmaNum: %d", rom->ext.dmaNum);
 	Log("ActorNum: %d", rom->ext.actorNum);
@@ -1690,22 +1690,22 @@ void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 		for (s32 i = 0; i < modified.num; i++) {
 			if (modified.item[i] == NULL)
 				continue;
-			if (String_GetInt(modified.item[i]) > maxNum) {
-				maxNum = String_GetInt(modified.item[i]);
+			if (Value_Int(modified.item[i]) > maxNum) {
+				maxNum = Value_Int(modified.item[i]);
 			}
 		}
 		
 		for (s32 i = 0; i < vanilla.num; i++) {
 			if (vanilla.item[i] == NULL)
 				continue;
-			if (String_GetInt(vanilla.item[i]) > maxNum)
-				maxNum = String_GetInt(vanilla.item[i]);
+			if (Value_Int(vanilla.item[i]) > maxNum)
+				maxNum = Value_Int(vanilla.item[i]);
 		}
 		
 		for (s32 i = 0; i < maxNum + 1; i++) {
-			if (i < modified.num && modified.item[i] && String_GetInt(modified.item[i]) == i) {
+			if (i < modified.num && modified.item[i] && Value_Int(modified.item[i]) == i) {
 				list->item[list->num] = Tmp_String(modified.item[i]);
-			} else if (i < vanilla.num && vanilla.item[i] && String_GetInt(vanilla.item[i]) == i) {
+			} else if (i < vanilla.num && vanilla.item[i] && Value_Int(vanilla.item[i]) == i) {
 				list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
 			} else {
 				list->item[list->num] = NULL;
@@ -1789,22 +1789,22 @@ void Rom_ItemList_NDIR(ItemList* list, const char* path, bool isNum, ListFlags f
 		for (s32 i = 0; i < modified.num; i++) {
 			if (modified.item[i] == NULL)
 				continue;
-			if (String_GetInt(modified.item[i]) > maxNum) {
-				maxNum = String_GetInt(modified.item[i]);
+			if (Value_Int(modified.item[i]) > maxNum) {
+				maxNum = Value_Int(modified.item[i]);
 			}
 		}
 		
 		for (s32 i = 0; i < vanilla.num; i++) {
 			if (vanilla.item[i] == NULL)
 				continue;
-			if (String_GetInt(vanilla.item[i]) > maxNum)
-				maxNum = String_GetInt(vanilla.item[i]);
+			if (Value_Int(vanilla.item[i]) > maxNum)
+				maxNum = Value_Int(vanilla.item[i]);
 		}
 		
 		for (s32 i = 0; i < maxNum + 1; i++) {
-			if (i < modified.num && modified.item[i] && String_GetInt(modified.item[i]) == i) {
+			if (i < modified.num && modified.item[i] && Value_Int(modified.item[i]) == i) {
 				list->item[list->num] = Tmp_String(modified.item[i]);
-			} else if (i < vanilla.num && vanilla.item[i] && String_GetInt(vanilla.item[i]) == i) {
+			} else if (i < vanilla.num && vanilla.item[i] && Value_Int(vanilla.item[i]) == i) {
 				list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
 			} else {
 				list->item[list->num] = NULL;

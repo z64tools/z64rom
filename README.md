@@ -58,7 +58,7 @@ z64rom will convert the newest audio file it finds from this folder so you do no
 | --make-only       | Do not build, only make                           |                           |
 | --update          | Update z64hdr                                     |                           |
 | --generic         | Use generic names on dump `Sample_001`            |                           |
-| --single-thread   | Process only on single thread. Good for debugging |                           |
+| --no-threading    | Process only on single thread. Good for debugging |                           |
 | --log             | Print Log before closing                          |                           |
 | --no-wait         | Do not ask to press enter on exit, if successful  |                           |
 | --no-make         | Do not compile/convert                            |                           |

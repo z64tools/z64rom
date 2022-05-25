@@ -534,13 +534,10 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 			printf_error("z64audio Failed!");
 		
 		MemFile_Reset(dataFile);
-		s8* instInfo;
-		
-		if (MemFile_LoadFile(dataFile, FILE_WAV)) {
+		if (MemFile_LoadFile(dataFile, FILE_WAV))
 			printf_warning_align("Sample not found", "%s", FILE_WAV);
-		}
 		
-		instInfo = StrStr(dataFile->data, "inst");
+		s8* instInfo = MemMem(dataFile->data, dataFile->dataSize, "inst", 4);
 		
 		if (instInfo) {
 			Config_SPrintf("\n # Instrument Info\n");
@@ -605,7 +602,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 		ThreadLock_Init();
 		while (i < sSortID) {
 			printf_progress("Sample", i + 1, sSortID);
-			u32 target = Clamp(sSortID - i, 0, 16);
+			u32 target = Clamp(sSortID - i, 0, 8);
 			
 			for (s32 j = 0; j < target; j++) {
 				arg[j].i = i + j;
@@ -621,7 +618,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 				for (s32 j = 0; j < target; j++)
 					ThreadLock_Join(&thread[j]);
 			
-			i += 16;
+			i += 8;
 		}
 		ThreadLock_Free();
 		

@@ -142,6 +142,9 @@ typedef enum {
 	/* 4 */ SANDSTORM_DISSIPATE
 } SandstormState;
 
+#define CAM_DEG_TO_BINANG(degrees) (s16)((degrees) * 182.04167f + .5f)
+#define CAM_BINANG_TO_DEG(binang) ((f32)(binang) * (360.0001525f / 65535.0f))
+
 #endif
 
 #endif

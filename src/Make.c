@@ -37,20 +37,20 @@ static void Make_Info(const char* tool, const char* target) {
 	sMake = 1;
 }
 
-static void Make_Run(const char* cmd) {
-#if 0
-	if (SysExe(cmd)) {
-		printf_error("Build Failed...");
-	}
-#else
-	char* out = SysExeO(cmd);
+static void Make_Run(char* cmd) {
+	strcat(cmd, " 2>&1");
+	char* msg = SysExeO(cmd);
 	
-	if (out[0] != '\0') {
-		Thread_Print(out);
+	if (strlen(msg) > 1) {
+		char* word = String_GetWord(msg, 0);
+		
+		String_Replace(msg, "warning", PRNT_PRPL "warning" PRNT_RSET);
+		String_Replace(msg, "error", PRNT_REDD "error" PRNT_RSET);
+		String_Replace(msg, word, Tmp_Printf(PRNT_YELW "%s" PRNT_RSET, word));
+		printf_WinFix();
+		Thread_Print("%s", msg);
 	}
-	
-	Free(out);
-#endif
+	Free(msg);
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -937,6 +937,7 @@ void Make(Rom* rom, s32 message) {
 		printf_error("[z64project.cfg] is missing mips64 flags! Please, do fresh dump!");
 	
 	setvbuf(stdout, NULL, _IONBF, 0);
+	setvbuf(stderr, NULL, _IONBF, 0);
 	
 	if (gMakeTarget) {
 		if (StrStrCase(gMakeTarget, "sound"))
@@ -948,7 +949,8 @@ void Make(Rom* rom, s32 message) {
 		Make_Code();
 	}
 	
-	setvbuf(stdout, NULL, _IONBF, 0x1000);
+	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
+	setvbuf(stderr, NULL, _IONBF, BUFSIZ);
 	
 	printf_WinFix();
 	

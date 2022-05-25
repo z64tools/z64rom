@@ -241,14 +241,6 @@ static void Rom_Config_Scene(Rom* rom, MemFile* config, u32 id, const char* name
 // # PATCH                               #
 // # # # # # # # # # # # # # # # # # # # #
 
-typedef struct PatchNode {
-	struct PatchNode* prev;
-	struct PatchNode* next;
-	u32  start;
-	u32  end;
-	char source[64];
-} PatchNode;
-
 PatchNode* sPatchHead;
 
 static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char* file) {
@@ -747,10 +739,7 @@ static void Rom_AllocDmaTable(Rom* rom) {
 	size = Align(size, 16);
 	
 	Rom_MoveTable(rom->offset.table.actorTable, rom->table.actor, rom->table.num.actor, rom->ext.actorNum);
-	
-	size += sizeof(struct ObjectEntry) * rom->ext.objectNum;
-	size = Align(size, 16);
-	
+	Rom_MoveTable(rom->offset.table.objTable, rom->table.object, rom->table.num.obj, rom->ext.objectNum);
 	Rom_MoveTable(rom->offset.table.sceneTable, rom->table.scene, rom->table.num.scene, rom->ext.sceneNum);
 	Rom_MoveTable(rom->offset.table.effectTable, rom->table.effect, rom->table.num.effect, rom->ext.effectNum);
 	

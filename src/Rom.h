@@ -6,6 +6,14 @@
 struct Rom;
 struct RomFile;
 
+typedef struct PatchNode {
+	struct PatchNode* prev;
+	struct PatchNode* next;
+	u32  start;
+	u32  end;
+	char source[64];
+} PatchNode;
+
 void Rom_New(struct Rom* rom, char* romName);
 void Rom_Free(struct Rom* rom);
 void Rom_Dump(struct Rom* rom);

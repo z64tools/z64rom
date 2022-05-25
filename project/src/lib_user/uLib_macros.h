@@ -143,7 +143,13 @@ typedef enum {
 } SandstormState;
 
 #define CAM_DEG_TO_BINANG(degrees) (s16)((degrees) * 182.04167f + .5f)
-#define CAM_BINANG_TO_DEG(binang) ((f32)(binang) * (360.0001525f / 65535.0f))
+#define CAM_BINANG_TO_DEG(binang)  ((f32)(binang) * (360.0001525f / 65535.0f))
+
+#define PAUSE_EQUIP_PLAYER_WIDTH  64
+#define PAUSE_EQUIP_PLAYER_HEIGHT 112
+
+#define PAUSE_EQUIP_BUFFER_SIZE                        sizeof(u16[PAUSE_EQUIP_PLAYER_HEIGHT][PAUSE_EQUIP_PLAYER_WIDTH])
+#define PAUSE_PLAYER_SEGMENT_GAMEPLAY_KEEP_BUFFER_SIZE 0x5000
 
 #endif
 

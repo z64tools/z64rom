@@ -560,7 +560,7 @@ static ThreadFunc Code_ObjDump(char* cmd, const char* output) {
 		if (StrStr(word, "flag") && strlen(word) == 4) goto skip;
 		if (StrStr(word, "segment") && strlen(word) == 7) goto skip;
 		for (s32 j = 0; j < strlen(word); j++)
-			if (isdigit(word[j])) goto skip;
+			if (word[j] == '.') goto skip;
 		
 		MemFile_Printf(&linker, "%-24s = ", word);
 		word = String_GetWord(line, 0);

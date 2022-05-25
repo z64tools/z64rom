@@ -33,7 +33,7 @@ typedef struct ThreadArg {
 } ThreadArg;
 
 static void Make_Info(const char* tool, const char* target) {
-	Thread_Print("[#]: %-16s %s\n", tool, String_GetFilename(target));
+	printf_lock("[M]: %s\n", String_GetFilename(target));
 	sMake = 1;
 }
 
@@ -48,7 +48,7 @@ static void Make_Run(char* cmd) {
 		String_Replace(msg, "error", PRNT_REDD "error" PRNT_RSET);
 		String_Replace(msg, word, Tmp_Printf(PRNT_YELW "%s" PRNT_RSET, word));
 		printf_WinFix();
-		Thread_Print("%s", msg);
+		printf_lock("%s", msg);
 	}
 	Free(msg);
 }
@@ -58,9 +58,6 @@ static void Make_Run(char* cmd) {
 // # # # # # # # # # # # # # # # # # # # #
 
 static void Sound_Convert(ThreadArg* targ) {
-	if (StrEnd(targ->path, ".vanilla/"))
-		return;
-	
 	ItemList* list;
 	char* vadpcm = NULL;
 	char* audio = NULL;
@@ -80,9 +77,11 @@ static void Sound_Convert(ThreadArg* targ) {
 	
 	for (s32 i = 0; i < list->num; i++) {
 		if (StrStr(list->item[i], "normalize"))
-			normalize = true; ;
+			normalize = true;
+		
 		if (StrEndCase(list->item[i], ".book.bin"))
 			book = list->item[i];
+		
 		if (StrEndCase(list->item[i], "/design.confg"))
 			table = list->item[i];
 		
@@ -170,6 +169,7 @@ void Make_Sound(void) {
 	
 	if (gThreading)
 		ThreadLock_Init();
+	
 	while (i < list.num) {
 		u32 target = Clamp(list.num - i, 0, THREAD_NUM);
 		
@@ -510,7 +510,7 @@ build:
 	Sys_MakeDir(output);
 	
 	Make_Run(command);
-	Make_Info("mips64-gcc", source);
+	Make_Info("GCC", source);
 	
 	if (callback)
 		callback(output, POST_GCC, command, NULL);
@@ -557,7 +557,7 @@ build:
 	Sys_MakeDir(output);
 	
 	Make_Run(command);
-	Make_Info("mips64-ld", source);
+	Make_Info("LD", source);
 	
 	if (callback)
 		callback(output, POST_LD, command, NULL);
@@ -669,7 +669,7 @@ static void Make_Linker_Thread(ThreadArg* arg) {
 	Free(command);
 	ItemList_Free(&itemList);
 	
-	Make_Info("mips64-objdump", "z_code_lib.ld");
+	Make_Info("OBJDUMP", "z_code_lib.ld");
 }
 
 static void Make_Code_Thread_C(ThreadArg* arg) {
@@ -955,5 +955,5 @@ void Make(Rom* rom, s32 message) {
 	printf_WinFix();
 	
 	if (sMake && message)
-		printf_info_align("Make", "OK\n");
+		printf_info("Make OK");
 }

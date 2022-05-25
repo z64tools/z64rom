@@ -26,8 +26,6 @@ RomFile Rom_GetRomFile(Rom* rom, u32 vromA, u32 vromB) {
 			break;
 		}
 		if (i + 1 == rom->table.num.dma) {
-			printf_debugExt_align("DmaEntry", "Could not find");
-			printf_debug("%08X - %08X", ReadBE(vromA), ReadBE(vromB));
 			useAddress = true;
 		}
 	}

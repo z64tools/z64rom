@@ -394,7 +394,7 @@ s32 Main(s32 argc, char* argv[]) {
 				printf_info("Want to use it as your baserom and dump it now? " PRNT_DGRY "[y/n]");
 				
 				if (Terminal_YesOrNo()) {
-					input = strdup(list.item[i]);
+					input = DupStr(list.item[i]);
 					sDumpFlag = true;
 					
 					String_Replace(rom->config.str, "__ROM_NAME__", input);

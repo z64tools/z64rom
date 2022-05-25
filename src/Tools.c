@@ -416,12 +416,10 @@ redo:
 
 void Tools_Update_Header(bool install) {
 	char command[512];
-	char* output;
-	char* line;
-	char* word;
+	char* output = NULL;
+	char* line = NULL;
+	char* word = NULL;
 	MemFile ver = MemFile_Initialize();
-	
-	if (install) goto install;
 	
 	Tools_Command(command, wget, "%s -q -O -", URL_Z64HDR_UPDT_API);
 	output = SysExeO(command);
@@ -438,8 +436,7 @@ void Tools_Update_Header(bool install) {
 	String_Replace(word, "\"", "");
 	String_Replace(word, ",", "");
 	
-	if (!Sys_Stat("include/.version")) {
-install:
+	if (!Sys_Stat("include/.version") || install) {
 		Tools__InstallHdr(false);
 		
 		MemFile_Malloc(&ver, 0x800);

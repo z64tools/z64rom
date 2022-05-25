@@ -1,5 +1,5 @@
-CFLAGS         := -s -flto -Wall -DEXTLIB=132 -DNDEBUG
-CFLAGS_MAIN    := -s -Wall -pthread -DNDEBUG
+CFLAGS         := -Wall -DEXTLIB=135 -DNDEBUG
+CFLAGS_MAIN    := -Wall -DNDEBUG
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
 SOURCE_C        = $(shell find src/* -type f -name '*.c')
@@ -47,8 +47,7 @@ $(shell mkdir -p app_linux/tools/)
 		clean-sub \
 		clean-release \
 		clean \
-		update-z64audio \
-		debug
+		update-z64audio
 
 default: linux
 all: linux win32
@@ -183,14 +182,9 @@ bin/linux/%.o: %.c $(HEADER) $(ExtLib_H)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@gcc -c -o $@ $< $(OPT_LINUX) $(CFLAGS)
 
-Debug_C  = $(foreach f, $(ExtLib_C) $(Zip_C) $(Xm_C) $(Audio_C), $(C_INCLUDE_PATH)/$f)
-debug: z64rom.c $(SOURCE_C) $(Debug_C)
-	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@gcc -g $^ -lm -ldl -pthread -Og
-
 $(RELEASE_EXECUTABLE_LINUX): $(SOURCE_O_LINUX) $(ExtLib_Linux_O) $(Zip_Linux_O) $(Xm_Linux_O) $(Audio_Linux_O)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@gcc -o $@ $^ -lm -lncurses -ldl $(OPT_LINUX) $(CFLAGS_MAIN)
+	@gcc -o $@ $^ -lm -ldl -pthread $(OPT_LINUX) $(CFLAGS_MAIN)
 
 # # # # # # # # # # # # # # # # # # # #
 # WINDOWS-32 BUILD                    #
@@ -206,5 +200,5 @@ bin/win32/icon.o: src/icon.rc src/icon.ico
 
 $(RELEASE_EXECUTABLE_WIN32): bin/win32/icon.o $(SOURCE_O_WIN32) $(ExtLib_Win32_O) $(Zip_Win32_O) $(Xm_Win32_O) $(Audio_Win32_O)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
-	@i686-w64-mingw32.static-gcc -o $@ $^ -lm -lncurses $(OPT_WIN32) $(CFLAGS_MAIN) -D_WIN32
+	@i686-w64-mingw32.static-gcc -o $@ $^ -lm -pthread $(OPT_WIN32) $(CFLAGS_MAIN) -D_WIN32
 	

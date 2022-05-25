@@ -559,13 +559,9 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 	SampleInfo* smallest = sUnsortedSampleTbl;
 	SampleInfo* largest = sUnsortedSampleTbl;
-	RomFile rf;
 	SampleInfo** tbl;
-	AdpcmLoop* loop;
-	AdpcmBook* book;
 	char buff[16];
 	char* name;
-	u32 sampRate;
 	
 	for (s32 i = 0; i < sDumpID; i++) {
 		if (smallest->sampleAddr > sUnsortedSampleTbl[i].sampleAddr) {

@@ -595,15 +595,15 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	tbl = sSortedSampleTbl;
 	
+	#define THREAD_NUM 42
 	Dir_Enter("sample/.vanilla/");  {
 		s32 i = 0;
-		SampleDumpArg arg[32];
-		Thread thread[32];
+		SampleDumpArg arg[THREAD_NUM];
+		Thread thread[THREAD_NUM];
 		
 		ThreadLock_Init();
 		while (i < sSortID) {
-			printf_progress("Sample", i + 1, sSortID);
-			u32 target = Clamp(sSortID - i, 0, 8);
+			u32 target = Clamp(sSortID - i, 0, THREAD_NUM);
 			
 			for (s32 j = 0; j < target; j++) {
 				arg[j].i = i + j;
@@ -616,10 +616,12 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 			}
 			
 			if (gThreading)
-				for (s32 j = 0; j < target; j++)
+				for (s32 j = 0; j < target; j++) {
 					ThreadLock_Join(&thread[j]);
+					printf_progress("Sample", i + j + 1, sSortID);
+				}
 			
-			i += 8;
+			i += THREAD_NUM;
 		}
 		ThreadLock_Free();
 		

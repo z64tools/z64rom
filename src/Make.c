@@ -41,7 +41,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	char* seq = NULL;
 	char* com = NULL;
 	char* cfg;
-	u32 index = Value_Hex(String_GetFolder(targ->path, -1));
+	u32 index = Value_Hex(PathSlot(targ->path, -1));
 	
 	list = Calloc(list, sizeof(ItemList));
 	*list = ItemList_Initialize();
@@ -315,7 +315,7 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 		ovl = HeapPrint("%soverlay.zovl", Path(input));
 		String_Replace(ovl, "src/", "rom/");
 		
-		info = String_GetFolder(input, -1);
+		info = PathSlot(input, -1);
 		if (StrMtch(info, "0x"))
 			String_Remove(info, strlen("0x0000-"));
 		String_Replace(info, "/", " ");
@@ -458,7 +458,7 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 			Free(varName);
 		}
 		
-		info = String_GetFolder(input, -1); String_Remove(info, strlen("0x0000-")); String_Replace(info, "/", " ");
+		info = PathSlot(input, -1); String_Remove(info, strlen("0x0000-")); String_Replace(info, "/", " ");
 		
 		Tools_Command(command, nOVL, "-v -c -s -A 0x80800000 -o %s %s", ovl, input);
 		Make_Run(command);

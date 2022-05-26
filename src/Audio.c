@@ -821,7 +821,7 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			
 			sSampleTbl[sSampleTblNum].size = sample.dataSize;
 			strcpy(sSampleTbl[sSampleTblNum].dir, Dir_File(""));
-			strcpy(sSampleTbl[sSampleTblNum].name, String_GetFolder(itemList.item[i], -1));
+			strcpy(sSampleTbl[sSampleTblNum].name, PathSlot(itemList.item[i], -1));
 			String_Replace(sSampleTbl[sSampleTblNum].name, "/", "\0");
 			sSampleTblNum++;
 			MemFile_Append(dataFile, &sample);

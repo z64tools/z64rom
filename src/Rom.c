@@ -755,6 +755,340 @@ static void Rom_AllocDmaTable(Rom* rom) {
 	}
 }
 
+static char* RomList_FindFile(const char* path, const char* fmt, ...) {
+	ItemList list = ItemList_Initialize();
+	char* file = NULL;
+	Time stat = 0;
+	char buf[64];
+	va_list va;
+	
+	va_start(va, fmt);
+	vsprintf(buf, fmt, va);
+	va_end(va);
+	
+	ItemList_List(&list, path, 0, LIST_FILES | LIST_NO_DOT);
+	for (s32 i = 0; i < list.num; i++) {
+		if (StrEndCase(list.item[i], buf) && Sys_Stat(list.item[i]) > stat) {
+			file = list.item[i];
+			stat = Sys_Stat(file);
+		}
+	}
+	
+	if (file)
+		file = HeapDupStr(file);
+	
+	ItemList_Free(&list);
+	
+	return file;
+}
+
+static char* RomList_File(const char* path, const char* fmt, ...) {
+	va_list va;
+	char buf[64];
+	
+	va_start(va, fmt);
+	vsprintf(buf, fmt, va);
+	va_end(va);
+	
+	return HeapPrint("%s/%s", path, buf);
+}
+
+void Rom_Build_Actor(Rom* rom, MemFile* memData, MemFile* memCfg) {
+	ItemList list = ItemList_Initialize();
+	ActorEntry* entry = rom->table.actor;
+	
+	Rom_ItemListEx(&list, "rom/actor/", SORT_NUMERICAL, LIST_FOLDERS);
+	
+	for (s32 i = 0; i < list.num; i++) {
+		if (list.item[i] == NULL) {
+			if (entry[i].vromStart && entry[i].vromEnd)
+				entry[i] = (ActorEntry) { 0 };
+			continue;
+		}
+		
+		if (i >= rom->table.num.actor) {
+			printf_warning("ActorTable Full [%d/%d]", i + 1, rom->table.num.actor);
+			break;
+		} else
+			printf_progress("Actor", i + 1, list.num);
+		
+		MemFile_Reset(memData);
+		MemFile_Reset(memCfg);
+		MemFile_LoadFile(memData, RomList_FindFile(list.item[i], ".zovl"));
+		MemFile_LoadFile_String(memCfg, RomList_File(list.item[i], "config.cfg"));
+		
+		entry[i].allocType = Config_GetInt(memCfg, "alloc_type");
+		entry[i].initInfo = Config_GetInt(memCfg, "init_vars");
+		
+		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
+		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
+		
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
+		entry[i].vromEnd = Dma_GetVRomEnd();
+		
+		SwapBE(entry[i].allocType);
+		SwapBE(entry[i].initInfo);
+		SwapBE(entry[i].vramStart);
+		SwapBE(entry[i].vramEnd);
+		SwapBE(entry[i].vromStart);
+		SwapBE(entry[i].vromEnd);
+		
+		entry[i].loadedRamAddr = 0;
+		
+		if (gBuildTarget == ROM_DEV && entry[i].name) {
+			u32 romAddr = ReadBE(entry[i].name) - 0x7F588E60;
+			void* target;
+			char buf[64];
+			u32 id;
+			
+			Log("Filename Offset [%08X]", romAddr);
+			
+			target = SegmentedToVirtual(0, romAddr);
+			sscanf(PathSlot(list.item[i], -1), "0x%04X-%s/", &id, buf);
+			strncpy(target, buf, strlen(target));
+		}
+	}
+	
+	ItemList_Free(&list);
+}
+
+void Rom_Build_Effect(Rom* rom, MemFile* memData, MemFile* memCfg) {
+	ItemList list = ItemList_Initialize();
+	EffectEntry* entry = rom->table.effect;
+	
+	Rom_ItemListEx(&list, "rom/effect/", SORT_NUMERICAL, LIST_FOLDERS);
+	
+	for (s32 i = 0; i < list.num; i++) {
+		if (list.item[i] == NULL) {
+			entry[i] = (EffectEntry) { 0 };
+			continue;
+		}
+		
+		if (i >= rom->table.num.effect) {
+			printf_warning("Illegal action! Can't have more than " PRNT_REDD "0x%X" PRNT_RSET " effects!", rom->table.num.effect);
+			break;
+		} else
+			printf_progress("Effect", i + 1, list.num);
+		
+		MemFile_Reset(memData);
+		MemFile_Reset(memCfg);
+		MemFile_LoadFile(memData, RomList_FindFile(list.item[i], ".zovl"));
+		MemFile_LoadFile_String(memCfg, RomList_File(list.item[i], "config.cfg"));
+		
+		entry[i].initInfo = Config_GetInt(memCfg, "init_vars");
+		
+		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
+		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
+		
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
+		entry[i].vromEnd = Dma_GetVRomEnd();
+		
+		SwapBE(entry[i].initInfo);
+		SwapBE(entry[i].vramStart);
+		SwapBE(entry[i].vramEnd);
+		SwapBE(entry[i].vromStart);
+		SwapBE(entry[i].vromEnd);
+		entry[i].loadedRamAddr = 0;
+	}
+	
+	ItemList_Free(&list);
+}
+
+void Rom_Build_Object(Rom* rom, MemFile* memData, MemFile* memCfg) {
+	ItemList list = ItemList_Initialize();
+	ObjectEntry* entry = rom->table.object;
+	
+	Rom_ItemListEx(&list, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
+	
+	for (s32 i = 0; i < list.num; i++) {
+		if (list.item[i] == NULL) {
+			entry[i].vromStart = 0;
+			entry[i].vromEnd = 0;
+			
+			continue;
+		}
+		
+		if (i >= rom->table.num.obj) {
+			printf_warning("Illegal action! Can't have more than " PRNT_REDD "0x%X" PRNT_RSET " objects!", rom->table.num.obj);
+			break;
+		} else
+			printf_progress("Object", i + 1, list.num);
+		
+		MemFile_Reset(memData);
+		MemFile_LoadFile(memData, RomList_FindFile(list.item[i], ".zobj"));
+		
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
+		entry[i].vromEnd = Dma_GetVRomEnd();
+		SwapBE(entry[i].vromStart);
+		SwapBE(entry[i].vromEnd);
+	}
+	
+	ItemList_Free(&list);
+}
+
+void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
+	MemFile memRoom = MemFile_Initialize();
+	ItemList list = ItemList_Initialize();
+	ItemList titleList = ItemList_Initialize();
+	SceneEntry* entry = rom->table.scene;
+	u32* titleID;
+	
+	MemFile_Malloc(&memRoom, MbToBin(2));
+	Rom_ItemListEx(&list, "rom/scene/", SORT_NUMERICAL, LIST_FOLDERS);
+	
+	ItemList_Alloc(&titleList, list.num, list.writePoint * 4);
+	titleID = Calloc(titleID, sizeof(u32) * list.num);
+	
+	for (s32 i = 0; i < list.num; i++) {
+		u32* seg;
+		u32* vromSeg;
+		u32 roomNum;
+		u32 roomListSeg;
+		
+		if (list.item[i] == NULL)
+			printf_error("Empty scene %d", i);
+		
+		if (i >= rom->table.num.scene) {
+			printf_warning("Illegal action! Can't have more than " PRNT_REDD "0x%X" PRNT_RSET " scenes!", rom->table.num.scene);
+			break;
+		} else
+			printf_progress("Scene", i + 1, list.num);
+		
+		MemFile_Reset(memCfg);
+		MemFile_Reset(memData);
+		MemFile_LoadFile_String(memCfg, RomList_File(list.item[i], "config.cfg"));
+		MemFile_LoadFile(memData, RomList_FindFile(list.item[i], ".zscene"));
+		SetSegment(0x1, memData->data);
+		seg = SegmentedToVirtual(0x1, 0);
+		
+		Rom_WriteRestrictionFlags(rom, memCfg, i);
+		
+		for (;;) {
+			if ((seg[0] & 0xFF) == 0x04) {
+				break;
+			}
+			if ((seg[0] & 0xFF) == 0x14) {
+				printf_warning_align("Scene", "Failed finding room list");
+				seg = 0;
+				break;
+			}
+			seg++;
+		}
+		
+		roomNum = (seg[0] & 0xFF00) >> 8;
+		roomListSeg = ReadBE(seg[1]) & 0xFFFFFF;
+		vromSeg = SegmentedToVirtual(0x1, roomListSeg);
+		
+		for (s32 j = 0; j < roomNum; j++) {
+			u32 id = j * 2;
+			char* room;
+			
+			MemFile_Reset(&memRoom);
+			room = RomList_FindFile(list.item[i], "_%d.zroom", j);
+			if (!room) room = RomList_FindFile(list.item[i], "_%d.zmap", j);
+			if (!room) printf_error("Could not find room_%d", j);
+			MemFile_LoadFile(&memRoom, room);
+			
+			vromSeg[id + 0] = Dma_WriteEntry(rom, DMA_FIND_FREE, &memRoom, false);
+			vromSeg[id + 1] = Dma_GetVRomEnd();
+			SwapBE(vromSeg[id + 0]);
+			SwapBE(vromSeg[id + 1]);
+		}
+		
+		u32* hdr = SegmentedToVirtual(0x1, 0);
+		for (;; hdr++) {
+			if ((hdr[0] & 0xFF) == 0x18) {
+				break;
+			}
+			if ((hdr[0] & 0xFF) == 0x14) {
+				hdr = NULL;
+				break;
+			}
+		}
+		
+		if (hdr) {
+			u32 num;
+			u32* room;
+			room = hdr = SegmentedToVirtual(0x1, ReadBE(hdr[1]) & 0x00FFFFFF);
+			for (s32 r = 0;; r++) {
+				if ((hdr[r] & 0xFF) != 0x2 && hdr[r] != 0)
+					break;
+				room = SegmentedToVirtual(0x1, ReadBE(hdr[r]) & 0xFFFFFF);
+				for (;; room++) {
+					if ((room[0] & 0xFF) == 0x04) {
+						break;
+					}
+					if ((room[0] & 0xFF) == 0x14) {
+						room = NULL;
+						break;
+					}
+				}
+				
+				if (room) {
+					u32 seg;
+					num = (room[0] & 0xFF00) >> 8;
+					seg = ReadBE(room[1]) & 0xFFFFFF;
+					room = SegmentedToVirtual(0x1, seg);
+					
+					for (s32 j = 0; j < num; j++) {
+						u32 id = j * 2;
+						
+						room[id + 0] = vromSeg[id + 0];
+						room[id + 1] = vromSeg[id + 1];
+					}
+				}
+			}
+		}
+		
+		entry[i].config = Config_GetInt(memCfg, "scene_func_id");
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
+		entry[i].vromEnd = Dma_GetVRomEnd();
+		SwapBE(entry[i].vromStart);
+		SwapBE(entry[i].vromEnd);
+		entry[i].titleVromStart = 0;
+		entry[i].titleVromEnd = 0;
+		
+		char* f = RomList_File(list.item[i], "title.png");
+		
+		if (Sys_Stat(f)) {
+			titleID[titleList.num] = i;
+			ItemList_AddItem(&titleList, f);
+		}
+	}
+	
+	// Check for unique Place Names
+	for (s32 i = 0; i < titleList.num; i++) {
+		u32 useSame = false;
+		Texel_Import(memData, titleList.item[i], TEX_FMT_IA, TEX_BSIZE_8, 144, 24);
+		
+		for (s32 j = 0; j < i; j++) {
+			u32 id = titleID[j];
+			void* data;
+			Size sz;
+			
+			data = SegmentedToVirtual(0, ReadBE(entry[id].titleVromStart));
+			sz = ReadBE(entry[id].titleVromEnd) - ReadBE(entry[id].titleVromStart);
+			
+			if (!memcmp(data, memData->data, sz)) {
+				useSame = true;
+				
+				entry[titleID[i]].titleVromStart = entry[id].titleVromStart;
+				entry[titleID[i]].titleVromEnd = entry[id].titleVromEnd;
+			}
+		}
+		
+		if (useSame == false) {
+			entry[titleID[i]].titleVromStart = ReadBE(Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false));
+			entry[titleID[i]].titleVromEnd = ReadBE(Dma_GetVRomEnd());
+		}
+	}
+	
+	MemFile_Free(&memRoom);
+	ItemList_Free(&list);
+	ItemList_Free(&titleList);
+	Free(titleID);
+}
+
 void Rom_Build(Rom* rom) {
 	MemFile dataFile = MemFile_Initialize();
 	MemFile config = MemFile_Initialize();
@@ -817,6 +1151,12 @@ void Rom_Build(Rom* rom) {
 			Dir_Leave();
 		}
 		
+#if 1
+		Rom_Build_Actor(rom, &dataFile, &config);
+		Rom_Build_Effect(rom, &dataFile, &config);
+		Rom_Build_Object(rom, &dataFile, &config);
+		Rom_Build_Scene(rom, &dataFile, &config);
+#else
 		Dir_Enter("actor/"); {
 			ItemList actorList = ItemList_Initialize();
 			ActorEntry* entry = rom->table.actor;
@@ -870,7 +1210,7 @@ void Rom_Build(Rom* rom) {
 						Log("Filename Offset [%08X]", romAddr);
 						
 						target = SegmentedToVirtual(0, romAddr);
-						ovl = String_GetFolder(actorList.item[i], -1);
+						ovl = PathSlot(actorList.item[i], -1);
 						sscanf(ovl, "0x%04X-%s/", &id, buf);
 						strncpy(target, buf, strlen(target));
 					}
@@ -1122,6 +1462,7 @@ void Rom_Build(Rom* rom) {
 			Free(titleID);
 			Dir_Leave();
 		}
+#endif
 		
 		Dir_Enter("system/"); {
 			Dir_Enter("state/"); {

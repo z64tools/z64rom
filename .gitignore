@@ -22,5 +22,6 @@ project/tools/novl
 project/tools/elf2ld
 !tools/*.7z
 project/tools/z64compress
+!project/tools/seq64_console.exe
 *.zip
 *.o

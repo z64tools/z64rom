@@ -10,7 +10,7 @@ volatile bool sMake = false;
 u32 gThreading = true;
 
 static void Make_Info(const char* tool, const char* target) {
-	printf_lock("[M]: %s\n", String_GetFilename(target));
+	printf_lock("[M]: %s\n", Filename(target));
 	sMake = 1;
 }
 
@@ -18,16 +18,117 @@ static void Make_Run(char* cmd) {
 	strcat(cmd, " 2>&1");
 	char* msg = SysExeO(cmd);
 	
-	if (strlen(msg) > 1) {
-		char* word = String_GetWord(msg, 0);
+	if (strlen(msg) > 1 && (StrStrCase(msg, "warning") || StrStrCase(msg, "error"))) {
+		char* word = CopyWord(msg, 0);
 		
 		String_Replace(msg, "warning", PRNT_PRPL "warning" PRNT_RSET);
 		String_Replace(msg, "error", PRNT_REDD "error" PRNT_RSET);
-		String_Replace(msg, word, Tmp_Printf(PRNT_YELW "%s" PRNT_RSET, word));
+		String_Replace(msg, word, HeapPrint(PRNT_YELW "%s" PRNT_RSET, word));
 		printf_WinFix();
 		printf_lock("%s", msg);
 	}
 	Free(msg);
+}
+
+// # # # # # # # # # # # # # # # # # # # #
+// # MAKE_MIDI                           #
+// # # # # # # # # # # # # # # # # # # # #
+
+static ThreadFunc Sequence_Convert(MakeArg* targ) {
+	ItemList* list;
+	char* midi = NULL;
+	char cmd[512];
+	char* seq = NULL;
+	char* com = NULL;
+	char* cfg;
+	u32 index = Value_Hex(String_GetFolder(targ->path, -1));
+	
+	list = Calloc(list, sizeof(ItemList));
+	*list = ItemList_Initialize();
+	
+	ItemList_List(list, targ->path, 0, LIST_FILES | LIST_NO_DOT);
+	
+	for (s32 i = 0; i < list->num; i++) {
+		if (StrEndCase(list->item[i], ".mid"))
+			midi = list->item[i];
+		if (midi)
+			break;
+	}
+	
+	if (midi == NULL)
+		goto free;
+	
+	cfg = HeapPrint("%sconfig.cfg", Path(midi));
+	seq = HeapPrint("%ssequence.seq", Path(midi));
+	String_Replace(seq, ".mid", ".seq");
+	
+	if (Sys_Stat(seq) > Sys_Stat(midi) && !gMakeForce)
+		goto free;
+	
+	if (!Sys_Stat(cfg)) {
+		ItemList van = ItemList_Initialize();
+		ItemList_List(&van, "rom/sound/sequence/.vanilla/", 0, LIST_FOLDERS);
+		
+		if (Sys_Stat(van.item[index]))
+			Sys_Copy(HeapPrint("%sconfig.cfg", van.item[index]), cfg, true);
+		
+		ItemList_Free(&van);
+	}
+	
+	com = DupStr(midi);
+	String_Replace(com, ".mid", ".com");
+	
+	Tools_Command(cmd, seq64, "--in=%s --out=%s --abi=Zelda --pref=false --flstudio=true", midi, com);
+	Make_Run(cmd);
+	Make_Info("seq64", midi);
+	
+	Sys_Delete(seq);
+	Sys_Rename(com, seq);
+	
+free:
+	ItemList_Free(list);
+	Free(list);
+	Free(seq);
+}
+
+static void Make_Sequence(void) {
+	ItemList list = ItemList_Initialize();
+	MakeArg targ[THREAD_NUM];
+	Thread thread[THREAD_NUM];
+	s32 i = 0;
+	
+	ItemList_List(&list, "rom/sound/sequence/", 0, LIST_FOLDERS | LIST_NO_DOT);
+	
+	if (list.num == 0)
+		goto free;
+	
+	if (gThreading)
+		ThreadLock_Init();
+	
+	while (i < list.num) {
+		u32 target = Clamp(list.num - i, 0, THREAD_NUM);
+		
+		for (s32 j = 0; j < target; j++) {
+			targ[j].path = list.item[i + j];
+			
+			if (gThreading) {
+				ThreadLock_Create(&thread[j], Sequence_Convert, &targ[j]);
+			} else {
+				Sequence_Convert(&targ[j]);
+			}
+		}
+		
+		if (gThreading)
+			for (s32 j = 0; j < target; j++)
+				ThreadLock_Join(&thread[j]);
+		
+		i += THREAD_NUM;
+	}
+	if (gThreading)
+		ThreadLock_Free();
+	
+free:
+	ItemList_Free(&list);
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -96,7 +197,7 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 		strcat(config, "config.cfg");
 		
 		if (vadpcm == NULL)
-			vadpcm = Tmp_Printf("%ssample.bin", targ->path);
+			vadpcm = HeapPrint("%ssample.bin", targ->path);
 		else
 			String_Replace(vadpcm, ".vadpcm", "");
 		
@@ -141,7 +242,7 @@ static void Make_Sound(void) {
 	
 	ItemList_List(&list, "rom/sound/sample/", 0, LIST_FOLDERS | LIST_NO_DOT);
 	
-	if (list.num <= 1)
+	if (list.num == 0)
 		goto free;
 	
 	if (gThreading)
@@ -181,7 +282,7 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 	char* ovl = NULL;
 	
 	if (type == PRE_GCC) {
-		ovl = Tmp_Printf("%soverlay.zovl", String_GetPath(input));
+		ovl = HeapPrint("%soverlay.zovl", Path(input));
 		String_Replace(ovl, "src/", "rom/");
 		
 		if ((!Sys_Stat(ovl) && Sys_Stat(input)) || Sys_Stat(input) > Sys_Stat(ovl))
@@ -211,7 +312,7 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 		char* info;
 		char* dump;
 		
-		ovl = Tmp_Printf("%soverlay.zovl", String_GetPath(input));
+		ovl = HeapPrint("%soverlay.zovl", Path(input));
 		String_Replace(ovl, "src/", "rom/");
 		
 		info = String_GetFolder(input, -1);
@@ -224,10 +325,10 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
 		dump = SysExeO(command); {
-			char* config = Tmp_Printf("%sconfig.cfg", String_GetPath(input));
+			char* config = HeapPrint("%sconfig.cfg", Path(input));
 			MemFile mem = MemFile_Initialize();
-			char* _StateInit = String_LineHead(StrStr(dump, "_StateInit"));
-			char* _StateDestroy = String_LineHead(StrStr(dump, "_StateDestroy"));
+			char* _StateInit = LineHead(StrStr(dump, "_StateInit"));
+			char* _StateDestroy = LineHead(StrStr(dump, "_StateDestroy"));
 			
 			if (_StateInit == NULL)
 				printf_error_align("No StateInit", "%s", input);
@@ -235,7 +336,7 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 				printf_error_align("No StateDestroy", "%s", input);
 			
 			MemFile_Malloc(&mem, 0x800);
-			MemFile_Printf(&mem, "# %s\n\n", String_GetBasename(input));
+			MemFile_Printf(&mem, "# %s\n\n", Basename(input));
 			MemFile_Printf(&mem, "vram_addr = 0x80800000\n");
 			MemFile_Printf(&mem, "init_func = 0x%.8s\n", _StateInit);
 			MemFile_Printf(&mem, "dest_func = 0x%.8s\n", _StateDestroy);
@@ -255,7 +356,7 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 	char* conf;
 	
 	if (type == PRE_GCC) {
-		ovl = Tmp_Printf("%soverlay.zovl", String_GetPath(input));
+		ovl = HeapPrint("%soverlay.zovl", Path(input));
 		String_Replace(ovl, "src/", "rom/");
 		
 		if ((!Sys_Stat(ovl) && Sys_Stat(input)) || Sys_Stat(input) > Sys_Stat(ovl))
@@ -286,17 +387,17 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 		char* info;
 		char* dump;
 		
-		ovl = Tmp_Printf("%soverlay.zovl", String_GetPath(input));
+		ovl = HeapPrint("%soverlay.zovl", Path(input));
 		String_Replace(ovl, "src/", "rom/");
 		
-		conf = Tmp_Printf("%sconfig.cfg", String_GetPath(input));
+		conf = HeapPrint("%sconfig.cfg", Path(input));
 		String_Replace(conf, "src/", "rom/");
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
 		dump = SysExeO(command); {
 			MemFile srcFile = MemFile_Initialize();
 			MemFile newConf = MemFile_Initialize();
-			char* sourceFolder = String_GetPath(input);
+			char* sourceFolder = Path(input);
 			char* temp;
 			char* varName;
 			ItemList list = ItemList_Initialize();
@@ -338,16 +439,16 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 				printf_error("Could not locate [ActorInit] from files in [%s]", sourceFolder);
 			
 			varName = Malloc(varName, 64);
-			strcpy(varName, String_GetWord(temp, 0));
+			strcpy(varName, CopyWord(temp, 0));
 			String_Replace(varName, "=", "");
 			String_Replace(varName, "[", "");
 			String_Insert(varName, " ");
-			temp = String_LineHead(StrStr(dump, varName));
+			temp = LineHead(StrStr(dump, varName));
 			
-			MemFile_Printf(&newConf, "# %s\n", String_GetBasename(input));
+			MemFile_Printf(&newConf, "# %s\n", Basename(input));
 			MemFile_Printf(&newConf, "alloc_type = 0\n");
 			MemFile_Printf(&newConf, "vram_addr  = 0x80800000\n");
-			MemFile_Printf(&newConf, "# %s\n", String_GetLine(temp, 0));
+			MemFile_Printf(&newConf, "# %s\n", CopyLine(temp, 0));
 			MemFile_Printf(&newConf, "init_vars  = 0x%.8s\n", temp);
 			
 			if (MemFile_SaveFile_String(&newConf, conf)) printf_error("Could not save [%s]", conf);
@@ -382,7 +483,7 @@ static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* 
 		MemFile mem = MemFile_Initialize();
 		MemFile __config = MemFile_Initialize();
 		MemFile* config = &__config;
-		char* c = Tmp_Alloc(strlen(input) + 0x10);
+		char* c = HeapMalloc(strlen(input) + 0x10);
 		char* z64rom;
 		char* z64ram;
 		
@@ -394,8 +495,8 @@ static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* 
 		z64ram = StrStr(mem.str, "z64ram = ");
 		z64rom = StrStr(mem.str, "z64rom = ");
 		
-		if (z64ram == NULL) printf_error_align("No RAM Address:", "[%s]", String_GetFilename(c));
-		if (z64rom == NULL) printf_error_align("No ROM Address:", "[%s]", String_GetFilename(c));
+		if (z64ram == NULL) printf_error_align("No RAM Address:", "[%s]", Filename(c));
+		if (z64rom == NULL) printf_error_align("No ROM Address:", "[%s]", Filename(c));
 		
 		z64ram += strlen("z64ram = ");
 		z64rom += strlen("z64rom = ");
@@ -421,7 +522,7 @@ error:
 		char* output;
 		char* command = arg;
 		
-		output = Tmp_Alloc(strlen(input) + 8);
+		output = HeapMalloc(strlen(input) + 8);
 		strcpy(output, input);
 		String_Replace(output, ".elf", ".bin");
 		
@@ -452,7 +553,7 @@ static ThreadFunc Code_GCC(const char* source, const char* output, const char* f
 build:
 	(void)0;
 	char* newFlags = NULL;
-	char* flagFile = Tmp_Printf("%sflags.cfg", String_GetPath(source));
+	char* flagFile = HeapPrint("%sflags.cfg", Path(source));
 	
 	command = Calloc(command, 2048);
 	
@@ -471,7 +572,7 @@ build:
 			flags = newFlags;
 		}
 		
-		if ((var = Config_Variable(mem.str, String_GetBasename(source)))) {
+		if ((var = Config_Variable(mem.str, Basename(source)))) {
 			newFlags = Calloc(newFlags, 1024 * 2);
 			
 			strcpy(newFlags, flags);
@@ -519,18 +620,18 @@ static ThreadFunc Code_LD(const char* source, const char* output, const char* fl
 build:
 	command = Calloc(command, 2048);
 	
-	strcpy(entryDir, String_GetPath(output));
+	strcpy(entryDir, Path(output));
 	strcat(entryDir, ".entry/");
-	strcat(entryDir, String_GetBasename(output));
+	strcat(entryDir, Basename(output));
 	strcat(entryDir, "/entry.ld");
-	Sys_MakeDir(String_GetPath(entryDir));
+	Sys_MakeDir(Path(entryDir));
 	
 	MemFile_Malloc(&entry, 0x20);
 	MemFile_Printf(&entry, "ENTRY_POINT = 0x%08X;\n", entryPoint);
 	MemFile_SaveFile(&entry, entryDir);
 	MemFile_Free(&entry);
 	
-	Tools_Command(command, mips64_ld, "-o %s %s -L%s %s", output, source, String_GetPath(entryDir), flags);
+	Tools_Command(command, mips64_ld, "-o %s %s -L%s %s", output, source, Path(entryDir), flags);
 	Sys_MakeDir(output);
 	
 	Make_Run(command);
@@ -543,18 +644,18 @@ build:
 
 static ThreadFunc Code_ObjDump(char* cmd, const char* output) {
 	MemFile linker = MemFile_Initialize();
-	u32 lineNum = String_LineNum(cmd);
+	u32 lineNum = LineNum(cmd);
 	char* txt = cmd;
 	
 	MemFile_Malloc(&linker, MbToBin(1));
 	
 	for (s32 i = 0; i < lineNum; i++) {
-		char* line = String_GetLine(txt, 0);
+		char* line = CopyLine(txt, 0);
 		char* word;
 		
 		if (!MemMem(line, 3, "806", 3)) goto skip;
 		if (!StrStr(line, " F ") && !StrStr(line, " O ")) goto skip;
-		word = String_GetWord(line, 5);
+		word = CopyWord(line, 5);
 		
 		if (word[0] == 's' && !islower(word[1])) goto skip;
 		if (StrStr(word, "flag") && strlen(word) == 4) goto skip;
@@ -563,10 +664,10 @@ static ThreadFunc Code_ObjDump(char* cmd, const char* output) {
 			if (word[j] == '.') goto skip;
 		
 		MemFile_Printf(&linker, "%-24s = ", word);
-		word = String_GetWord(line, 0);
+		word = CopyWord(line, 0);
 		MemFile_Printf(&linker, "0x%s;\n", word);
 skip:
-		txt = String_Line(txt, 1);
+		txt = Line(txt, 1);
 	}
 	
 	MemFile_SaveFile(&linker, "include/z_lib_user.ld");
@@ -907,7 +1008,7 @@ void Make(Rom* rom, s32 message) {
 	sFlagsLink = Config_GetString(&rom->config, "mips64_ld_flags");
 	
 	if (gBuildTarget) {
-		sFlags = Tmp_Printf("%s -DDEV_BUILD", sFlags);
+		sFlags = HeapPrint("%s -DDEV_BUILD", sFlags);
 	}
 	
 	if (!sFlags || !sFlagsCode || !sFlagsLink)
@@ -917,11 +1018,14 @@ void Make(Rom* rom, s32 message) {
 	setvbuf(stderr, NULL, _IONBF, 0);
 	
 	if (gMakeTarget) {
-		if (StrStrCase(gMakeTarget, "sound"))
+		if (StrStrCase(gMakeTarget, "sound")) {
 			Make_Sound();
+			Make_Sequence();
+		}
 		if (StrStrCase(gMakeTarget, "code"))
 			Make_Code();
 	} else {
+		Make_Sequence();
 		Make_Sound();
 		Make_Code();
 	}

@@ -253,22 +253,22 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 	MemFile_Realloc(config, config->memSize * 2);
 	
 	line = config->str;
-	lineCount = String_LineNum(config->str);
+	lineCount = LineNum(config->str);
 	
-	for (s32 i = 0; i < lineCount; i++, line = String_Line(line, 1)) {
+	for (s32 i = 0; i < lineCount; i++, line = Line(line, 1)) {
 		if (line == NULL)
 			break;
 		if (line[0] != '@')
 			continue;
 		
-		char* cmd = String_GetWord(line, 0);
+		char* cmd = CopyWord(line, 0);
 		
 		String_Replace(config->str, cmd + 1, Config_GetVariable(line, cmd));
 	}
 	
 	line = config->str;
 	
-	for (s32 i = 0; i < lineCount; i++, line = String_Line(line, 1)) {
+	for (s32 i = 0; i < lineCount; i++, line = Line(line, 1)) {
 		PatchNode* node;
 		char* word;
 		if (line == NULL)
@@ -276,19 +276,19 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		if (line[0] == '@')
 			continue;
 		
-		if (Value_ValidateHex(String_GetWord(line, 0)) == false)
+		if (Value_ValidateHex(CopyWord(line, 0)) == false)
 			continue;
 		
-		word = Config_Variable(line, String_GetWord(line, 0));
-		rom->file.seekPoint = Value_Hex(String_GetWord(line, 0));
+		word = Config_Variable(line, CopyWord(line, 0));
+		rom->file.seekPoint = Value_Hex(CopyWord(line, 0));
 		
 		if (StrMtch(word, "FILE(\"")) {
-			word = Config_GetVariable(line, String_GetWord(line, 0));
+			word = Config_GetVariable(line, CopyWord(line, 0));
 			
 			// Config_GetVariable sees that this is a string and does magics
 			String_Remove(word, strlen("ILE(\""));
 			
-			Sys_SetWorkDir(String_GetPath(file));
+			Sys_SetWorkDir(Path(file));
 			if (Sys_Stat(word)) {
 				MemFile ptch = MemFile_Initialize();
 				
@@ -311,7 +311,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		}
 		
 		if (word[0] == '"') {
-			word = Config_GetVariable(line, String_GetWord(line, 0));
+			word = Config_GetVariable(line, CopyWord(line, 0));
 			
 			node = Calloc(node, sizeof(struct PatchNode));
 			node->start = rom->file.seekPoint;
@@ -325,7 +325,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 			continue;
 		}
 		
-		word = Config_GetVariable(line, String_GetWord(line, 0));
+		word = Config_GetVariable(line, CopyWord(line, 0));
 		
 		if (Value_ValidateHex(word)) {
 			u8* data = &rom->file.cast.u8[rom->file.seekPoint];
@@ -396,7 +396,7 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 	for (s32 i = 0; i < list.num; i++) {
 		PatchNode* node = sPatchHead;
 		u32 nodeID = 0;
-		char* fileCfg = Dir_File("%s%s.cfg", String_GetPath(list.item[i]), String_GetBasename(list.item[i]));
+		char* fileCfg = Dir_File("%s%s.cfg", Path(list.item[i]), Basename(list.item[i]));
 		
 		MemFile_Reset(dataFile);
 		MemFile_Reset(config);
@@ -450,7 +450,7 @@ void Rom_Dump(Rom* rom) {
 	MemFile_Malloc(&dataFile, 0x460000); // Slightly larger than audiotable
 	MemFile_Malloc(&config, 0x25000);
 	
-	printf_info_align("Dumping Rom", PRNT_REDD "%s", String_GetFilename(rom->file.info.name));
+	printf_info_align("Dumping Rom", PRNT_REDD "%s", Filename(rom->file.info.name));
 	
 	Dir_Enter("rom/"); {
 		Dir_Enter("actor/.vanilla/"); {
@@ -690,23 +690,23 @@ static void Rom_ExtTableNum(Rom* rom) {
 	
 	word = StrStr(ulib.str, "EXT_DMA_MAX");
 	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_DMA_MAX", fname);
-	rom->ext.dmaNum = Value_Int(String_Word(word, 1));
+	rom->ext.dmaNum = Value_Int(Word(word, 1));
 	
 	word = StrStr(ulib.str, "EXT_ACTOR_MAX");
 	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_ACTOR_MAX", fname);
-	rom->ext.actorNum = Value_Int(String_Word(word, 1));
+	rom->ext.actorNum = Value_Int(Word(word, 1));
 	
 	word = StrStr(ulib.str, "EXT_OBJECT_MAX");
 	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_OBJECT_MAX", fname);
-	rom->ext.objectNum = Value_Int(String_Word(word, 1));
+	rom->ext.objectNum = Value_Int(Word(word, 1));
 	
 	word = StrStr(ulib.str, "EXT_SCENE_MAX");
 	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_SCENE_MAX", fname);
-	rom->ext.sceneNum = Value_Int(String_Word(word, 1));
+	rom->ext.sceneNum = Value_Int(Word(word, 1));
 	
 	word = StrStr(ulib.str, "EXT_EFFECT_MAX");
 	if (word == NULL) printf_error("Could not find [%s] in [%s]", "EXT_EFFECT_MAX", fname);
-	rom->ext.effectNum = Value_Int(String_Word(word, 1));
+	rom->ext.effectNum = Value_Int(Word(word, 1));
 	
 	Log("DmaNum: %d", rom->ext.dmaNum);
 	Log("ActorNum: %d", rom->ext.actorNum);
@@ -765,7 +765,7 @@ void Rom_Build(Rom* rom) {
 	MemFile_Params(&dataFile, MEM_REALLOC, true, MEM_END);
 	MemFile_Params(&config, MEM_REALLOC, true, MEM_END);
 	
-	printf_info_align("Load Baserom", PRNT_REDD "%s", String_GetFilename(rom->file.info.name));
+	printf_info_align("Load Baserom", PRNT_REDD "%s", Filename(rom->file.info.name));
 	printf_info_align("Build Rom", PRNT_BLUE "%s",  gRomName_Output[gBuildTarget]);
 	
 	Rom_ExtTableNum(rom);
@@ -1573,7 +1573,7 @@ void Rom_DeleteUnusedContent(s32 romType) {
 			if (list.item[id] == NULL || id >= list.num)
 				continue;
 			
-			item = Tmp_Printf("rom/actor/.vanilla/%s", list.item[id]);
+			item = HeapPrint("rom/actor/.vanilla/%s", list.item[id]);
 			
 			printf_info("Delete [%s]", item);
 			Sys_Delete_Recursive(item);
@@ -1588,7 +1588,7 @@ void Rom_DeleteUnusedContent(s32 romType) {
 			if (list.item[id] == NULL || id >= list.num)
 				continue;
 			
-			item = Tmp_Printf("rom/object/.vanilla/%s", list.item[id]);
+			item = HeapPrint("rom/object/.vanilla/%s", list.item[id]);
 			
 			printf_info("Delete [%s]", item);
 			Sys_Delete_Recursive(item);
@@ -1603,7 +1603,7 @@ void Rom_DeleteUnusedContent(s32 romType) {
 			if (list.item[id] == NULL || id >= list.num)
 				continue;
 			
-			item = Tmp_Printf("rom/scene/.vanilla/%s", list.item[id]);
+			item = HeapPrint("rom/scene/.vanilla/%s", list.item[id]);
 			
 			printf_info("Delete [%s]", item);
 			Sys_Delete_Recursive(item);
@@ -1671,7 +1671,7 @@ void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 	}
 	
 	*list = (ItemList) { 0 };
-	list->item = Tmp_Alloc(sizeof(u8*) * (modified.num + vanilla.num));
+	list->item = HeapMalloc(sizeof(u8*) * (modified.num + vanilla.num));
 	
 	if (isNum) {
 		u32 maxNum = 0;
@@ -1693,9 +1693,9 @@ void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 		
 		for (s32 i = 0; i < maxNum + 1; i++) {
 			if (i < modified.num && modified.item[i] && Value_Int(modified.item[i]) == i) {
-				list->item[list->num] = Tmp_String(modified.item[i]);
+				list->item[list->num] = HeapDupStr(modified.item[i]);
 			} else if (i < vanilla.num && vanilla.item[i] && Value_Int(vanilla.item[i]) == i) {
-				list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
+				list->item[list->num] = HeapPrint(".vanilla/%s", vanilla.item[i]);
 			} else {
 				list->item[list->num] = NULL;
 			}
@@ -1705,7 +1705,7 @@ void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 		u32 i = 0;
 		
 		while (i < modified.num) {
-			list->item[list->num] = Tmp_String(modified.item[i]);
+			list->item[list->num] = HeapDupStr(modified.item[i]);
 			list->num++;
 			i++;
 		}
@@ -1723,7 +1723,7 @@ void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 			
 			if (cont) continue;
 			
-			list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
+			list->item[list->num] = HeapPrint(".vanilla/%s", vanilla.item[i]);
 			list->num++;
 			i++;
 		}
@@ -1756,12 +1756,12 @@ void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 	ItemList_Free(&modified);
 }
 
-void Rom_ItemList_NDIR(ItemList* list, const char* path, bool isNum, ListFlags flags) {
+void Rom_ItemListEx(ItemList* list, const char* path, bool isNum, ListFlags flags) {
 	ItemList vanilla = ItemList_Initialize();
 	ItemList modified = ItemList_Initialize();
 	ItemList result = ItemList_Initialize();
 	
-	ItemList_List(&vanilla, Tmp_Printf("%s.vanilla/", path), 0, flags | LIST_RELATIVE);
+	ItemList_List(&vanilla, HeapPrint("%s.vanilla/", path), 0, flags | LIST_RELATIVE);
 	ItemList_List(&modified, path, 0, flags | LIST_NO_DOT | LIST_RELATIVE);
 	
 	if (isNum) {
@@ -1770,7 +1770,7 @@ void Rom_ItemList_NDIR(ItemList* list, const char* path, bool isNum, ListFlags f
 	}
 	
 	*list = (ItemList) { 0 };
-	list->item = Tmp_Alloc(sizeof(u8*) * (modified.num + vanilla.num));
+	list->item = HeapMalloc(sizeof(u8*) * (modified.num + vanilla.num));
 	
 	if (isNum) {
 		u32 maxNum = 0;
@@ -1792,9 +1792,9 @@ void Rom_ItemList_NDIR(ItemList* list, const char* path, bool isNum, ListFlags f
 		
 		for (s32 i = 0; i < maxNum + 1; i++) {
 			if (i < modified.num && modified.item[i] && Value_Int(modified.item[i]) == i) {
-				list->item[list->num] = Tmp_String(modified.item[i]);
+				list->item[list->num] = HeapPrint("%s%s", path, modified.item[i]);
 			} else if (i < vanilla.num && vanilla.item[i] && Value_Int(vanilla.item[i]) == i) {
-				list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
+				list->item[list->num] = HeapPrint("%s.vanilla/%s", path, vanilla.item[i]);
 			} else {
 				list->item[list->num] = NULL;
 			}
@@ -1804,7 +1804,7 @@ void Rom_ItemList_NDIR(ItemList* list, const char* path, bool isNum, ListFlags f
 		u32 i = 0;
 		
 		while (i < modified.num) {
-			list->item[list->num] = Tmp_String(modified.item[i]);
+			list->item[list->num] = HeapPrint("%s%s", path, modified.item[i]);
 			list->num++;
 			i++;
 		}
@@ -1822,7 +1822,7 @@ void Rom_ItemList_NDIR(ItemList* list, const char* path, bool isNum, ListFlags f
 			
 			if (cont) continue;
 			
-			list->item[list->num] = Tmp_Printf(".vanilla/%s", vanilla.item[i]);
+			list->item[list->num] = HeapPrint("%s.vanilla/%s", path, vanilla.item[i]);
 			list->num++;
 			i++;
 		}

@@ -5,11 +5,11 @@ MemFile __actor_object_list;
 MemFile* sDepList = &__actor_object_list;
 
 static inline char* __ForSection(char* cfg) {
-	u32 lineCount = String_LineNum(cfg);
+	u32 lineCount = LineNum(cfg);
 	char* scfg = cfg;
 	
 	for (s32 k = 0; k < lineCount; k++) {
-		scfg = String_Line(cfg, k);
+		scfg = Line(cfg, k);
 		
 		while (scfg[0] == ' ' || scfg[0] == '\t')
 			scfg++;
@@ -41,7 +41,7 @@ static char* Package_GetSection(char* cfg, s32 i) {
 		
 		// Readvance
 		if (j < i)
-			cfg = String_Line(cfg, 1);
+			cfg = Line(cfg, 1);
 	}
 	
 	scfg = cfg + 1;
@@ -74,8 +74,8 @@ void Package_Sound(struct zip_t* pkg, char* cfg) {
 		printf_error("Package Error!");
 	}
 	
-	char* fldr = Tmp_Printf("rom/sound/sample/.vanilla/%s/", name);
-	char* mkfldr = Tmp_Printf("rom/sound/sample/%s/", name);
+	char* fldr = HeapPrint("rom/sound/sample/.vanilla/%s/", name);
+	char* mkfldr = HeapPrint("rom/sound/sample/%s/", name);
 	
 	Sys_MakeDir(mkfldr);
 	
@@ -86,7 +86,7 @@ void Package_Sound(struct zip_t* pkg, char* cfg) {
 			if (!StrEndCase(list.item[i], ".cfg") && !StrEndCase(list.item[i], ".book.bin"))
 				break;
 			
-			char* target = Tmp_String(list.item[i]);
+			char* target = HeapDupStr(list.item[i]);
 			String_Replace(target, ".vanilla/", "");
 			
 			Sys_Copy(list.item[i], target, StrEndCase(list.item[i], ".cfg") ? true : false);
@@ -102,7 +102,7 @@ void Package_Sound(struct zip_t* pkg, char* cfg) {
 	
 	MemFile_Malloc(&mem, size);
 	MemFile_Write(&mem, f, size);
-	MemFile_SaveFile(&mem, Tmp_Printf("rom/sound/sample/%s/%s", name, String_GetFilename(file)));
+	MemFile_SaveFile(&mem, HeapPrint("rom/sound/sample/%s/%s", name, Filename(file)));
 	
 	MemFile_Free(&mem);
 	Free(f);
@@ -142,8 +142,8 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 	SleepF(0.1);
 	
 	if (getFree) {
-		Rom_ItemList_NDIR(&actorList, "rom/actor/", SORT_NUMERICAL, LIST_FOLDERS);
-		Rom_ItemList_NDIR(&objectList, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
+		Rom_ItemListEx(&actorList, "rom/actor/", SORT_NUMERICAL, LIST_FOLDERS);
+		Rom_ItemListEx(&objectList, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
 		
 		for (s32 i = 1; i < actorList.num; i++) {
 			if (actorList.item[i] == NULL) {
@@ -205,7 +205,7 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 		s32 string = false;
 		
 		if (StrEndCase(list.item[i], ".c") || StrEndCase(list.item[i], ".h")) {
-			file = Tmp_Printf("src/actor/0x%04X-%s/%s", actorID, name, list.item[i]);
+			file = HeapPrint("src/actor/0x%04X-%s/%s", actorID, name, list.item[i]);
 			Sys_MakeDir("src/actor/0x%04X-%s/", actorID, name);
 			Sys_MakeDir("rom/actor/0x%04X-%s/", actorID, name);
 			string = true;
@@ -213,7 +213,7 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 		}
 		
 		if (StrEndCase(list.item[i], ".zovl") || StrEndCase(list.item[i], ".cfg")) {
-			file = Tmp_Printf("rom/actor/0x%04X-%s/%s", actorID, name, list.item[i]);
+			file = HeapPrint("rom/actor/0x%04X-%s/%s", actorID, name, list.item[i]);
 			Sys_MakeDir("rom/actor/0x%04X-%s/", actorID, name);
 			write = true;
 			if (StrEndCase(list.item[i], ".cfg"))
@@ -221,7 +221,7 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 		}
 		
 		if (objectID > 0 && StrEndCase(list.item[i], ".zobj")) {
-			file = Tmp_Printf("rom/object/0x%04X-%s/%s", objectID, name, list.item[i]);
+			file = HeapPrint("rom/object/0x%04X-%s/%s", objectID, name, list.item[i]);
 			Sys_MakeDir("rom/object/0x%04X-%s/", objectID, name);
 			write = true;
 		}

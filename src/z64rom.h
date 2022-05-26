@@ -127,7 +127,7 @@ typedef struct N64AudioInfo {
 	char* name;
 } N64AudioInfo;
 
-typedef struct  {
+typedef struct SampleInfo {
 	union {
 		struct {
 			u32 codec     : 4;
@@ -168,6 +168,7 @@ typedef struct {
 	const char*   skybox;
 } RomNameTable;
 
+extern char* gWaveSample[8];
 extern const N64AudioInfo gSampleInfo[];
 extern const char* gObjectName_OoT[402];
 extern const char* gActorName_OoT[471];
@@ -191,6 +192,7 @@ extern s32 gMakeForce;
 extern const char* gMakeTarget;
 extern u32 gCompressFlag;
 extern u32 gThreading;
+extern const char* gToolName;
 
 extern s32 gBuildTarget;
 extern char gRomName_Output[2][128];

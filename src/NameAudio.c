@@ -1,5 +1,16 @@
 #include "z64rom.h"
 
+char* gWaveSample[] = {
+	"Saw",
+	"Triangle",
+	"Sine",
+	"Square",
+	"Noise1",
+	"Noise2",
+	"Pulse12",
+	"Pulse25",
+};
+
 const N64AudioInfo gSampleInfo[] = {
 	/* 000 */ { 16000, 0, NULL, "Anim_Bird_Nightingale1" },
 	/* 001 */ { 22050, 0, NULL, "Anim_Bird_Nightingale2" },

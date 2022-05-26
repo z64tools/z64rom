@@ -86,7 +86,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 	u32 start;
 	
 	if (compress && gCompressFlag) {
-		char* yazFile = Tmp_Alloc(strlen(memFile->info.name) + 0x80);
+		char* yazFile = HeapMalloc(strlen(memFile->info.name) + 0x80);
 		
 		if (gYazBuf == NULL) {
 			gYazBuf = Calloc(0, MbToBin(32));
@@ -270,7 +270,7 @@ void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 		
 		return;
 	}
-	slot = Tmp_Alloc(sizeof(struct Slot));
+	slot = HeapMalloc(sizeof(struct Slot));
 	slot->romStart = ReadBE(dma->vromStart);
 	slot->romEnd = ReadBE(dma->vromEnd);
 	
@@ -285,7 +285,7 @@ void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 }
 
 void Dma_FreeSegment(Rom* rom, u32 romStart, u32 romEnd) {
-	Slot* slot = Tmp_Alloc(sizeof(struct Slot));
+	Slot* slot = HeapMalloc(sizeof(struct Slot));
 	
 	slot->romStart = romStart;
 	slot->romEnd = romEnd;

@@ -1,4 +1,4 @@
-CFLAGS         := -Wall -DEXTLIB=136 -DNDEBUG
+CFLAGS         := -Wall -DEXTLIB=137 -DNDEBUG
 CFLAGS_MAIN    := -Wall -DNDEBUG
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
@@ -80,6 +80,7 @@ project-files-linux: project/tools/novl project/tools/z64audio project/tools/z64
 	@rm -f                app_linux/tools/z64audio.exe
 	@rm -f                app_linux/tools/novl.exe
 	@rm -f                app_linux/tools/z64compress.exe
+	@rm -f                app_linux/tools/seq64_console.exe
 
 project-files-win32: project/tools/novl.exe project/tools/z64audio.exe project/tools/z64convert.exe project/tools/z64compress.exe
 	@mkdir -p             app_win32/src/actor
@@ -93,7 +94,8 @@ project-files-win32: project/tools/novl.exe project/tools/z64audio.exe project/t
 	@rm -f                app_win32/*/*.txt
 	@rm -f                app_win32/tools/z64audio
 	@rm -f                app_win32/tools/novl
-	@rm -f                app_linux/tools/z64compress
+	@rm -f                app_win32/tools/z64compress
+	@rm -f                app_win32/tools/seq64_console
 
 # # # # # # # # # # # # # # # # # # # #
 # CLEAN                               #
@@ -201,4 +203,3 @@ bin/win32/icon.o: src/icon.rc src/icon.ico
 $(RELEASE_EXECUTABLE_WIN32): bin/win32/icon.o $(SOURCE_O_WIN32) $(ExtLib_Win32_O) $(Zip_Win32_O) $(Xm_Win32_O) $(Audio_Win32_O)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)] [$(PRNT_PRPL)$(notdir $^)$(PRNT_RSET)]"
 	@i686-w64-mingw32.static-gcc -o $@ $^ -lm -pthread $(OPT_WIN32) $(CFLAGS_MAIN) -D_WIN32
-	

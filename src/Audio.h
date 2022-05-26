@@ -109,6 +109,17 @@ typedef struct AudioEntryHead {
 	AudioEntry entries[];
 } AudioEntryHead;
 
+struct N64AudioInfo;
+struct SampleInfo;
+
+typedef struct {
+	const struct N64AudioInfo* sample;
+	struct Rom* rom;
+	struct SampleInfo* tbl;
+	char* path;
+	u32   i;
+} SampleDumpArg;
+
 void Rom_Dump_SoundFont(struct Rom* rom, MemFile* dataFile, MemFile* config);
 void Rom_Dump_Sequences(struct Rom* rom, MemFile* dataFile, MemFile* config);
 void Rom_Dump_Samples(struct Rom* rom, MemFile* dataFile, MemFile* config);

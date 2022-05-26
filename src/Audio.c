@@ -7,29 +7,36 @@ SampleInfo sUnsortedSampleTbl[1024 * 5];
 SampleInfo* sSortedSampleTbl[1024 * 5];
 s32 sDumpID;
 s32 sSortID;
-
 char* sMediumType[] = {
 	"ram",
 	"unk",
 	"cart",
 	"ddrive"
 };
-
 char* sSeqPlayerType[] = {
 	"sfx",
 	"fanfare",
 	"bgm",
 	"demo"
 };
-
-#if 0
-char* sSeqModeType[] = {
-	"default",
-	"enemy",
-	"still",
-	"ignore"
+struct {
+	char name[128];
+	u32  segment;
+	u32  size;
+	f32  tuninOverride;
+	char dir[512];
+} sSampleTbl[1024 * 2];
+s32 sSampleTblNum;
+const char* sSFSampleName[3] = {
+	"low_sample",
+	"prim_sample",
+	"hi_sample",
 };
-#endif
+const char* sSFSampleTuning[3] = {
+	"low_tuning",
+	"prim_tuning",
+	"hi_tuning",
+};
 
 #define __Config_Sample(wow, sampletype) \
 	Config_WriteVar_Hex(# wow "_sample", ReadBE(sample->sampleAddr) + rom->offset.segment.smplRom + off); \
@@ -45,6 +52,10 @@ char* sSeqModeType[] = {
 #define __Config_Sample_NULL(wow) \
 	Config_WriteVar_Str(# wow "_sample", "NULL"); \
 	Config_WriteVar_Str(# wow "_tuning", "NULL");
+
+// # # # # # # # # # # # # # # # # # # # #
+// # CONFIG                              #
+// # # # # # # # # # # # # # # # # # # # #
 
 static s32 Rom_Config_Instrument(Rom* rom, MemFile* config, Instrument* instrument, char* name, char* out, u32 off) {
 	Adsr* env;
@@ -214,7 +225,9 @@ static void Rom_Config_Sample(Rom* rom, MemFile* config, Sample* sample, char* n
 	MemFile_SaveFile_String(config, out);
 }
 
-/* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
+// # # # # # # # # # # # # # # # # # # # #
+// # DUMP                                #
+// # # # # # # # # # # # # # # # # # # # #
 
 static void Rom_Dump_Samples_PatchWavFiles(MemFile* dataFile, MemFile* config) {
 	#define NOTE(note, octave) (note + (12 * (octave)))
@@ -399,7 +412,7 @@ void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 				
 				Config_WriteVar_Int("bank_num", ReadBE(seqFontTable[0]));
 				for (s32 i = 0; i < ReadBE(seqFontTable[0]); i++) {
-					char* title = Tmp_Printf("bank_id_%d", i);
+					char* title = HeapPrint("bank_id_%d", i);
 					Config_WriteVar_Hex(title, ReadBE(seqFontTable[i + 1]) & 0xFF);
 				}
 				
@@ -440,14 +453,6 @@ void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 		Dir_Leave();
 	}
 }
-
-typedef struct {
-	const N64AudioInfo* sample;
-	Rom*  rom;
-	SampleInfo* tbl;
-	char* path;
-	u32   i;
-} SampleDumpArg;
 
 static void SampleDump_Thread(SampleDumpArg* arg) {
 	const N64AudioInfo* sample = arg->sample;
@@ -638,7 +643,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 			
 			// Rename SFX To their samples
 			if (StrStr(sBankFiles[j], "-Sfx")) {
-				char* tempName = Tmp_Printf("%s%d-%s.cfg", String_GetPath(sBankFiles[j]), Value_Int(String_GetBasename(sBankFiles[j])), replacedName);
+				char* tempName = HeapPrint("%s%d-%s.cfg", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), replacedName);
 				
 				renamer_remove(sBankFiles[j], tempName);
 			}
@@ -660,7 +665,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 				if (instName[0] == 0)
 					printf_error("String maniplation failed for instrument");
 				
-				tempName = Tmp_Printf("%s%d-%s.cfg", String_GetPath(sBankFiles[j]), Value_Int(String_GetBasename(sBankFiles[j])), instName);
+				tempName = HeapPrint("%s%d-%s.cfg", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), instName);
 				
 				renamer_remove(sBankFiles[j], tempName);
 			}
@@ -671,18 +676,42 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		Dir_Leave();
 	}
+#if 0
+	Dir_Enter("wave/.vanilla/"); {
+		for (s32 i = 0; i < 8; i++) {
+			printf_progress("Wave Sample", i + 1, 8);
+			char cmd[512];
+			s16* data = SegmentedToVirtual(0, 0xBA5230 + sizeof(s16) * 256 * i);
+			
+			MemFile_Reset(dataFile);
+			
+			for (s32 j = 0; j < 64; j++) {
+				s16 val = ReadBE(data[j]);
+				
+				MemFile_Write(dataFile, &val, sizeof(s16));
+			}
+			
+			MemFile_SaveFile(dataFile, Dir_File("%s.raw", gWaveSample[i]));
+			
+			Tools_Command(
+				cmd,
+				z64audio,
+				"-S --i %s --o %s --raw-bit 16 --raw-channel 1 --raw-samplerate 33485",
+				Dir_File("%s.raw", gWaveSample[i]),
+				Dir_File("%s_C5.wav", gWaveSample[i])
+			);
+			if (SysExe(cmd)) printf_error("z64audio Failed...");
+			Sys_Delete(Dir_File("%s.raw", gWaveSample[i]));
+		}
+		
+		Dir_Leave();
+	}
+#endif
 }
 
-/* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
-
-struct {
-	char name[128];
-	u32  segment;
-	u32  size;
-	f32  tuninOverride;
-	char dir[512];
-} sSampleTbl[1024 * 2];
-s32 sSampleTblNum;
+// # # # # # # # # # # # # # # # # # # # #
+// # BUILD                               #
+// # # # # # # # # # # # # # # # # # # # #
 
 static s32 Audio_LoadFile(MemFile* dataFile, char* file) {
 	char buf[512];
@@ -814,17 +843,6 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Free(&sample);
 	ItemList_Free(&itemList);
 }
-
-const char* sSFSampleName[3] = {
-	"low_sample",
-	"prim_sample",
-	"hi_sample",
-};
-const char* sSFSampleTuning[3] = {
-	"low_tuning",
-	"prim_tuning",
-	"hi_tuning",
-};
 
 static void SoundFont_Error_NotFound(const char* sampleName) {
 	MemFile mem = MemFile_Initialize();
@@ -964,7 +982,7 @@ static void SoundFont_Write_Adsr(MemFile* mem, Adsr* adsr, void32* setPtr) {
 }
 
 static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setPtr, MemFile* memSample, MemFile* memBook, MemFile* memLoopBook, u32* sampleNum) {
-	char* restoreDir = Tmp_String(Dir_Current());
+	char* restoreDir = HeapDupStr(Dir_Current());
 	Sample smpl = { 0 };
 	u32 loop[4 + 8];
 	u32 loopSize = 4 * 4;
@@ -1180,7 +1198,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			for (s32 j = 0; j < listDrum.num; j++) {
 				Drum drum = { 0 };
 				Adsr adsr[4] = { 0 };
-				char* currentConf = Tmp_String(Dir_File("drum/%s", listDrum.item[j]));
+				char* currentConf = HeapDupStr(Dir_File("drum/%s", listDrum.item[j]));
 				char* prim;
 				
 				if (j == 0) {
@@ -1199,7 +1217,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				
 				MemFile_Reset(config);
 				MemFile_LoadFile_String(config, currentConf);
-				prim = Tmp_String(Config_GetString(config, "prim_sample"));
+				prim = HeapDupStr(Config_GetString(config, "prim_sample"));
 				
 				if (!memcmp(prim, "NULL", 4)) {
 					memDrum.cast.u32[j] = 0;
@@ -1488,7 +1506,7 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			fontNum = Config_GetInt(config, "bank_num");
 			MemFile_Write(&memIndexTable, &fontNum, 1);
 			for (s32 j = 0; j < fontNum; j++) {
-				char* title = Tmp_Printf("bank_id_%d", j);
+				char* title = HeapPrint("bank_id_%d", j);
 				u8 bankId = Config_GetInt(config, title);
 				MemFile_Write(&memIndexTable, &bankId, 1);
 			}

@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.6.8";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.6.9";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gInfoFlag;
@@ -26,7 +26,7 @@ s32 Main_IsSameFile(char* new, char* cur) {
 	if (Sys_StatF(new, STAT_CREA) != Sys_StatF(cur, STAT_CREA))
 		return false;
 	
-	const char* pathA = String_GetPath(String_Unquote(new));
+	const char* pathA = Path(String_Unquote(new));
 	const char* pathB = Sys_AppDir();
 	
 	if (strlen(pathB) != strlen(pathA))
@@ -122,7 +122,7 @@ void Main_RenameRooms(const char* from, const char* to) {
 		if (!StrEndCase(list.item[i], from))
 			continue;
 		
-		tmp = Tmp_String(list.item[i]);
+		tmp = HeapDupStr(list.item[i]);
 		String_Replace(tmp, from, to);
 		
 		if (Sys_Rename(list.item[i], tmp)) {
@@ -246,11 +246,11 @@ void Main_Config(char** input, Rom* rom) {
 		}
 	}
 	
-	if (*input && !Sys_Stat(String_GetFilename(*input))) {
+	if (*input && !Sys_Stat(Filename(*input))) {
 		printf_info("Copying provided rom to z64rom directory.");
-		Sys_Copy(*input, String_GetFilename(*input), false);
+		Sys_Copy(*input, Filename(*input), false);
 		
-		*input = strdup(String_GetFilename(*input));
+		*input = strdup(Filename(*input));
 	}
 	
 	sDumpFlag = true;
@@ -261,7 +261,7 @@ void Main_Config(char** input, Rom* rom) {
 	
 	MemFile_Printf(config, "# Project Settings\n");
 	if (*input)
-		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", String_GetFilename(*input));
+		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", Filename(*input));
 	else
 		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", "__ROM_NAME__");
 	
@@ -367,7 +367,7 @@ s32 Main(s32 argc, char* argv[]) {
 			Log("Tools init [1]");
 			for (s32 i = 0; i < argc; i++) {
 				if (StrEnd(argv[i], ".z64") || StrEnd(argv[i], ".Z64")) {
-					char* filename = String_GetFilename(argv[i]);
+					char* filename = Filename(argv[i]);
 					
 					if (!Sys_Stat(filename))
 						Sys_Copy(argv[i], filename, false);

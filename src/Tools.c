@@ -22,6 +22,7 @@ const char* sTools[] = {
 	"tools\\z64audio.exe",
 	"tools\\z64convert.exe",
 	"tools\\z64compress.exe",
+	"tools\\seq64_console.exe",
 	"tools\\novl.exe",
 	"tools\\wget.exe",
 #else
@@ -32,14 +33,13 @@ const char* sTools[] = {
 	"tools/z64audio",
 	"tools/z64convert",
 	"tools/z64compress",
+	"tools/seq64_console",
 	"tools/novl",
 	"wget",
 #endif
 };
 
 bool gAutoDownload = true;
-
-extern const char* gToolName;
 
 static void Tools__CloseDialog(const char* toolName, bool askClose) {
 	static u32 failCount = 0;
@@ -97,7 +97,7 @@ static s32 Tools__FileDialog(const char* output) {
 	
 	Terminal_ClearLines(4);
 	
-	printf_info_align("Copying", PRNT_REDD "%s", String_GetFilename(buffer));
+	printf_info_align("Copying", PRNT_REDD "%s", Filename(buffer));
 	if (Sys_Copy(buffer, output, false)) {
 		Terminal_ClearLines(2);
 		printf_warning(
@@ -226,7 +226,7 @@ redo:
 		char* output = strdup(input);
 		
 		String_Replace(output, extract + strlen("include/"), "z64hdr/");
-		Sys_MakeDir(String_GetPath(output));
+		Sys_MakeDir(Path(output));
 		Sys_Rename(input, output);
 		
 		Free(output);
@@ -313,12 +313,16 @@ s32 Tools_Validate_ReqrTools(void) {
 		"tools/novl.exe",
 		"tools/z64audio.exe",
 		"tools/z64convert.exe",
+		"tools/z64compress.exe",
+		"tools/seq64_console.exe",
 		
 		"tools/wget.exe",
 #else
 		"tools/novl",
 		"tools/z64audio",
 		"tools/z64convert",
+		"tools/z64compress",
+		"tools/seq64_console",
 #endif
 	};
 	
@@ -432,7 +436,7 @@ void Tools_Update_Header(bool install) {
 		goto free;
 	}
 	
-	word = String_GetWord(line, 1);
+	word = CopyWord(line, 1);
 	String_Replace(word, "\"", "");
 	String_Replace(word, ",", "");
 	

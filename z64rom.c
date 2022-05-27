@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.6.12";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.7.0";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gInfoFlag;
@@ -16,7 +16,7 @@ char gRomName_Output[2][128] = {
 	/* "build-dev.z64", */
 };
 
-s32 sDumpFlag;
+s32 gDumpFlag;
 
 s32 Main_IsSameFile(char* new, char* cur) {
 	if (Sys_StatF(new, STAT_ACCS) != Sys_StatF(cur, STAT_ACCS))
@@ -25,34 +25,34 @@ s32 Main_IsSameFile(char* new, char* cur) {
 		return false;
 	if (Sys_StatF(new, STAT_CREA) != Sys_StatF(cur, STAT_CREA))
 		return false;
-
+	
 	const char* pathA = Path(String_Unquote(new));
 	const char* pathB = Sys_AppDir();
-
+	
 	if (strlen(pathB) != strlen(pathA))
 		return false;
-
+	
 	if (!StrMtch(pathA, pathB))
 		return false;
-
+	
 	return true;
 }
 
 void Main_SuperCompression(const char* input) {
 	s32 dropTo = 0;
-
+	
 	printf_toolinfo(gToolName, "The Most Overtuned Ultimate Compressor");
 	printf_info("Attempting to compress [" PRNT_REDD "%s" PRNT_RSET "] to achieve negative file size.", input);
 	printf_info("This might take a while...\n");
-
+	
 	for (s32 i = 0; i < 99; i++) {
 		f32 sec;
-
+		
 		sec = RandF() + RandF() * 1.56;
-
+		
 		printf_progressFst("" PRNT_BLUE "Compressing", i, 100);
 		sec = WrapF(sec, 0.656, 1.367);
-
+		
 		if (dropTo) {
 			Sys_Sleep(sec * 0.001);
 			i -= 2;
@@ -60,7 +60,7 @@ void Main_SuperCompression(const char* input) {
 				dropTo = 0;
 			continue;
 		}
-
+		
 		if (i % 6 == 0) {
 			if (25 + RandF() * 125 < i) {
 				dropTo = i * 0.77;
@@ -68,13 +68,13 @@ void Main_SuperCompression(const char* input) {
 				continue;
 			}
 		}
-
+		
 		Sys_Sleep(sec * 0.7);
 	}
-
+	
 	printf_warning("Something went wrong...");
 	printf_getchar("Press enter to exit.");
-
+	
 	exit(0);
 }
 
@@ -111,8 +111,8 @@ void Main_RenameRooms(const char* from, const char* to) {
 	
 	printf_toolinfo(gToolName, "Room Extension Rename");
 	
-	if (!Sys_Stat("z64project.cfg"))
-		printf_warning("No project found " PRNT_DGRY "[z64project.cfg]");
+	if (!Sys_Stat("z64project.toml"))
+		printf_warning("No project found " PRNT_DGRY "[z64project.toml]");
 	
 	ItemList_List(&list, "rom/scene/", -1, LIST_FILES);
 	
@@ -174,7 +174,7 @@ s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 }
 
 void Main_Config(char** input, Rom* rom) {
-	const char* projectConfig = "z64project.cfg";
+	const char* projectConfig = "z64project.toml";
 	MemFile* config = &rom->config;
 	
 	*config = MemFile_Initialize();
@@ -184,14 +184,14 @@ void Main_Config(char** input, Rom* rom) {
 		char* buildRom;
 		
 		MemFile_LoadFile_String(config, projectConfig);
-		projectRom = Toml_GetStr(config->str, "z_baserom");
-		buildRom = Toml_GetStr(config->str, "z_buildrom");
+		projectRom = Toml_GetStr(config, "z_baserom");
+		buildRom = Toml_GetStr(config, "z_buildrom");
 		
 		if (strlen(buildRom) > 128 - strlen("-yaz-release.z64"))
 			printf_error("z_buildrom name is too long");
 		
-		sprintf(gRomName_Output[0], "%s-release.z64", Toml_GetStr(config->str, "z_buildrom"));
-		sprintf(gRomName_Output[1], "%s-dev.z64", Toml_GetStr(config->str, "z_buildrom"));
+		sprintf(gRomName_Output[0], "%s-release.z64", Toml_GetStr(config, "z_buildrom"));
+		sprintf(gRomName_Output[1], "%s-dev.z64", Toml_GetStr(config, "z_buildrom"));
 		
 		if (gBuildTarget == ROM_RELEASE) {
 			if (Sys_Stat(gRomName_Output[ROM_DEV]) > Sys_Stat(gRomName_Output[ROM_RELEASE])) {
@@ -210,8 +210,8 @@ void Main_Config(char** input, Rom* rom) {
 				if (Main_IsSameFile(*input, gRomName_Output[i])) {
 					gCompressFlag = true;
 					
-					sprintf(gRomName_Output[0], "%s-yaz-release.z64", Toml_GetStr(config->str, "z_buildrom"));
-					sprintf(gRomName_Output[1], "%s-yaz-dev.z64", Toml_GetStr(config->str, "z_buildrom"));
+					sprintf(gRomName_Output[0], "%s-yaz-release.z64", Toml_GetStr(config, "z_buildrom"));
+					sprintf(gRomName_Output[1], "%s-yaz-dev.z64", Toml_GetStr(config, "z_buildrom"));
 					
 					return;
 				}
@@ -253,7 +253,7 @@ void Main_Config(char** input, Rom* rom) {
 		*input = strdup(Filename(*input));
 	}
 	
-	sDumpFlag = true;
+	gDumpFlag = true;
 	
 	Log("Writing [%s]", projectConfig);
 	MemFile_Reset(config);
@@ -317,7 +317,7 @@ s32 Main(s32 argc, char* argv[]) {
 			Log("Rom [%s]", input);
 		}
 		
-		if (StrStr(argv[i], "z64project.cfg")) {
+		if (StrStr(argv[i], "z64project.toml")) {
 			printf_toolinfo(gToolName, "Release Build");
 			gBuildTarget = ROM_RELEASE;
 		}
@@ -395,7 +395,7 @@ s32 Main(s32 argc, char* argv[]) {
 				
 				if (Terminal_YesOrNo()) {
 					input = DupStr(list.item[i]);
-					sDumpFlag = true;
+					gDumpFlag = true;
 					
 					String_Replace(rom->config.str, "__ROM_NAME__", input);
 				}
@@ -412,7 +412,7 @@ s32 Main(s32 argc, char* argv[]) {
 	if (input) {
 		printf_toolinfo(gToolName, "");
 		
-		if (sDumpFlag) {
+		if (gDumpFlag) {
 			s32 soundsDumped = false;
 			
 			if (Sys_Stat("rom/sound/sample/.vanilla/")) {
@@ -483,7 +483,7 @@ s32 Main(s32 argc, char* argv[]) {
 				goto free;
 			}
 			
-			if (Sys_Stat("z64project.cfg")) {
+			if (Sys_Stat("z64project.toml")) {
 				if (!Arg("no-make")) {
 					printf_toolinfo(gToolName, "");
 					Make(rom, true);
@@ -502,7 +502,7 @@ s32 Main(s32 argc, char* argv[]) {
 free:
 	
 	if (input && rom->config.dataSize)
-		MemFile_SaveFile_String(&rom->config, "z64project.cfg");
+		MemFile_SaveFile_String(&rom->config, "z64project.toml");
 	
 	if (Arg("log"))
 		Log_Print();

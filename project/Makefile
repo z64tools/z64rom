@@ -200,9 +200,9 @@ rom/actor/%.elf: rom/actor/%.o $(Linkers)
 	@echo "$(PRNT_BLUE)Actor$(PRNT_RSET):   $(notdir $@)"
 	@$(mips64_ld) -o $@ $< -L$(@D) $(LdFlags)
 	@$(mips64_objdump) -drz $@ > $(@:.elf=.s)
-	@printf "alloc_type = 0\n" > $(@D)/config.cfg
-	@printf "vram_addr  = 0x80800000\n" >> $(@D)/config.cfg
-	@printf "init_vars  = 0x%s\n" $$($(mips64_objdump) -t $@ | grep "_InitVars" | head -c 8) >> $(@D)/config.cfg
+	@printf "alloc_type = 0\n" > $(@D)/config.toml
+	@printf "vram_addr  = 0x80800000\n" >> $(@D)/config.toml
+	@printf "init_vars  = 0x%s\n" $$($(mips64_objdump) -t $@ | grep "_InitVars" | head -c 8) >> $(@D)/config.toml
 	@$(novl) $(nOvlFlags) 0x80800000 -o $(@D)/actor.zovl $@ -s
 
 # # # # # # # # # # # # # # # # # # # #
@@ -222,9 +222,9 @@ rom/system/GameState_FileChoose/state.elf: $(FileChoose_O) $(Linkers)
 	@$(mips64_objdump) -drz $@ > $(@:.elf=.s)
 	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $@ $(@:.elf=.bin)
 	
-	@printf "vram_addr  = 0x80800000\n" > $(@D)/config.cfg
-	@printf "init_func  = 0x%s\n" $$($(mips64_objdump) -t $@ | grep "_StateInit" | head -c 8) >> $(@D)/config.cfg
-	@printf "dest_func  = 0x%s\n" $$($(mips64_objdump) -t $@ | grep "_StateDestroy" | head -c 8) >> $(@D)/config.cfg
+	@printf "vram_addr  = 0x80800000\n" > $(@D)/config.toml
+	@printf "init_func  = 0x%s\n" $$($(mips64_objdump) -t $@ | grep "_StateInit" | head -c 8) >> $(@D)/config.toml
+	@printf "dest_func  = 0x%s\n" $$($(mips64_objdump) -t $@ | grep "_StateDestroy" | head -c 8) >> $(@D)/config.toml
 	@$(novl) $(nOvlFlags) 0x80800000 -o $(@D)/actor.zovl $@ -s
 	
 # # # # # # # # # # # # # # # # # # # #
@@ -261,24 +261,24 @@ include/z_lib_user.ld: $(Library_O)
 
 code: $(Code_O) $(Code_Elf) $(Code_SElf)
 
-rom/lib_code/%.o: src/lib_code/%.c src/lib_code/%.cfg
+rom/lib_code/%.o: src/lib_code/%.c src/lib_code/%.toml
 	@echo "$(PRNT_CYAN)Code$(PRNT_RSET):    $(notdir $@)"
 	@$(mips64_gcc) -c $(GccFlags_Code) $< -o $@
-	@cp $(<:.c=.cfg) $(@:.o=.cfg)
+	@cp $(<:.c=.toml) $(@:.o=.toml)
 
 rom/lib_code/%.elf: rom/lib_code/%.o $(Linkers)
 	@echo "$(PRNT_BLUE)Code$(PRNT_RSET):    $(notdir $@)"
 	@mkdir -p $(EntryDir)
-	@printf "ENTRY_POINT = %s;\n" $$(grep 'ram' $(@:.elf=.cfg) | cut -d " " -f 3) > $(EntryDir)/entry.ld
+	@printf "ENTRY_POINT = %s;\n" $$(grep 'ram' $(@:.elf=.toml) | cut -d " " -f 3) > $(EntryDir)/entry.ld
 	@$(mips64_ld) -o $@ $< -L$(EntryDir)/ $(LdFlags)
 	@$(mips64_objdump) -drz $@ > $(@:.elf=.s)
 	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $@ $(@:.elf=.bin)
 
 rom/lib_code/%.elf: src/lib_code/%.s $(Linkers)
-	@cp $(<:.s=.cfg) $(@:.elf=.cfg)
+	@cp $(<:.s=.toml) $(@:.elf=.toml)
 	@echo "$(PRNT_BLUE)Asm$(PRNT_RSET):     $(notdir $@)"
 	@mkdir -p $(EntryDir)
-	@printf "ENTRY_POINT = %s;\n" $$(grep 'ram' $(@:.elf=.cfg) | cut -d " " -f 3) > $(EntryDir)/entry.ld
+	@printf "ENTRY_POINT = %s;\n" $$(grep 'ram' $(@:.elf=.toml) | cut -d " " -f 3) > $(EntryDir)/entry.ld
 	@$(mips64_gcc) -x assembler-with-cpp -c $< -o $(@:.elf=.o) -L$(EntryDir)/ -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld -T z_lib_user.ld
 	@$(mips64_ld) -o $@ $(@:.elf=.o) -L$(EntryDir)/ $(LdFlags)
 	@$(mips64_objcopy) -R .MIPS.abiflags -O binary $@ $(@:.elf=.bin)

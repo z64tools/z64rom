@@ -1,4 +1,4 @@
-# z64rom cfg patch macros
+# z64rom toml patch macros
 @zero4                     = 00000000
 @zero8                     = zero4 zero4
 @audio_heap_size           = 0xBC1864

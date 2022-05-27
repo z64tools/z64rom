@@ -280,7 +280,7 @@ const char* Tools_Get(ToolIndex id) {
 }
 
 s32 Tools_RegisterBlender(MemFile* mem) {
-	char* blender = Toml_GetStr(mem->str, "blender_path");
+	char* blender = Toml_GetStr(mem, "blender_path");
 	
 	if (blender == NULL)
 		return 0;
@@ -307,7 +307,7 @@ s32 Tools_Validate_ReqrTools(void) {
 	const char* toolList[] = {
 		"tools/binutils-sha256",
 		"tools/z64hdr-sha256",
-		"tools/z64audio.cfg",
+		"tools/z64audio.toml",
 		"tools/important64.dll",
 #ifdef _WIN32
 		"tools/novl.exe",

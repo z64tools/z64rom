@@ -305,7 +305,7 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		if (entry->numInst) {
 			for (s32 j = 0; j < entry->numInst; j++) {
-				char* output = HeapPrint("%sinstrument/%d-Inst.cfg", path, j);
+				char* output = HeapPrint("%sinstrument/%d-Inst.toml", path, j);
 				Sys_MakeDir(Path(output));
 				
 				if (bank->instruments[j] == 0)
@@ -321,7 +321,7 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		if (entry->numSfx) {
 			for (s32 j = 0; j < ReadBE(entry->numSfx); j++) {
-				char* output = HeapPrint("%ssfx/%d-Sfx.cfg", path, j);
+				char* output = HeapPrint("%ssfx/%d-Sfx.toml", path, j);
 				Sys_MakeDir(Path(output));
 				
 				sfx = SegmentedToVirtual(0x1, ReadBE(bank->sfx));
@@ -335,7 +335,7 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		if (entry->numDrum) {
 			for (s32 j = 0; j < entry->numDrum; j++) {
-				char* output = HeapPrint("%sdrum/%d-Drum.cfg", path, j);
+				char* output = HeapPrint("%sdrum/%d-Drum.toml", path, j);
 				u32* wow = SegmentedToVirtual(0x1, ReadBE(bank->drums));
 				
 				Sys_MakeDir(Path(output));
@@ -370,7 +370,7 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		Toml_WriteStr(config, "sequence_player", sSeqPlayerType[entry->seqPlayer], true, 0);
 		
-		MemFile_SaveFile_String(config, HeapPrint("%sconfig.cfg", path));
+		MemFile_SaveFile_String(config, HeapPrint("%sconfig.toml", path));
 	}
 	
 	SetSegment(0x1, NULL);
@@ -439,7 +439,7 @@ void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
 		MemFile_Printf(config, "]\n");
 		Toml_WriteStr(config, "sequence_player", sSeqPlayerType[entry->seqPlayer], true, 0);
 		
-		MemFile_SaveFile_String(config, HeapPrint("%sconfig.cfg", path));
+		MemFile_SaveFile_String(config, HeapPrint("%sconfig.toml", path));
 		
 		ItemList_Free(&bankList);
 	}
@@ -478,7 +478,7 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 	snprintf(FILE_VAD, 512, "%s%s/sample.vadpcm.bin", arg->path, name);
 	snprintf(FILE_BOK, 512, "%s%s/sample.book.bin", arg->path, name);
 	snprintf(FILE_LBK, 512, "%s%s/sample.loopbook.bin", arg->path, name);
-	snprintf(FILE_CFG, 512, "%s%s/config.cfg", arg->path, name);
+	snprintf(FILE_CFG, 512, "%s%s/config.toml", arg->path, name);
 	
 	dataFile = Malloc(dataFile, sizeof(MemFile));
 	config = Malloc(config, sizeof(MemFile));
@@ -637,7 +637,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		// Rename SFX To their samples
 		if (StrStr(sBankFiles[j], "-Sfx")) {
-			char* tempName = HeapPrint("%s%d-%s.cfg", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), replacedName);
+			char* tempName = HeapPrint("%s%d-%s.toml", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), replacedName);
 			
 			renamer_remove(sBankFiles[j], tempName);
 		}
@@ -647,7 +647,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 			char instName[256] = { 0 };
 			char* tempName;
 			
-			strcpy(instName, Toml_GetStr(config->str, "prim_sample"));
+			strcpy(instName, Toml_GetStr(config, "prim_sample"));
 			String_Remove(instName, strlen("Inst_"));
 			String_Replace(instName, "_Prim", "");
 			String_Replace(instName, "Soft", "");
@@ -659,7 +659,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 			if (instName[0] == 0)
 				printf_error("String maniplation failed for instrument");
 			
-			tempName = HeapPrint("%s%d-%s.cfg", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), instName);
+			tempName = HeapPrint("%s%d-%s.toml", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), instName);
 			
 			renamer_remove(sBankFiles[j], tempName);
 		}
@@ -750,28 +750,24 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		Dir_Enter(itemList.item[i]); {
 			char* file = Dir_File("*.vadpcm.bin");
-			char* cfg = Dir_File("config.cfg");
-			f32 tuning;
+			char* toml = Dir_File("config.toml");
 			
-			if (cfg == NULL)
+			if (toml == NULL)
 				printf_error("Could not locate sample in [%s]", itemList.item[i]);
 			if (file == NULL)
 				printf_error("Could not locate sample in [%s]", itemList.item[i]);
 			
 			Log("smp: %s", file);
-			Log("cfg: %s", cfg);
+			Log("toml: %s", toml);
 			
 			if (MemFile_LoadFile(&sample, file))
 				printf_error_align("Failed to load file", "%s", file);
 			
-			if (MemFile_LoadFile_String(config, cfg))
-				printf_error_align("Failed to load file", "%s", cfg);
+			if (MemFile_LoadFile_String(config, toml))
+				printf_error_align("Failed to load file", "%s", toml);
 			
-			Config_SuppressNext();
-			tuning = Toml_GetFloat(config->str, "tuning");
-			
-			if (tuning > 0.0f)
-				sSampleTbl[sSampleTblNum].tuninOverride = tuning;
+			if (Toml_Variable(config->str, "tuning"))
+				sSampleTbl[sSampleTblNum].tuninOverride = Toml_GetFloat(config, "tuning");
 			
 			sSampleTbl[sSampleTblNum].segment = dataFile->seekPoint;
 			if (dataFile->seekPoint & 0xF)
@@ -869,7 +865,7 @@ static s32 SoundFont_Instrument_AssignNames(MemFile* mem, char** smplNam, MemFil
 	u32 smplNum = 0;
 	
 	for (s32 soundID = 0; soundID < 3; soundID++) {
-		smplNam[soundID] = Toml_GetStr(mem->str, sSFSampleName[soundID]);
+		smplNam[soundID] = Toml_GetStr(mem, sSFSampleName[soundID]);
 		if (smplNam[soundID] == NULL) {
 			continue;
 		} else if (StrMtch(smplNam[soundID], "NULL")) {
@@ -902,7 +898,7 @@ static void SoundFont_Instrument_AssignIndexes(MemFile* mem, char** smplNam, s32
 				inst->sound[soundID].tuning = sSampleTbl[sampleID].tuninOverride;
 				
 				if (inst->sound[soundID].tuning == 0)
-					inst->sound[soundID].tuning = Toml_GetFloat(mem->str, sSFSampleTuning[soundID]);
+					inst->sound[soundID].tuning = Toml_GetFloat(mem, sSFSampleTuning[soundID]);
 				
 				SwapBE(inst->sound[soundID].swap32);
 				smplID[soundID] = sampleID;
@@ -913,21 +909,21 @@ static void SoundFont_Instrument_AssignIndexes(MemFile* mem, char** smplNam, s32
 }
 
 static void SoundFont_Read_Instrument(MemFile* mem, Instrument* inst) {
-	inst->loaded = Toml_GetInt(mem->str, "loaded");
-	inst->splitLo = Toml_GetInt(mem->str, "split_lo");
-	inst->splitHi = Toml_GetInt(mem->str, "split_hi");
-	inst->release = Toml_GetInt(mem->str, "release");
+	inst->loaded = Toml_GetInt(mem, "loaded");
+	inst->splitLo = Toml_GetInt(mem, "split_lo");
+	inst->splitHi = Toml_GetInt(mem, "split_hi");
+	inst->release = Toml_GetInt(mem, "release");
 }
 
 static void SoundFont_Read_Adsr(MemFile* mem, Adsr* adsr) {
-	adsr[0].rate = Toml_GetInt(mem->str, "attack_rate"); SwapBE(adsr[0].rate);
-	adsr[0].level = Toml_GetInt(mem->str, "attack_level"); SwapBE(adsr[0].level);
-	adsr[1].rate = Toml_GetInt(mem->str, "hold_rate"); SwapBE(adsr[1].rate);
-	adsr[1].level = Toml_GetInt(mem->str, "hold_level"); SwapBE(adsr[1].level);
-	adsr[2].rate = Toml_GetInt(mem->str, "decay_rate"); SwapBE(adsr[2].rate);
-	adsr[2].level = Toml_GetInt(mem->str, "decay_level"); SwapBE(adsr[2].level);
-	adsr[3].rate = Toml_GetInt(mem->str, "decay2_rate"); SwapBE(adsr[3].rate);
-	adsr[3].level = Toml_GetInt(mem->str, "decay2_level"); SwapBE(adsr[3].level);
+	adsr[0].rate = Toml_GetInt(mem, "attack_rate"); SwapBE(adsr[0].rate);
+	adsr[0].level = Toml_GetInt(mem, "attack_level"); SwapBE(adsr[0].level);
+	adsr[1].rate = Toml_GetInt(mem, "hold_rate"); SwapBE(adsr[1].rate);
+	adsr[1].level = Toml_GetInt(mem, "hold_level"); SwapBE(adsr[1].level);
+	adsr[2].rate = Toml_GetInt(mem, "decay_rate"); SwapBE(adsr[2].rate);
+	adsr[2].level = Toml_GetInt(mem, "decay_level"); SwapBE(adsr[2].level);
+	adsr[3].rate = Toml_GetInt(mem, "decay2_rate"); SwapBE(adsr[3].rate);
+	adsr[3].level = Toml_GetInt(mem, "decay2_level"); SwapBE(adsr[3].level);
 }
 
 static void SoundFont_Write_Adsr(MemFile* mem, Adsr* adsr, void32* setPtr) {
@@ -952,20 +948,20 @@ static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setP
 	
 	Dir_Set(sSampleTbl[sampleID].dir);
 	MemFile_Reset(dataFile);
-	MemFile_LoadFile(dataFile, Dir_File("config.cfg"));
+	MemFile_LoadFile(dataFile, Dir_File("config.toml"));
 	
 	smpl.sampleAddr = ReadBE(sSampleTbl[sampleID].segment);
 	smpl.data = sSampleTbl[sampleID].size;
-	smpl.data |= Toml_GetInt(dataFile->str, "codec") << (32 - 4);
-	smpl.data |= Toml_GetInt(dataFile->str, "medium") << (32 - 6);
-	smpl.data |= Toml_GetInt(dataFile->str, "bitA") << (32 - 7);
-	smpl.data |= Toml_GetInt(dataFile->str, "bitB") << (32 - 8);
+	smpl.data |= Toml_GetInt(dataFile, "codec") << (32 - 4);
+	smpl.data |= Toml_GetInt(dataFile, "medium") << (32 - 6);
+	smpl.data |= Toml_GetInt(dataFile, "bitA") << (32 - 7);
+	smpl.data |= Toml_GetInt(dataFile, "bitB") << (32 - 8);
 	SwapBE(smpl.data);
 	
-	loop[0] = Toml_GetInt(dataFile->str, "loop_start");
-	loop[1] = Toml_GetInt(dataFile->str, "loop_end");
-	loop[2] = Toml_GetInt(dataFile->str, "loop_count");
-	loop[3] = Toml_GetInt(dataFile->str, "tail_end");
+	loop[0] = Toml_GetInt(dataFile, "loop_start");
+	loop[1] = Toml_GetInt(dataFile, "loop_end");
+	loop[2] = Toml_GetInt(dataFile, "loop_count");
+	loop[3] = Toml_GetInt(dataFile, "tail_end");
 	SwapBE(loop[0]);
 	SwapBE(loop[1]);
 	SwapBE(loop[2]);
@@ -1137,14 +1133,14 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				
 				MemFile_Reset(config);
 				MemFile_LoadFile_String(config, Dir_File("sfx/%s", listSfx.item[j]));
-				prim = Toml_GetStr(config->str, "prim_sample");
+				prim = Toml_GetStr(config, "prim_sample");
 				
 				if (!strcmp(prim, "NULL")) {
 					MemFile_Write(&memSfx, &sfx, sizeof(struct Sound));
 					continue;
 				}
 				
-				sfx.tuning = Toml_GetFloat(config->str, "prim_tuning");
+				sfx.tuning = Toml_GetFloat(config, "prim_tuning");
 				idx = SoundFont_SmplID(prim);
 				
 				if (sSampleTbl[idx].tuninOverride > 0)
@@ -1177,7 +1173,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				
 				MemFile_Reset(config);
 				MemFile_LoadFile_String(config, currentConf);
-				prim = HeapDupStr(Toml_GetStr(config->str, "prim_sample"));
+				prim = HeapDupStr(Toml_GetStr(config, "prim_sample"));
 				
 				if (!memcmp(prim, "NULL", 4)) {
 					memDrum.cast.u32[j] = 0;
@@ -1187,10 +1183,10 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					memDrum.cast.u32[j] = memDrum.seekPoint;
 				}
 				
-				drum.sound.tuning = Toml_GetFloat(config->str, "prim_tuning");
-				drum.loaded = Toml_GetInt(config->str, "loaded");
-				drum.pan = Toml_GetInt(config->str, "pan");
-				drum.release = Toml_GetInt(config->str, "release");
+				drum.sound.tuning = Toml_GetFloat(config, "prim_tuning");
+				drum.loaded = Toml_GetInt(config, "loaded");
+				drum.pan = Toml_GetInt(config, "pan");
+				drum.release = Toml_GetInt(config, "release");
 				SwapBE(drum.sound.swap32);
 				
 				SoundFont_Read_Adsr(config, adsr);
@@ -1319,9 +1315,9 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			MemFile_Append(&soundFontMem, &memBank); MemFile_Align(&soundFontMem, 16);
 			
 			MemFile_Reset(config);
-			MemFile_LoadFile_String(config, Dir_File("config.cfg"));
-			confMed = Toml_GetStr(config->str, "medium_type");
-			confSeq = Toml_GetStr(config->str, "sequence_player");
+			MemFile_LoadFile_String(config, Dir_File("config.toml"));
+			confMed = Toml_GetStr(config, "medium_type");
+			confSeq = Toml_GetStr(config, "sequence_player");
 			
 			for (;;) {
 				if (med >= ArrayCount(sMediumType))
@@ -1421,9 +1417,9 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			
 			MemFile_Reset(dataFile);
 			MemFile_Reset(config);
-			MemFile_LoadFile_String(config, Dir_File("config.cfg"));
-			confMed = Toml_GetStr(config->str, "medium_type");
-			confSeq = Toml_GetStr(config->str, "sequence_player");
+			MemFile_LoadFile_String(config, Dir_File("config.toml"));
+			confMed = Toml_GetStr(config, "medium_type");
+			confSeq = Toml_GetStr(config, "sequence_player");
 			
 			for (;; med++) {
 				if (med >= ArrayCount(sMediumType))
@@ -1446,15 +1442,15 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			sqEntry.numDrum = 0;
 			sqEntry.numSfx = 0;
 			
-			if (Dir_File("*.seq")) {
-				MemFile_LoadFile(dataFile, Dir_File("*.seq"));
+			if (Dir_File("*.aseq")) {
+				MemFile_LoadFile(dataFile, Dir_File("*.aseq"));
 				addr = sequenceMem.seekPoint;
 				MemFile_Append(&sequenceMem, dataFile);
 				MemFile_Align(&sequenceMem, 16);
 				sqEntry.romAddr = addr;
 				sqEntry.size = dataFile->dataSize;
 			} else {
-				sqEntry.romAddr = Toml_GetInt(config->str, "seq_pointer");
+				sqEntry.romAddr = Toml_GetInt(config, "seq_pointer");
 				sqEntry.size = 0;
 			}
 			
@@ -1465,7 +1461,7 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			u16 offset = memIndexTable.seekPoint;
 			MemFile_Write(&memLookUpTable, &offset, 2);
 			
-			Toml_GetArray(config->str, &bankList, "bank_id");
+			Toml_GetArray(config, &bankList, "bank_id");
 			fontNum = bankList.num;
 			MemFile_Write(&memIndexTable, &fontNum, 1);
 			for (s32 j = 0; j < fontNum; j++) {

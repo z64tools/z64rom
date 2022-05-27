@@ -197,6 +197,8 @@ extern const char* gToolName;
 extern s32 gBuildTarget;
 extern char gRomName_Output[2][128];
 
+extern s32 gDumpFlag;
+
 void fix_crc(unsigned char* rom);
 
 #endif

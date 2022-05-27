@@ -9,6 +9,33 @@ const char* sFlagsLink;
 volatile bool sMake = false;
 u32 gThreading = true;
 
+static char* Make_Wildcard(const char* path, const char* fmt, ...) {
+	ItemList list = ItemList_Initialize();
+	char* file = NULL;
+	Time stat = 0;
+	char buf[64];
+	va_list va;
+	
+	va_start(va, fmt);
+	vsprintf(buf, fmt, va);
+	va_end(va);
+	
+	ItemList_List(&list, path, 0, LIST_FILES | LIST_NO_DOT);
+	for (s32 i = 0; i < list.num; i++) {
+		if (StrEndCase(list.item[i], buf) && Sys_Stat(list.item[i]) > stat) {
+			file = list.item[i];
+			stat = Sys_Stat(file);
+		}
+	}
+	
+	if (file)
+		file = HeapDupStr(file);
+	
+	ItemList_Free(&list);
+	
+	return file;
+}
+
 static void Make_Info(const char* tool, const char* target) {
 	printf_lock("[M]: %s\n", Filename(target));
 	sMake = 1;
@@ -40,30 +67,30 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	char cmd[512];
 	char* seq = NULL;
 	char* com = NULL;
-	char* cfg;
+	char* toml;
 	u32 index = Value_Hex(PathSlot(targ->path, -1));
 	
 	list = Calloc(list, sizeof(ItemList));
 	*list = ItemList_Initialize();
 	
-	midi = RomList_FindFile(targ->path, ".mid");
+	midi = Make_Wildcard(targ->path, ".mid");
 	
 	if (midi == NULL)
 		goto free;
 	
-	cfg = HeapPrint("%sconfig.cfg", Path(midi));
-	seq = HeapPrint("%ssequence.seq", Path(midi));
+	toml = HeapPrint("%sconfig.toml", Path(midi));
+	seq = HeapPrint("%ssequence.aseq", Path(midi));
 	String_Replace(seq, ".mid", ".seq");
 	
 	if (Sys_Stat(seq) > Sys_Stat(midi) && !gMakeForce)
 		goto free;
 	
-	if (!Sys_Stat(cfg)) {
+	if (!Sys_Stat(toml)) {
 		ItemList van = ItemList_Initialize();
 		ItemList_List(&van, "rom/sound/sequence/.vanilla/", 0, LIST_FOLDERS);
 		
 		if (Sys_Stat(van.item[index]))
-			Sys_Copy(HeapPrint("%sconfig.cfg", van.item[index]), cfg, true);
+			Sys_Copy(HeapPrint("%sconfig.toml", van.item[index]), toml, true);
 		
 		ItemList_Free(&van);
 	}
@@ -183,7 +210,7 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 		
 		strcpy(config, targ->path);
 		String_Replace(config, "rom/sound/sample/", "rom/sound/sample/.vanilla/");
-		strcat(config, "config.cfg");
+		strcat(config, "config.toml");
 		
 		if (vadpcm == NULL)
 			vadpcm = HeapPrint("%ssample.bin", targ->path);
@@ -207,8 +234,8 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 			catprintf(
 				command,
 				" --z64rom --basenote %d --finetune %d",
-				Toml_GetInt(mem.str, "basenote"),
-				Toml_GetInt(mem.str, "finetune")
+				Toml_GetInt(&mem, "basenote"),
+				Toml_GetInt(&mem, "finetune")
 			);
 			MemFile_Free(&mem);
 		}
@@ -314,7 +341,7 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
 		dump = SysExeO(command); {
-			char* config = HeapPrint("%sconfig.cfg", Path(input));
+			char* config = HeapPrint("%sconfig.toml", Path(input));
 			MemFile mem = MemFile_Initialize();
 			char* _StateInit = LineHead(StrStr(dump, "_StateInit"));
 			char* _StateDestroy = LineHead(StrStr(dump, "_StateDestroy"));
@@ -379,7 +406,7 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 		ovl = HeapPrint("%soverlay.zovl", Path(input));
 		String_Replace(ovl, "src/", "rom/");
 		
-		conf = HeapPrint("%sconfig.cfg", Path(input));
+		conf = HeapPrint("%sconfig.toml", Path(input));
 		String_Replace(conf, "src/", "rom/");
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
@@ -496,7 +523,7 @@ static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* 
 		entryPoint[0] = Value_Hex(z64ram);
 		
 		strcpy(c, input);
-		if (!String_Replace(c, ".o", ".cfg")) goto error;
+		if (!String_Replace(c, ".o", ".toml")) goto error;
 		
 		MemFile_SaveFile_String(config, c);
 		
@@ -542,7 +569,7 @@ static ThreadFunc Code_GCC(const char* source, const char* output, const char* f
 build:
 	(void)0;
 	char* newFlags = NULL;
-	char* flagFile = HeapPrint("%sflags.cfg", Path(source));
+	char* flagFile = HeapPrint("%sflags.toml", Path(source));
 	
 	command = Calloc(command, 2048);
 	
@@ -992,16 +1019,16 @@ static void Make_Code(void) {
 
 void Make(Rom* rom, s32 message) {
 	Log("Load Flags");
-	sFlags = Toml_GetStr(rom->config.str, "mips64_gcc_flags");
-	sFlagsCode = Toml_GetStr(rom->config.str, "mips64_gcc_flags_code");
-	sFlagsLink = Toml_GetStr(rom->config.str, "mips64_ld_flags");
+	sFlags = Toml_GetStr(&rom->config, "mips64_gcc_flags");
+	sFlagsCode = Toml_GetStr(&rom->config, "mips64_gcc_flags_code");
+	sFlagsLink = Toml_GetStr(&rom->config, "mips64_ld_flags");
 	
 	if (gBuildTarget) {
 		sFlags = HeapPrint("%s -DDEV_BUILD", sFlags);
 	}
 	
 	if (!sFlags || !sFlagsCode || !sFlagsLink)
-		printf_error("[z64project.cfg] is missing mips64 flags! Please, do fresh dump!");
+		printf_error("[z64project.toml] is missing mips64 flags! Please, do fresh dump!");
 	
 	setvbuf(stdout, NULL, _IONBF, 0);
 	setvbuf(stderr, NULL, _IONBF, 0);

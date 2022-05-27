@@ -207,8 +207,8 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 			catprintf(
 				command,
 				" --z64rom --basenote %d --finetune %d",
-				Config_GetInt(&mem, "basenote"),
-				Config_GetInt(&mem, "finetune")
+				Toml_GetInt(mem.str, "basenote"),
+				Toml_GetInt(mem.str, "finetune")
 			);
 			MemFile_Free(&mem);
 		}
@@ -491,8 +491,8 @@ static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* 
 		z64rom += strlen("z64rom = ");
 		
 		MemFile_Malloc(config, 0x280);
-		Config_WriteVar_Hex("rom", Value_Hex(z64rom));
-		Config_WriteVar_Hex("ram", Value_Hex(z64ram));
+		Toml_WriteHex(config, "rom", Value_Hex(z64rom), NO_COMMENT);
+		Toml_WriteHex(config, "ram", Value_Hex(z64ram), NO_COMMENT);
 		entryPoint[0] = Value_Hex(z64ram);
 		
 		strcpy(c, input);
@@ -552,7 +552,7 @@ build:
 		
 		MemFile_LoadFile_String(&mem, flagFile);
 		
-		if ((var = Config_Variable(mem.str, "flags"))) {
+		if ((var = Toml_Variable(mem.str, "flags"))) {
 			newFlags = Calloc(newFlags, 1024 * 2);
 			
 			strcpy(newFlags, flags);
@@ -561,7 +561,7 @@ build:
 			flags = newFlags;
 		}
 		
-		if ((var = Config_Variable(mem.str, Basename(source)))) {
+		if ((var = Toml_Variable(mem.str, Basename(source)))) {
 			newFlags = Calloc(newFlags, 1024 * 2);
 			
 			strcpy(newFlags, flags);
@@ -992,9 +992,9 @@ static void Make_Code(void) {
 
 void Make(Rom* rom, s32 message) {
 	Log("Load Flags");
-	sFlags = Config_GetString(&rom->config, "mips64_gcc_flags");
-	sFlagsCode = Config_GetString(&rom->config, "mips64_gcc_flags_code");
-	sFlagsLink = Config_GetString(&rom->config, "mips64_ld_flags");
+	sFlags = Toml_GetStr(rom->config.str, "mips64_gcc_flags");
+	sFlagsCode = Toml_GetStr(rom->config.str, "mips64_gcc_flags_code");
+	sFlagsLink = Toml_GetStr(rom->config.str, "mips64_ld_flags");
 	
 	if (gBuildTarget) {
 		sFlags = HeapPrint("%s -DDEV_BUILD", sFlags);

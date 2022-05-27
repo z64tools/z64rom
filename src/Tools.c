@@ -280,7 +280,7 @@ const char* Tools_Get(ToolIndex id) {
 }
 
 s32 Tools_RegisterBlender(MemFile* mem) {
-	char* blender = Config_GetString(mem, "blender_path");
+	char* blender = Toml_GetStr(mem->str, "blender_path");
 	
 	if (blender == NULL)
 		return 0;

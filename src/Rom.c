@@ -24,7 +24,7 @@ static RestrictionFlag* Rom_GetRestrictionFlags(Rom* rom, u32 sceneIndex) {
 }
 
 static void Rom_WriteRestrictionFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
-	char* flags = Config_GetVariable(config->str, "restriction_flags");
+	char* flags = Toml_GetVariable(config->str, "restriction_flags");
 	RestrictionFlag* rf = Rom_GetRestrictionFlags(rom, sceneIndex);
 	
 	if (flags == NULL || rf == NULL)
@@ -79,27 +79,27 @@ static void Rom_WriteRestrictionFlags(Rom* rom, MemFile* config, u32 sceneIndex)
 
 static void Rom_Config_Actor(MemFile* config, ActorEntry* actorOvl, const char* name, char* out) {
 	MemFile_Reset(config);
-	Config_WriteTitle_Str(name);
-	Config_WriteVar_Hex("vram_addr", ReadBE(actorOvl->vramStart));
-	Config_WriteVar_Hex("init_vars", ReadBE(actorOvl->initInfo));
-	Config_WriteVar_Int("alloc_type", ReadBE(actorOvl->allocType));
+	Toml_WriteComment(config, name);
+	Toml_WriteHex(config, "vram_addr", ReadBE(actorOvl->vramStart), NO_COMMENT);
+	Toml_WriteHex(config, "init_vars", ReadBE(actorOvl->initInfo), NO_COMMENT);
+	Toml_WriteInt(config, "alloc_type", ReadBE(actorOvl->allocType), NO_COMMENT);
 	MemFile_SaveFile_String(config, out);
 }
 
 static void Rom_Config_Effect(MemFile* config, EffectEntry* actorOvl, const char* name, char* out) {
 	MemFile_Reset(config);
-	Config_WriteTitle_Str(name);
-	Config_WriteVar_Hex("vram_addr", ReadBE(actorOvl->vramStart));
-	Config_WriteVar_Hex("init_vars", ReadBE(actorOvl->initInfo));
+	Toml_WriteComment(config, name);
+	Toml_WriteHex(config, "vram_addr", ReadBE(actorOvl->vramStart), NO_COMMENT);
+	Toml_WriteHex(config, "init_vars", ReadBE(actorOvl->initInfo), NO_COMMENT);
 	MemFile_SaveFile_String(config, out);
 }
 
 static void Rom_Config_GameState(MemFile* config, GameStateEntry* stateOvl, const char* name, char* out) {
 	MemFile_Reset(config);
-	Config_WriteTitle_Str(name);
-	Config_WriteVar_Hex("vram_addr", ReadBE(stateOvl->vramStart));
-	Config_WriteVar_Hex("init_func", ReadBE(stateOvl->init));
-	Config_WriteVar_Hex("dest_func", ReadBE(stateOvl->destroy));
+	Toml_WriteComment(config, name);
+	Toml_WriteHex(config, "vram_addr", ReadBE(stateOvl->vramStart), NO_COMMENT);
+	Toml_WriteHex(config, "init_func", ReadBE(stateOvl->init), NO_COMMENT);
+	Toml_WriteHex(config, "dest_func", ReadBE(stateOvl->destroy), NO_COMMENT);
 	MemFile_SaveFile_String(config, out);
 }
 
@@ -113,8 +113,8 @@ static void Rom_Config_Kaleido(Rom* rom, MemFile* config, u32 id, const char* na
 	u32 draw;
 	
 	MemFile_Reset(config);
-	Config_WriteTitle_Str(name);
-	Config_WriteVar_Hex("vram_addr", ReadBE(entry->vramStart));
+	Toml_WriteComment(config, name);
+	Toml_WriteHex(config, "vram_addr", ReadBE(entry->vramStart), NO_COMMENT);
 	
 	if (id == 1) { // PLAYER
 		dataLo = SegmentedToVirtual(0x0, rom->offset.table.player.init.lo);
@@ -133,10 +133,10 @@ static void Rom_Config_Kaleido(Rom* rom, MemFile* config, u32 id, const char* na
 		dataHi = SegmentedToVirtual(0x0, rom->offset.table.player.draw.hi);
 		draw = (ReadBE(dataHi[1]) - ((s16)ReadBE(dataLo[1]) < 0)) << 16 | ReadBE(dataLo[1]);
 		
-		Config_WriteVar_Hex("init", init);
-		Config_WriteVar_Hex("dest", dest);
-		Config_WriteVar_Hex("updt", updt);
-		Config_WriteVar_Hex("draw", draw);
+		Toml_WriteHex(config, "init", init, NO_COMMENT);
+		Toml_WriteHex(config, "dest", dest, NO_COMMENT);
+		Toml_WriteHex(config, "updt", updt, NO_COMMENT);
+		Toml_WriteHex(config, "draw", draw, NO_COMMENT);
 	} else { // PAUSE_MENU
 		dataHi = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.init.hi);
 		dataLo = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.init.lo);
@@ -146,8 +146,8 @@ static void Rom_Config_Kaleido(Rom* rom, MemFile* config, u32 id, const char* na
 		dataLo = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.updt.lo);
 		updt = ReadBE(dataHi[1]) << 16 | ReadBE(dataLo[1]);
 		
-		Config_WriteVar_Hex("init", init);
-		Config_WriteVar_Hex("updt", updt);
+		Toml_WriteHex(config, "init", init, NO_COMMENT);
+		Toml_WriteHex(config, "updt", updt, NO_COMMENT);
 	}
 	
 	MemFile_SaveFile_String(config, out);
@@ -163,12 +163,12 @@ static void Rom_Config_Scene(Rom* rom, MemFile* config, u32 id, const char* name
 	RestrictionFlag* rf = Rom_GetRestrictionFlags(rom, id);
 	
 	MemFile_Reset(config);
-	Config_WriteTitle_Str(name);
+	Toml_WriteComment(config, name);
 #if 0
-	Config_WriteVar_Int("unk_a", ReadBE(sceneEntry->unk_10));
-	Config_WriteVar_Int("unk_b", ReadBE(sceneEntry->unk_12));
+	Toml_WriteInt(config, "unk_a", ReadBE(sceneEntry->unk_10), NO_COMMENT);
+	Toml_WriteInt(config, "unk_b", ReadBE(sceneEntry->unk_12), NO_COMMENT);
 #endif
-	Config_WriteVar_Int("scene_func_id", ReadBE(sceneEntry->config));
+	Toml_WriteInt(config, "scene_func_id", ReadBE(sceneEntry->config), NO_COMMENT);
 	
 	if (rf) {
 		s32 firstWritten = 0;
@@ -263,7 +263,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		
 		char* cmd = CopyWord(line, 0);
 		
-		String_Replace(config->str, cmd + 1, Config_GetVariable(line, cmd));
+		String_Replace(config->str, cmd + 1, Toml_GetVariable(line, cmd));
 	}
 	
 	line = config->str;
@@ -279,13 +279,13 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		if (Value_ValidateHex(CopyWord(line, 0)) == false)
 			continue;
 		
-		word = Config_Variable(line, CopyWord(line, 0));
+		word = Toml_Variable(line, CopyWord(line, 0));
 		rom->file.seekPoint = Value_Hex(CopyWord(line, 0));
 		
 		if (StrMtch(word, "FILE(\"")) {
-			word = Config_GetVariable(line, CopyWord(line, 0));
+			word = Toml_GetVariable(line, CopyWord(line, 0));
 			
-			// Config_GetVariable sees that this is a string and does magics
+			// Toml_GetVariable sees that this is a string and does magics
 			String_Remove(word, strlen("ILE(\""));
 			
 			Sys_SetWorkDir(Path(file));
@@ -311,7 +311,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		}
 		
 		if (word[0] == '"') {
-			word = Config_GetVariable(line, CopyWord(line, 0));
+			word = Toml_GetVariable(line, CopyWord(line, 0));
 			
 			node = Calloc(node, sizeof(struct PatchNode));
 			node->start = rom->file.seekPoint;
@@ -325,7 +325,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 			continue;
 		}
 		
-		word = Config_GetVariable(line, CopyWord(line, 0));
+		word = Toml_GetVariable(line, CopyWord(line, 0));
 		
 		if (Value_ValidateHex(word)) {
 			u8* data = &rom->file.cast.u8[rom->file.seekPoint];
@@ -407,7 +407,7 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 		if (MemFile_LoadFile(dataFile, Dir_File(list.item[i]))) printf_error("Exiting...");
 		if (MemFile_LoadFile_String(config, fileCfg)) printf_error("Exiting...");
 		
-		rom->file.seekPoint = Config_GetInt(config, "rom");
+		rom->file.seekPoint = Toml_GetInt(config->str, "rom");
 		
 		while (node) {
 			if (Intersect(node->start, node->end, rom->file.seekPoint, rom->file.seekPoint + dataFile->dataSize)) {
@@ -665,16 +665,12 @@ void Rom_Dump(Rom* rom) {
 			Dir_Leave();
 		}
 		
-		Dir_Enter("sound/"); {
-			Rom_Dump_SoundFont(rom, &dataFile, &config);
-			Rom_Dump_Sequences(rom, &dataFile, &config);
-			Rom_Dump_Samples(rom, &dataFile, &config);
-			
-			Dir_Leave();
-		}
-		
 		Dir_Leave();
 	}
+	
+	Rom_Dump_SoundFont(rom, &dataFile, &config);
+	Rom_Dump_Sequences(rom, &dataFile, &config);
+	Rom_Dump_Samples(rom, &dataFile, &config);
 	
 	MemFile_Free(&dataFile);
 	MemFile_Free(&config);
@@ -817,10 +813,10 @@ void Rom_Build_Actor(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_LoadFile(memData, RomList_FindFile(list.item[i], ".zovl"));
 		MemFile_LoadFile_String(memCfg, RomList_File(list.item[i], "config.cfg"));
 		
-		entry[i].allocType = Config_GetInt(memCfg, "alloc_type");
-		entry[i].initInfo = Config_GetInt(memCfg, "init_vars");
+		entry[i].allocType = Toml_GetInt(memCfg->str, "alloc_type");
+		entry[i].initInfo = Toml_GetInt(memCfg->str, "init_vars");
 		
-		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
+		entry[i].vramStart = Toml_GetInt(memCfg->str, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
 		
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
@@ -875,9 +871,9 @@ void Rom_Build_Effect(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_LoadFile(memData, RomList_FindFile(list.item[i], ".zovl"));
 		MemFile_LoadFile_String(memCfg, RomList_File(list.item[i], "config.cfg"));
 		
-		entry[i].initInfo = Config_GetInt(memCfg, "init_vars");
+		entry[i].initInfo = Toml_GetInt(memCfg->str, "init_vars");
 		
-		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
+		entry[i].vramStart = Toml_GetInt(memCfg->str, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
 		
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
@@ -1040,7 +1036,7 @@ void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			}
 		}
 		
-		entry[i].config = Config_GetInt(memCfg, "scene_func_id");
+		entry[i].config = Toml_GetInt(memCfg->str, "scene_func_id");
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		SwapBE(entry[i].vromStart);
@@ -1107,13 +1103,13 @@ void Rom_Build_State(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_LoadFile_String(memCfg, RomList_File(list.item[i], "config.cfg"));
 		MemFile_LoadFile(memData, RomList_FindFile(list.item[i], ".zovl"));
 		
-		entry[i].init = Config_GetInt(memCfg, "init_func");
-		entry[i].destroy = Config_GetInt(memCfg, "dest_func");
+		entry[i].init = Toml_GetInt(memCfg->str, "init_func");
+		entry[i].destroy = Toml_GetInt(memCfg->str, "dest_func");
 		
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		
-		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
+		entry[i].vramStart = Toml_GetInt(memCfg->str, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
 		
 		SwapBE(entry[i].init);
@@ -1146,7 +1142,7 @@ void Rom_Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		
-		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
+		entry[i].vramStart = Toml_GetInt(memCfg->str, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
 		
 		SwapBE(entry[i].vromStart);
@@ -1159,38 +1155,38 @@ void Rom_Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				SegmentedToVirtual(0x0, romOff->table.player.init.hi),
 				SegmentedToVirtual(0x0, romOff->table.player.init.lo),
 				MIPS_REG_A0,
-				Config_GetInt(memCfg, "init")
+				Toml_GetInt(memCfg->str, "init")
 			);
 			Mips64_SplitLoad(
 				SegmentedToVirtual(0x0, romOff->table.player.dest.hi),
 				SegmentedToVirtual(0x0, romOff->table.player.dest.lo),
 				MIPS_REG_A0,
-				Config_GetInt(memCfg, "dest")
+				Toml_GetInt(memCfg->str, "dest")
 			);
 			Mips64_SplitLoad(
 				SegmentedToVirtual(0x0, romOff->table.player.updt.hi),
 				SegmentedToVirtual(0x0, romOff->table.player.updt.lo),
 				MIPS_REG_A0,
-				Config_GetInt(memCfg, "updt")
+				Toml_GetInt(memCfg->str, "updt")
 			);
 			Mips64_SplitLoad(
 				SegmentedToVirtual(0x0, romOff->table.player.draw.hi),
 				SegmentedToVirtual(0x0, romOff->table.player.draw.lo),
 				MIPS_REG_A0,
-				Config_GetInt(memCfg, "draw")
+				Toml_GetInt(memCfg->str, "draw")
 			);
 		} else {       // PAUSE_MENU
 			Mips64_SplitLoad(
 				SegmentedToVirtual(0x0, romOff->table.pauseMenu.init.hi),
 				SegmentedToVirtual(0x0, romOff->table.pauseMenu.init.lo),
 				MIPS_REG_A0,
-				Config_GetInt(memCfg, "init")
+				Toml_GetInt(memCfg->str, "init")
 			);
 			Mips64_SplitLoad(
 				SegmentedToVirtual(0x0, romOff->table.pauseMenu.updt.hi),
 				SegmentedToVirtual(0x0, romOff->table.pauseMenu.updt.lo),
 				MIPS_REG_A0,
-				Config_GetInt(memCfg, "updt")
+				Toml_GetInt(memCfg->str, "updt")
 			);
 		}
 	}
@@ -1400,7 +1396,7 @@ void Rom_New(Rom* rom, char* romName) {
 	hdr = SegmentedToVirtual(0x0, 0xDB70);
 	
 	if (rom->type == NoRom) {
-		char* romType = Config_GetVariable(rom->config.str, "z_rom_type");
+		char* romType = Toml_GetVariable(rom->config.str, "z_rom_type");
 		
 		if (!strcmp(romType, "__PLACEHOLDER__")) {
 			if (hdr[0] != 0) {

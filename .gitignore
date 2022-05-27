@@ -25,3 +25,4 @@ project/tools/z64compress
 !project/tools/seq64_console.exe
 *.zip
 *.o
+.*/

@@ -25,34 +25,34 @@ s32 Main_IsSameFile(char* new, char* cur) {
 		return false;
 	if (Sys_StatF(new, STAT_CREA) != Sys_StatF(cur, STAT_CREA))
 		return false;
-	
+
 	const char* pathA = Path(String_Unquote(new));
 	const char* pathB = Sys_AppDir();
-	
+
 	if (strlen(pathB) != strlen(pathA))
 		return false;
-	
+
 	if (!StrMtch(pathA, pathB))
 		return false;
-	
+
 	return true;
 }
 
 void Main_SuperCompression(const char* input) {
 	s32 dropTo = 0;
-	
+
 	printf_toolinfo(gToolName, "The Most Overtuned Ultimate Compressor");
 	printf_info("Attempting to compress [" PRNT_REDD "%s" PRNT_RSET "] to achieve negative file size.", input);
 	printf_info("This might take a while...\n");
-	
+
 	for (s32 i = 0; i < 99; i++) {
 		f32 sec;
-		
+
 		sec = RandF() + RandF() * 1.56;
-		
+
 		printf_progressFst("" PRNT_BLUE "Compressing", i, 100);
 		sec = WrapF(sec, 0.656, 1.367);
-		
+
 		if (dropTo) {
 			Sys_Sleep(sec * 0.001);
 			i -= 2;
@@ -60,7 +60,7 @@ void Main_SuperCompression(const char* input) {
 				dropTo = 0;
 			continue;
 		}
-		
+
 		if (i % 6 == 0) {
 			if (25 + RandF() * 125 < i) {
 				dropTo = i * 0.77;
@@ -68,13 +68,13 @@ void Main_SuperCompression(const char* input) {
 				continue;
 			}
 		}
-		
+
 		Sys_Sleep(sec * 0.7);
 	}
-	
+
 	printf_warning("Something went wrong...");
 	printf_getchar("Press enter to exit.");
-	
+
 	exit(0);
 }
 
@@ -184,14 +184,14 @@ void Main_Config(char** input, Rom* rom) {
 		char* buildRom;
 		
 		MemFile_LoadFile_String(config, projectConfig);
-		projectRom = Config_GetString(config, "z_baserom");
-		buildRom = Config_GetString(config, "z_buildrom");
+		projectRom = Toml_GetStr(config->str, "z_baserom");
+		buildRom = Toml_GetStr(config->str, "z_buildrom");
 		
 		if (strlen(buildRom) > 128 - strlen("-yaz-release.z64"))
 			printf_error("z_buildrom name is too long");
 		
-		sprintf(gRomName_Output[0], "%s-release.z64", Config_GetString(config, "z_buildrom"));
-		sprintf(gRomName_Output[1], "%s-dev.z64", Config_GetString(config, "z_buildrom"));
+		sprintf(gRomName_Output[0], "%s-release.z64", Toml_GetStr(config->str, "z_buildrom"));
+		sprintf(gRomName_Output[1], "%s-dev.z64", Toml_GetStr(config->str, "z_buildrom"));
 		
 		if (gBuildTarget == ROM_RELEASE) {
 			if (Sys_Stat(gRomName_Output[ROM_DEV]) > Sys_Stat(gRomName_Output[ROM_RELEASE])) {
@@ -210,8 +210,8 @@ void Main_Config(char** input, Rom* rom) {
 				if (Main_IsSameFile(*input, gRomName_Output[i])) {
 					gCompressFlag = true;
 					
-					sprintf(gRomName_Output[0], "%s-yaz-release.z64", Config_GetString(config, "z_buildrom"));
-					sprintf(gRomName_Output[1], "%s-yaz-dev.z64", Config_GetString(config, "z_buildrom"));
+					sprintf(gRomName_Output[0], "%s-yaz-release.z64", Toml_GetStr(config->str, "z_buildrom"));
+					sprintf(gRomName_Output[1], "%s-yaz-dev.z64", Toml_GetStr(config->str, "z_buildrom"));
 					
 					return;
 				}

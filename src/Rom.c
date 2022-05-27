@@ -1089,6 +1089,180 @@ void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	Free(titleID);
 }
 
+void Rom_Build_State(Rom* rom, MemFile* memData, MemFile* memCfg) {
+	ItemList list = ItemList_Initialize();
+	GameStateEntry* entry = rom->table.state;
+	
+	Rom_ItemListEx(&list, "rom/system/state/", SORT_NUMERICAL, LIST_FOLDERS);
+	
+	for (s32 i = 0; i < list.num; i++) {
+		printf_progress("System", i + 1, list.num);
+		
+		if (list.item[i] == NULL || strlen(list.item[i]) == 0)
+			continue;
+		
+		MemFile_Reset(memCfg);
+		MemFile_Reset(memData);
+		
+		MemFile_LoadFile_String(memCfg, RomList_File(list.item[i], "config.cfg"));
+		MemFile_LoadFile(memData, RomList_FindFile(list.item[i], ".zovl"));
+		
+		entry[i].init = Config_GetInt(memCfg, "init_func");
+		entry[i].destroy = Config_GetInt(memCfg, "dest_func");
+		
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
+		entry[i].vromEnd = Dma_GetVRomEnd();
+		
+		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
+		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
+		
+		SwapBE(entry[i].init);
+		SwapBE(entry[i].destroy);
+		SwapBE(entry[i].vromStart);
+		SwapBE(entry[i].vromEnd);
+		SwapBE(entry[i].vramStart);
+		SwapBE(entry[i].vramEnd);
+	}
+	
+	ItemList_Free(&list);
+}
+
+void Rom_Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
+	ItemList list = ItemList_Initialize();
+	KaleidoEntry* entry = rom->table.kaleido;
+	RomOffset* romOff = &rom->offset;
+	
+	Rom_ItemListEx(&list, "rom/system/kaleido/", SORT_NUMERICAL, LIST_FOLDERS);
+	
+	for (s32 i = 0; i < list.num; i++) {
+		printf_progress("Kaleido", i + 1, list.num);
+		
+		MemFile_Reset(memCfg);
+		MemFile_Reset(memData);
+		
+		MemFile_LoadFile_String(memCfg, RomList_File(list.item[i], "config.cfg"));
+		MemFile_LoadFile(memData, RomList_FindFile(list.item[i], ".zovl"));
+		
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
+		entry[i].vromEnd = Dma_GetVRomEnd();
+		
+		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
+		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
+		
+		SwapBE(entry[i].vromStart);
+		SwapBE(entry[i].vromEnd);
+		SwapBE(entry[i].vramStart);
+		SwapBE(entry[i].vramEnd);
+		
+		if (i == 1) {  // PLAYER
+			Mips64_SplitLoad(
+				SegmentedToVirtual(0x0, romOff->table.player.init.hi),
+				SegmentedToVirtual(0x0, romOff->table.player.init.lo),
+				MIPS_REG_A0,
+				Config_GetInt(memCfg, "init")
+			);
+			Mips64_SplitLoad(
+				SegmentedToVirtual(0x0, romOff->table.player.dest.hi),
+				SegmentedToVirtual(0x0, romOff->table.player.dest.lo),
+				MIPS_REG_A0,
+				Config_GetInt(memCfg, "dest")
+			);
+			Mips64_SplitLoad(
+				SegmentedToVirtual(0x0, romOff->table.player.updt.hi),
+				SegmentedToVirtual(0x0, romOff->table.player.updt.lo),
+				MIPS_REG_A0,
+				Config_GetInt(memCfg, "updt")
+			);
+			Mips64_SplitLoad(
+				SegmentedToVirtual(0x0, romOff->table.player.draw.hi),
+				SegmentedToVirtual(0x0, romOff->table.player.draw.lo),
+				MIPS_REG_A0,
+				Config_GetInt(memCfg, "draw")
+			);
+		} else {       // PAUSE_MENU
+			Mips64_SplitLoad(
+				SegmentedToVirtual(0x0, romOff->table.pauseMenu.init.hi),
+				SegmentedToVirtual(0x0, romOff->table.pauseMenu.init.lo),
+				MIPS_REG_A0,
+				Config_GetInt(memCfg, "init")
+			);
+			Mips64_SplitLoad(
+				SegmentedToVirtual(0x0, romOff->table.pauseMenu.updt.hi),
+				SegmentedToVirtual(0x0, romOff->table.pauseMenu.updt.lo),
+				MIPS_REG_A0,
+				Config_GetInt(memCfg, "updt")
+			);
+		}
+	}
+	
+	ItemList_Free(&list);
+}
+
+void Rom_Build_Skybox(Rom* rom, MemFile* memData, MemFile* memCfg) {
+	ItemList list = ItemList_Initialize();
+	
+	Rom_ItemListEx(&list, "rom/system/skybox/", SORT_NUMERICAL, LIST_FOLDERS);
+	
+	for (s32 i = 0; i < list.num; i++) {
+		if (list.item[i] == NULL)
+			continue;
+		
+		printf_progress("Skybox", i + 1, list.num);
+		
+		u32 texId = 941 + i * 2;
+		u32 palId = 942 + i * 2;
+		
+		MemFile_Reset(memData);
+		MemFile_LoadFile(memData, RomList_File(list.item[i], "texel.bin"));
+		Dma_WriteEntry(rom, texId, memData, false);
+		
+		MemFile_Reset(memData);
+		MemFile_LoadFile(memData, RomList_File(list.item[i], "palette.bin"));
+		Dma_WriteEntry(rom, palId, memData, false);
+	}
+	
+	ItemList_Free(&list);
+}
+
+void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
+	ItemList list = ItemList_Initialize();
+	
+	Rom_ItemListEx(&list, "rom/system/static/", SORT_NO, LIST_FILES);
+	
+	for (s32 item = 0; item < list.num; item++) {
+		s32 dmaId;
+		printf_progress("Link Static", item + 1, list.num);
+		
+		for (dmaId = 0; dmaId <= ArrayCount(gSystemName_OoT); dmaId++) {
+			if (dmaId == ArrayCount(gSystemName_OoT)) {
+				dmaId = -1;
+				break;
+			}
+			if (StrStrCase(list.item[item], gSystemName_OoT[dmaId]))
+				break;
+		}
+		
+		if (dmaId < 0) continue;
+		if (dmaId == DMA_ID_CODE) continue;
+		if (dmaId >= 36) dmaId += 901;
+		
+#if 1                          // Only these are supported atm
+		if (dmaId != DMA_ID_TITLE_STATIC &&
+			dmaId != DMA_ID_LINK_ANIMATION &&
+			dmaId != DMA_ID_PARAMETER_STATIC
+		)
+			continue;
+#endif
+		
+		MemFile_Reset(memData);
+		MemFile_LoadFile(memData, list.item[item]);
+		
+		Dma_WriteEntry(rom, dmaId, memData, false);
+	}
+	
+	ItemList_Free(&list);
+}
+
 void Rom_Build(Rom* rom) {
 	MemFile dataFile = MemFile_Initialize();
 	MemFile config = MemFile_Initialize();
@@ -1151,516 +1325,14 @@ void Rom_Build(Rom* rom) {
 			Dir_Leave();
 		}
 		
-#if 1
 		Rom_Build_Actor(rom, &dataFile, &config);
 		Rom_Build_Effect(rom, &dataFile, &config);
 		Rom_Build_Object(rom, &dataFile, &config);
 		Rom_Build_Scene(rom, &dataFile, &config);
-#else
-		Dir_Enter("actor/"); {
-			ItemList actorList = ItemList_Initialize();
-			ActorEntry* entry = rom->table.actor;
-			Rom_ItemList(&actorList, SORT_NUMERICAL, IS_DIR);
-			
-			for (s32 i = 0; i < actorList.num; i++) {
-				if (actorList.item[i] == NULL) {
-					if (entry[i].vromStart && entry[i].vromEnd)
-						entry[i] = (ActorEntry) { 0 };
-					continue;
-				}
-				
-				if (i >= rom->table.num.actor) {
-					printf_warning("ActorTable Full [%d/%d]", i + 1, rom->table.num.actor);
-					break;
-				} else
-					printf_progress("Actor", i + 1, actorList.num);
-				
-				Dir_Enter(actorList.item[i]); {
-					char* ovl = Dir_File("*.zovl");
-					
-					MemFile_Reset(&dataFile);
-					MemFile_Reset(&config);
-					MemFile_LoadFile(&dataFile, ovl);
-					MemFile_LoadFile_String(&config, Dir_File("config.cfg"));
-					
-					entry[i].allocType = Config_GetInt(&config, "alloc_type");
-					entry[i].initInfo = Config_GetInt(&config, "init_vars");
-					
-					entry[i].vramStart = Config_GetInt(&config, "vram_addr");
-					entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
-					
-					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-					entry[i].vromEnd = Dma_GetVRomEnd();
-					
-					SwapBE(entry[i].allocType);
-					SwapBE(entry[i].initInfo);
-					SwapBE(entry[i].vramStart);
-					SwapBE(entry[i].vramEnd);
-					SwapBE(entry[i].vromStart);
-					SwapBE(entry[i].vromEnd);
-					
-					entry[i].loadedRamAddr = 0;
-					
-					if (gBuildTarget == ROM_DEV && entry[i].name) {
-						u32 romAddr = ReadBE(entry[i].name) - 0x7F588E60;
-						void* target;
-						char buf[64];
-						u32 id;
-						
-						Log("Filename Offset [%08X]", romAddr);
-						
-						target = SegmentedToVirtual(0, romAddr);
-						ovl = PathSlot(actorList.item[i], -1);
-						sscanf(ovl, "0x%04X-%s/", &id, buf);
-						strncpy(target, buf, strlen(target));
-					}
-					
-					Dir_Leave();
-				}
-			}
-			
-			ItemList_Free(&actorList);
-			Dir_Leave();
-		}
-		
-		Dir_Enter("effect/"); {
-			ItemList effectList = ItemList_Initialize();
-			EffectEntry* entry = rom->table.effect;
-			Rom_ItemList(&effectList, SORT_NUMERICAL, IS_DIR);
-			
-			for (s32 i = 0; i < effectList.num; i++) {
-				if (effectList.item[i] == NULL) {
-					entry[i] = (EffectEntry) { 0 };
-					continue;
-				}
-				
-				if (i >= 471) {
-					printf_warning("Illegal action! Can't have more than " PRNT_REDD "0x01D6" PRNT_RSET " actors!", i);
-					break;
-				} else
-					printf_progress("Effect", i + 1, effectList.num);
-				
-				Dir_Enter(effectList.item[i]); {
-					MemFile_Reset(&dataFile);
-					MemFile_Reset(&config);
-					MemFile_LoadFile(&dataFile, Dir_File("*.zovl"));
-					MemFile_LoadFile_String(&config, Dir_File("config.cfg"));
-					
-					entry[i].initInfo = Config_GetInt(&config, "init_vars");
-					
-					entry[i].vramStart = Config_GetInt(&config, "vram_addr");
-					entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
-					
-					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-					entry[i].vromEnd = Dma_GetVRomEnd();
-					
-					SwapBE(entry[i].initInfo);
-					SwapBE(entry[i].vramStart);
-					SwapBE(entry[i].vramEnd);
-					SwapBE(entry[i].vromStart);
-					SwapBE(entry[i].vromEnd);
-					entry[i].loadedRamAddr = 0;
-					
-					Dir_Leave();
-				}
-			}
-			
-			ItemList_Free(&effectList);
-			Dir_Leave();
-		}
-		
-		Dir_Enter("object/"); {
-			ItemList objectList = ItemList_Initialize();
-			ObjectEntry* entry = rom->table.object;
-			Rom_ItemList(&objectList, SORT_NUMERICAL, IS_DIR);
-			
-			for (s32 i = 0; i < objectList.num; i++) {
-				if (objectList.item[i] == NULL) {
-					entry[i].vromStart = 0;
-					entry[i].vromEnd = 0;
-					
-					continue;
-				}
-				
-				Dir_Enter(objectList.item[i]); {
-					printf_progress("Object", i + 1, objectList.num);
-					
-					MemFile_Reset(&dataFile);
-					MemFile_LoadFile(&dataFile, Dir_File("*.zobj"));
-					
-					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, true);
-					entry[i].vromEnd = Dma_GetVRomEnd();
-					SwapBE(entry[i].vromStart);
-					SwapBE(entry[i].vromEnd);
-					
-					Dir_Leave();
-				}
-			}
-			
-			ItemList_Free(&objectList);
-			Dir_Leave();
-		}
-		
-		Dir_Enter("scene/"); {
-			MemFile memRoom = MemFile_Initialize();
-			ItemList sceneList = ItemList_Initialize();
-			ItemList titleList = ItemList_Initialize();
-			SceneEntry* entry = rom->table.scene;
-			u32* titleID;
-			
-			MemFile_Malloc(&memRoom, MbToBin(2));
-			Rom_ItemList(&sceneList, SORT_NUMERICAL, IS_DIR);
-			
-			ItemList_Alloc(&titleList, sceneList.num, sceneList.writePoint * 4);
-			titleID = Calloc(titleID, sizeof(u32) * sceneList.num);
-			
-			for (s32 i = 0; i < sceneList.num; i++) {
-				if (sceneList.item[i] == NULL) {
-					printf_error("Empty scene %d", i);
-				}
-				
-				Dir_Enter(sceneList.item[i]); {
-					u32* seg;
-					u32* vromSeg;
-					u32 roomNum;
-					u32 roomListSeg;
-					
-					printf_progress("Scene", i + 1, sceneList.num);
-					
-					MemFile_Reset(&config);
-					MemFile_Reset(&dataFile);
-					if (MemFile_LoadFile_String(&config, Dir_File("config.cfg"))) printf_error("Exiting...");
-					if (MemFile_LoadFile(&dataFile, Dir_File("scene.zscene"))) printf_error("Exiting...");
-					SetSegment(0x1, dataFile.data);
-					seg = SegmentedToVirtual(0x1, 0);
-					
-					Rom_WriteRestrictionFlags(rom, &config, i);
-					
-					for (;;) {
-						if ((seg[0] & 0xFF) == 0x04) {
-							break;
-						}
-						if ((seg[0] & 0xFF) == 0x14) {
-							printf_warning_align("Scene", "Failed finding room list");
-							seg = 0;
-							break;
-						}
-						seg++;
-					}
-					
-					roomNum = (seg[0] & 0xFF00) >> 8;
-					roomListSeg = ReadBE(seg[1]) & 0xFFFFFF;
-					vromSeg = SegmentedToVirtual(0x1, roomListSeg);
-					
-					for (s32 j = 0; j < roomNum; j++) {
-						u32 id = j * 2;
-						MemFile_Reset(&memRoom);
-						if (Sys_Stat(Dir_File("room_%d.zroom", j))) {
-							if (MemFile_LoadFile(&memRoom, Dir_File("room_%d.zroom", j)))
-								printf_error("Exiting...");
-						} else if (MemFile_LoadFile(&memRoom, Dir_File("room_%d.zmap", j)))
-							printf_error("Exiting...");
-						
-						vromSeg[id + 0] = Dma_WriteEntry(rom, DMA_FIND_FREE, &memRoom, false);
-						vromSeg[id + 1] = Dma_GetVRomEnd();
-						SwapBE(vromSeg[id + 0]);
-						SwapBE(vromSeg[id + 1]);
-					}
-					
-					u32* hdr = SegmentedToVirtual(0x1, 0);
-					for (;; hdr++) {
-						if ((hdr[0] & 0xFF) == 0x18) {
-							break;
-						}
-						if ((hdr[0] & 0xFF) == 0x14) {
-							hdr = NULL;
-							break;
-						}
-					}
-					
-					if (hdr) {
-						u32 num;
-						u32* room;
-						room = hdr = SegmentedToVirtual(0x1, ReadBE(hdr[1]) & 0x00FFFFFF);
-						for (s32 r = 0;; r++) {
-							if ((hdr[r] & 0xFF) != 0x2 && hdr[r] != 0)
-								break;
-							room = SegmentedToVirtual(0x1, ReadBE(hdr[r]) & 0xFFFFFF);
-							for (;; room++) {
-								if ((room[0] & 0xFF) == 0x04) {
-									break;
-								}
-								if ((room[0] & 0xFF) == 0x14) {
-									room = NULL;
-									break;
-								}
-							}
-							
-							if (room) {
-								u32 seg;
-								num = (room[0] & 0xFF00) >> 8;
-								seg = ReadBE(room[1]) & 0xFFFFFF;
-								room = SegmentedToVirtual(0x1, seg);
-								
-								for (s32 j = 0; j < num; j++) {
-									u32 id = j * 2;
-									
-									room[id + 0] = vromSeg[id + 0];
-									room[id + 1] = vromSeg[id + 1];
-								}
-							}
-						}
-					}
-					
-					entry[i].config = Config_GetInt(&config, "scene_func_id");
-					entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-					entry[i].vromEnd = Dma_GetVRomEnd();
-					SwapBE(entry[i].vromStart);
-					SwapBE(entry[i].vromEnd);
-					entry[i].titleVromStart = 0;
-					entry[i].titleVromEnd = 0;
-					
-					if (Dir_Stat("title.png")) {
-						titleID[titleList.num] = i;
-						ItemList_AddItem(&titleList, Dir_File("title.png"));
-					}
-					
-					Dir_Leave();
-				}
-			}
-			
-			// Check for unique Place Names
-			for (s32 i = 0; i < titleList.num; i++) {
-				u32 useSame = false;
-				Texel_Import(&dataFile, titleList.item[i], TEX_FMT_IA, TEX_BSIZE_8, 144, 24);
-				
-				for (s32 j = 0; j < i; j++) {
-					u32 id = titleID[j];
-					void* data;
-					Size sz;
-					
-					data = SegmentedToVirtual(0, ReadBE(entry[id].titleVromStart));
-					sz = ReadBE(entry[id].titleVromEnd) - ReadBE(entry[id].titleVromStart);
-					
-					if (!memcmp(data, dataFile.data, sz)) {
-						useSame = true;
-						
-						entry[titleID[i]].titleVromStart = entry[id].titleVromStart;
-						entry[titleID[i]].titleVromEnd = entry[id].titleVromEnd;
-					}
-				}
-				
-				if (useSame == false) {
-					entry[titleID[i]].titleVromStart = ReadBE(Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false));
-					entry[titleID[i]].titleVromEnd = ReadBE(Dma_GetVRomEnd());
-				}
-			}
-			
-			MemFile_Free(&memRoom);
-			ItemList_Free(&sceneList);
-			ItemList_Free(&titleList);
-			Free(titleID);
-			Dir_Leave();
-		}
-#endif
-		
-		Dir_Enter("system/"); {
-			Dir_Enter("state/"); {
-				ItemList gameSysList = ItemList_Initialize();
-				
-				Rom_ItemList(&gameSysList, SORT_NUMERICAL, IS_DIR);
-				
-				for (s32 i = 0; i < gameSysList.num; i++) {
-					printf_progress("System", i + 1, gameSysList.num);
-					
-					if (gameSysList.item[i] == NULL || strlen(gameSysList.item[i]) == 0)
-						continue;
-					
-					Dir_Enter(gameSysList.item[i]); {
-						GameStateEntry* entry = rom->table.state;
-						MemFile_Reset(&config);
-						MemFile_Reset(&dataFile);
-						
-						if (MemFile_LoadFile_String(&config, Dir_File("config.cfg")))
-							printf_error("Exiting");
-						if (MemFile_LoadFile(&dataFile, Dir_File("*.zovl")))
-							printf_error("Exiting");
-						
-						entry[i].init = Config_GetInt(&config, "init_func");
-						entry[i].destroy = Config_GetInt(&config, "dest_func");
-						
-						entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-						entry[i].vromEnd = Dma_GetVRomEnd();
-						
-						entry[i].vramStart = Config_GetInt(&config, "vram_addr");
-						entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
-						
-						SwapBE(entry[i].init);
-						SwapBE(entry[i].destroy);
-						SwapBE(entry[i].vromStart);
-						SwapBE(entry[i].vromEnd);
-						SwapBE(entry[i].vramStart);
-						SwapBE(entry[i].vramEnd);
-						
-						Dir_Leave();
-					}
-				}
-				
-				ItemList_Free(&gameSysList);
-				Dir_Leave();
-			}
-			
-			Dir_Enter("kaleido/"); {
-				ItemList kaleidoList = ItemList_Initialize();
-				
-				Rom_ItemList(&kaleidoList, SORT_NUMERICAL, IS_DIR);
-				
-				for (s32 i = 0; i < kaleidoList.num; i++) {
-					printf_progress("Kaleido", i + 1, kaleidoList.num);
-					
-					Dir_Enter(kaleidoList.item[i]); {
-						KaleidoEntry* entry = rom->table.kaleido;
-						RomOffset* romOff = &rom->offset;
-						MemFile_Reset(&config);
-						MemFile_Reset(&dataFile);
-						
-						if (MemFile_LoadFile_String(&config, Dir_File("config.cfg")))
-							printf_error("Exiting");
-						if (MemFile_LoadFile(&dataFile, Dir_File("*.zovl")))
-							printf_error("Exiting");
-						
-						entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, &dataFile, false);
-						entry[i].vromEnd = Dma_GetVRomEnd();
-						
-						entry[i].vramStart = Config_GetInt(&config, "vram_addr");
-						entry[i].vramEnd = entry[i].vramStart + dataFile.dataSize + Rom_Ovl_GetBssSize(&dataFile);
-						
-						SwapBE(entry[i].vromStart);
-						SwapBE(entry[i].vromEnd);
-						SwapBE(entry[i].vramStart);
-						SwapBE(entry[i].vramEnd);
-						
-						if (i == 1) { // PLAYER
-							Mips64_SplitLoad(
-								SegmentedToVirtual(0x0, romOff->table.player.init.hi),
-								SegmentedToVirtual(0x0, romOff->table.player.init.lo),
-								MIPS_REG_A0,
-								Config_GetInt(&config, "init")
-							);
-							Mips64_SplitLoad(
-								SegmentedToVirtual(0x0, romOff->table.player.dest.hi),
-								SegmentedToVirtual(0x0, romOff->table.player.dest.lo),
-								MIPS_REG_A0,
-								Config_GetInt(&config, "dest")
-							);
-							Mips64_SplitLoad(
-								SegmentedToVirtual(0x0, romOff->table.player.updt.hi),
-								SegmentedToVirtual(0x0, romOff->table.player.updt.lo),
-								MIPS_REG_A0,
-								Config_GetInt(&config, "updt")
-							);
-							Mips64_SplitLoad(
-								SegmentedToVirtual(0x0, romOff->table.player.draw.hi),
-								SegmentedToVirtual(0x0, romOff->table.player.draw.lo),
-								MIPS_REG_A0,
-								Config_GetInt(&config, "draw")
-							);
-						} else { // PAUSE_MENU
-							Mips64_SplitLoad(
-								SegmentedToVirtual(0x0, romOff->table.pauseMenu.init.hi),
-								SegmentedToVirtual(0x0, romOff->table.pauseMenu.init.lo),
-								MIPS_REG_A0,
-								Config_GetInt(&config, "init")
-							);
-							Mips64_SplitLoad(
-								SegmentedToVirtual(0x0, romOff->table.pauseMenu.updt.hi),
-								SegmentedToVirtual(0x0, romOff->table.pauseMenu.updt.lo),
-								MIPS_REG_A0,
-								Config_GetInt(&config, "updt")
-							);
-						}
-						
-						Dir_Leave();
-					}
-				}
-				
-				ItemList_Free(&kaleidoList);
-				Dir_Leave();
-			}
-			
-			Dir_Enter("skybox/"); {
-				ItemList skyList = ItemList_Initialize();
-				
-				Rom_ItemList(&skyList, SORT_NUMERICAL, IS_DIR);
-				
-				for (s32 i = 0; i < skyList.num; i++) {
-					if (skyList.item[i] == NULL)
-						continue;
-					
-					printf_progress("Skybox", i + 1, skyList.num);
-					
-					Dir_Enter(skyList.item[i]); {
-						u32 texId = 941 + i * 2;
-						u32 palId = 942 + i * 2;
-						
-						MemFile_Reset(&dataFile);
-						MemFile_LoadFile(&dataFile, Dir_File("texel.bin"));
-						Dma_WriteEntry(rom, texId, &dataFile, false);
-						
-						MemFile_Reset(&dataFile);
-						MemFile_LoadFile(&dataFile, Dir_File("palette.bin"));
-						Dma_WriteEntry(rom, palId, &dataFile, false);
-						
-						Dir_Leave();
-					}
-				}
-				
-				ItemList_Free(&skyList);
-				Dir_Leave();
-			}
-			
-			Dir_Enter("static/"); {
-				ItemList statItem = ItemList_Initialize();
-				
-				Rom_ItemList(&statItem, SORT_NO, IS_FILE);
-				
-				for (s32 item = 0; item < statItem.num; item++) {
-					s32 dmaId;
-					printf_progress("Link Static", item + 1, statItem.num);
-					
-					for (dmaId = 0; dmaId <= ArrayCount(gSystemName_OoT); dmaId++) {
-						if (dmaId == ArrayCount(gSystemName_OoT)) {
-							dmaId = -1;
-							break;
-						}
-						if (StrStrCase(statItem.item[item], gSystemName_OoT[dmaId]))
-							break;
-					}
-					
-					if (dmaId < 0) continue;
-					if (dmaId == DMA_ID_CODE) continue;
-					if (dmaId >= 36) dmaId += 901;
-					
-#if 1                          // Only these are supported atm
-					if (dmaId != DMA_ID_TITLE_STATIC &&
-						dmaId != DMA_ID_LINK_ANIMATION &&
-						dmaId != DMA_ID_PARAMETER_STATIC
-					)
-						continue;
-#endif
-					
-					MemFile_Reset(&dataFile);
-					MemFile_LoadFile(&dataFile, Dir_File(statItem.item[item]));
-					
-					Dma_WriteEntry(rom, dmaId, &dataFile, false);
-				}
-				
-				ItemList_Free(&statItem);
-				Dir_Leave();
-			}
-			
-			Dir_Leave();
-		}
+		Rom_Build_State(rom, &dataFile, &config);
+		Rom_Build_Kaleido(rom, &dataFile, &config);
+		Rom_Build_Skybox(rom, &dataFile, &config);
+		Rom_Build_Static(rom, &dataFile, &config);
 		
 		Dir_Leave();
 	}
@@ -2154,7 +1826,7 @@ void Rom_ItemListEx(ItemList* list, const char* path, bool isNum, ListFlags flag
 		while (i < vanilla.num) {
 			u32 cont = 0;
 			for (s32 j = 0; j < list->num; j++) {
-				if (!strcmp(vanilla.item[i], list->item[j])) {
+				if (!strcmp(vanilla.item[i], Filename(list->item[j]))) {
 					cont = 1;
 					i++;
 					break;

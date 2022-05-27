@@ -31,7 +31,7 @@ static void Make_Run(char* cmd) {
 }
 
 // # # # # # # # # # # # # # # # # # # # #
-// # MAKE_MIDI                           #
+// # MAKE_SOUND                          #
 // # # # # # # # # # # # # # # # # # # # #
 
 static ThreadFunc Sequence_Convert(MakeArg* targ) {
@@ -78,7 +78,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	com = DupStr(midi);
 	String_Replace(com, ".mid", ".com");
 	
-	Tools_Command(cmd, seq64, "--in=%s --out=%s --abi=Zelda --pref=false --flstudio=true", midi, com);
+	Tools_Command(cmd, seq64, "--in=\"%s\" --out=\"%s\" --abi=Zelda --pref=false --flstudio=true", midi, com);
 	Make_Run(cmd);
 	Make_Info("seq64", midi);
 	
@@ -90,50 +90,6 @@ free:
 	Free(list);
 	Free(seq);
 }
-
-static void Make_Sequence(void) {
-	ItemList list = ItemList_Initialize();
-	MakeArg targ[THREAD_NUM];
-	Thread thread[THREAD_NUM];
-	s32 i = 0;
-	
-	ItemList_List(&list, "rom/sound/sequence/", 0, LIST_FOLDERS | LIST_NO_DOT);
-	
-	if (list.num == 0)
-		goto free;
-	
-	if (gThreading)
-		ThreadLock_Init();
-	
-	while (i < list.num) {
-		u32 target = Clamp(list.num - i, 0, THREAD_NUM);
-		
-		for (s32 j = 0; j < target; j++) {
-			targ[j].path = list.item[i + j];
-			
-			if (gThreading) {
-				ThreadLock_Create(&thread[j], Sequence_Convert, &targ[j]);
-			} else {
-				Sequence_Convert(&targ[j]);
-			}
-		}
-		
-		if (gThreading)
-			for (s32 j = 0; j < target; j++)
-				ThreadLock_Join(&thread[j]);
-		
-		i += THREAD_NUM;
-	}
-	if (gThreading)
-		ThreadLock_Free();
-	
-free:
-	ItemList_Free(&list);
-}
-
-// # # # # # # # # # # # # # # # # # # # #
-// # MAKE_SOUND                          #
-// # # # # # # # # # # # # # # # # # # # #
 
 static ThreadFunc Sound_Convert(MakeArg* targ) {
 	ItemList* list;
@@ -232,6 +188,46 @@ free:
 	ItemList_Free(list);
 	Free(list);
 	Free(vadpcm);
+}
+
+static void Make_Sequence(void) {
+	ItemList list = ItemList_Initialize();
+	MakeArg targ[THREAD_NUM];
+	Thread thread[THREAD_NUM];
+	s32 i = 0;
+	
+	ItemList_List(&list, "rom/sound/sequence/", 0, LIST_FOLDERS | LIST_NO_DOT);
+	
+	if (list.num == 0)
+		goto free;
+	
+	if (gThreading)
+		ThreadLock_Init();
+	
+	while (i < list.num) {
+		u32 target = Clamp(list.num - i, 0, THREAD_NUM);
+		
+		for (s32 j = 0; j < target; j++) {
+			targ[j].path = list.item[i + j];
+			
+			if (gThreading) {
+				ThreadLock_Create(&thread[j], Sequence_Convert, &targ[j]);
+			} else {
+				Sequence_Convert(&targ[j]);
+			}
+		}
+		
+		if (gThreading)
+			for (s32 j = 0; j < target; j++)
+				ThreadLock_Join(&thread[j]);
+		
+		i += THREAD_NUM;
+	}
+	if (gThreading)
+		ThreadLock_Free();
+	
+free:
+	ItemList_Free(&list);
 }
 
 static void Make_Sound(void) {

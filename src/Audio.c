@@ -680,13 +680,13 @@ static s32 Audio_LoadFile(MemFile* dataFile, char* file) {
 	Log("File: %s", file);
 	
 	strcpy(buf, file);
-	String_Replace(buf, "*", "sample");
 	smpl = Dir_File(buf);
 	
 	if (smpl && Sys_Stat(smpl)) {
 		if (MemFile_LoadFile(dataFile, smpl))
 			return 1;
 	} else {
+		String_Replace(buf, "sample", "*");
 		smpl = Dir_File(file);
 		
 		if (smpl) {
@@ -749,7 +749,7 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 		MemFile_Reset(&sample);
 		
 		Dir_Enter(itemList.item[i]); {
-			char* file = Dir_File("*.vadpcm.bin");
+			char* file = Dir_File("sample.vadpcm.bin");
 			char* toml = Dir_File("config.toml");
 			
 			if (toml == NULL)
@@ -938,7 +938,7 @@ static void SoundFont_Write_Adsr(MemFile* mem, Adsr* adsr, void32* setPtr) {
 }
 
 static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setPtr, MemFile* memSample, MemFile* memBook, MemFile* memLoopBook, u32* sampleNum) {
-	char* restoreDir = HeapDupStr(Dir_Current());
+	char* restoreDir = HeapStrDup(Dir_Current());
 	Sample smpl = { 0 };
 	u32 loop[4 + 8];
 	u32 loopSize = 4 * 4;
@@ -968,7 +968,7 @@ static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setP
 	SwapBE(loop[3]);
 	if (loop[2]) {
 		MemFile_Reset(dataFile);
-		if (Audio_LoadFile(dataFile, "*.loopbook.bin")) {
+		if (Audio_LoadFile(dataFile, "sample.loopbook.bin")) {
 			printf_warning("" PRNT_REDD "[%s]" PRNT_RSET " has looppoints but could not find " PRNT_REDD "loopbook", sSampleTbl[sampleID].name);
 			loop[0] = 0;
 			WriteBE(loop[2], 0);
@@ -992,7 +992,7 @@ static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setP
 	}
 	
 	MemFile_Reset(dataFile);
-	Audio_LoadFile(dataFile, "*.book.bin");
+	Audio_LoadFile(dataFile, "sample.book.bin");
 	if (!MemMemAlign(0x10, memBook->data, memBook->dataSize, dataFile->data, dataFile->dataSize)) {
 		smpl.book = memBook->seekPoint;
 		MemFile_Append(memBook, dataFile);
@@ -1154,7 +1154,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			for (s32 j = 0; j < listDrum.num; j++) {
 				Drum drum = { 0 };
 				Adsr adsr[4] = { 0 };
-				char* currentConf = HeapDupStr(Dir_File("drum/%s", listDrum.item[j]));
+				char* currentConf = HeapStrDup(Dir_File("drum/%s", listDrum.item[j]));
 				char* prim;
 				
 				if (j == 0) {
@@ -1173,7 +1173,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				
 				MemFile_Reset(config);
 				MemFile_LoadFile_String(config, currentConf);
-				prim = HeapDupStr(Toml_GetStr(config, "prim_sample"));
+				prim = HeapStrDup(Toml_GetStr(config, "prim_sample"));
 				
 				if (!memcmp(prim, "NULL", 4)) {
 					memDrum.cast.u32[j] = 0;

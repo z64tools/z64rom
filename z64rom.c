@@ -38,46 +38,6 @@ s32 Main_IsSameFile(char* new, char* cur) {
 	return true;
 }
 
-void Main_SuperCompression(const char* input) {
-	s32 dropTo = 0;
-	
-	printf_toolinfo(gToolName, "The Most Overtuned Ultimate Compressor");
-	printf_info("Attempting to compress [" PRNT_REDD "%s" PRNT_RSET "] to achieve negative file size.", input);
-	printf_info("This might take a while...\n");
-	
-	for (s32 i = 0; i < 99; i++) {
-		f32 sec;
-		
-		sec = RandF() + RandF() * 1.56;
-		
-		printf_progressFst("" PRNT_BLUE "Compressing", i, 100);
-		sec = WrapF(sec, 0.656, 1.367);
-		
-		if (dropTo) {
-			Sys_Sleep(sec * 0.001);
-			i -= 2;
-			if (i <= dropTo)
-				dropTo = 0;
-			continue;
-		}
-		
-		if (i % 6 == 0) {
-			if (25 + RandF() * 125 < i) {
-				dropTo = i * 0.77;
-				Sys_Sleep(1.0f);
-				continue;
-			}
-		}
-		
-		Sys_Sleep(sec * 0.7);
-	}
-	
-	printf_warning("Something went wrong...");
-	printf_getchar("Press enter to exit.");
-	
-	exit(0);
-}
-
 void Main_CompressRom(char* input) {
 	char cmd[512];
 	char romName[64];
@@ -122,7 +82,7 @@ void Main_RenameRooms(const char* from, const char* to) {
 		if (!StrEndCase(list.item[i], from))
 			continue;
 		
-		tmp = HeapDupStr(list.item[i]);
+		tmp = HeapStrDup(list.item[i]);
 		String_Replace(tmp, from, to);
 		
 		if (Sys_Rename(list.item[i], tmp)) {
@@ -216,12 +176,6 @@ void Main_Config(char** input, Rom* rom) {
 					return;
 				}
 			}
-			
-			if (Main_IsSameFile(*input, "build-dev-yaz.z64"))
-				Main_SuperCompression("build-dev-yaz.z64");
-			
-			if (Main_IsSameFile(*input, "build-release-yaz.z64"))
-				Main_SuperCompression("build-release-yaz.z64");
 			
 			if (Main_IsSameFile(*input, projectRom))
 				return;
@@ -379,6 +333,11 @@ s32 Main(s32 argc, char* argv[]) {
 			
 			break;
 		}
+		
+		case 0: {
+			Tools_CheckUpdates();
+			break;
+		}
 	}
 	
 	if (input == NULL) {
@@ -394,7 +353,7 @@ s32 Main(s32 argc, char* argv[]) {
 				printf_info("Want to use it as your baserom and dump it now? " PRNT_DGRY "[y/n]");
 				
 				if (Terminal_YesOrNo()) {
-					input = DupStr(list.item[i]);
+					input = StrDup(list.item[i]);
 					gDumpFlag = true;
 					
 					String_Replace(rom->config.str, "__ROM_NAME__", input);

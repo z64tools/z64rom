@@ -86,7 +86,7 @@ void Package_Sound(struct zip_t* pkg, char* toml) {
 			if (!StrEndCase(list.item[i], ".toml") && !StrEndCase(list.item[i], ".book.bin"))
 				break;
 			
-			char* target = HeapDupStr(list.item[i]);
+			char* target = HeapStrDup(list.item[i]);
 			String_Replace(target, ".vanilla/", "");
 			
 			Sys_Copy(list.item[i], target, StrEndCase(list.item[i], ".toml") ? true : false);

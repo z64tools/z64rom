@@ -29,7 +29,7 @@ static char* Make_Wildcard(const char* path, const char* fmt, ...) {
 	}
 	
 	if (file)
-		file = HeapDupStr(file);
+		file = HeapStrDup(file);
 	
 	ItemList_Free(&list);
 	
@@ -95,7 +95,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		ItemList_Free(&van);
 	}
 	
-	com = DupStr(midi);
+	com = StrDup(midi);
 	String_Replace(com, ".mid", ".com");
 	
 	Tools_Command(cmd, seq64, "--in=\"%s\" --out=\"%s\" --abi=Zelda --pref=false --flstudio=true", midi, com);

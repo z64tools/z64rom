@@ -447,52 +447,36 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 static char* __sPath;
 
 void FileSys_Path(const char* fmt, ...) {
-	char buffer[512];
 	va_list va;
 	
-	va_start(va, fmt);
-	vsprintf(buffer, fmt, va);
-	va_end(va);
-	
 	Free(__sPath);
-	__sPath = DupStr(buffer);
+	va_start(va, fmt);
+	vasprintf(&__sPath, fmt, va);
+	va_end(va);
 	
 	if (gDumpFlag)
 		Sys_MakeDir(__sPath);
 }
 
-char* FileSys_File(const char* fmt, ...) {
-	char buffer[512];
-	va_list va;
-	
-	va_start(va, fmt);
-	vsprintf(buffer, fmt, va);
-	va_end(va);
-	
-	return HeapPrint("%s%s", __sPath, buffer);
+char* FileSys_File(const char* str) {
+	return HeapPrint("%s%s", __sPath, str);
 }
 
-char* FileSys_FindFile(const char* fmt, ...) {
+char* FileSys_FindFile(const char* str) {
 	ItemList list = ItemList_Initialize();
 	char* file = NULL;
 	Time stat = 0;
-	char buf[64];
-	va_list va;
-	
-	va_start(va, fmt);
-	vsprintf(buf, fmt, va);
-	va_end(va);
 	
 	ItemList_List(&list, __sPath, 0, LIST_FILES | LIST_NO_DOT);
 	for (s32 i = 0; i < list.num; i++) {
-		if (StrEndCase(list.item[i], buf) && Sys_Stat(list.item[i]) > stat) {
+		if (StrEndCase(list.item[i], str) && Sys_Stat(list.item[i]) > stat) {
 			file = list.item[i];
 			stat = Sys_Stat(file);
 		}
 	}
 	
 	if (file)
-		file = HeapDupStr(file);
+		file = HeapStrDup(file);
 	
 	ItemList_Free(&list);
 	
@@ -590,7 +574,7 @@ static void Rom_Dump_Scene(Rom* rom, MemFile* data, MemFile* config) {
 				roomListSeg = ReadBE(seg[1]) & 0xFFFFFF;
 				
 				for (s32 j = 0; j < roomNum; j++) {
-					char* out = FileSys_File("room_%d.zroom", j);
+					char* out = FileSys_File(HeapPrint("room_%d.zroom", j));
 					
 					vromSeg = SegmentedToVirtual(0x2, roomListSeg + 8 * j);
 					Rom_Extract(
@@ -671,7 +655,7 @@ static void Rom_Dump_Static(Rom* rom, MemFile* data, MemFile* config) {
 		rf.size = rf.romEnd - rf.romStart;
 		rf.data = SegmentedToVirtual(0x0, rf.romStart);
 		
-		Rom_Extract(data, rf, FileSys_File("%s.bin", gSystemName_OoT[name]));
+		Rom_Extract(data, rf, FileSys_File(HeapPrint("%s.bin", gSystemName_OoT[name])));
 	}
 }
 
@@ -821,7 +805,7 @@ static void Rom_Build_Actor(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_Reset(memData);
 		MemFile_Reset(memCfg);
 		MemFile_LoadFile(memData, FileSys_FindFile(".zovl"));
-		MemFile_LoadFile_String(memCfg, FileSys_FindFile("config.toml"));
+		MemFile_LoadFile_String(memCfg, FileSys_File("config.toml"));
 		
 		entry[i].allocType = Toml_GetInt(memCfg, "alloc_type");
 		entry[i].initInfo = Toml_GetInt(memCfg, "init_vars");
@@ -996,9 +980,9 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			char* room;
 			
 			MemFile_Reset(&memRoom);
-			room = FileSys_FindFile("_%d.zroom", j);
-			if (!room) room = FileSys_FindFile("_%d.zmap", j);
-			if (!room) printf_error("Could not find room_%d", j);
+			room = FileSys_File(HeapPrint("room_%d.zroom", j));
+			if (!Sys_Stat(room)) room = FileSys_File(HeapPrint("room_%d.zmap", j));
+			if (!Sys_Stat(room)) printf_error("Could not find room_%d", j);
 			MemFile_LoadFile(&memRoom, room);
 			
 			vromSeg[id + 0] = Dma_WriteEntry(rom, DMA_FIND_FREE, &memRoom, false);
@@ -1707,7 +1691,7 @@ void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 		
 		for (s32 i = 0; i < maxNum + 1; i++) {
 			if (i < modified.num && modified.item[i] && Value_Int(modified.item[i]) == i) {
-				list->item[list->num] = HeapDupStr(modified.item[i]);
+				list->item[list->num] = HeapStrDup(modified.item[i]);
 			} else if (i < vanilla.num && vanilla.item[i] && Value_Int(vanilla.item[i]) == i) {
 				list->item[list->num] = HeapPrint(".vanilla/%s", vanilla.item[i]);
 			} else {
@@ -1719,7 +1703,7 @@ void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 		u32 i = 0;
 		
 		while (i < modified.num) {
-			list->item[list->num] = HeapDupStr(modified.item[i]);
+			list->item[list->num] = HeapStrDup(modified.item[i]);
 			list->num++;
 			i++;
 		}

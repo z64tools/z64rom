@@ -426,7 +426,12 @@ void Tools_Update_Header(bool install) {
 	MemFile ver = MemFile_Initialize();
 	
 	Tools_Command(command, wget, "%s -q -O -", URL_Z64HDR_UPDT_API);
+	
+	SysExe_IgnoreError();
 	output = SysExeO(command);
+	
+	if (SysExe_GetError())
+		goto skipupdate;
 	
 	line = StrStr(output, "\"pushed_at\":");
 	
@@ -439,6 +444,11 @@ void Tools_Update_Header(bool install) {
 	word = CopyWord(line, 1);
 	String_Replace(word, "\"", "");
 	String_Replace(word, ",", "");
+	
+	if (0) {
+skipupdate:
+		word = HeapStrDup("offline");
+	}
 	
 	if (!Sys_Stat("include/.version") || install) {
 		Tools__InstallHdr(false);
@@ -475,8 +485,6 @@ s32 Tools_Init(void) {
 	if (Tools_Validate_ReqrTools()) {
 		return -1;
 	}
-	
-	Tools_CheckUpdates();
 	
 	if (Tools_Validate_AddiTools() || !Sys_Stat("include/z64hdr/") || Sys_Stat("tools/.failsafe") || Sys_Stat("tools/.installing")) {
 		setupFlag = 1;
@@ -534,8 +542,15 @@ void Tools_CheckUpdates() {
 	u32 cnum[3] = { -1, -1, -1 };
 	u32 curVer, newVer;
 	
+	SysExe_IgnoreError();
 	Tools_Command(buffer, wget, "%s -q -O -", url);
 	updateApi = SysExeO(buffer);
+	
+	if (SysExe_GetError()) {
+		Free(updateApi);
+		
+		return;
+	}
 	
 	tag = StrStr(updateApi, "\"tag_name\": ");
 	

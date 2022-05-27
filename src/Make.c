@@ -46,14 +46,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	list = Calloc(list, sizeof(ItemList));
 	*list = ItemList_Initialize();
 	
-	ItemList_List(list, targ->path, 0, LIST_FILES | LIST_NO_DOT);
-	
-	for (s32 i = 0; i < list->num; i++) {
-		if (StrEndCase(list->item[i], ".mid"))
-			midi = list->item[i];
-		if (midi)
-			break;
-	}
+	midi = RomList_FindFile(targ->path, ".mid");
 	
 	if (midi == NULL)
 		goto free;
@@ -89,6 +82,46 @@ free:
 	ItemList_Free(list);
 	Free(list);
 	Free(seq);
+}
+
+static void Make_Sequence(void) {
+	ItemList list = ItemList_Initialize();
+	MakeArg targ[THREAD_NUM];
+	Thread thread[THREAD_NUM];
+	s32 i = 0;
+	
+	ItemList_List(&list, "rom/sound/sequence/", 0, LIST_FOLDERS | LIST_NO_DOT);
+	
+	if (list.num == 0)
+		goto free;
+	
+	if (gThreading)
+		ThreadLock_Init();
+	
+	while (i < list.num) {
+		u32 target = Clamp(list.num - i, 0, THREAD_NUM);
+		
+		for (s32 j = 0; j < target; j++) {
+			targ[j].path = list.item[i + j];
+			
+			if (gThreading) {
+				ThreadLock_Create(&thread[j], Sequence_Convert, &targ[j]);
+			} else {
+				Sequence_Convert(&targ[j]);
+			}
+		}
+		
+		if (gThreading)
+			for (s32 j = 0; j < target; j++)
+				ThreadLock_Join(&thread[j]);
+		
+		i += THREAD_NUM;
+	}
+	if (gThreading)
+		ThreadLock_Free();
+	
+free:
+	ItemList_Free(&list);
 }
 
 static ThreadFunc Sound_Convert(MakeArg* targ) {
@@ -188,46 +221,6 @@ free:
 	ItemList_Free(list);
 	Free(list);
 	Free(vadpcm);
-}
-
-static void Make_Sequence(void) {
-	ItemList list = ItemList_Initialize();
-	MakeArg targ[THREAD_NUM];
-	Thread thread[THREAD_NUM];
-	s32 i = 0;
-	
-	ItemList_List(&list, "rom/sound/sequence/", 0, LIST_FOLDERS | LIST_NO_DOT);
-	
-	if (list.num == 0)
-		goto free;
-	
-	if (gThreading)
-		ThreadLock_Init();
-	
-	while (i < list.num) {
-		u32 target = Clamp(list.num - i, 0, THREAD_NUM);
-		
-		for (s32 j = 0; j < target; j++) {
-			targ[j].path = list.item[i + j];
-			
-			if (gThreading) {
-				ThreadLock_Create(&thread[j], Sequence_Convert, &targ[j]);
-			} else {
-				Sequence_Convert(&targ[j]);
-			}
-		}
-		
-		if (gThreading)
-			for (s32 j = 0; j < target; j++)
-				ThreadLock_Join(&thread[j]);
-		
-		i += THREAD_NUM;
-	}
-	if (gThreading)
-		ThreadLock_Free();
-	
-free:
-	ItemList_Free(&list);
 }
 
 static void Make_Sound(void) {

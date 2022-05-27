@@ -755,7 +755,7 @@ static void Rom_AllocDmaTable(Rom* rom) {
 	}
 }
 
-static char* RomList_FindFile(const char* path, const char* fmt, ...) {
+char* RomList_FindFile(const char* path, const char* fmt, ...) {
 	ItemList list = ItemList_Initialize();
 	char* file = NULL;
 	Time stat = 0;
@@ -782,7 +782,7 @@ static char* RomList_FindFile(const char* path, const char* fmt, ...) {
 	return file;
 }
 
-static char* RomList_File(const char* path, const char* fmt, ...) {
+char* RomList_File(const char* path, const char* fmt, ...) {
 	va_list va;
 	char buf[64];
 	

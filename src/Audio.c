@@ -897,7 +897,7 @@ static void SoundFont_Instrument_Validate(MemFile* mem, const char* file, Instru
 		printf_warning("[hi_sample] sounds is not going to play with this splitting!");
 	}
 	
-	if (!smpl[2] && inst->splitHi < 127) {
+	if ((!smpl[2] && inst->splitHi < 127) || inst->splitHi > 127) {
 		printf_warning("split_hi fixed for [%s]", file);
 		Config_Replace(mem, "split_hi", "127");
 		

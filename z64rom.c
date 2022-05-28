@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.7.0";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.7.1";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gInfoFlag;
@@ -335,7 +335,31 @@ s32 Main(s32 argc, char* argv[]) {
 		}
 		
 		case 0: {
-			Tools_CheckUpdates();
+			MemFile umem = MemFile_Initialize();
+			u32 doUpdate = 0;
+			u32 time = Sys_Date(Sys_Time()).hour;
+			
+			if (!Sys_Stat("tools/.update-check")) {
+				MemFile_Malloc(&umem, 512);
+				MemFile_Printf(&umem, "%02d", time);
+				MemFile_SaveFile_String(&umem, "tools/.update-check");
+				doUpdate = true;
+			} else {
+				MemFile_LoadFile_String(&umem, "tools/.update-check");
+				
+				if (time != Value_Int(umem.str)) {
+					doUpdate = true;
+					
+					MemFile_Seek(&umem, 0);
+					MemFile_Printf(&umem, "%02d", time);
+					MemFile_SaveFile_String(&umem, "tools/.update-check");
+				}
+			}
+			
+			MemFile_Free(&umem);
+			
+			if (doUpdate)
+				Tools_CheckUpdates();
 			break;
 		}
 	}

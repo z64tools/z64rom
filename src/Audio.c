@@ -1439,9 +1439,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		ItemList_Free(&listDrum);
 	}
 	
-	MemFile_SaveFile(&soundFontMem, "soundfont.bin");
 	rom->offset.segment.fontRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, &soundFontMem, false);
-	printf_info("%08X", rom->offset.segment.fontRom);
 	
 	MemFile_Free(&soundFontMem);
 	MemFile_Free(&memBank);

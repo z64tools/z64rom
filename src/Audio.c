@@ -504,13 +504,16 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 	MemFile* config;
 	RomFile rf;
 	Rom* rom = arg->rom;
-	char* name = sample->dublicate == NULL ? sample->name : sample->dublicate->name;
-	u32 sampRate = sample->dublicate == NULL ? sample->sampleRate : sample->dublicate->sampleRate;
+	char* name = sample->name;
+	u32 sampRate = sample->sampleRate;
 	char FILE_WAV[512];
 	char FILE_VAD[512];
 	char FILE_BOK[512];
 	char FILE_LBK[512];
 	char FILE_CFG[512];
+	
+	if (sample->dublicate)
+		return;
 	
 	if (name == NULL)
 		printf_error("Sample ID [%D] is missing name", arg->i);

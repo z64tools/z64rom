@@ -33,11 +33,12 @@ const char* sInstSectionNames[3] = {
 	"hi",
 };
 
-static f32 Audio_CalcReleaseRate(f32 a) {
+f32 Audio_CalcReleaseRate(f32 a) {
 	return 256.0 * 0.00130208 / a;
 }
 
 f32 Audio_GetReleaseRate(u8 i) {
+#if 0
 	f32 r = 0;
 	
 	switch (i) {
@@ -68,9 +69,13 @@ f32 Audio_GetReleaseRate(u8 i) {
 	}
 	
 	return r / 1.3333333333;
+#endif
+	
+	return (f32)i / 255;
 }
 
 u8 Audio_GetReleaseID(f32 r) {
+#if 0
 	s32 id = 255;
 	f32 diff = FLT_MAX;
 	
@@ -85,6 +90,9 @@ u8 Audio_GetReleaseID(f32 r) {
 	}
 	
 	return id;
+#endif
+	
+	return Clamp((s32)(r * 255), 0, 255);
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -152,8 +160,8 @@ static s32 Rom_Config_Instrument(Rom* rom, MemFile* config, Instrument* instrume
 	
 	MemFile_Reset(config);
 	Toml_WriteComment(config, "Instrument");
-	Toml_WriteInt(config, "split_lo", instrument->splitLo, "Prim Start  0-127");
-	Toml_WriteInt(config, "split_hi", instrument->splitHi, "Prim End    0-127");
+	Toml_WriteStr(config, "split_lo", Music_NoteWord(instrument->splitLo + 21), true, "Prim Start");
+	Toml_WriteStr(config, "split_hi", Music_NoteWord(instrument->splitHi + 21), true, "Prim End");
 	Rom_Config_Envelope(config, env);
 	Toml_Print(config, "%-15s = %.4f\n", "release_rate", Audio_GetReleaseRate(instrument->release));
 	
@@ -643,7 +651,6 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	tbl = sSortedSampleTbl;
 	
-	// 71, 104, 433
 	#define THREAD_NUM 42
 	s32 i = 0;
 	SampleDumpArg arg[THREAD_NUM];
@@ -694,7 +701,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 		if (StrStr(sBankFiles[j], "-Sfx")) {
 			char* tempName = HeapPrint("%s%d-%s.toml", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), replacedName);
 			
-			renamer_remove(sBankFiles[j], tempName);
+			Sys_Rename(sBankFiles[j], tempName);
 		}
 		
 		// Rename Inst to their primary sample
@@ -721,7 +728,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 			
 			tempName = HeapPrint("%s%d-%s.toml", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), instName);
 			
-			renamer_remove(sBankFiles[j], tempName);
+			Sys_Rename(sBankFiles[j], tempName);
 		}
 	}
 	
@@ -913,7 +920,7 @@ static void SoundFont_Instrument_Validate(MemFile* mem, const char* file, Instru
 	
 	if ((!smpl[2] && inst->splitHi < 127) || inst->splitHi > 127) {
 		printf_warning("split_hi fixed for [%s]", file);
-		Toml_ReplaceVariable(mem, "split_hi", "127");
+		Toml_ReplaceVariable(mem, "split_hi", Music_NoteWord(127 + 21));
 		
 		mem->dataSize = strlen(mem->str);
 		MemFile_SaveFile_String(mem, file);
@@ -973,8 +980,10 @@ static void SoundFont_Instrument_AssignIndexes(MemFile* mem, char** smplNam, s32
 
 static void SoundFont_Read_Instrument(MemFile* mem, Instrument* inst) {
 	inst->loaded = 0;
-	inst->splitLo = Toml_GetInt(mem, "split_lo");
-	inst->splitHi = Toml_GetInt(mem, "split_hi");
+	inst->splitLo = Music_NoteIndex(Toml_GetStr(mem, "split_lo")) - 21;
+	inst->splitHi = Music_NoteIndex(Toml_GetStr(mem, "split_hi")) - 21;
+	inst->splitLo = ClampMin(inst->splitLo, 0);
+	inst->splitHi = ClampMin(inst->splitHi, 0);
 	inst->release = Audio_GetReleaseID(Toml_GetFloat(mem, "release_rate"));
 }
 
@@ -988,6 +997,9 @@ static void SoundFont_Read_Adsr(MemFile* mem, Adsr* adsr) {
 	
 	if (listRate.num != listLevl.num)
 		printf_error("env_rate & env_level array num mismatch in [%s]", mem->info.name);
+	
+	if (listRate.num > 3)
+		printf_warning("z64rom supports only 3 envelopes currently [%s]", mem->info.name);
 	
 	for (; i < ClampMax(listRate.num, 3); i++) {
 		adsr[i].rate = Clamp(ceilf(Value_Float(listRate.item[i]) * __INT16_MAX__), 0, __INT16_MAX__);

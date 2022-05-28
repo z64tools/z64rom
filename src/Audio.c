@@ -27,20 +27,74 @@ struct {
 	char dir[512];
 } sSampleTbl[1024 * 2];
 s32 sSampleTblNum;
-const char* sSFSampleName[3] = {
-	"low_sample",
-	"prim_sample",
-	"hi_sample",
-};
-const char* sSFSampleTuning[3] = {
-	"low_tuning",
-	"prim_tuning",
-	"hi_tuning",
+const char* sInstSectionNames[3] = {
+	"low",
+	"prim",
+	"hi",
 };
 
+static f32 Audio_CalcReleaseRate(f32 a) {
+	return 256.0 * 0.00130208 / a;
+}
+
+f32 Audio_GetReleaseRate(u8 i) {
+	f32 r = 0;
+	
+	switch (i) {
+		case 255:
+			r =  Audio_CalcReleaseRate(0.25f);
+			break;
+		case 254:
+			r =  Audio_CalcReleaseRate(0.33f);
+			break;
+		case 253:
+			r =  Audio_CalcReleaseRate(0.5f);
+			break;
+		case 252:
+			r =  Audio_CalcReleaseRate(0.66f);
+			break;
+		case 251:
+			r =  Audio_CalcReleaseRate(0.75f);
+			break;
+		case 128 ... 250:
+			r =  Audio_CalcReleaseRate(251 - i);
+			break;
+		case 16 ... 127:
+			r =  Audio_CalcReleaseRate(4 * (143 - i));
+			break;
+		case 1 ... 15:
+			r =  Audio_CalcReleaseRate(60 * (23 - i));
+			break;
+	}
+	
+	return r / 1.3333333333;
+}
+
+u8 Audio_GetReleaseID(f32 r) {
+	s32 id = 255;
+	f32 diff = FLT_MAX;
+	
+	for (s32 i = 0; i <= 255; i++) {
+		f32 val = Audio_GetReleaseRate(i);
+		f32 ndiff = Abs(r - val);
+		
+		if (ndiff < diff) {
+			id = i;
+			diff = ndiff;
+		}
+	}
+	
+	return id;
+}
+
+// # # # # # # # # # # # # # # # # # # # #
+// # CONFIG                              #
+// # # # # # # # # # # # # # # # # # # # #
+
 #define __Config_Sample(config, wow, sampletype) \
-	Toml_WriteHex(config, # wow "_sample", ReadBE(sample->sampleAddr) + rom->offset.segment.smplRom + off, NO_COMMENT); \
-	Toml_WriteFloat(config, # wow "_tuning", *f, NO_COMMENT); \
+	Toml_WriteSection(config, # wow); \
+	Toml_WriteHex(config, "sample", ReadBE(sample->sampleAddr) + rom->offset.segment.smplRom + off, NO_COMMENT); \
+	Toml_WriteFloat(config, "tuning", *f, NO_COMMENT); \
 	if (sBankNum < 0) { printf("\a\n"); exit(1); /* "go intentionally bonkers" */ } \
 	sUnsortedSampleTbl[sDumpID].tuning = *f; \
 	sUnsortedSampleTbl[sDumpID].data = sample->data; \
@@ -50,12 +104,30 @@ const char* sSFSampleTuning[3] = {
 	Assert(sDumpID < 1024 * 5);
 
 #define __Config_Sample_NULL(config, wow) \
-	Toml_WriteStr(config, # wow "_sample", "NULL", true, NO_COMMENT); \
-	Toml_WriteStr(config, # wow "_tuning", "NULL", true, NO_COMMENT);
+	Toml_WriteSection(config, # wow); \
+	Toml_WriteStr(config, "sample", "NULL", false, NO_COMMENT); \
+	Toml_WriteStr(config, "tuning", "NULL", false, NO_COMMENT);
 
-// # # # # # # # # # # # # # # # # # # # #
-// # CONFIG                              #
-// # # # # # # # # # # # # # # # # # # # #
+static void Rom_Config_Envelope(MemFile* config, Adsr* env) {
+	ItemList listRate = ItemList_Initialize();
+	ItemList listLevl = ItemList_Initialize();
+	
+	Toml_Print(config, "\n");
+	Toml_WriteComment(config, "Envelope, values between 0.0 - 1.0");
+	ItemList_Alloc(&listRate, 32, 512);
+	ItemList_Alloc(&listLevl, 32, 512);
+	
+	for (s32 i = 0; ; i++) {
+		if (ReadBE(env[i].rate) < 0)
+			break;
+		ItemList_AddItem(&listRate, HeapPrint("%.5f", (f32)ReadBE(env[i].rate) / __INT16_MAX__));
+		ItemList_AddItem(&listLevl, HeapPrint("%.5f", (f32)ReadBE(env[i].level) / __INT16_MAX__));
+	}
+	Toml_WriteArray(config, "env_rate", &listRate, NO_QUOTES, NO_COMMENT);
+	Toml_WriteArray(config, "env_level", &listLevl, NO_QUOTES, NO_COMMENT);
+	ItemList_Free(&listRate);
+	ItemList_Free(&listLevl);
+}
 
 static s32 Rom_Config_Instrument(Rom* rom, MemFile* config, Instrument* instrument, char* name, char* out, u32 off) {
 	Adsr* env;
@@ -80,21 +152,10 @@ static s32 Rom_Config_Instrument(Rom* rom, MemFile* config, Instrument* instrume
 	
 	MemFile_Reset(config);
 	Toml_WriteComment(config, "Instrument");
-	Toml_WriteInt(config, "loaded", instrument->loaded, NO_COMMENT);
-	Toml_WriteInt(config, "split_lo", instrument->splitLo, "0-127");
-	Toml_WriteInt(config, "split_hi", instrument->splitHi, "0-127");
-	
-	Toml_Print(config, "\n");
-	Toml_WriteComment(config, "Envelope");
-	Toml_WriteInt(config, "attack_rate", ReadBE(env[0].rate), NO_COMMENT);
-	Toml_WriteInt(config, "attack_level", ReadBE(env[0].level), NO_COMMENT);
-	Toml_WriteInt(config, "hold_rate", ReadBE(env[1].rate), NO_COMMENT);
-	Toml_WriteInt(config, "hold_level", ReadBE(env[1].level), NO_COMMENT);
-	Toml_WriteInt(config, "decay_rate", ReadBE(env[2].rate), NO_COMMENT);
-	Toml_WriteInt(config, "decay_level", ReadBE(env[2].level), NO_COMMENT);
-	Toml_WriteInt(config, "decay2_rate", ReadBE(env[3].rate), NO_COMMENT);
-	Toml_WriteInt(config, "decay2_level", ReadBE(env[3].level), NO_COMMENT);
-	Toml_WriteInt(config, "release", instrument->release, NO_COMMENT);
+	Toml_WriteInt(config, "split_lo", instrument->splitLo, "Prim Start  0-127");
+	Toml_WriteInt(config, "split_hi", instrument->splitHi, "Prim End    0-127");
+	Rom_Config_Envelope(config, env);
+	Toml_Print(config, "%-15s = %.4f\n", "release_rate", Audio_GetReleaseRate(instrument->release));
 	
 	Toml_Print(config, "\n");
 	if (instrument->lo.sample != 0) {
@@ -105,7 +166,6 @@ static s32 Rom_Config_Instrument(Rom* rom, MemFile* config, Instrument* instrume
 		__Config_Sample_NULL(config, low);
 	}
 	
-	Toml_Print(config, "\n");
 	if (instrument->prim.sample != 0) {
 		sample = SegmentedToVirtual(0x1, ReadBE(instrument->prim.sample));
 		val = ReadBE(instrument->prim.swap32);
@@ -117,7 +177,6 @@ static s32 Rom_Config_Instrument(Rom* rom, MemFile* config, Instrument* instrume
 		__Config_Sample_NULL(config, prim);
 	}
 	
-	Toml_Print(config, "\n");
 	if (instrument->hi.sample != 0) {
 		sample = SegmentedToVirtual(0x1, ReadBE(instrument->hi.sample));
 		val = ReadBE(instrument->hi.swap32);
@@ -175,20 +234,9 @@ static s32 Rom_Config_Drum(Rom* rom, MemFile* config, u32 drumSeg, char* name, c
 	
 	MemFile_Reset(config);
 	Toml_WriteComment(config, "Drum");
-	Toml_WriteInt(config, "loaded", drum->loaded, NO_COMMENT);
 	Toml_WriteInt(config, "pan", drum->pan, NO_COMMENT);
-	
-	Toml_Print(config, "\n");
-	Toml_WriteComment(config, "Envelope");
-	Toml_WriteInt(config, "attack_rate", ReadBE(env[0].rate), NO_COMMENT);
-	Toml_WriteInt(config, "attack_level", ReadBE(env[0].level), NO_COMMENT);
-	Toml_WriteInt(config, "hold_rate", ReadBE(env[1].rate), NO_COMMENT);
-	Toml_WriteInt(config, "hold_level", ReadBE(env[1].level), NO_COMMENT);
-	Toml_WriteInt(config, "decay_rate", ReadBE(env[2].rate), NO_COMMENT);
-	Toml_WriteInt(config, "decay_level", ReadBE(env[2].level), NO_COMMENT);
-	Toml_WriteInt(config, "decay2_rate", ReadBE(env[3].rate), NO_COMMENT);
-	Toml_WriteInt(config, "decay2_level", ReadBE(env[3].level), NO_COMMENT);
-	Toml_WriteInt(config, "release", drum->release, NO_COMMENT);
+	Rom_Config_Envelope(config, env);
+	Toml_Print(config, "%-15s = %.4f\n", "release_rate", Audio_GetReleaseRate(drum->release));
 	
 	Toml_Print(config, "\n");
 	Toml_WriteComment(config, "Sample");
@@ -489,6 +537,7 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 	
 	MemFile_Params(dataFile, MEM_REALLOC, true, MEM_END);
 	
+	Log("Size %X", ReadBE(tbl->data) & 0x00FFFFFF);
 	rf.size = ReadBE(tbl->data) & 0x00FFFFFF;
 	rf.data = SegmentedToVirtual(0x0, tbl->sampleAddr);
 	Rom_Extract(dataFile, rf, FILE_VAD);
@@ -528,8 +577,10 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 				catprintf(cmd, "--split-lo %d", tbl->splitLo + 21);
 		}
 		
-		if (SysExe(cmd))
-			printf_error("z64audio Failed!");
+		char* r = SysExeO(cmd);
+		if (SysExe_GetError()) {
+			printf_error("%s", r);
+		}
 		
 		MemFile_Reset(dataFile);
 		if (MemFile_LoadFile(dataFile, FILE_WAV))
@@ -589,6 +640,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	tbl = sSortedSampleTbl;
 	
+	// 71, 104, 433
 	#define THREAD_NUM 42
 	s32 i = 0;
 	SampleDumpArg arg[THREAD_NUM];
@@ -610,7 +662,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		for (s32 j = 0; j < target; j++) {
 			ThreadLock_Join(&thread[j]);
-			printf_progress("Sample", i + j + 1, sSortID);
+			printf_progressFst("Sample", i + j + 1, sSortID);
 		}
 		
 		i += THREAD_NUM;
@@ -646,8 +698,13 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 		if ((StrStr(sBankFiles[j], "-Inst") || StrStr(sBankFiles[j], "-Drum")) && (StrStr(config->data, "Inst_") || StrStr(config->data, "Perc_"))) {
 			char instName[256] = { 0 };
 			char* tempName;
+			char* var;
 			
-			strcpy(instName, Toml_GetStr(config, "prim_sample"));
+			Toml_GotoSection("prim");
+			var = Toml_GetStr(config, "sample");
+			Log("%s", var);
+			
+			strcpy(instName, var);
 			String_Remove(instName, strlen("Inst_"));
 			String_Replace(instName, "_Prim", "");
 			String_Replace(instName, "Soft", "");
@@ -865,7 +922,8 @@ static s32 SoundFont_Instrument_AssignNames(MemFile* mem, char** smplNam, MemFil
 	u32 smplNum = 0;
 	
 	for (s32 soundID = 0; soundID < 3; soundID++) {
-		smplNam[soundID] = Toml_GetStr(mem, sSFSampleName[soundID]);
+		Toml_GotoSection(sInstSectionNames[soundID]);
+		smplNam[soundID] = Toml_GetStr(mem, "sample");
 		if (smplNam[soundID] == NULL) {
 			continue;
 		} else if (StrMtch(smplNam[soundID], "NULL")) {
@@ -897,8 +955,10 @@ static void SoundFont_Instrument_AssignIndexes(MemFile* mem, char** smplNam, s32
 			if (!strcmp(sSampleTbl[sampleID].name, smplNam[soundID])) {
 				inst->sound[soundID].tuning = sSampleTbl[sampleID].tuninOverride;
 				
-				if (inst->sound[soundID].tuning == 0)
-					inst->sound[soundID].tuning = Toml_GetFloat(mem, sSFSampleTuning[soundID]);
+				if (inst->sound[soundID].tuning == 0) {
+					Toml_GotoSection(sInstSectionNames[soundID]);
+					inst->sound[soundID].tuning = Toml_GetFloat(mem, "tuning");
+				}
 				
 				SwapBE(inst->sound[soundID].swap32);
 				smplID[soundID] = sampleID;
@@ -909,21 +969,37 @@ static void SoundFont_Instrument_AssignIndexes(MemFile* mem, char** smplNam, s32
 }
 
 static void SoundFont_Read_Instrument(MemFile* mem, Instrument* inst) {
-	inst->loaded = Toml_GetInt(mem, "loaded");
+	inst->loaded = 0;
 	inst->splitLo = Toml_GetInt(mem, "split_lo");
 	inst->splitHi = Toml_GetInt(mem, "split_hi");
-	inst->release = Toml_GetInt(mem, "release");
+	inst->release = Audio_GetReleaseID(Toml_GetFloat(mem, "release_rate"));
 }
 
 static void SoundFont_Read_Adsr(MemFile* mem, Adsr* adsr) {
-	adsr[0].rate = Toml_GetInt(mem, "attack_rate"); SwapBE(adsr[0].rate);
-	adsr[0].level = Toml_GetInt(mem, "attack_level"); SwapBE(adsr[0].level);
-	adsr[1].rate = Toml_GetInt(mem, "hold_rate"); SwapBE(adsr[1].rate);
-	adsr[1].level = Toml_GetInt(mem, "hold_level"); SwapBE(adsr[1].level);
-	adsr[2].rate = Toml_GetInt(mem, "decay_rate"); SwapBE(adsr[2].rate);
-	adsr[2].level = Toml_GetInt(mem, "decay_level"); SwapBE(adsr[2].level);
-	adsr[3].rate = Toml_GetInt(mem, "decay2_rate"); SwapBE(adsr[3].rate);
-	adsr[3].level = Toml_GetInt(mem, "decay2_level"); SwapBE(adsr[3].level);
+	ItemList listRate = ItemList_Initialize();
+	ItemList listLevl = ItemList_Initialize();
+	s32 i = 0;
+	
+	Toml_GetArray(mem, &listRate, "env_rate");
+	Toml_GetArray(mem, &listLevl, "env_level");
+	
+	if (listRate.num != listLevl.num)
+		printf_error("env_rate & env_level array num mismatch in [%s]", mem->info.name);
+	
+	for (; i < ClampMax(listRate.num, 3); i++) {
+		adsr[i].rate = Clamp(ceilf(Value_Float(listRate.item[i]) * __INT16_MAX__), 0, __INT16_MAX__);
+		adsr[i].level = Clamp(ceilf(Value_Float(listLevl.item[i]) * __INT16_MAX__), 0, __INT16_MAX__);
+		SwapBE(adsr[i].rate);
+		SwapBE(adsr[i].level);
+	}
+	
+	adsr[i].rate = -1;
+	adsr[i].level = 0;
+	SwapBE(adsr[i].rate);
+	SwapBE(adsr[i].level);
+	
+	ItemList_Free(&listRate);
+	ItemList_Free(&listLevl);
 }
 
 static void SoundFont_Write_Adsr(MemFile* mem, Adsr* adsr, void32* setPtr) {
@@ -1088,7 +1164,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			
 			for (s32 j = 0; j < listInst.num; j++) {
 				Instrument instrument = { 0 };
-				Adsr adsr[4];
+				Adsr adsr[4] = { 0 };
 				char* instFile = Dir_File("instrument/%s", listInst.item[j]);
 				char* sampleName[3];
 				s32 sampleIndex[3] = { -1, -1, -1 };
@@ -1133,14 +1209,16 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				
 				MemFile_Reset(config);
 				MemFile_LoadFile_String(config, Dir_File("sfx/%s", listSfx.item[j]));
-				prim = Toml_GetStr(config, "prim_sample");
+				Toml_GotoSection("prim");
+				prim = Toml_GetStr(config, "sample");
 				
 				if (!strcmp(prim, "NULL")) {
 					MemFile_Write(&memSfx, &sfx, sizeof(struct Sound));
 					continue;
 				}
 				
-				sfx.tuning = Toml_GetFloat(config, "prim_tuning");
+				Toml_GotoSection("prim");
+				sfx.tuning = Toml_GetFloat(config, "tuning");
 				idx = SoundFont_SmplID(prim);
 				
 				if (sSampleTbl[idx].tuninOverride > 0)
@@ -1173,7 +1251,8 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				
 				MemFile_Reset(config);
 				MemFile_LoadFile_String(config, currentConf);
-				prim = HeapStrDup(Toml_GetStr(config, "prim_sample"));
+				Toml_GotoSection("prim");
+				prim = HeapStrDup(Toml_GetStr(config, "sample"));
 				
 				if (!memcmp(prim, "NULL", 4)) {
 					memDrum.cast.u32[j] = 0;
@@ -1183,10 +1262,11 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					memDrum.cast.u32[j] = memDrum.seekPoint;
 				}
 				
-				drum.sound.tuning = Toml_GetFloat(config, "prim_tuning");
-				drum.loaded = Toml_GetInt(config, "loaded");
+				Toml_GotoSection("prim");
+				drum.sound.tuning = Toml_GetFloat(config, "tuning");
+				drum.loaded = 0;
 				drum.pan = Toml_GetInt(config, "pan");
-				drum.release = Toml_GetInt(config, "release");
+				drum.release = Audio_GetReleaseID(Toml_GetFloat(config, "release_rate"));
 				SwapBE(drum.sound.swap32);
 				
 				SoundFont_Read_Adsr(config, adsr);
@@ -1356,7 +1436,9 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		ItemList_Free(&listDrum);
 	}
 	
+	MemFile_SaveFile(&soundFontMem, "soundfont.bin");
 	rom->offset.segment.fontRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, &soundFontMem, false);
+	printf_info("%08X", rom->offset.segment.fontRom);
 	
 	MemFile_Free(&soundFontMem);
 	MemFile_Free(&memBank);

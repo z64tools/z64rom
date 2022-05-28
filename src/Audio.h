@@ -120,6 +120,9 @@ typedef struct {
 	u32   i;
 } SampleDumpArg;
 
+f32 Audio_GetReleaseRate(u8 i);
+u8 Audio_GetReleaseID(f32 r);
+
 void Rom_Dump_SoundFont(struct Rom* rom, MemFile* dataFile, MemFile* config);
 void Rom_Dump_Sequences(struct Rom* rom, MemFile* dataFile, MemFile* config);
 void Rom_Dump_Samples(struct Rom* rom, MemFile* dataFile, MemFile* config);

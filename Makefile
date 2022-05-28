@@ -1,5 +1,5 @@
-CFLAGS         := -Wall -DEXTLIB=138 -DNDEBUG
-CFLAGS_MAIN    := -Wall -DNDEBUG
+CFLAGS          = -Wall -DEXTLIB=139 -DNDEBUG
+CFLAGS_MAIN     = -Wall -DNDEBUG
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
 SOURCE_C        = $(shell find src/* -type f -name '*.c')

@@ -103,7 +103,6 @@ clean-all: clean-sub clean-release clean
 
 clean-sub:
 	@$(MAKE) -C tools/z64audio clean --no-print-directory --silent
-	@$(MAKE) -C tools/z64compress clean --no-print-directory --silent
 	@rm -f $(TOOLS_WIN32) $(TOOLS_LINUX)
 
 clean:

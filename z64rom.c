@@ -130,6 +130,38 @@ s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 		return 1;
 	}
 	
+	if (Arg("reinstall")) {
+		MemFile mem = MemFile_Initialize();
+		
+		MemFile_Malloc(&mem, 0x10);
+		MemFile_SaveFile(&mem, "tools/.installing");
+		MemFile_Free(&mem);
+	}
+	
+	if (Arg("clean")) {
+		ItemList list = ItemList_Initialize();
+		
+		ItemList_List(&list, "", -1, LIST_FILES);
+		forlist(i, list) {
+			if (StrEndCase(list.item[i], ".o") || StrEndCase(list.item[i], ".elf") || StrEndCase(list.item[i], "entry.ld")) {
+				printf_warning("rm " PRNT_BLUE "%s", list.item[i]);
+				Sys_Delete(list.item[i]);
+			}
+		}
+		ItemList_Free(&list);
+		
+		ItemList_List(&list, "", -1, LIST_FOLDERS);
+		forlist(i, list) {
+			if (StrEndCase(list.item[i], ".entry/")) {
+				printf_warning("rm " PRNT_YELW "%s", list.item[i]);
+				Sys_Delete_Recursive(list.item[i]);
+			}
+		}
+		ItemList_Free(&list);
+		
+		return 1;
+	}
+	
 	return 0;
 }
 
@@ -228,7 +260,7 @@ void Main_Config(char** input, Rom* rom) {
 		config,
 		"%-15s = \"%s\"\n",
 		"mips64_gcc_flags",
-		"-c -Iinclude/z64hdr -Iinclude/z64hdr/include -Iinclude/ "
+		"-c -Iinclude/z64hdr -Iinclude/z64hdr/include "
 		"-Isrc/lib_user -G 0 -O1 -fno-reorder-blocks -fno-common -std=gnu99 -march=vr4300 -mabi=32"
 		" -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division -Wall"
 		" -Wno-builtin-declaration-mismatch"

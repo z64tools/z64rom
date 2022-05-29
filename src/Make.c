@@ -1050,7 +1050,7 @@ void Make(Rom* rom, s32 message) {
 	setvbuf(stderr, NULL, _IONBF, 0);
 	
 	if (gMakeTarget) {
-		if (StrStrCase(gMakeTarget, "sound")) {
+		if (StrStrCase(gMakeTarget, "audio")) {
 			Make_Sound();
 			Make_Sequence();
 		}

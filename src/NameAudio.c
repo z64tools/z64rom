@@ -390,9 +390,9 @@ const N64AudioInfo gSampleInfo[] = {
 	/* 375 */ { 32000, 0, NULL, "Inst_Harmonica" },
 	/* 376 */ { 16000, 0, NULL, "Inst_Guitar_Nylon_Prim" },
 	/* 377 */ { 16000, 0, NULL, "Inst_Guitar_Nylon_Hi" },
-	/* 378 */ { 32000, 0, NULL, "Perc_Tambourine_Rim" },
-	/* 379 */ { 32000, 0, &gSampleInfo[120], "Perc_Tambourine_Head" }, // Duplicate
-	/* 380 */ { 32000, 0, &gSampleInfo[121], "Perc_Tambourine_Cymbal" }, // Duplicate
+	/* 378 */ { 0, 0, &gSampleInfo[120], "Perc_Tambourine_Rim" },
+	/* 379 */ { 32000, 0, NULL, "Perc_Tambourine_Head" }, // Duplicate
+	/* 380 */ { 0, 0, &gSampleInfo[121], "Perc_Tambourine_Cymbal" }, // Duplicate
 	/* 381 */ { 32000, 0, NULL, "Inst_Oboe" },
 	/* 382 */ { 32000, 0, NULL, "Inst_Bassoon" },
 	/* 383 */ { 32000, 0, NULL, "Inst_Pizzicato_Prim" },

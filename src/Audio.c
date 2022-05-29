@@ -302,7 +302,7 @@ static void Audio_PatchWavFiles(MemFile* dataFile, MemFile* config) {
 		{ NOTE(5, 3), 0, &gSampleInfo[405] }, // Gong
 		{ NOTE(0, 6), 0, &gSampleInfo[406] }, // WindChimes
 		
-		{ NOTE(0, 5), 0, &gSampleInfo[413] }, // CongaOpen
+		{ NOTE(0, 5), 0, &gSampleInfo[407] }, // CongaOpen
 		{ NOTE(0, 5), 0, &gSampleInfo[414] }, // CongaSoft
 		{ NOTE(8, 4), 0, &gSampleInfo[415] }, // CongaMute
 		

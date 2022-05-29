@@ -145,13 +145,13 @@ project/tools/z64convert.exe: tools/z64convert/src/z64convert.c
 project/tools/z64compress:
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@$(MAKE) -C tools/z64compress linux -j --no-print-directory --silent
-	@$(MAKE) -C tools/z64compress clean --no-print-directory --silent
 	@cp tools/z64compress/z64compress $@
+	@$(MAKE) -C tools/z64compress clean --no-print-directory --silent
 project/tools/z64compress.exe:
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@$(MAKE) -C tools/z64compress win32 -j --no-print-directory --silent
-	@$(MAKE) -C tools/z64compress clean --no-print-directory --silent
 	@cp tools/z64compress/z64compress.exe $@
+	@$(MAKE) -C tools/z64compress clean --no-print-directory --silent
 	
 project/tools/seqas: tools/seqas.cpp
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"

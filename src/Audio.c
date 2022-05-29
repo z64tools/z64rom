@@ -317,7 +317,7 @@ static void Audio_PatchWavFiles(MemFile* dataFile, MemFile* config) {
 		{ NOTE(2, 3), 0, &gSampleInfo[433] }, // Cajon
 	};
 	
-	for (s32 i = 0; i < ArrayCount(info); i++) {
+	foreach(i, info) {
 		printf_progress("Update Sample", i + 1, ArrayCount(info));
 		char* file = HeapPrint("rom/sound/sample/.vanilla/%s/Sample.wav", info[i].info->name);
 		

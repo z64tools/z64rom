@@ -132,7 +132,7 @@ const N64AudioInfo gSampleInfo[] = {
 	/* 117 */ { 32000, 0, NULL, "Inst_Harp_Hi" },
 	/* 118 */ { 32000, 0, NULL, "Inst_Malon" },
 	/* 119 */ { 32000, 0, NULL, "Inst_Piccolo" },
-	/* 120 */ { 32000, 0, NULL, "Perc_Tambourine_Head" },
+	/* 120 */ { 32000, 0, NULL, "Perc_Tambourine_Rim" },
 	/* 121 */ { 32000, 0, NULL, "Perc_Tambourine_Cymbal" },
 	/* 122 */ { 16000, 0, NULL, "System_Focus_Intense" },
 	/* 123 */ { 16000, 0, NULL, "System_Focus_Lock_On" },

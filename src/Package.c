@@ -145,8 +145,8 @@ void Package_Actor(struct zip_t* pkg, char* toml) {
 	SleepF(0.1);
 	
 	if (getFree) {
-		Rom_ItemListEx(&actorList, "rom/actor/", SORT_NUMERICAL, LIST_FOLDERS);
-		Rom_ItemListEx(&objectList, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
+		Rom_ItemList(&actorList, "rom/actor/", SORT_NUMERICAL, LIST_FOLDERS);
+		Rom_ItemList(&objectList, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
 		
 		for (s32 i = 1; i < actorList.num; i++) {
 			if (actorList.item[i] == NULL) {

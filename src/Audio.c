@@ -285,7 +285,7 @@ static void Rom_Config_Sample(Rom* rom, MemFile* config, Sample* sample, char* n
 // # DUMP                                #
 // # # # # # # # # # # # # # # # # # # # #
 
-static void Rom_Dump_Samples_PatchWavFiles(MemFile* dataFile, MemFile* config) {
+static void Audio_PatchWavFiles(MemFile* dataFile, MemFile* config) {
 	#define NOTE(note, octave) (note + (12 * (octave)))
 	u8* instInfo;
 	u32* smplInfo;
@@ -335,7 +335,7 @@ static void Rom_Dump_Samples_PatchWavFiles(MemFile* dataFile, MemFile* config) {
 #undef NOTE
 }
 
-void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
+void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	AudioEntryHead* head = SegmentedToVirtual(0, rom->offset.table.fontTable);
 	AudioEntryHead* sampHead = SegmentedToVirtual(0, rom->offset.table.sampleTable);
 	AudioEntry* entry;
@@ -432,7 +432,7 @@ void Rom_Dump_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	SetSegment(0x1, NULL);
 }
 
-void Rom_Dump_Sequences(Rom* rom, MemFile* dataFile, MemFile* config) {
+void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	AudioEntryHead* head = SegmentedToVirtual(0x0, rom->offset.table.seqTable);
 	u8* seqFontTable;
 	u16* segFontOffTable;
@@ -617,7 +617,7 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 	Free(config);
 }
 
-void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
+void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	SampleInfo* smallest = sUnsortedSampleTbl;
 	SampleInfo* largest = sUnsortedSampleTbl;
 	SampleInfo** tbl;
@@ -733,7 +733,7 @@ void Rom_Dump_Samples(Rom* rom, MemFile* dataFile, MemFile* config) {
 	}
 	
 	if (gExtractAudio)
-		Rom_Dump_Samples_PatchWavFiles(dataFile, config);
+		Audio_PatchWavFiles(dataFile, config);
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -766,7 +766,7 @@ static s32 Audio_LoadFile(MemFile* dataFile, char* file) {
 	return 0;
 }
 
-void Rom_Build_SetAudioSegment(Rom* rom) {
+void Audio_UpdateSegments(Rom* rom) {
 	#define INST_ADDR(x, y) SegmentedToVirtual(0x0, ((x) - 0x7F588E60)), SegmentedToVirtual(0x0, ((y) - 0x7F588E60))
 	#define RAM_ADDR rom->file.seekPoint + 0x7F588E60
 	
@@ -799,7 +799,7 @@ void Rom_Build_SetAudioSegment(Rom* rom) {
 #undef RAM_ADDR
 }
 
-void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
+void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	ItemList itemList = ItemList_Initialize();
 	MemFile sample = MemFile_Initialize();
 	AudioEntryHead head = { 0 };
@@ -807,7 +807,7 @@ void Rom_Build_SampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	MemFile_Malloc(&sample, MbToBin(0.25));
 	MemFile_Reset(dataFile);
-	Rom_ItemList(&itemList, SORT_NO, IS_DIR);
+	Rom_ItemListDir(&itemList, SORT_NO, IS_DIR);
 	MemFile_Params(dataFile, MEM_ALIGN, 16, MEM_END);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
@@ -1104,7 +1104,7 @@ static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setP
 	Dir_Set(restoreDir);
 }
 
-void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
+void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	ItemList itemList = ItemList_Initialize();
 	MemFile soundFontMem = MemFile_Initialize();
 	MemFile memBank = MemFile_Initialize();
@@ -1128,7 +1128,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Malloc(&memSfx, MbToBin(0.25));
 	MemFile_Malloc(&memDrum, MbToBin(0.25));
 	
-	Rom_ItemList(&itemList, SORT_NUMERICAL, IS_DIR);
+	Rom_ItemListDir(&itemList, SORT_NUMERICAL, IS_DIR);
 	
 	sfHead.numEntries = itemList.num;
 	SwapBE(sfHead.numEntries);
@@ -1466,7 +1466,7 @@ void Rom_Build_SoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	ItemList_Free(&itemList);
 }
 
-void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
+void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	ItemList itemList = ItemList_Initialize();
 	MemFile memIndexTable = MemFile_Initialize();
 	MemFile memLookUpTable = MemFile_Initialize();
@@ -1477,7 +1477,7 @@ void Rom_Build_Sequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Malloc(&memIndexTable, 0x800);
 	MemFile_Malloc(&memLookUpTable, 0x800);
 	MemFile_Malloc(&sequenceMem, MbToBin(1.0));
-	Rom_ItemList(&itemList, SORT_NUMERICAL, IS_DIR);
+	Rom_ItemListDir(&itemList, SORT_NUMERICAL, IS_DIR);
 	
 	sqHead.numEntries = itemList.num;
 	SwapBE(sqHead.numEntries);

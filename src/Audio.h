@@ -123,11 +123,11 @@ typedef struct {
 f32 Audio_GetReleaseRate(u8 i);
 u8 Audio_GetReleaseID(f32 r);
 
-void Rom_Dump_SoundFont(struct Rom* rom, MemFile* dataFile, MemFile* config);
-void Rom_Dump_Sequences(struct Rom* rom, MemFile* dataFile, MemFile* config);
-void Rom_Dump_Samples(struct Rom* rom, MemFile* dataFile, MemFile* config);
+void Audio_DumpSoundFont(struct Rom* rom, MemFile* dataFile, MemFile* config);
+void Audio_DumpSequence(struct Rom* rom, MemFile* dataFile, MemFile* config);
+void Audio_DumpSampleTable(struct Rom* rom, MemFile* dataFile, MemFile* config);
 
-void Rom_Build_SetAudioSegment(struct Rom* rom);
-void Rom_Build_SampleTable(struct Rom* rom, MemFile* dataFile, MemFile* config);
-void Rom_Build_SoundFont(struct Rom* rom, MemFile* dataFile, MemFile* config);
-void Rom_Build_Sequence(struct Rom* rom, MemFile* dataFile, MemFile* config);
+void Audio_UpdateSegments(struct Rom* rom);
+void Audio_BuildSampleTable(struct Rom* rom, MemFile* dataFile, MemFile* config);
+void Audio_BuildSoundFont(struct Rom* rom, MemFile* dataFile, MemFile* config);
+void Audio_BuildSequence(struct Rom* rom, MemFile* dataFile, MemFile* config);

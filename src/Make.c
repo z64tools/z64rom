@@ -63,52 +63,67 @@ static void Make_Run(char* cmd) {
 
 static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	ItemList* list;
-	char* midi = NULL;
 	char cmd[512];
-	char* seq = NULL;
-	char* com = NULL;
 	char* toml;
+	char* seq = NULL;
+	char* midi = NULL;
+	char* mus = NULL;
 	u32 index = Value_Hex(PathSlot(targ->path, -1));
 	
 	list = Calloc(list, sizeof(ItemList));
 	*list = ItemList_Initialize();
 	
-	midi = Make_Wildcard(targ->path, ".mid");
-	
-	if (midi == NULL)
-		goto free;
-	
-	toml = HeapPrint("%sconfig.toml", Path(midi));
-	seq = HeapPrint("%ssequence.aseq", Path(midi));
-	String_Replace(seq, ".mid", ".seq");
-	
-	if (Sys_Stat(seq) > Sys_Stat(midi) && !gMakeForce)
-		goto free;
-	
-	if (!Sys_Stat(toml)) {
-		ItemList van = ItemList_Initialize();
-		ItemList_List(&van, "rom/sound/sequence/.vanilla/", 0, LIST_FOLDERS);
+	if ((midi = Make_Wildcard(targ->path, ".mid"))) {
+		toml = HeapPrint("%sconfig.toml", targ->path);
+		seq = HeapPrint("%ssequence.aseq", targ->path);
 		
-		if (Sys_Stat(van.item[index]))
-			Sys_Copy(HeapPrint("%sconfig.toml", van.item[index]), toml, true);
+		if (Sys_Stat(seq) > Sys_Stat(midi) && !gMakeForce)
+			goto free;
 		
-		ItemList_Free(&van);
+		if (!Sys_Stat(toml)) {
+			ItemList van = ItemList_Initialize();
+			ItemList_List(&van, "rom/sound/sequence/.vanilla/", 0, LIST_FOLDERS);
+			
+			if (Sys_Stat(van.item[index]))
+				Sys_Copy(HeapPrint("%sconfig.toml", van.item[index]), toml, true);
+			
+			ItemList_Free(&van);
+		}
+		
+		Tools_Command(cmd, seq64, "--in=\"%s\" --out=\"%s\" --abi=Zelda --pref=false --flstudio=true", midi, seq);
+		Make_Run(cmd);
+		Make_Info("seq64", midi);
+		
+		goto free;
 	}
 	
-	com = StrDup(midi);
-	String_Replace(com, ".mid", ".com");
-	
-	Tools_Command(cmd, seq64, "--in=\"%s\" --out=\"%s\" --abi=Zelda --pref=false --flstudio=true", midi, com);
-	Make_Run(cmd);
-	Make_Info("seq64", midi);
-	
-	Sys_Delete(seq);
-	Sys_Rename(com, seq);
+	if ((mus = Make_Wildcard(targ->path, ".mus"))) {
+		toml = HeapPrint("%sconfig.toml", targ->path);
+		seq = HeapPrint("%ssequence.aseq", targ->path);
+		
+		if (Sys_Stat(seq) > Sys_Stat(mus) && !gMakeForce)
+			goto free;
+		
+		if (!Sys_Stat(toml)) {
+			ItemList van = ItemList_Initialize();
+			ItemList_List(&van, "rom/sound/sequence/.vanilla/", 0, LIST_FOLDERS);
+			
+			if (Sys_Stat(van.item[index]))
+				Sys_Copy(HeapPrint("%sconfig.toml", van.item[index]), toml, true);
+			
+			ItemList_Free(&van);
+		}
+		
+		Tools_Command(cmd, seq64, "--in=\"%s\" --out=\"%s\" --abi=Zelda", mus, seq);
+		Make_Run(cmd);
+		Make_Info("seq64", mus);
+		
+		goto free;
+	}
 	
 free:
 	ItemList_Free(list);
 	Free(list);
-	Free(seq);
 }
 
 static void Make_Sequence(void) {

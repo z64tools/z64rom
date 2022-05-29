@@ -17,12 +17,12 @@ typedef enum {
 
 const char* Tools_Get(ToolIndex);
 s32 Tools_RegisterBlender(MemFile* mem);
-void Tools_Clean();
+void Tools_Clean(void);
 s32 Tools_Validate_ReqrTools(void);
 s32 Tools_Validate_AddiTools(void);
 void Tools_Update_Header(bool install);
 void Tools_Update_Binutils(void);
-s32 Tools_Init(void);
 void Tools_CheckUpdates(void);
+s32 Tools_Init(void);
 
 #define Tools_Command(dest, tool, args, ...) sprintf(dest, "%s " args, Tools_Get(tool), __VA_ARGS__)

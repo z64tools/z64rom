@@ -10,6 +10,9 @@ SOURCE_O_WIN32 := $(foreach f,$(SOURCE_C:.c=.o),bin/win32/$f)
 RELEASE_EXECUTABLE_LINUX := app_linux/z64rom
 RELEASE_EXECUTABLE_WIN32 := app_win32/z64rom.exe
 
+SEQAS_LINUX := app_linux/tools/seqas
+SEQAS_WIN32 := app_win32/tools/seqas.exe
+
 SOURCE_nOVL_C            := $(shell find tools/nOVL/src/* -type f -name '*.c')
 
 PRNT_DGRY := \e[90;2m
@@ -58,8 +61,8 @@ update-z64audio:
 
 include $(C_INCLUDE_PATH)/ExtLib.mk
 
-linux: project-files-linux $(SOURCE_O_LINUX) $(RELEASE_EXECUTABLE_LINUX)
-win32: project-files-win32 $(SOURCE_O_WIN32) $(RELEASE_EXECUTABLE_WIN32)
+linux: project-files-linux $(SEQAS_LINUX) $(SOURCE_O_LINUX) $(RELEASE_EXECUTABLE_LINUX)
+win32: project-files-win32 $(SEQAS_WIN32) $(SOURCE_O_WIN32) $(RELEASE_EXECUTABLE_WIN32)
 
 hdrup.exe: tools/hdrup.c
 	@i686-w64-mingw32.static-gcc -o $@ $^ $(OPT_WIN32) $(CFLAGS) -DNDEBUG -lm -D_WIN32
@@ -71,6 +74,7 @@ hdrup.exe: tools/hdrup.c
 project-files-linux: project/tools/novl project/tools/z64audio project/tools/z64convert project/tools/z64compress
 	@mkdir -p             app_linux/src/actor
 	@mkdir -p             app_linux/src/object
+	@cp -r project/rom    app_linux/
 	@cp -r project/patch  app_linux/
 	@cp -r project/src    app_linux/
 	@cp -r project/tools  app_linux/
@@ -81,10 +85,10 @@ project-files-linux: project/tools/novl project/tools/z64audio project/tools/z64
 	@rm -f                app_linux/tools/novl.exe
 	@rm -f                app_linux/tools/z64compress.exe
 	@rm -f                app_linux/tools/seq64_console.exe
-
 project-files-win32: project/tools/novl.exe project/tools/z64audio.exe project/tools/z64convert.exe project/tools/z64compress.exe
 	@mkdir -p             app_win32/src/actor
 	@mkdir -p             app_win32/src/object
+	@cp -r project/rom    app_win32/
 	@cp -r project/patch  app_win32/
 	@cp -r project/src    app_win32/
 	@cp -r project/tools  app_win32/
@@ -116,6 +120,8 @@ clean-sub:
 clean:
 	@rm -f -R bin
 	@rm -f project/tools/elf2ld
+	@rm -f $(SEQUENCE_ASSEMBLER_LINUX)
+	@rm -f $(SEQUENCE_ASSEMBLER_WIN32)
 
 clean-release:
 	@rm -f -R app_linux
@@ -178,6 +184,9 @@ project/tools/z64compress:
 # # # # # # # # # # # # # # # # # # # #
 # LINUX BUILD                         #
 # # # # # # # # # # # # # # # # # # # #
+
+$(SEQAS_LINUX): tools/seqas.cpp
+	@g++ $^ -o $@ -I tools/ -Wall -Wextra -pedantic -std=c++17 -g -O2 -lstdc++ -lm
 	
 bin/linux/%.o: %.c %.h $(HEADER) $(ExtLib_H)
 bin/linux/%.o: %.c $(HEADER) $(ExtLib_H)
@@ -191,6 +200,9 @@ $(RELEASE_EXECUTABLE_LINUX): $(SOURCE_O_LINUX) $(ExtLib_Linux_O) $(Zip_Linux_O) 
 # # # # # # # # # # # # # # # # # # # #
 # WINDOWS-32 BUILD                    #
 # # # # # # # # # # # # # # # # # # # #
+
+$(SEQAS_WIN32): tools/seqas.cpp
+	@i686-w64-mingw32.static-g++ $^ -o $@ -I tools/ -Wall -Wextra -pedantic -std=c++17 -g -O2 -lstdc++ -lm
 	
 bin/win32/%.o: %.c %.h $(HEADER) $(ExtLib_H)
 bin/win32/%.o: %.c $(HEADER) $(ExtLib_H)

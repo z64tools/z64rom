@@ -698,9 +698,9 @@ void Rom_Dump(Rom* rom) {
 	Rom_Dump_Kaleido(rom, &dataFile, &config);
 	Rom_Dump_Static(rom, &dataFile, &config);
 	Rom_Dump_Skybox(rom, &dataFile, &config);
-	Rom_Dump_SoundFont(rom, &dataFile, &config);
-	Rom_Dump_Sequences(rom, &dataFile, &config);
-	Rom_Dump_Samples(rom, &dataFile, &config);
+	Audio_DumpSoundFont(rom, &dataFile, &config);
+	Audio_DumpSequence(rom, &dataFile, &config);
+	Audio_DumpSampleTable(rom, &dataFile, &config);
 	
 	MemFile_Free(&dataFile);
 	MemFile_Free(&config);
@@ -785,7 +785,7 @@ static void Rom_Build_Actor(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	ItemList list = ItemList_Initialize();
 	ActorEntry* entry = rom->table.actor;
 	
-	Rom_ItemListEx(&list, "rom/actor/", SORT_NUMERICAL, LIST_FOLDERS);
+	Rom_ItemList(&list, "rom/actor/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	for (s32 i = 0; i < list.num; i++) {
 		if (list.item[i] == NULL) {
@@ -846,7 +846,7 @@ static void Rom_Build_Effect(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	ItemList list = ItemList_Initialize();
 	EffectEntry* entry = rom->table.effect;
 	
-	Rom_ItemListEx(&list, "rom/effect/", SORT_NUMERICAL, LIST_FOLDERS);
+	Rom_ItemList(&list, "rom/effect/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	for (s32 i = 0; i < list.num; i++) {
 		if (list.item[i] == NULL) {
@@ -890,7 +890,7 @@ static void Rom_Build_Object(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	ItemList list = ItemList_Initialize();
 	ObjectEntry* entry = rom->table.object;
 	
-	Rom_ItemListEx(&list, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
+	Rom_ItemList(&list, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	for (s32 i = 0; i < list.num; i++) {
 		if (list.item[i] == NULL) {
@@ -928,7 +928,7 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	u32* titleID;
 	
 	MemFile_Malloc(&memRoom, MbToBin(2));
-	Rom_ItemListEx(&list, "rom/scene/", SORT_NUMERICAL, LIST_FOLDERS);
+	Rom_ItemList(&list, "rom/scene/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	ItemList_Alloc(&titleList, list.num, list.writePoint * 4);
 	titleID = Calloc(titleID, sizeof(u32) * list.num);
@@ -1089,7 +1089,7 @@ static void Rom_Build_State(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	ItemList list = ItemList_Initialize();
 	GameStateEntry* entry = rom->table.state;
 	
-	Rom_ItemListEx(&list, "rom/system/state/", SORT_NUMERICAL, LIST_FOLDERS);
+	Rom_ItemList(&list, "rom/system/state/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	for (s32 i = 0; i < list.num; i++) {
 		printf_progress("System", i + 1, list.num);
@@ -1130,7 +1130,7 @@ static void Rom_Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	KaleidoEntry* entry = rom->table.kaleido;
 	RomOffset* romOff = &rom->offset;
 	
-	Rom_ItemListEx(&list, "rom/system/kaleido/", SORT_NUMERICAL, LIST_FOLDERS);
+	Rom_ItemList(&list, "rom/system/kaleido/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	for (s32 i = 0; i < list.num; i++) {
 		printf_progress("Kaleido", i + 1, list.num);
@@ -1201,7 +1201,7 @@ static void Rom_Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 static void Rom_Build_Skybox(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	ItemList list = ItemList_Initialize();
 	
-	Rom_ItemListEx(&list, "rom/system/skybox/", SORT_NUMERICAL, LIST_FOLDERS);
+	Rom_ItemList(&list, "rom/system/skybox/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	for (s32 i = 0; i < list.num; i++) {
 		if (list.item[i] == NULL)
@@ -1229,7 +1229,7 @@ static void Rom_Build_Skybox(Rom* rom, MemFile* memData, MemFile* memCfg) {
 static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	ItemList list = ItemList_Initialize();
 	
-	Rom_ItemListEx(&list, "rom/system/static/", SORT_NO, LIST_FILES);
+	Rom_ItemList(&list, "rom/system/static/", SORT_NO, LIST_FILES);
 	
 	for (s32 item = 0; item < list.num; item++) {
 		s32 dmaId;
@@ -1308,21 +1308,21 @@ void Rom_Build(Rom* rom) {
 	Dir_Enter("rom/"); {
 		Dir_Enter("sound/"); {
 			Dir_Enter("sample/"); {
-				Rom_Build_SampleTable(rom, &dataFile, &config);
+				Audio_BuildSampleTable(rom, &dataFile, &config);
 				
 				Dir_Leave();
 			}
 			Dir_Enter("soundfont/"); {
-				Rom_Build_SoundFont(rom, &dataFile, &config);
+				Audio_BuildSoundFont(rom, &dataFile, &config);
 				
 				Dir_Leave();
 			}
 			Dir_Enter("sequence/"); {
-				Rom_Build_Sequence(rom, &dataFile, &config);
+				Audio_BuildSequence(rom, &dataFile, &config);
 				
 				Dir_Leave();
 			}
-			Rom_Build_SetAudioSegment(rom);
+			Audio_UpdateSegments(rom);
 			
 			Dir_Leave();
 		}
@@ -1651,7 +1651,7 @@ void Rom_Debug_SceneEntry(Rom* rom, u32 id) {
 	printf_info("title ROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.scene[id].titleVromStart), ReadBE(rom->table.scene[id].titleVromEnd), ClampMin((s32)(ReadBE(rom->table.scene[id].titleVromEnd) - ReadBE(rom->table.scene[id].titleVromStart)), 0));
 }
 
-void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
+void Rom_ItemListDir(ItemList* list, bool isNum, bool isDir) {
 	ItemList vanilla = ItemList_Initialize();
 	ItemList modified = ItemList_Initialize();
 	ItemList result = ItemList_Initialize();
@@ -1754,7 +1754,7 @@ void Rom_ItemList(ItemList* list, bool isNum, bool isDir) {
 	ItemList_Free(&modified);
 }
 
-void Rom_ItemListEx(ItemList* list, const char* path, bool isNum, ListFlags flags) {
+void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlags flags) {
 	ItemList vanilla = ItemList_Initialize();
 	ItemList modified = ItemList_Initialize();
 	ItemList result = ItemList_Initialize();

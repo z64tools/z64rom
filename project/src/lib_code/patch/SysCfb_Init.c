@@ -23,6 +23,6 @@ void _SysCfb_Init(s32 n64dd) {
 	}
 	
 	sSysCfbEnd &= ~0x3f;
-	sSysCfbFbPtr[0] = sSysCfbEnd - (screenSize * 4);
-	sSysCfbFbPtr[1] = sSysCfbEnd - (screenSize * 2);
+	sSysCfbFbPtr[1] = sSysCfbEnd - (screenSize * sizeof(u16));
+    sSysCfbFbPtr[0] = sSysCfbFbPtr[1] - (screenSize * sizeof(u16));
 }

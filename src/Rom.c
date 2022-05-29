@@ -1346,6 +1346,8 @@ void Rom_Build(Rom* rom) {
 	if (Sys_Stat("rom/lib_user/z_lib_user.bin")) {
 		MemFile_Reset(&dataFile);
 		MemFile_LoadFile(&dataFile, "rom/lib_user/z_lib_user.bin");
+		if (dataFile.dataSize > 0xB5000)
+			printf_error("z_lib_user.bin is bigger than %.2f MB. This wont fit into the RAM!", BinToMb(0xB5000));
 		Dma_WriteEntry(rom, DMA_ID_UNUSED_3, &dataFile, false);
 	}
 	

@@ -229,7 +229,7 @@ void Main_Config(char** input, Rom* rom) {
 		"%-15s = \"%s\"\n",
 		"mips64_gcc_flags",
 		"-c -Iinclude/z64hdr -Iinclude/z64hdr/include -Iinclude/ "
-		"-Isrc/lib_user -G 0 -O1 -fno-reorder-blocks -std=gnu99 -march=vr4300 -mabi=32"
+		"-Isrc/lib_user -G 0 -O1 -fno-reorder-blocks -fno-common -std=gnu99 -march=vr4300 -mabi=32"
 		" -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division -Wall"
 		" -Wno-builtin-declaration-mismatch"
 	);
@@ -461,7 +461,7 @@ s32 Main(s32 argc, char* argv[]) {
 			
 			if (Arg("update")) {
 				printf_toolinfo(gToolName, "Updating z64hdr...");
-				Tools_Update_Header(false);
+				Tools_Install_z64hdr(true);
 				
 				goto free;
 			}

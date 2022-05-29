@@ -43,7 +43,7 @@ const char* sTools[] = {
 static char buffer[ArrayCount(sTools) + 1][256];
 bool gAutoDownload = true;
 
-static void CloseDialog(const char* toolName, bool askClose) {
+static void Tools_CloseDialog(const char* toolName, bool askClose) {
 	static u32 failCount = 0;
 	const char* downMode[2] = {
 		"automatic",
@@ -84,7 +84,7 @@ static void CloseDialog(const char* toolName, bool askClose) {
 	exit(0);
 }
 
-static s32 FileDialog(const char* output) {
+static s32 Tools_FileDialog(const char* output) {
 	char* buffer = String_Unquote(Terminal_GetStr());
 	
 	if (buffer == NULL || !StrEnd(output, String_Extension(buffer))) {
@@ -94,7 +94,7 @@ static s32 FileDialog(const char* output) {
 			String_Extension(output)
 		);
 		
-		return FileDialog(output);
+		return Tools_FileDialog(output);
 	}
 	
 	Terminal_ClearLines(4);
@@ -114,7 +114,7 @@ static s32 FileDialog(const char* output) {
 	return 0;
 }
 
-static s32 BinutilsSHA256(const char* zip, const char* shaFile) {
+static s32 Tools_BinutilsSHA256(const char* zip, const char* shaFile) {
 	MemFile code = MemFile_Initialize();
 	MemFile arcmem = MemFile_Initialize();
 	u8* hash;
@@ -142,7 +142,7 @@ static s32 BinutilsSHA256(const char* zip, const char* shaFile) {
 		if (strncmp(a, b, 2)) {
 			Terminal_ClearLines(2);
 			printf_warning("Checksum Mismatch in " PRNT_REDD "%s" PRNT_RSET "!", zip);
-			CloseDialog(NULL, false);
+			Tools_CloseDialog(NULL, false);
 			
 			return 1;
 		}
@@ -154,7 +154,7 @@ static s32 BinutilsSHA256(const char* zip, const char* shaFile) {
 	return 0;
 }
 
-static s32 ZipExtractCallback(const char* name, void* arg) {
+static s32 Tools_ZipExtractCallback(const char* name, void* arg) {
 	const char* filename = name;
 	s32 i = strlen(filename);
 	
@@ -174,123 +174,7 @@ redo:
 	return 0;
 }
 
-static void InstallHdr(s32 isUpdate) {
-	const char* extract = "include/z64hdr-temp-update/";
-	char command[512];
-	ItemList itemList = ItemList_Initialize();
-	
-	if (isUpdate == false) {
-		Sys_MakeDir("include/");
-		printf_info("" PRNT_BLUE "z64hdr " PRNT_RSET "is a collection of files allowing to interact");
-		printf_info("with the game with source code, usually in C.\n");
-	}
-	
-	// if (Sys_Stat("include/"))
-	// 	if (Sys_Delete_Recursive("include/"))
-	// 		printf_error("Could not delete [include/]");
-	
-redo:
-	if (gAutoDownload == true) {
-		Tools_Command(command, wget, "%s -q --show-progress -O %s", URL_Z64HDR_DOWNLOAD, ZIP_Z64HDR);
-		if (SysExe(command)) {
-			printf("\n");
-			printf_warning("Failed to initialize download... Try again? Otherwise we'll do this manually. " PRNT_DGRY "[y/n]");
-			if (Terminal_YesOrNo() == false)
-				gAutoDownload = false;
-			goto redo;
-		}
-		Terminal_ClearLines(2);
-	} else {
-		printf_info("" PRNT_GRAY "%s", URL_Z64HDR_DOWNLOAD);
-		printf_info("Download manually, drag and drop the file here and press enter.");
-		
-		if (FileDialog(ZIP_Z64HDR)) {
-			if (Terminal_YesOrNo())
-				goto redo;
-			
-			CloseDialog("z64hdr", true);
-			goto redo;
-		}
-	}
-	
-	if (BinutilsSHA256(ZIP_Z64HDR, "tools/z64hdr-sha256"))
-		goto redo;
-	Terminal_ClearLines(1);
-	
-	if (zip_extract(ZIP_Z64HDR, "include/", ZipExtractCallback, 0)) printf_error_align("zip_extract", "Failed");
-	Terminal_ClearLines(1);
-	
-	ItemList_List(&itemList, extract, -1, LIST_FILES);
-	
-	Log("Move z64hdr files");
-	for (s32 i = 0; i < itemList.num; i++) {
-		char* input = itemList.item[i];
-		char* output = strdup(input);
-		
-		String_Replace(output, extract + strlen("include/"), "z64hdr/");
-		Sys_MakeDir(Path(output));
-		Sys_Rename(input, output);
-		
-		Free(output);
-	}
-	
-	Log("Create objects.ld");
-	Sys_Touch("include/objects.ld");
-	
-	Log("Clean Temporal Extraction");
-	if (Sys_Delete_Recursive(extract)) printf_error("Could not delete [%s]", extract);
-	
-	ItemList_Free(&itemList);
-}
-
-const char* Tools_Get(ToolIndex id) {
-	static u8 init;
-	
-	if (!init) {
-		init++;
-		for (s32 i = 0; i < ArrayCount(sTools); i++)
-			if (StrStr(sTools[i], "mips64")) {
-				sprintf(
-					buffer[i],
-#ifdef _WIN32
-					"set PATH=%stools\\mips64-binutils\\bin;%s && "
-#else
-					"export PATH=\"%s%stools/mips64-binutils/bin\" && "
-#endif
-					"%s",
-					
-#ifdef _WIN32
-					Sys_AppDir(),
-					"%PATH%",
-#else
-					"$PATH:",
-					Sys_AppDir(),
-#endif
-					
-					sTools[i]
-				);
-			} else {
-				strcpy(buffer[i], sTools[i]);
-			}
-	}
-	
-	return buffer[id];
-	
-	return NULL;
-}
-
-s32 Tools_RegisterBlender(MemFile* mem) {
-	char* blender = Toml_GetStr(mem, "blender_path");
-	
-	if (blender == NULL)
-		return 0;
-	
-	strcpy(buffer[ArrayCount(sTools)], blender);
-	
-	return 1;
-}
-
-void Tools_Clean(void) {
+static void Tools_Clean(void) {
 	if (Sys_Stat(ZIP_BINUTIL))
 		Sys_Delete(ZIP_BINUTIL);
 	if (Sys_Stat(ZIP_Z64HDR))
@@ -301,7 +185,7 @@ void Tools_Clean(void) {
 		Sys_Delete_Recursive("tools/mips64-binutils/");
 }
 
-s32 Tools_Validate_ReqrTools(void) {
+static s32 Tools_ValidateTools_Required(void) {
 	u32 fail = 0;
 	
 	const char* toolList[] = {
@@ -345,7 +229,7 @@ s32 Tools_Validate_ReqrTools(void) {
 	return fail;
 }
 
-s32 Tools_Validate_AddiTools(void) {
+static s32 Tools_ValidateTools_Additional(void) {
 	for (s32 i = 0; i < ArrayCount(sTools); i++) {
 #ifndef _WIN32
 		if (StrStr(sTools[i], "wget"))
@@ -358,7 +242,43 @@ s32 Tools_Validate_AddiTools(void) {
 	return 0;
 }
 
-void Tools_Update_Binutils(void) {
+const char* Tools_Get(ToolIndex id) {
+	static u8 init;
+	
+	if (!init) {
+		init++;
+		for (s32 i = 0; i < ArrayCount(sTools); i++)
+			if (StrStr(sTools[i], "mips64")) {
+				sprintf(
+					buffer[i],
+#ifdef _WIN32
+					"set PATH=%stools\\mips64-binutils\\bin;%s && "
+#else
+					"export PATH=\"%s%stools/mips64-binutils/bin\" && "
+#endif
+					"%s",
+					
+#ifdef _WIN32
+					Sys_AppDir(),
+					"%PATH%",
+#else
+					"$PATH:",
+					Sys_AppDir(),
+#endif
+					
+					sTools[i]
+				);
+			} else {
+				strcpy(buffer[i], sTools[i]);
+			}
+	}
+	
+	return buffer[id];
+	
+	return NULL;
+}
+
+void Tools_Install_mips64(void) {
 	char command[512];
 	
 	if (Sys_Stat("tools/.failsafe")) {
@@ -380,11 +300,11 @@ redo:
 			printf_info("" PRNT_GRAY "https://github.com/z64tools/z64rom/releases/tag/z64rom_binutils");
 			printf_info("Download manually, drag and drop the file here and press enter.");
 			
-			if (FileDialog(ZIP_BINUTIL)) {
+			if (Tools_FileDialog(ZIP_BINUTIL)) {
 				if (Terminal_YesOrNo())
 					goto redo;
 				
-				CloseDialog("mips64-binutils", true);
+				Tools_CloseDialog("mips64-binutils", true);
 				goto redo;
 			}
 		} else {
@@ -402,12 +322,12 @@ redo:
 	
 	printf_info_align("Validating", PRNT_REDD "%s", ZIP_BINUTIL);
 	
-	if (BinutilsSHA256(ZIP_BINUTIL, "tools/binutils-sha256"))
+	if (Tools_BinutilsSHA256(ZIP_BINUTIL, "tools/binutils-sha256"))
 		goto redo;
 	Terminal_ClearLines(2);
 	
 	Sys_Touch("tools/.failsafe");
-	if (zip_extract(ZIP_BINUTIL, "tools/mips64-binutils/", ZipExtractCallback, 0)) printf_error_align("zip_extract", "Failed");
+	if (zip_extract(ZIP_BINUTIL, "tools/mips64-binutils/", Tools_ZipExtractCallback, 0)) printf_error_align("zip_extract", "Failed");
 	Terminal_ClearLines(1);
 	
 #ifndef _WIN32
@@ -420,64 +340,70 @@ redo:
 	printf_info("Installed successfully!\n");
 }
 
-void Tools_Update_Header(bool install) {
+void Tools_Install_z64hdr(s32 isUpdate) {
+	const char* extract = "include/z64hdr-temp-update/";
 	char command[512];
-	char* output = NULL;
-	char* line = NULL;
-	char* word = NULL;
-	MemFile ver = MemFile_Initialize();
+	ItemList itemList = ItemList_Initialize();
 	
-	Tools_Command(command, wget, "%s -q -O -", URL_Z64HDR_UPDT_API);
+	if (isUpdate == true)  // Add updating here
+		return;
 	
-	SysExe_IgnoreError();
-	output = SysExeO(command);
+	Sys_MakeDir("include/");
+	printf_info("" PRNT_BLUE "z64hdr " PRNT_RSET "is a collection of files allowing to interact");
+	printf_info("with the game with source code, usually in C.\n");
 	
-	if (SysExe_GetError())
-		goto skipupdate;
-	
-	line = StrStr(output, "\"pushed_at\":");
-	
-	if (line == NULL) {
-		printf_warning("Could not retrieve update information of z64hdr...");
-		
-		goto free;
-	}
-	
-	word = CopyWord(line, 1);
-	String_Replace(word, "\"", "");
-	String_Replace(word, ",", "");
-	
-	if (0) {
-skipupdate:
-		word = HeapStrDup("offline");
-	}
-	
-	if (!Sys_Stat("include/.version") || install) {
-		InstallHdr(false);
-		
-		MemFile_Malloc(&ver, 0x800);
-		MemFile_Write(&ver, word, strlen(word));
-		MemFile_SaveFile_String(&ver, "include/.version");
-		Terminal_ClearLines(2);
-		printf_info("Installed successfully!");
-	} else {
-		MemFile_LoadFile_String(&ver, "include/.version");
-		
-		if (!strcmp(ver.str, word)) {
-			printf_info("z64hdr is already up to date.");
-			goto free;
+redo:
+	if (gAutoDownload == true) {
+		Tools_Command(command, wget, "%s -q --show-progress -O %s", URL_Z64HDR_DOWNLOAD, ZIP_Z64HDR);
+		if (SysExe(command)) {
+			printf("\n");
+			printf_warning("Failed to initialize download... Try again? Otherwise we'll do this manually. " PRNT_DGRY "[y/n]");
+			if (Terminal_YesOrNo() == false)
+				gAutoDownload = false;
+			goto redo;
 		}
+		Terminal_ClearLines(2);
+	} else {
+		printf_info("" PRNT_GRAY "%s", URL_Z64HDR_DOWNLOAD);
+		printf_info("Download manually, drag and drop the file here and press enter.");
 		
-		InstallHdr(true);
-		
-		MemFile_Write(&ver, word, strlen(word));
-		MemFile_SaveFile_String(&ver, "include/.version");
-		printf_info("z64hdr is up to date!");
+		if (Tools_FileDialog(ZIP_Z64HDR)) {
+			if (Terminal_YesOrNo())
+				goto redo;
+			
+			Tools_CloseDialog("z64hdr", true);
+			goto redo;
+		}
 	}
 	
-free:
-	printf("\n");
-	MemFile_Free(&ver);
+	if (Tools_BinutilsSHA256(ZIP_Z64HDR, "tools/z64hdr-sha256"))
+		goto redo;
+	Terminal_ClearLines(1);
+	
+	if (zip_extract(ZIP_Z64HDR, "include/", Tools_ZipExtractCallback, 0)) printf_error_align("zip_extract", "Failed");
+	Terminal_ClearLines(1);
+	
+	ItemList_List(&itemList, extract, -1, LIST_FILES);
+	
+	Log("Move z64hdr files");
+	for (s32 i = 0; i < itemList.num; i++) {
+		char* input = itemList.item[i];
+		char* output = strdup(input);
+		
+		String_Replace(output, extract + strlen("include/"), "z64hdr/");
+		Sys_MakeDir(Path(output));
+		Sys_Rename(input, output);
+		
+		Free(output);
+	}
+	
+	Log("Create objects.ld");
+	Sys_Touch("include/objects.ld");
+	
+	Log("Clean Temporal Extraction");
+	if (Sys_Delete_Recursive(extract)) printf_error("Could not delete [%s]", extract);
+	
+	ItemList_Free(&itemList);
 }
 
 void Tools_CheckUpdates() {
@@ -540,11 +466,11 @@ s32 Tools_Init(void) {
 	static MemFile dll;
 	s32 setupFlag = 0;
 	
-	if (Tools_Validate_ReqrTools()) {
+	if (Tools_ValidateTools_Required()) {
 		return -1;
 	}
 	
-	if (Tools_Validate_AddiTools() || !Sys_Stat("include/z64hdr/") || Sys_Stat("tools/.failsafe") || Sys_Stat("tools/.installing")) {
+	if (Tools_ValidateTools_Additional() || !Sys_Stat("include/z64hdr/") || Sys_Stat("tools/.failsafe") || Sys_Stat("tools/.installing")) {
 		setupFlag = 1;
 		dll = MemFile_Initialize();
 		MemFile_LoadFile(&dll, "tools/important64.dll");
@@ -574,13 +500,13 @@ s32 Tools_Init(void) {
 		SleepF(0.2);
 		
 		/* INIT */ {
-			if (Tools_Validate_AddiTools() || Sys_Stat("tools/.failsafe"))
-				Tools_Update_Binutils();
+			if (Tools_ValidateTools_Additional() || Sys_Stat("tools/.failsafe"))
+				Tools_Install_mips64();
 			if (!Sys_Stat("include/oot_mq_debug/z64hdr.h"))
-				Tools_Update_Header(true);
+				Tools_Install_z64hdr(false);
 		}
 		
-		if (!Tools_Validate_AddiTools() && Sys_Stat("include/z64hdr/")) {
+		if (!Tools_ValidateTools_Additional() && Sys_Stat("include/z64hdr/")) {
 			printf_info("All required tools have been installed successfully!");
 			printf("\n");
 		}

@@ -17,12 +17,8 @@ typedef enum {
 } ToolIndex;
 
 const char* Tools_Get(ToolIndex);
-s32 Tools_RegisterBlender(MemFile* mem);
-void Tools_Clean(void);
-s32 Tools_Validate_ReqrTools(void);
-s32 Tools_Validate_AddiTools(void);
-void Tools_Update_Header(bool install);
-void Tools_Update_Binutils(void);
+void Tools_Install_mips64(void);
+void Tools_Install_z64hdr(s32 isUpdate);
 void Tools_CheckUpdates(void);
 s32 Tools_Init(void);
 

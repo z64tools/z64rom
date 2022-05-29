@@ -5,6 +5,7 @@
 asm ("D_801333D4 = 0x801333D4");
 asm ("D_801333E0 = 0x801333E0");
 asm ("D_801333E8 = 0x801333E8");
+// char wow[0x100000];
 
 void uLib_Update(GameState* gameState) {
 #ifdef DEV_BUILD

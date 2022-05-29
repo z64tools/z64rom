@@ -36,7 +36,7 @@ void DmaMgr_Init(void) {
 	
 	DmaMgr_DmaRomToRam(
 		gDmaDataTable[3].vromStart,
-		0x80600000,
+		0x80700000,
 		gDmaDataTable[3].vromEnd - gDmaDataTable[3].vromStart
 	);
 	

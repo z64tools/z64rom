@@ -684,7 +684,8 @@ static ThreadFunc Code_ObjDump(char* cmd, const char* output) {
 		char* line = CopyLine(txt, 0);
 		char* word;
 		
-		if (!MemMem(line, 3, "806", 3)) goto skip;
+		// 0x80700000
+		if (!MemMem(line, 3, "807", 3)) goto skip;
 		if (!StrStr(line, " F ") && !StrStr(line, " O ")) goto skip;
 		word = CopyWord(line, 5);
 		
@@ -755,7 +756,7 @@ static ThreadFunc Make_Linker_Thread(MakeArg* arg) {
 		MemFile entry = MemFile_Initialize();
 		
 		MemFile_Malloc(&entry, 0x80);
-		MemFile_Printf(&entry, "ENTRY_POINT = 0x80600000;\n");
+		MemFile_Printf(&entry, "ENTRY_POINT = 0x80700000;\n");
 		MemFile_SaveFile(&entry, "rom/lib_user/entry.ld");
 		MemFile_Free(&entry);
 		
@@ -948,7 +949,7 @@ static void Make_Code(void) {
 		"",
 	};
 	const char* flagLinker[] = {
-		"-Lrom/lib_user -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld --emit-relocs",
+		"-Lrom/lib_user -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T ulib_linker.ld -T objects.ld --emit-relocs",
 		sFlagsLink,
 		sFlagsLink,
 		sFlagsLink,

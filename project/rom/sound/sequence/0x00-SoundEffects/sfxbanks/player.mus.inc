@@ -1344,7 +1344,7 @@ end
 .layer layer_8BB
 instr FONT00_INSTR_WATER_BUBBLES
 env envelope_65FC, 221
-portamento 0x1, 46, 0x1
+portamento 0x1, 46, 0x48
 notedv PITCH_G3, 0xDC, 100
 end
 

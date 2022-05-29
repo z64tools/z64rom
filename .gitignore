@@ -26,3 +26,4 @@ project/tools/z64compress
 *.zip
 *.o
 .*/
+project/tools/seqas

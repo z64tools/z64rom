@@ -918,7 +918,7 @@ ldlayer 0, layer_64D
 end
 
 .layer layer_64D
-portamento 0x1, 48, 0x1
+portamento 0x1, 48, 0x10
 notedv PITCH_D4, 0x18, 100
 end
 

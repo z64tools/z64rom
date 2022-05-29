@@ -79,3 +79,11 @@ sklitte22
 **Special Thanks:** <br>
 Sauraen <br>
 Tharo
+
+**Tools:** <br>
+[z64convert](https://github.com/z64me/z64convert) by [z64me](https://z64.me) <br>
+[z64compress](https://github.com/z64me/z64compress) by [z64me](https://z64.me) <br>
+[novl](https://github.com/z64me/nOvl) by [z64me](https://z64.me) <br>
+[seq64](https://github.com/sauraen/seq64) by [Sauraen](https://github.com/sauraen/) <br>
+Sequence Assembler (seqas) by [Zelda Reverse Engineering Team](https://zelda64.dev/) <br>
+[z64audio](https://github.com/z64tools/z64audio) by [rankaisija](https://github.com/rankaisija64) <br>

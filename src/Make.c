@@ -114,9 +114,9 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 			ItemList_Free(&van);
 		}
 		
-		Tools_Command(cmd, seq64, "--in=\"%s\" --out=\"%s\" --abi=Zelda", mus, seq);
+		Tools_Command(cmd, seqas, "\"%s\" \"%s\"", mus, seq);
 		Make_Run(cmd);
-		Make_Info("seq64", mus);
+		Make_Info("seq-assembler", mus);
 		
 		goto free;
 	}

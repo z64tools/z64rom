@@ -74,6 +74,7 @@ project-files-linux: $(TOOLS_LINUX)
 	@cp -r project/.[^.]* app_linux/
 	@rm -f                app_linux/*/*/*.txt
 	@rm -f                app_linux/*/*.txt
+	@rm -f                app_linux/tools/z64convert.exe
 	@rm -f                app_linux/tools/z64audio.exe
 	@rm -f                app_linux/tools/novl.exe
 	@rm -f                app_linux/tools/z64compress.exe
@@ -86,6 +87,7 @@ project-files-win32: $(TOOLS_WIN32)
 	@cp tools/wget.exe    app_win32/tools/
 	@rm -f                app_win32/*/*/*.txt
 	@rm -f                app_win32/*/*.txt
+	@rm -f                app_win32/tools/z64convert
 	@rm -f                app_win32/tools/z64audio
 	@rm -f                app_win32/tools/novl
 	@rm -f                app_win32/tools/z64compress

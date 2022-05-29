@@ -11,6 +11,7 @@ typedef enum {
 	z64convert,
 	z64compress,
 	seq64,
+	seqas,
 	nOVL,
 	wget
 } ToolIndex;

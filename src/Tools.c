@@ -23,6 +23,7 @@ const char* sTools[] = {
 	"tools\\z64convert.exe",
 	"tools\\z64compress.exe",
 	"tools\\seq64_console.exe",
+	"tools\\seqas.exe",
 	"tools\\novl.exe",
 	"tools\\wget.exe",
 #else
@@ -34,6 +35,7 @@ const char* sTools[] = {
 	"tools/z64convert",
 	"tools/z64compress",
 	"tools/seq64_console",
+	"tools/seqas",
 	"tools/novl",
 	"wget",
 #endif
@@ -313,6 +315,7 @@ s32 Tools_Validate_ReqrTools(void) {
 		"tools/z64convert.exe",
 		"tools/z64compress.exe",
 		"tools/seq64_console.exe",
+		"tools/seqas.exe",
 		
 		"tools/wget.exe",
 #else
@@ -321,6 +324,7 @@ s32 Tools_Validate_ReqrTools(void) {
 		"tools/z64convert",
 		"tools/z64compress",
 		"tools/seq64_console",
+		"tools/seqas",
 #endif
 	};
 	

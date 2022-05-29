@@ -1508,6 +1508,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			u32 seq = 0;
 			char* confMed;
 			char* confSeq;
+			char* fseq;
 			ItemList bankList = ItemList_Initialize();
 			
 			MemFile_Reset(dataFile);
@@ -1537,8 +1538,10 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			sqEntry.numDrum = 0;
 			sqEntry.numSfx = 0;
 			
-			if (Dir_File("*.aseq")) {
-				MemFile_LoadFile(dataFile, Dir_File("*.aseq"));
+			fseq = Dir_FindFile(".aseq");
+			
+			if (fseq) {
+				MemFile_LoadFile(dataFile, fseq);
 				addr = sequenceMem.seekPoint;
 				MemFile_Append(&sequenceMem, dataFile);
 				MemFile_Align(&sequenceMem, 16);

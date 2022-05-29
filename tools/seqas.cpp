@@ -822,7 +822,7 @@ void Compiler::processLine(string_view line, string_view filename, int lineNumbe
 
 void Compiler::processGlobalMetaCommand(string_view cmd, Tokenizer& tk, string_view filename) {
 	if (cmd == ".include") {
-		string dir = filesystem::path(filename).parent_path();
+		string dir = filesystem::path(filename).parent_path().u8string();
 		string includedFilename;
 		if (!tk.readStringLiteral(&includedFilename))
 			throw ParseError("expected string literal");
@@ -1172,7 +1172,7 @@ int main(int argc, char** argv) {
 	ElfOptions elf;
 	char optParams = '\0';
 	string fontpath;
-	string cwd = filesystem::current_path();
+	string cwd = filesystem::current_path().u8string();
 	vector<string> positionalArgs;
 	for (int i = 1; i < argc; i++) {
 		string arg = argv[i];

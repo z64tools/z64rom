@@ -265,8 +265,7 @@ void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 	gEntries++;
 	
 	if (ReadBE(dma->vromStart) - ReadBE(dma->vromEnd) == 0) {
-		dma->romStart = dma->romEnd = 0xFFFFFFFF;
-		dma->vromStart = dma->vromEnd = 0xFFFFFFFF;
+		*dma = (DmaEntry) { -1, -1, -1, -1 };
 		
 		return;
 	}
@@ -274,8 +273,7 @@ void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 	slot->romStart = ReadBE(dma->vromStart);
 	slot->romEnd = ReadBE(dma->vromEnd);
 	
-	dma->romStart = dma->romEnd = 0xFFFFFFFF;
-	dma->vromStart = dma->vromEnd = 0xFFFFFFFF;
+	*dma = (DmaEntry) { -1, -1, -1, -1 };
 	
 	if (dmaAlign) {
 		slot->romEnd = Align(slot->romEnd, dmaAlign);

@@ -324,7 +324,7 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 	
 	if (type == PRE_LD) {
 		ItemList list = ItemList_Initialize();
-		ItemList_SpacedStr(&list, input);
+		ItemList_Separated(&list, input, ' ');
 		
 		if (!ItemList_StatMin(&list))
 			return CB_BREAK;
@@ -399,7 +399,7 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 	if (type == PRE_LD) {
 		ItemList list = ItemList_Initialize();
 		
-		ItemList_SpacedStr(&list, input);
+		ItemList_Separated(&list, input, ' ');
 		
 		if (!ItemList_StatMin(&list))
 			return CB_BREAK;

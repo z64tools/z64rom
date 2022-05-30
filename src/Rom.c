@@ -777,7 +777,7 @@ static void Rom_AllocDmaTable(Rom* rom) {
 			rom->table.dma[i] = (DmaEntry) { 0 };
 		
 		else
-			rom->table.dma[i] = (DmaEntry) { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
+			rom->table.dma[i] = (DmaEntry) { -1, -1, -1, -1 };
 	}
 }
 

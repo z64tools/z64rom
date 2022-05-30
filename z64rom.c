@@ -15,10 +15,9 @@ char gRomName_Output[2][128] = {
 	/* "build-release.z64", */
 	/* "build-dev.z64", */
 };
-
 s32 gDumpFlag;
 
-s32 Main_IsSameFile(char* new, char* cur) {
+static s32 Main_IsSameFile(char* new, char* cur) {
 	if (Sys_StatF(new, STAT_ACCS) != Sys_StatF(cur, STAT_ACCS))
 		return false;
 	if (Sys_StatF(new, STAT_MODF) != Sys_StatF(cur, STAT_MODF))
@@ -26,26 +25,28 @@ s32 Main_IsSameFile(char* new, char* cur) {
 	if (Sys_StatF(new, STAT_CREA) != Sys_StatF(cur, STAT_CREA))
 		return false;
 	
-	const char* pathA = Path(String_Unquote(new));
-	const char* pathB = Sys_AppDir();
-	
-	if (strlen(pathB) != strlen(pathA))
-		return false;
-	
-	if (!StrMtch(pathA, pathB))
-		return false;
-	
 	return true;
 }
 
-void Main_CompressRom(char* input) {
+static void Main_CompressRom(char* input) {
 	char cmd[512];
 	char romName[64];
+	MemFile mem = MemFile_Initialize();
+	char* tblstr;
+	u32 num;
 	
+	printf_toolinfo(gToolName, "Compressing");
 	strcpy(romName, input);
 	String_Insert(StrEnd(romName, ".z64"), "-yaz");
 	
-	printf_toolinfo(gToolName, "Compressing");
+	if (!Sys_Stat("include/z_lib_user.ld"))
+		printf_error("Where is [include/z_lib_user.ld]?");
+	
+	MemFile_LoadFile_String(&mem, "src/lib_user/uLib.h");
+	tblstr = StrStr(mem.str, "EXT_DMA_MAX");
+	tblstr += strlen("EXT_DMA_MAX ");
+	while (!isdigit(tblstr[0])) tblstr++;
+	num = Value_Int(tblstr);
 	
 	Tools_Command(
 		cmd,
@@ -54,18 +55,24 @@ void Main_CompressRom(char* input) {
 		"--out %s "
 		"--mb 32 "
 		"--codec yaz "
-		"--cache rom/cache/ "
-		"--dma \"0x12F70,1548\" "
+		"--cache rom/cache "
+		"--dma \"0x%X,%d\" "
 		"--compress \"9-14,28-END\" "
-		"--threads 8",
-		
+		"--matching "
+		"--threads 42 "
+		,
 		input,
-		romName
+		romName,
+		/* Offset */ 0x12F70,
+		/* DmaNum */ num
 	);
+	printf("%s\n", cmd);
 	SysExe(cmd);
+	
+	MemFile_Free(&mem);
 }
 
-void Main_RenameRooms(const char* from, const char* to) {
+static void Main_RenameRooms(const char* from, const char* to) {
 	ItemList list = ItemList_Initialize();
 	u32 times = 0;
 	
@@ -94,7 +101,7 @@ void Main_RenameRooms(const char* from, const char* to) {
 	printf_info("%d rooms renamed to *%s.", times, to);
 }
 
-s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
+static s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 	u32 parArg = 0;
 	
 	Log("Going through arguments...");
@@ -165,7 +172,7 @@ s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 	return 0;
 }
 
-void Main_Config(char** input, Rom* rom) {
+static void Main_Config(char** input, Rom* rom) {
 	const char* projectConfig = "z64project.toml";
 	MemFile* config = &rom->config;
 	
@@ -201,11 +208,10 @@ void Main_Config(char** input, Rom* rom) {
 			for (s32 i = 0; i < 2; i++) {
 				if (Main_IsSameFile(*input, gRomName_Output[i])) {
 					gCompressFlag = true;
+					Main_CompressRom(gRomName_Output[i]);
 					
-					sprintf(gRomName_Output[0], "%s-yaz-release.z64", Toml_GetStr(config, "z_buildrom"));
-					sprintf(gRomName_Output[1], "%s-yaz-dev.z64", Toml_GetStr(config, "z_buildrom"));
-					
-					return;
+					printf_getchar("Press enter to exit.");
+					exit(0);
 				}
 			}
 			

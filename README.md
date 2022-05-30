@@ -65,6 +65,9 @@ z64rom will convert the newest audio file it finds from this folder so you do no
 | **--no-make**         | Do not compile/convert                             |                           |
 | **--no-wav**          | Do not dump wavs                                   |                           |
 | **--no-beta**         | Remove all OoT unused assets from the project      |                           |
+| **--audio-only**      | Only dump/build audio                              |                           |
+| **--dump [rom]**      | Pair with **--audio-only**                         |                           |
+| **--build**           | Pair with **--audio-only**                         |                           |
 
 ## Credits
 

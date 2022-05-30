@@ -33,4 +33,7 @@ void Rom_ItemListDir(ItemList* list, bool isNum, bool isDir);
 void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlags flags);
 s32 Rom_Extract(MemFile* mem, struct RomFile rom, char* name);
 
+void AudioOnly_Dump(struct Rom* rom);
+void AudioOnly_Build(struct Rom* rom);
+
 #endif

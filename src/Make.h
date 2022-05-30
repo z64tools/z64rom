@@ -58,4 +58,7 @@ typedef struct MakeArg {
 
 typedef void ThreadFunc;
 
+void Make_Sequence(void);
+void Make_Sound(void);
+void Make_Code(void);
 void Make(struct Rom* rom, s32 message);

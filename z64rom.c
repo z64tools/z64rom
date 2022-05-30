@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.7.6";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.7.7";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gInfoFlag;
@@ -16,6 +16,7 @@ char gRomName_Output[2][128] = {
 	/* "build-dev.z64", */
 };
 s32 gDumpFlag;
+s32 gAudioOnly;
 
 static s32 Main_IsSameFile(char* new, char* cur) {
 	if (Sys_StatF(new, STAT_ACCS) != Sys_StatF(cur, STAT_ACCS))
@@ -283,6 +284,12 @@ static void Main_Config(char** input, Rom* rom) {
 		"mips64_ld_flags",
 		"-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld -T z_lib_user.ld --emit-relocs"
 	);
+	MemFile_Printf(
+		config,
+		"%-15s = \"%s\"\n",
+		"ulib_ld_flags",
+		"-Lrom/lib_user -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T ulib_linker.ld -T objects.ld --emit-relocs"
+	);
 	
 	return;
 }
@@ -299,6 +306,33 @@ s32 Main(s32 argc, char* argv[]) {
 	Sys_SetWorkDir(Sys_AppDir());
 	
 	rom = Calloc(rom, sizeof(struct Rom));
+	
+	if (Arg("audio-only")) {
+		gAudioOnly = true;
+		
+		if (Arg("dump")) {
+			Log("Dump Rom [%s]", argv[parArg]);
+			Rom_New(rom, argv[parArg]);
+			AudioOnly_Dump(rom);
+		} else if (Arg("build")) {
+			rom->mem.sampleTbl = MemFile_Initialize();
+			rom->mem.fontTbl = MemFile_Initialize();
+			rom->mem.seqTbl = MemFile_Initialize();
+			rom->mem.seqFontTbl = MemFile_Initialize();
+			MemFile_Malloc(&rom->mem.sampleTbl, MbToBin(0.1));
+			MemFile_Malloc(&rom->mem.fontTbl, MbToBin(0.1));
+			MemFile_Malloc(&rom->mem.seqTbl, MbToBin(0.1));
+			MemFile_Malloc(&rom->mem.seqFontTbl, MbToBin(0.1));
+			
+			gMakeTarget = "sound";
+			
+			Make_Sound();
+			Make_Sequence();
+			AudioOnly_Build(rom);
+		}
+		
+		goto free;
+	}
 	
 	for (s32 i = 1; i < argc; i++) {
 		if (StrEndCase(argv[i], ".z64")) {

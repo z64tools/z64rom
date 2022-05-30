@@ -3,10 +3,11 @@
 
 #define THREAD_NUM 42
 
-const char* sFlags;
-const char* sFlagsCode;
-const char* sFlagsLink;
-volatile bool sMake = false;
+static const char* sFlags;
+static const char* sFlagsCode;
+static const char* sFlagsLink;
+static const char* sFlagsULibLink;
+static volatile bool sMake = false;
 u32 gThreading = true;
 
 static char* Make_Wildcard(const char* path, const char* fmt, ...) {
@@ -126,7 +127,7 @@ free:
 	Free(list);
 }
 
-static void Make_Sequence(void) {
+void Make_Sequence(void) {
 	ItemList list = ItemList_Initialize();
 	MakeArg targ[THREAD_NUM];
 	Thread thread[THREAD_NUM];
@@ -265,7 +266,7 @@ free:
 	Free(vadpcm);
 }
 
-static void Make_Sound(void) {
+void Make_Sound(void) {
 	ItemList list = ItemList_Initialize();
 	MakeArg targ[THREAD_NUM];
 	Thread thread[THREAD_NUM];
@@ -926,7 +927,7 @@ static ThreadFunc Make_Code_Thread_Folder(MakeArg* arg) {
 	ItemList_Free(&itemList);
 }
 
-static void Make_Code(void) {
+void Make_Code(void) {
 	const char* pathC[] = {
 		"src/lib_user/",
 		"src/lib_code/",
@@ -949,7 +950,7 @@ static void Make_Code(void) {
 		"",
 	};
 	const char* flagLinker[] = {
-		"-Lrom/lib_user -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T ulib_linker.ld -T objects.ld --emit-relocs",
+		sFlagsULibLink,
 		sFlagsLink,
 		sFlagsLink,
 		sFlagsLink,
@@ -968,16 +969,17 @@ static void Make_Code(void) {
 	if (gThreading)
 		ThreadLock_Init();
 	
-	for (s32 set = 0; set < ArrayCount(pathC); set++) {
+	foreach(set, pathC) {
 		args[set].path = pathC[set];
 		args[set].flag = flagObject[set];
 		args[set].func = Make_Code_Thread_C;
 		args[set].callback = callback[set];
-		if (gThreading) {
+		
+		if (gThreading)
 			ThreadLock_Create(&thread[set], Make_Code_Thread_Single, &args[set]);
-		} else {
+		
+		else
 			Make_Code_Thread_Single(&args[set]);
-		}
 	}
 	
 	if (gThreading)
@@ -986,13 +988,13 @@ static void Make_Code(void) {
 	args[0].path = pathO[0];
 	args[0].flag = flagLinker[0];
 	
-	if (gThreading) {
+	if (gThreading)
 		ThreadLock_Create(&thread[0], Make_Linker_Thread, &args[0]);
-	} else {
-		Make_Linker_Thread(&args[0]);
-	}
 	
-	for (s32 set = 0; set < ArrayCount(pathC); set++) {
+	else
+		Make_Linker_Thread(&args[0]);
+	
+	foreach(set, pathC) {
 		if (gThreading)
 			ThreadLock_Join(&thread[set]);
 		
@@ -1007,23 +1009,23 @@ static void Make_Code(void) {
 		
 		// Process as folders if Actor, System or Effect
 		if (set >= 2) {
-			if (gThreading) {
+			if (gThreading)
 				ThreadLock_Create(&thread[set], Make_Code_Thread_Folder, &args[set]);
-			} else {
+			
+			else
 				Make_Code_Thread_Folder(&args[set]);
-			}
 		} else {
-			if (gThreading) {
+			if (gThreading)
 				ThreadLock_Create(&thread[set], Make_Code_Thread_Single, &args[set]);
-			} else {
+			
+			else
 				Make_Code_Thread_Single(&args[set]);
-			}
 		}
 	}
 	
 	if (gThreading)
-		for (s32 set = 1; set < ArrayCount(pathC); set++)
-			ThreadLock_Join(&thread[set]);
+		foreach(set, pathC)
+		ThreadLock_Join(&thread[set]);
 	
 	if (gThreading)
 		ThreadLock_Free();
@@ -1034,14 +1036,16 @@ static void Make_Code(void) {
 // # # # # # # # # # # # # # # # # # # # #
 
 void Make(Rom* rom, s32 message) {
-	Log("Load Flags");
 	sFlags = Toml_GetStr(&rom->config, "mips64_gcc_flags");
 	sFlagsCode = Toml_GetStr(&rom->config, "mips64_gcc_flags_code");
 	sFlagsLink = Toml_GetStr(&rom->config, "mips64_ld_flags");
+	sFlagsULibLink = Toml_GetStr(&rom->config, "ulib_ld_flags");
 	
-	if (gBuildTarget) {
+	if (!sFlags || !sFlagsCode || !sFlagsLink || !sFlagsULibLink)
+		printf_error("Missing a required flags from [z64project.toml]. Do a redump by drag'n'dropping your baserom on z64rom.");
+	
+	if (gBuildTarget)
 		sFlags = HeapPrint("%s -DDEV_BUILD", sFlags);
-	}
 	
 	if (!sFlags || !sFlagsCode || !sFlagsLink)
 		printf_error("[z64project.toml] is missing mips64 flags! Please, do fresh dump!");

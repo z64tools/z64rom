@@ -193,11 +193,10 @@ extern const char* gMakeTarget;
 extern u32 gCompressFlag;
 extern u32 gThreading;
 extern const char* gToolName;
-
 extern s32 gBuildTarget;
 extern char gRomName_Output[2][128];
-
 extern s32 gDumpFlag;
+extern s32 gAudioOnly;
 
 void fix_crc(unsigned char* rom);
 

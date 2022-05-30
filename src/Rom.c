@@ -1387,24 +1387,28 @@ void Rom_New(Rom* rom, char* romName) {
 	hdr = SegmentedToVirtual(0x0, 0xDB70);
 	
 	if (rom->type == NoRom) {
-		char* romType = Toml_GetVariable(rom->config.str, "z_rom_type");
-		
-		if (!strcmp(romType, "__PLACEHOLDER__")) {
-			if (hdr[0] != 0) {
-				rom->type = Zelda_OoT_Debug;
-				String_Replace(rom->config.str, "__PLACEHOLDER__", "oot_debug");
-			} else {
-				rom->type = Zelda_OoT_1_0;
-				String_Replace(rom->config.str, "__PLACEHOLDER__", "oot_u10");
-			}
-			rom->config.seekPoint = rom->config.dataSize = strlen(rom->config.str);
+		if (gAudioOnly) {
+			rom->type = Zelda_OoT_Debug;
 		} else {
-			if (!strcmp(romType, "oot_debug")) {
-				rom->type = Zelda_OoT_Debug;
-			} else if (!strcmp(romType, "oot_u10")) {
-				rom->type = Zelda_OoT_1_0;
+			char* romType = Toml_GetVariable(rom->config.str, "z_rom_type");
+			
+			if (!strcmp(romType, "__PLACEHOLDER__")) {
+				if (hdr[0] != 0) {
+					rom->type = Zelda_OoT_Debug;
+					String_Replace(rom->config.str, "__PLACEHOLDER__", "oot_debug");
+				} else {
+					rom->type = Zelda_OoT_1_0;
+					String_Replace(rom->config.str, "__PLACEHOLDER__", "oot_u10");
+				}
+				rom->config.seekPoint = rom->config.dataSize = strlen(rom->config.str);
 			} else {
-				rom->type = NoRom;
+				if (!strcmp(romType, "oot_debug")) {
+					rom->type = Zelda_OoT_Debug;
+				} else if (!strcmp(romType, "oot_u10")) {
+					rom->type = Zelda_OoT_1_0;
+				} else {
+					rom->type = NoRom;
+				}
 			}
 		}
 	}
@@ -1536,17 +1540,6 @@ void Rom_New(Rom* rom, char* romName) {
 	MemFile_Malloc(&rom->mem.fontTbl, MbToBin(0.1));
 	MemFile_Malloc(&rom->mem.seqTbl, MbToBin(0.1));
 	MemFile_Malloc(&rom->mem.seqFontTbl, MbToBin(0.1));
-	
-	if (rom->offset.segment.seqRom == 0x03F00000 &&
-		rom->offset.segment.fontRom == 0x03E00000 &&
-		rom->offset.segment.smplRom == 0x00094870 &&
-		rom->type == Zelda_OoT_Debug) {
-		u32* checkVal = SegmentedToVirtual(0x0, 0xBCC920);
-		
-		if (ReadBE(checkVal[0]) == 0x52059 && ReadBE(checkVal[1]) == 0x37F7) {
-			SwapBE(rom->offset.table.seqTable);
-		}
-	}
 }
 
 void Rom_Free(Rom* rom) {
@@ -1865,4 +1858,68 @@ s32 Rom_Extract(MemFile* mem, RomFile rom, char* name) {
 	MemFile_SaveFile(mem, name);
 	
 	return 1;
+}
+
+// # # # # # # # # # # # # # # # # # # # #
+// # STANDALONE                          #
+// # # # # # # # # # # # # # # # # # # # #
+
+void AudioOnly_Dump(Rom* rom) {
+	MemFile dataFile = MemFile_Initialize();
+	MemFile config = MemFile_Initialize();
+	
+	MemFile_Malloc(&dataFile, 0x460000); // Slightly larger than audiotable
+	MemFile_Malloc(&config, 0x25000);
+	
+	printf_info_align("Dumping Rom", PRNT_REDD "%s", Filename(rom->file.info.name));
+	
+	Audio_DumpSoundFont(rom, &dataFile, &config);
+	Audio_DumpSequence(rom, &dataFile, &config);
+	Audio_DumpSampleTable(rom, &dataFile, &config);
+	
+	MemFile_Free(&dataFile);
+	MemFile_Free(&config);
+}
+
+void AudioOnly_Build(Rom* rom) {
+	MemFile dataFile = MemFile_Initialize();
+	MemFile config = MemFile_Initialize();
+	
+	MemFile_Malloc(&dataFile, 0x460000);
+	MemFile_Malloc(&config, 0x25000);
+	
+	MemFile_Params(&dataFile, MEM_REALLOC, true, MEM_END);
+	MemFile_Params(&config, MEM_REALLOC, true, MEM_END);
+	
+	Dir_Enter("rom/"); {
+		Dir_Enter("sound/"); {
+			Dir_Enter("sample/"); {
+				Audio_BuildSampleTable(rom, &dataFile, &config);
+				
+				Dir_Leave();
+			}
+			Dir_Enter("soundfont/"); {
+				Audio_BuildSoundFont(rom, &dataFile, &config);
+				
+				Dir_Leave();
+			}
+			Dir_Enter("sequence/"); {
+				Audio_BuildSequence(rom, &dataFile, &config);
+				
+				Dir_Leave();
+			}
+			
+			Dir_Leave();
+		}
+		
+		Dir_Leave();
+	}
+	
+	MemFile_SaveFile(&rom->mem.sampleTbl, "table_sample.bin");
+	MemFile_SaveFile(&rom->mem.fontTbl, "table_font.bin");
+	MemFile_SaveFile(&rom->mem.seqTbl, "table_seq.bin");
+	MemFile_SaveFile(&rom->mem.seqFontTbl, "table_seqfont.bin");
+	
+	MemFile_Free(&dataFile);
+	MemFile_Free(&config);
 }

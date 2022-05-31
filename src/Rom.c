@@ -1803,7 +1803,7 @@ void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlags flags)
 		ItemList_NumericalSort(&modified);
 	}
 	
-	*list = (ItemList) { 0 };
+	ItemList_Validate(list);
 	list->item = HeapMalloc(sizeof(u8*) * (modified.num + vanilla.num));
 	
 	if (isNum) {

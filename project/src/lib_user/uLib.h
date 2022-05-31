@@ -31,8 +31,8 @@ extern EffectSsOverlay __ext_gEffectSsOverlayTable[EXT_EFFECT_MAX];
 
 extern LibContext gLibCtx;
 extern GraphicsContext* __gfxCtx;
-asm ("__gfxCtx = 0x80212020");
-asm ("gGlobalContext = 0x80212020");
+asm ("__gfxCtx = 0x80212020 - 0x38000;");
+asm ("gGlobalContext = 0x80212020 - 0x38000;");
 
 void uLib_Update(GameState* gameState);
 void* memset(void* m, int v, unsigned int s);

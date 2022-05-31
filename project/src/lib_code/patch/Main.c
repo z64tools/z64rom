@@ -39,9 +39,9 @@ void Main(void* arg) {
 	PreNmiBuff_Init(gAppNmiBufferPtr);
 	Fault_Init();
 	SysCfb_Init(0);
-	sysHeap = (u32)gSystemHeap;
+	sysHeap = (u32)gAudioHeap; // gSystemHeap
 	fb = SysCfb_GetFbPtr(0);
-	gSystemHeapSize = (fb - sysHeap);
+	gSystemHeapSize = (0x806C0000 - sysHeap); // (fb - sysHeap)
 	SystemHeap_Init((void*)sysHeap, gSystemHeapSize);
 	func_800636C0();
 	

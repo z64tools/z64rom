@@ -31,6 +31,6 @@
 0x00B65BF0 = 03E00008 zero8 zero4
 
 # vanilla values
-audio_heap_size           = 00037F00
+audio_heap_size           = 00040000
 audio_init_pool_size      = 0000E0E0
 audio_permanent_pool_size = 0000BCE0

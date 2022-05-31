@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.8.1";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.8.2";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gInfoFlag;
@@ -46,6 +46,79 @@ static void Main_RenameRooms(const char* from, const char* to) {
 	}
 	
 	printf_info("%d rooms renamed to *%s.", times, to);
+}
+
+static s32 Main_PreArguments(Rom* rom, char* input, char* argv[]) {
+	u32 parArg = 0;
+	
+	if (Arg("audio-only")) {
+		gAudioOnly = true;
+		
+		if (Arg("dump")) {
+			Log("Dump Rom [%s]", argv[parArg]);
+			Rom_New(rom, argv[parArg]);
+			AudioOnly_Dump(rom);
+		} else if (Arg("build")) {
+			rom->mem.sampleTbl = MemFile_Initialize();
+			rom->mem.fontTbl = MemFile_Initialize();
+			rom->mem.seqTbl = MemFile_Initialize();
+			rom->mem.seqFontTbl = MemFile_Initialize();
+			MemFile_Malloc(&rom->mem.sampleTbl, MbToBin(0.1));
+			MemFile_Malloc(&rom->mem.fontTbl, MbToBin(0.1));
+			MemFile_Malloc(&rom->mem.seqTbl, MbToBin(0.1));
+			MemFile_Malloc(&rom->mem.seqFontTbl, MbToBin(0.1));
+			
+			gMakeTarget = "sound";
+			
+			Make_Sound();
+			Make_Sequence();
+			AudioOnly_Build(rom);
+		}
+		
+		return 1;
+	}
+	
+	if (Arg("actor") && input) {
+		u32 id = Value_Int(argv[parArg]);
+		
+		rom->type = Zelda_OoT_Debug;
+		Rom_New(rom, input);
+		Rom_Debug_ActorEntry(rom, id);
+		
+		exit(0);
+	}
+	
+	if (Arg("dma") && input) {
+		u32 id = Value_Int(argv[parArg]);
+		
+		rom->type = Zelda_OoT_Debug;
+		Rom_New(rom, input);
+		Rom_Debug_DmaEntry(rom, id);
+		
+		exit(0);
+	}
+	
+	if (Arg("scene") && input) {
+		u32 id = Value_Int(argv[parArg]);
+		
+		rom->type = Zelda_OoT_Debug;
+		Rom_New(rom, input);
+		Rom_Debug_SceneEntry(rom, id);
+		
+		exit(0);
+	}
+	
+	if (Arg("yaz")) gCompressFlag = true;
+	
+	if (Arg("release")) gBuildTarget = ROM_RELEASE;
+	
+	if (Arg("clean-samples")) {
+		Audio_DeleteUnreferencedSamples();
+		
+		return 1;
+	}
+	
+	return 0;
 }
 
 static s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
@@ -253,33 +326,6 @@ s32 Main(s32 argc, char* argv[]) {
 	
 	Calloc(rom, sizeof(struct Rom));
 	
-	if (Arg("audio-only")) {
-		gAudioOnly = true;
-		
-		if (Arg("dump")) {
-			Log("Dump Rom [%s]", argv[parArg]);
-			Rom_New(rom, argv[parArg]);
-			AudioOnly_Dump(rom);
-		} else if (Arg("build")) {
-			rom->mem.sampleTbl = MemFile_Initialize();
-			rom->mem.fontTbl = MemFile_Initialize();
-			rom->mem.seqTbl = MemFile_Initialize();
-			rom->mem.seqFontTbl = MemFile_Initialize();
-			MemFile_Malloc(&rom->mem.sampleTbl, MbToBin(0.1));
-			MemFile_Malloc(&rom->mem.fontTbl, MbToBin(0.1));
-			MemFile_Malloc(&rom->mem.seqTbl, MbToBin(0.1));
-			MemFile_Malloc(&rom->mem.seqFontTbl, MbToBin(0.1));
-			
-			gMakeTarget = "sound";
-			
-			Make_Sound();
-			Make_Sequence();
-			AudioOnly_Build(rom);
-		}
-		
-		goto free;
-	}
-	
 	for (s32 i = 1; i < argc; i++) {
 		if (StrEndCase(argv[i], ".z64")) {
 			if (romCount > 0)
@@ -298,41 +344,9 @@ s32 Main(s32 argc, char* argv[]) {
 		}
 	}
 	
-	if (Arg("actor") && input) {
-		u32 id = Value_Int(argv[parArg]);
-		
-		rom->type = Zelda_OoT_Debug;
-		Rom_New(rom, input);
-		Rom_Debug_ActorEntry(rom, id);
-		
-		exit(0);
-	}
-	
-	if (Arg("dma") && input) {
-		u32 id = Value_Int(argv[parArg]);
-		
-		rom->type = Zelda_OoT_Debug;
-		Rom_New(rom, input);
-		Rom_Debug_DmaEntry(rom, id);
-		
-		exit(0);
-	}
-	
-	if (Arg("scene") && input) {
-		u32 id = Value_Int(argv[parArg]);
-		
-		rom->type = Zelda_OoT_Debug;
-		Rom_New(rom, input);
-		Rom_Debug_SceneEntry(rom, id);
-		
-		exit(0);
-	}
-	
-	if (Arg("yaz")) gCompressFlag = true;
-	
+	if (Main_PreArguments(rom, input, argv)) goto free;
 	Main_Config(&input, rom);
-	if (Main_Arguments(rom, input, argv))
-		goto free;
+	if (Main_Arguments(rom, input, argv)) goto free;
 	
 	switch (Tools_Init()) {
 		case -1: {
@@ -484,7 +498,7 @@ s32 Main(s32 argc, char* argv[]) {
 			}
 			
 			if (Sys_Stat("z64project.toml")) {
-				if (!Arg("no-make")) {
+				if (!Arg("no-make") || gMakeForce) {
 					printf_toolinfo(gToolName, "");
 					Make(rom, true);
 				}

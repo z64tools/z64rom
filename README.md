@@ -61,6 +61,7 @@ z64rom will convert the newest audio file it finds from this folder so you do no
 | **--log**             | Print Log before closing                           |                           |
 | **--make-only**       | Do not build, only make                            |                           |
 | **--clean**           | Clean `.elf`, `.o` and `entry.ld` files            |                           |
+| **--clean-samples**   | Clean unreferenced samples                         |                           |
 | **--no-threading**    | No multi-threading                                 |                           |
 | **--no-wait**         | Do not ask to press enter on exit                  | Win32 Only                |
 | **--no-make**         | Do not compile/convert                             |                           |

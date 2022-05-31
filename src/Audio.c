@@ -789,6 +789,9 @@ void Audio_UpdateSegments(Rom* rom) {
 	Mips64_SplitLoad(INST_ADDR(0x800E32D0, 0x800E32E0), MIPS_REG_T6, RAM_ADDR);
 	MemFile_Append(&rom->file, &rom->mem.seqFontTbl);
 	
+	// Move Audio Heap
+	Mips64_SplitLoad(INST_ADDR(0x800E3204, 0x800E3208), MIPS_REG_T9, 0x806C0000);
+	
 	MemFile_Params(&rom->file, MEM_ALIGN, 0, MEM_END);
 	
 	if (rom->file.seekPoint - 0xB65C00 > 0x318C - 0x10) {
@@ -1154,6 +1157,21 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		MemFile_Reset(dataFile);
 		MemFile_Reset(config);
 		SetSegment(0x4, memBank.data);
+		
+		if (itemList.item[i] == NULL) {
+			sfEntry.romAddr = 0;
+			sfEntry.size = 0;
+			sfEntry.medium = 0;
+			sfEntry.seqPlayer = 0;
+			sfEntry.audioTable1 = -1;
+			sfEntry.audioTable2 = -1;
+			sfEntry.numInst = 0;
+			sfEntry.numDrum = 0;
+			sfEntry.numSfx = 0;
+			MemFile_Write(&rom->mem.fontTbl, &sfEntry, 16);
+			
+			continue;
+		}
 		
 		Dir_Enter(itemList.item[i]); {
 			u32 smplNum = 0;
@@ -1598,4 +1616,73 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Free(&memIndexTable);
 	MemFile_Free(&memLookUpTable);
 	MemFile_Free(&sequenceMem);
+}
+
+// # # # # # # # # # # # # # # # # # # # #
+// # EXTRA                               #
+// # # # # # # # # # # # # # # # # # # # #
+
+void Audio_DeleteUnreferencedSamples(void) {
+	ItemList sampleList = ItemList_Initialize();
+	ItemList nameList = ItemList_Initialize();
+	ItemList bankList = ItemList_Initialize();
+	MemFile mem = MemFile_Initialize();
+	const char* bankPath[] = {
+		"instrument/",
+		"drum/",
+		"sfx/",
+	};
+	
+	MemFile_Malloc(&mem, 0x1024);
+	Rom_ItemList(&sampleList, "rom/sound/sample/", SORT_NO, LIST_FOLDERS);
+	Rom_ItemList(&bankList, "rom/sound/soundfont/", SORT_NUMERICAL, LIST_FOLDERS);
+	
+	forlist(i, bankList) {
+		if (bankList.item[i] == NULL)
+			continue;
+		
+		FileSys_Path("%s", bankList.item[i]);
+		
+		foreach(j, bankPath) {
+			if (!Sys_Stat(FileSys_File(bankPath[j])))
+				continue;
+			ItemList list = ItemList_Initialize();
+			
+			ItemList_List(&list, FileSys_File(bankPath[j]), 0, LIST_FILES);
+			
+			forlist(k, list) {
+				if (!StrEndCase(list.item[k], ".toml"))
+					continue;
+				
+				MemFile_LoadFile_String(&mem, list.item[k]);
+				
+				forlist(l, sampleList) {
+					char* word;
+					
+					if (sampleList.item[l] == NULL)
+						continue;
+					
+					word = PathSlot(sampleList.item[l], -1);
+					String_Replace(word, "/", "");
+					
+					if (!StrStr(mem.str, word))
+						continue;
+					
+					sampleList.item[l] = NULL;
+				}
+			}
+			
+			ItemList_Free(&list);
+		}
+	}
+	
+	forlist(i, sampleList) {
+		if (sampleList.item[i] == NULL)
+			continue;
+		
+		printf_warning("rm [%s]", sampleList.item[i]);
+		Sys_Delete_Recursive(sampleList.item[i]);
+	}
+	
+	MemFile_Free(&mem);
 }

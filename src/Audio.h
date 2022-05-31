@@ -131,3 +131,5 @@ void Audio_UpdateSegments(struct Rom* rom);
 void Audio_BuildSampleTable(struct Rom* rom, MemFile* dataFile, MemFile* config);
 void Audio_BuildSoundFont(struct Rom* rom, MemFile* dataFile, MemFile* config);
 void Audio_BuildSequence(struct Rom* rom, MemFile* dataFile, MemFile* config);
+
+void Audio_DeleteUnreferencedSamples(void);

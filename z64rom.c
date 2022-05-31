@@ -251,7 +251,7 @@ s32 Main(s32 argc, char* argv[]) {
 	printf_SetPrefix("");
 	Sys_SetWorkDir(Sys_AppDir());
 	
-	rom = Calloc(rom, sizeof(struct Rom));
+	Calloc(rom, sizeof(struct Rom));
 	
 	if (Arg("audio-only")) {
 		gAudioOnly = true;

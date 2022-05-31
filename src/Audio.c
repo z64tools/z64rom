@@ -539,8 +539,8 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 	snprintf(FILE_LBK, 512, "%s%s/sample.loopbook.bin", arg->path, name);
 	snprintf(FILE_CFG, 512, "%s%s/config.toml", arg->path, name);
 	
-	dataFile = Malloc(dataFile, sizeof(MemFile));
-	config = Malloc(config, sizeof(MemFile));
+	Malloc(dataFile, sizeof(MemFile));
+	Malloc(config, sizeof(MemFile));
 	*dataFile = MemFile_Initialize();
 	*config = MemFile_Initialize();
 	MemFile_Malloc(dataFile, MbToBin(4.0));

@@ -71,7 +71,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	char* mus = NULL;
 	u32 index = Value_Hex(PathSlot(targ->path, -1));
 	
-	list = Calloc(list, sizeof(ItemList));
+	Calloc(list, sizeof(ItemList));
 	*list = ItemList_Initialize();
 	
 	if ((midi = Make_Wildcard(targ->path, ".mid"))) {
@@ -180,7 +180,7 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 		".mp3"
 	};
 	
-	list = Calloc(list, sizeof(ItemList));
+	Calloc(list, sizeof(ItemList));
 	*list = ItemList_Initialize();
 	
 	ItemList_List(list, targ->path, 0, LIST_FILES | LIST_NO_DOT);
@@ -222,7 +222,7 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 		char command[2056];
 		char* config;
 		
-		config = Malloc(config, 0x1024);
+		Malloc(config, 0x1024);
 		
 		strcpy(config, targ->path);
 		String_Replace(config, "rom/sound/sample/", "rom/sound/sample/.vanilla/");
@@ -470,7 +470,7 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 			if (temp == NULL)
 				printf_error("Could not locate [ActorInit] from files in [%s]", sourceFolder);
 			
-			varName = Malloc(varName, 64);
+			Malloc(varName, 64);
 			strcpy(varName, CopyWord(temp, 0));
 			String_Replace(varName, "=", "");
 			String_Replace(varName, "[", "");
@@ -591,7 +591,7 @@ build:
 	char* newFlags = NULL;
 	char* flagFile = HeapPrint("%sflags.toml", Path(source));
 	
-	command = Calloc(command, 2048);
+	Calloc(command, 2048);
 	
 	if (Sys_Stat(flagFile)) {
 		MemFile mem = MemFile_Initialize();
@@ -600,7 +600,7 @@ build:
 		MemFile_LoadFile_String(&mem, flagFile);
 		
 		if ((var = Toml_Variable(mem.str, "flags"))) {
-			newFlags = Calloc(newFlags, 1024 * 2);
+			Calloc(newFlags, 1024 * 2);
 			
 			strcpy(newFlags, flags);
 			catprintf(newFlags, " %s", var);
@@ -609,7 +609,7 @@ build:
 		}
 		
 		if ((var = Toml_Variable(mem.str, Basename(source)))) {
-			newFlags = Calloc(newFlags, 1024 * 2);
+			Calloc(newFlags, 1024 * 2);
 			
 			strcpy(newFlags, flags);
 			catprintf(newFlags, " %s", var);
@@ -654,7 +654,7 @@ static ThreadFunc Code_LD(const char* source, const char* output, const char* fl
 		return;
 	
 build:
-	command = Calloc(command, 2048);
+	Calloc(command, 2048);
 	
 	strcpy(entryDir, Path(output));
 	strcat(entryDir, ".entry/");
@@ -747,8 +747,8 @@ static ThreadFunc Make_Linker_Thread(MakeArg* arg) {
 		return;
 	}
 	
-	command = Calloc(command, 2048);
-	inputList = Calloc(inputList, inputStrLen);
+	Calloc(command, 2048);
+	Calloc(inputList, inputStrLen);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
 		if (!StrEnd(itemList.item[i], ".o"))
@@ -795,7 +795,7 @@ static ThreadFunc Make_Code_Thread_C(MakeArg* arg) {
 		return;
 	}
 	
-	output = Calloc(output, strlen(input) + 10);
+	Calloc(output, strlen(input) + 10);
 	strcpy(output, input);
 	String_Replace(output, ".c", ".o");
 	String_Replace(output, "src/", "rom/");
@@ -815,14 +815,14 @@ static ThreadFunc Make_Code_Thread_O(MakeArg* arg) {
 		if (StrEnd(input, ".vanilla/"))
 			return;
 		
-		list = Malloc(list, sizeof(ItemList));
+		Malloc(list, sizeof(ItemList));
 		*list = ItemList_Initialize();
 		
 		ItemList_List(list, input, -1, LIST_FILES | LIST_NO_DOT);
 		
 		for (s32 i = 0; i < list->num; i++) {
 			if (i == 0) {
-				ninput = Calloc(ninput, 1024 * 8);
+				Calloc(ninput, 1024 * 8);
 			}
 			if (StrEndCase(list->item[i], ".o")) {
 				catprintf(ninput, "%s ", list->item[i]);
@@ -835,7 +835,7 @@ static ThreadFunc Make_Code_Thread_O(MakeArg* arg) {
 		
 		input = ninput;
 		
-		output = Calloc(output, strlen(input));
+		Calloc(output, strlen(input));
 		sprintf(output, "%sfile.elf", arg->itemList->item[arg->i]);
 		String_Replace(output, "src/", "rom/");
 	} else {
@@ -843,7 +843,7 @@ static ThreadFunc Make_Code_Thread_O(MakeArg* arg) {
 			goto free;
 		}
 		
-		output = Calloc(output, strlen(input) + 10);
+		Calloc(output, strlen(input) + 10);
 		strcpy(output, input);
 		String_Replace(output, ".o", ".elf");
 		String_Replace(output, "src/", "rom/");

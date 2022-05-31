@@ -52,7 +52,7 @@ static char* Package_GetSection(char* toml, s32 i) {
 	
 	Log("Copying [%d]", size);
 	
-	ret = Calloc(ret, size + 2);
+	Calloc(ret, size + 2);
 	memcpy(ret, toml, size);
 	
 	return ret;

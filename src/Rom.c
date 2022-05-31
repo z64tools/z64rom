@@ -295,7 +295,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 				if (MemFile_LoadFile(&ptch, word))
 					printf_error("Could not open a file that should exist [%s]", word);
 				
-				node = Calloc(node, sizeof(struct PatchNode));
+				Calloc(node, sizeof(struct PatchNode));
 				node->start = rom->file.seekPoint;
 				node->end = rom->file.seekPoint + strlen(word);
 				strncpy(node->source, file, 63);
@@ -313,7 +313,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		if (word[0] == '"') {
 			word = Toml_GetVariable(line, CopyWord(line, 0));
 			
-			node = Calloc(node, sizeof(struct PatchNode));
+			Calloc(node, sizeof(struct PatchNode));
 			node->start = rom->file.seekPoint;
 			node->end = rom->file.seekPoint + strlen(word);
 			strncpy(node->source, file, 63);
@@ -368,7 +368,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 				o++;
 			}
 			
-			node = Calloc(node, sizeof(struct PatchNode));
+			Calloc(node, sizeof(struct PatchNode));
 			node->start = rom->file.seekPoint;
 			node->end = rom->file.seekPoint + size;
 			strncpy(node->source, file, 63);
@@ -933,7 +933,7 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	Rom_ItemList(&list, "rom/scene/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	ItemList_Alloc(&titleList, list.num, list.writePoint * 4);
-	titleID = Calloc(titleID, sizeof(u32) * list.num);
+	Calloc(titleID, sizeof(u32) * list.num);
 	
 	for (s32 i = 0; i < list.num; i++) {
 		u32* seg;
@@ -1772,8 +1772,8 @@ void Rom_ItemListDir(ItemList* list, bool isNum, bool isDir) {
 	}
 	
 	result.num = list->num;
-	result.buffer = Calloc(result.buffer, size);
-	result.item = Calloc(result.item, sizeof(u8*) * list->num);
+	Calloc(result.buffer, size);
+	Calloc(result.item, sizeof(u8*) * list->num);
 	
 	for (s32 i = 0; i < list->num; i++) {
 		if (!list->item[i])
@@ -1871,8 +1871,8 @@ void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlags flags)
 	}
 	
 	result.num = list->num;
-	result.buffer = Calloc(result.buffer, size);
-	result.item = Calloc(result.item, sizeof(u8*) * list->num);
+	Calloc(result.buffer, size);
+	Calloc(result.item, sizeof(u8*) * list->num);
 	
 	for (s32 i = 0; i < list->num; i++) {
 		if (!list->item[i])

@@ -177,8 +177,15 @@ static void Tools_Clean(void) {
 		Sys_Delete(ZIP_BINUTIL);
 	if (Sys_Stat(ZIP_Z64HDR))
 		Sys_Delete(ZIP_Z64HDR);
-	if (Sys_Stat("include/"))
+	if (Sys_Stat("include/")) {
+		Sys_Rename("include/sequence.inc", "sequence.inc");
+		Sys_Rename("include/ulib_linker.ld", "ulib_linker.ld");
+		
 		Sys_Delete_Recursive("include/");
+		Sys_MakeDir("include/");
+		Sys_Rename("sequence.inc", "include/sequence.inc");
+		Sys_Rename("ulib_linker.ld", "include/ulib_linker.ld");
+	}
 	if (Sys_Stat("tools/mips64-binutils/"))
 		Sys_Delete_Recursive("tools/mips64-binutils/");
 }

@@ -400,7 +400,7 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 		PatchNode* node = sPatchHead;
 		u32 nodeID = 0;
 		char* toml = HeapPrint("%s%s.toml", Path(list.item[i]), Basename(list.item[i]));
-		s64 size;
+		s64 maxSize;
 		
 		MemFile_Reset(dataFile);
 		MemFile_Reset(config);
@@ -414,10 +414,10 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 		rom->file.seekPoint = Toml_GetInt(config, "rom");
 		
 		if (Toml_Variable(config->str, "next")) {
-			size = Toml_GetInt(config, "next") - Toml_GetInt(config, "ram");
+			maxSize = Toml_GetInt(config, "next") - Toml_GetInt(config, "ram");
 			
-			if (size < dataFile->dataSize)
-				printf_error("Could not fit file [%s] [%X / %X]", size, dataFile->dataSize);
+			if (dataFile->dataSize > maxSize)
+				printf_error("Could not fit file [%s] [%d / %d]", dataFile->info.name, dataFile->dataSize, (u32)maxSize);
 		}
 		
 		while (node) {

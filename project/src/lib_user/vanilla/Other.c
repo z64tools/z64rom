@@ -170,3 +170,19 @@ u32 PlayerLib_InitSkelanime(GlobalContext* globalCtx, u8* segment, SkelAnime* sk
 	return size + PAUSE_EQUIP_BUFFER_SIZE + PAUSE_PLAYER_SEGMENT_GAMEPLAY_KEEP_BUFFER_SIZE +
 	       sizeof(Vec3s[PLAYER_LIMB_BUF_COUNT]);
 }
+
+s32 Actor_TalkCondition(Actor* actor, GlobalContext* globalCtx, f32 arg2, f32 arg3, u32 exchangeItemId) {
+	Player* player = GET_PLAYER(globalCtx);
+	
+	if ((player->actor.flags & ACTOR_FLAG_8) || ((exchangeItemId != EXCH_ITEM_NONE) && Player_InCsMode(globalCtx)) ||
+		(!actor->isTargeted) // Changed to not poll talk if the actor isn't targeted
+	) {
+		return false;
+	}
+	
+	player->targetActor = actor;
+	player->targetActorDistance = actor->xzDistToPlayer;
+	player->exchangeItemId = exchangeItemId;
+	
+	return true;
+}

@@ -9,6 +9,8 @@ void uObject_UpdateBank(ObjectContext* objectCtx);
 
 u32 PlayerLib_InitSkelanime(GlobalContext* globalCtx, u8* segment, SkelAnime* skelAnime);
 
+s32 Actor_TalkCondition(Actor* actor, GlobalContext* globalCtx, f32 arg2, f32 arg3, u32 exchangeItemId);
+
 Actor* Overlay_ActorSpawn(ActorContext* actorCtx, GlobalContext* globalCtx, s16 actorId, f32 posX, f32 posY, f32 posZ, s16 rotX, s16 rotY, s16 rotZ, s16 params);
 void Overlay_EffectSpawn(GlobalContext* globalCtx, s32 type, s32 priority, void* initParams);
 

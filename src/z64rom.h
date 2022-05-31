@@ -168,6 +168,11 @@ typedef struct {
 	const char*   skybox;
 } RomNameTable;
 
+typedef struct {
+	u32 id;
+	const char* name;
+} SystemInfo;
+
 extern char* gWaveSample[8];
 extern const N64AudioInfo gSampleInfo[];
 extern const char* gObjectName_OoT[402];
@@ -178,7 +183,7 @@ extern const char* gKaleidoName_OoT[2];
 extern const char* gSceneName_OoT[110];
 extern const char* gBankName_OoT[41];
 extern const char* gSequenceName_OoT[114];
-extern const char* gSystemName_OoT[40];
+extern SystemInfo gSystem_OoT[29];
 extern const char* gSkyboxName_OoT[32];
 
 extern s32 gBetaFlag_Actor_OoT[7];

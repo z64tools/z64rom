@@ -156,6 +156,8 @@ typedef enum {
 	DMA_ID_NINTENDO_ROGO_STATIC,
 	DMA_ID_TITLE_STATIC,
 	DMA_ID_PARAMETER_STATIC,
+	DMA_ID_ELF_MESSAGE_FIELD = 1005,
+	DMA_ID_ELF_MESSAGE_YDAN,
 } DmaIndex;
 
 struct Rom;
@@ -178,7 +180,7 @@ typedef enum {
 
 u32 Dma_WriteEntry(struct Rom* rom, s32 id, MemFile* memFile, s32 compress);
 u32 Dma_AllocEntry(struct Rom* rom, s32 id, Size size);
-u32 Dma_GetRomSize(void);
+void Dma_UpdateRomSize(struct Rom* rom);
 u32 Dma_GetVRomEnd(void);
 
 void Dma_FreeEntry(struct Rom* rom, u32 id, u32 dmaAlign);
@@ -187,9 +189,10 @@ void Dma_FreeGroup(struct Rom* rom, DmaBank type);
 
 void Dma_CompressRom(struct Rom* rom);
 void Dma_CombineSlots(void);
-void Dma_PrintfSlots(struct Rom* rom, const char* message);
+void Dma_PrintfSlots(struct Rom* rom, const char* message, Slot* head);
 void Dma_WriteFlag(u32 id, bool value);
 
 extern Slot* gSlotHead;
+extern Slot* gSlotYazHead;
 
 #endif

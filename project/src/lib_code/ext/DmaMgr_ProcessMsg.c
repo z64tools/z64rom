@@ -13,18 +13,18 @@ void DmaMgr_ProcessMsg(DmaRequest* req) {
 	u32 romSize;
 	u8 found = false;
 	DmaEntry* iter;
-	u32 id = 0;
 	
 	iter = gDmaDataTable;
 	
+	Debug_DmaLog(req);
 	while (iter->vromEnd) {
 		if (vrom >= iter->vromStart && vrom < iter->vromEnd) {
-			if (iter->romEnd == 0 && vrom + req->size <= iter->vromEnd) {
+			if (iter->romEnd == 0) {
 				DmaMgr_DmaRomToRam(iter->romStart + (vrom - iter->vromStart), (u32)ram, size);
 				found = true;
-			} else if (vrom == iter->vromStart) {
+			} else {
 				romStart = iter->romStart;
-				romSize = iter->vromEnd - iter->romStart;
+				romSize = iter->romEnd - iter->romStart;
 				
 				osSetThreadPri(NULL, Z_PRIORITY_MAIN);
 				Yaz0_Decompress(romStart, ram, romSize);
@@ -35,12 +35,15 @@ void DmaMgr_ProcessMsg(DmaRequest* req) {
 			if (found) break;
 		}
 		iter++;
-		id++;
 	}
 	
 	if (!found) {
+		if (sDmaMgrIsRomCompressed) {
+			osLibPrintf("NoData");
+			
+			return;
+		}
 		DmaMgr_DmaRomToRam(vrom, (u32)ram, size);
 	}
-	
-	Debug_DmaLog(req);
+	osLibPrintf("OK");
 }

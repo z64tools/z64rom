@@ -638,24 +638,17 @@ static void Rom_Dump_Kaleido(Rom* rom, MemFile* data, MemFile* config) {
 static void Rom_Dump_Static(Rom* rom, MemFile* data, MemFile* config) {
 	RomFile rf;
 	
-	for (s32 i = 6; i <= DMA_ID_PARAMETER_STATIC; i++) {
-		s32 name = i;
-		if (i > DMA_ID_CODE && i < DMA_ID_OVL_MAP_MARK_DATA)
-			i = DMA_ID_OVL_MAP_MARK_DATA;
-		if (i > DMA_ID_OVL_MAP_MARK_DATA && i < DMA_ID_Z_SELECT_STATIC)
-			i = DMA_ID_Z_SELECT_STATIC;
+	foreach(i, gSystem_OoT) {
+		u32 id = gSystem_OoT[i].id;
 		
-		if (name >= DMA_ID_Z_SELECT_STATIC)
-			name -= 901;
+		FileSys_Path("rom/system/static/.vanilla/");
 		
-		FileSys_Path("rom/system/static/.vanilla/", i);
-		
-		rf.romStart = ReadBE(rom->table.dma[i].vromStart);
-		rf.romEnd = ReadBE(rom->table.dma[i].vromEnd);
+		rf.romStart = ReadBE(rom->table.dma[id].vromStart);
+		rf.romEnd = ReadBE(rom->table.dma[id].vromEnd);
 		rf.size = rf.romEnd - rf.romStart;
 		rf.data = SegmentedToVirtual(0x0, rf.romStart);
 		
-		Rom_Extract(data, rf, FileSys_File(HeapPrint("%s.bin", gSystemName_OoT[name])));
+		Rom_Extract(data, rf, FileSys_File(HeapPrint("%s.bin", gSystem_OoT[i].name)));
 	}
 }
 
@@ -813,7 +806,7 @@ static void Rom_Build_Actor(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		entry[i].vramStart = Toml_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
 		
-		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		
 		SwapBE(entry[i].allocType);
@@ -872,7 +865,7 @@ static void Rom_Build_Effect(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		entry[i].vramStart = Toml_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
 		
-		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		
 		SwapBE(entry[i].initInfo);
@@ -928,6 +921,7 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	u32* titleID;
 	
 	MemFile_Malloc(&memRoom, MbToBin(2));
+	MemFile_Params(&memRoom, MEM_REALLOC, true, MEM_END);
 	Rom_ItemList(&list, "rom/scene/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	ItemList_Alloc(&titleList, list.num, list.writePoint * 4);
@@ -985,7 +979,7 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			if (!Sys_Stat(room)) printf_error("Could not find room_%d", j);
 			MemFile_LoadFile(&memRoom, room);
 			
-			vromSeg[id + 0] = Dma_WriteEntry(rom, DMA_FIND_FREE, &memRoom, false);
+			vromSeg[id + 0] = Dma_WriteEntry(rom, DMA_FIND_FREE, &memRoom, true);
 			vromSeg[id + 1] = Dma_GetVRomEnd();
 			SwapBE(vromSeg[id + 0]);
 			SwapBE(vromSeg[id + 1]);
@@ -1037,7 +1031,7 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		}
 		
 		entry[i].config = Toml_GetInt(memCfg, "scene_func_id");
-		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		SwapBE(entry[i].vromStart);
 		SwapBE(entry[i].vromEnd);
@@ -1074,7 +1068,7 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		}
 		
 		if (useSame == false) {
-			entry[titleID[i]].titleVromStart = ReadBE(Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false));
+			entry[titleID[i]].titleVromStart = ReadBE(Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true));
 			entry[titleID[i]].titleVromEnd = ReadBE(Dma_GetVRomEnd());
 		}
 	}
@@ -1108,11 +1102,10 @@ static void Rom_Build_State(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		entry[i].init = Toml_GetInt(memCfg, "init_func");
 		entry[i].destroy = Toml_GetInt(memCfg, "dest_func");
 		
-		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
-		entry[i].vromEnd = Dma_GetVRomEnd();
-		
 		entry[i].vramStart = Toml_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
+		entry[i].vromEnd = Dma_GetVRomEnd();
 		
 		SwapBE(entry[i].init);
 		SwapBE(entry[i].destroy);
@@ -1143,11 +1136,10 @@ static void Rom_Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_LoadFile_String(memCfg, FileSys_File("config.toml"));
 		MemFile_LoadFile(memData, FileSys_FindFile(".zovl"));
 		
-		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, false);
-		entry[i].vromEnd = Dma_GetVRomEnd();
-		
 		entry[i].vramStart = Toml_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
+		entry[i].vromEnd = Dma_GetVRomEnd();
 		
 		SwapBE(entry[i].vromStart);
 		SwapBE(entry[i].vromEnd);
@@ -1216,11 +1208,11 @@ static void Rom_Build_Skybox(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		MemFile_Reset(memData);
 		MemFile_LoadFile(memData, FileSys_File("texel.bin"));
-		Dma_WriteEntry(rom, texId, memData, false);
+		Dma_WriteEntry(rom, texId, memData, true);
 		
 		MemFile_Reset(memData);
 		MemFile_LoadFile(memData, FileSys_File("palette.bin"));
-		Dma_WriteEntry(rom, palId, memData, false);
+		Dma_WriteEntry(rom, palId, memData, true);
 	}
 	
 	ItemList_Free(&list);
@@ -1231,35 +1223,57 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	
 	Rom_ItemList(&list, "rom/system/static/", SORT_NO, LIST_FILES);
 	
-	for (s32 item = 0; item < list.num; item++) {
-		s32 dmaId;
-		printf_progress("Link Static", item + 1, list.num);
+	foreach(i, gSystem_OoT) {
+		s32 id = -1;
+		s32 k = 0;
+		u32 start, end;
+		u32* data;
 		
-		for (dmaId = 0; dmaId <= ArrayCount(gSystemName_OoT); dmaId++) {
-			if (dmaId == ArrayCount(gSystemName_OoT)) {
-				dmaId = -1;
-				break;
+		forlist(j, list) {
+			if (StrEndCase(list.item[j], HeapPrint("%s.bin", gSystem_OoT[i].name))) {
+				id = gSystem_OoT[i].id;
+				k = j;
 			}
-			if (StrStrCase(list.item[item], gSystemName_OoT[dmaId]))
-				break;
 		}
 		
-		if (dmaId < 0) continue;
-		if (dmaId == DMA_ID_CODE) continue;
-		if (dmaId >= 36) dmaId += 901;
+		printf_progress("Link Static", i + 1, ArrayCount(gSystem_OoT));
 		
-#if 1                          // Only these are supported atm
-		if (dmaId != DMA_ID_TITLE_STATIC &&
-			dmaId != DMA_ID_LINK_ANIMATION &&
-			dmaId != DMA_ID_PARAMETER_STATIC
-		)
+		if (id < 0) {
+			printf_warning("Skipping [%s]", list.item[k]);
 			continue;
-#endif
+		}
+		
+		switch (id) {
+			case DMA_ID_LINK_ANIMATION:
+			case DMA_ID_TITLE_STATIC:
+			case DMA_ID_PARAMETER_STATIC:
+			case DMA_ID_ELF_MESSAGE_FIELD:
+			case DMA_ID_ELF_MESSAGE_YDAN:
+				break;
+			default:
+				continue;
+		}
 		
 		MemFile_Reset(memData);
-		MemFile_LoadFile(memData, list.item[item]);
+		MemFile_LoadFile(memData, list.item[k]);
 		
-		Dma_WriteEntry(rom, dmaId, memData, false);
+		start = Dma_WriteEntry(rom, id, memData, false);
+		end = Dma_GetVRomEnd();
+		
+		switch (id) {
+			case DMA_ID_ELF_MESSAGE_FIELD:
+				data = SegmentedToVirtual(0, 0xB9E6A8);
+				data[0] = ReadBE(start);
+				data[1] = ReadBE(end);
+				
+				break;
+			case DMA_ID_ELF_MESSAGE_YDAN:
+				data = SegmentedToVirtual(0, 0xB9E6A8);
+				data[2] = ReadBE(start);
+				data[3] = ReadBE(end);
+				
+				break;
+		}
 	}
 	
 	ItemList_Free(&list);
@@ -1287,6 +1301,8 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeEntry(rom, DMA_ID_LINK_ANIMATION, 0x1000); Dma_WriteFlag(DMA_ID_LINK_ANIMATION, false);
 	Dma_FreeEntry(rom, DMA_ID_TITLE_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_TITLE_STATIC, false);
 	Dma_FreeEntry(rom, DMA_ID_PARAMETER_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_PARAMETER_STATIC, false);
+	Dma_FreeEntry(rom, DMA_ID_ELF_MESSAGE_FIELD, 0x1000); Dma_WriteFlag(DMA_ID_ELF_MESSAGE_FIELD, false);
+	Dma_FreeEntry(rom, DMA_ID_ELF_MESSAGE_YDAN, 0x1000); Dma_WriteFlag(DMA_ID_ELF_MESSAGE_YDAN, false);
 	
 	Dma_FreeGroup(rom, DMA_ACTOR);
 	Dma_FreeGroup(rom, DMA_STATE);
@@ -1300,8 +1316,11 @@ void Rom_Build(Rom* rom) {
 	
 	Dma_CombineSlots();
 	
-	if (gPrintInfo)
-		Dma_PrintfSlots(rom, "Marked Free");
+	if (gPrintInfo) {
+		Dma_PrintfSlots(rom, "Marked Free", gSlotHead);
+		if (gCompressFlag)
+			Dma_PrintfSlots(rom, "Yaz Slot", gSlotYazHead);
+	}
 	
 	Rom_AllocDmaTable(rom);
 	
@@ -1352,18 +1371,14 @@ void Rom_Build(Rom* rom) {
 	}
 	
 	if (gPrintInfo) {
-		Dma_PrintfSlots(rom, "Left Free");
+		if (!gCompressFlag)
+			Dma_PrintfSlots(rom, "Left Free", gSlotHead);
+		
+		else
+			Dma_PrintfSlots(rom, "Left Free", gSlotYazHead);
 	}
 	
-	Slot* slot = gSlotHead;
-	
-	while (slot->next)
-		slot = slot->next;
-	
-	rom->file.dataSize = slot->romStart;
-	
-	rom->file.dataSize = Align(rom->file.dataSize, MbToBin(1));
-	
+	Dma_UpdateRomSize(rom);
 	fix_crc(rom->file.data);
 	MemFile_SaveFile(&rom->file, gRomName_Output[gBuildTarget]);
 	

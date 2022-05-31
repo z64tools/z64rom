@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.7.7";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.8.0";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gInfoFlag;
@@ -29,6 +29,7 @@ static s32 Main_IsSameFile(char* new, char* cur) {
 	return true;
 }
 
+#if 0
 static void Main_CompressRom(char* input) {
 	char cmd[512];
 	char romName[64];
@@ -72,6 +73,7 @@ static void Main_CompressRom(char* input) {
 	
 	MemFile_Free(&mem);
 }
+#endif
 
 static void Main_RenameRooms(const char* from, const char* to) {
 	ItemList list = ItemList_Initialize();
@@ -118,6 +120,8 @@ static s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 		
 		return 1;
 	}
+	
+	if (Arg("compress")) gCompressFlag = true;
 	
 	if (Arg("force")) gMakeForce = true;
 	
@@ -209,15 +213,22 @@ static void Main_Config(char** input, Rom* rom) {
 			for (s32 i = 0; i < 2; i++) {
 				if (Main_IsSameFile(*input, gRomName_Output[i])) {
 					gCompressFlag = true;
+					
+#if 0
 					Main_CompressRom(gRomName_Output[i]);
 					
 					printf_getchar("Press enter to exit.");
 					exit(0);
+#else
+					
+					sprintf(gRomName_Output[0], "%s-yaz-release.z64", Toml_GetStr(config, "z_buildrom"));
+					sprintf(gRomName_Output[1], "%s-yaz-dev.z64", Toml_GetStr(config, "z_buildrom"));
+					*input = projectRom;
+					
+					return;
+#endif
 				}
 			}
-			
-			if (Main_IsSameFile(*input, projectRom))
-				return;
 			
 			printf_toolinfo(gToolName, "Redump");
 			

@@ -42,6 +42,8 @@ void Debug_DmaLog(DmaRequest* req) {
 	if (gLibCtx.state.dmaLog == false)
 		return;
 	
+	osLibPrintf("Dma Request:");
+	
 	while (iter->vromEnd) {
 		if (req->vromAddr >= iter->vromStart && req->vromAddr < iter->vromEnd) {
 			break;
@@ -64,9 +66,11 @@ void Debug_DmaLog(DmaRequest* req) {
 #endif
 	
 	osLibPrintf(
-		"Dma Request: vrom " PRNT_BLUE "%08X - %08X" PRNT_RSET " size: " PRNT_BLUE "%08X " PRNT_RSET "[ " PRNT_REDD "ID 0x%04X" PRNT_RSET " ]",
-		req->vromAddr,
-		req->vromAddr + req->size,
+		"vrom " PRNT_BLUE "%08X - %08X & %08X - %08X" PRNT_RSET " size: " PRNT_BLUE "%08X " PRNT_RSET "[ " PRNT_REDD "ID 0x%04X" PRNT_RSET " ]",
+		iter->vromStart,
+		iter->vromEnd,
+		iter->romStart,
+		iter->romEnd,
 		req->size,
 		id
 	);

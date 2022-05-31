@@ -400,6 +400,7 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 		PatchNode* node = sPatchHead;
 		u32 nodeID = 0;
 		char* toml = HeapPrint("%s%s.toml", Path(list.item[i]), Basename(list.item[i]));
+		s64 size;
 		
 		MemFile_Reset(dataFile);
 		MemFile_Reset(config);
@@ -411,6 +412,13 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 		if (MemFile_LoadFile_String(config, toml)) printf_error("Exiting...");
 		
 		rom->file.seekPoint = Toml_GetInt(config, "rom");
+		
+		if (Toml_Variable(config->str, "next")) {
+			size = Toml_GetInt(config, "next") - Toml_GetInt(config, "ram");
+			
+			if (size < dataFile->dataSize)
+				printf_error("Could not fit file [%s] [%X / %X]", size, dataFile->dataSize);
+		}
 		
 		while (node) {
 			if (Intersect(node->start, node->end, rom->file.seekPoint, rom->file.seekPoint + dataFile->dataSize)) {
@@ -1228,6 +1236,7 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		s32 k = 0;
 		u32 start, end;
 		u32* data;
+		s32 compress;
 		
 		forlist(j, list) {
 			if (StrEndCase(list.item[j], HeapPrint("%s.bin", gSystem_OoT[i].name))) {
@@ -1257,7 +1266,16 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_Reset(memData);
 		MemFile_LoadFile(memData, list.item[k]);
 		
-		start = Dma_WriteEntry(rom, id, memData, false);
+		switch (id) {
+			case DMA_ID_TITLE_STATIC:
+				compress = true;
+				break;
+			default:
+				compress = false;
+				break;
+		}
+		
+		start = Dma_WriteEntry(rom, id, memData, compress);
 		end = Dma_GetVRomEnd();
 		
 		switch (id) {
@@ -1278,6 +1296,8 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	
 	ItemList_Free(&list);
 }
+
+static Size sBaseromSize;
 
 void Rom_Build(Rom* rom) {
 	MemFile dataFile = MemFile_Initialize();
@@ -1359,7 +1379,7 @@ void Rom_Build(Rom* rom) {
 	Rom_Build_Skybox(rom, &dataFile, &config);
 	Rom_Build_Static(rom, &dataFile, &config);
 	
-	printf_info("Applying Patches");
+	printf_info("Patching");
 	Rom_Build_Patch(rom, &dataFile, &config);
 	Rom_Build_Code(rom, &dataFile, &config);
 	
@@ -1368,7 +1388,7 @@ void Rom_Build(Rom* rom) {
 		MemFile_LoadFile(&dataFile, "rom/lib_user/z_lib_user.bin");
 		if (dataFile.dataSize > 0xB5000)
 			printf_error("z_lib_user.bin is bigger than %.2f MB. This wont fit into the RAM!", BinToMb(0xB5000));
-		Dma_WriteEntry(rom, DMA_ID_UNUSED_3, &dataFile, false);
+		Dma_WriteEntry(rom, DMA_ID_UNUSED_3, &dataFile, true);
 	}
 	
 	if (gPrintInfo) {
@@ -1382,6 +1402,9 @@ void Rom_Build(Rom* rom) {
 	Dma_UpdateRomSize(rom);
 	fix_crc(rom->file.data);
 	MemFile_SaveFile(&rom->file, gRomName_Output[gBuildTarget]);
+	
+	if (gCompressFlag)
+		printf_info_align("Compression", "[%.1f%c]", ((f32)rom->file.dataSize / sBaseromSize) * 100.0, '%');
 	
 	MemFile_Free(&dataFile);
 	MemFile_Free(&config);
@@ -1398,6 +1421,8 @@ void Rom_New(Rom* rom, char* romName) {
 	if (MemFile_LoadFile(&rom->file, romName)) {
 		printf_error_align("Error Opening", "%s", romName);
 	}
+	
+	sBaseromSize = rom->file.dataSize;
 	
 	SetSegment(0x0, rom->file.data);
 	hdr = SegmentedToVirtual(0x0, 0xDB70);

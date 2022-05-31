@@ -17,17 +17,7 @@ char gRomName_Output[2][128] = {
 };
 s32 gDumpFlag;
 s32 gAudioOnly;
-
-static s32 Main_IsSameFile(char* new, char* cur) {
-	if (Sys_StatF(new, STAT_ACCS) != Sys_StatF(cur, STAT_ACCS))
-		return false;
-	if (Sys_StatF(new, STAT_MODF) != Sys_StatF(cur, STAT_MODF))
-		return false;
-	if (Sys_StatF(new, STAT_CREA) != Sys_StatF(cur, STAT_CREA))
-		return false;
-	
-	return true;
-}
+const char* sRomName[] = { "-release.z64", "-dev.z64" };
 
 static void Main_RenameRooms(const char* from, const char* to) {
 	ItemList list = ItemList_Initialize();
@@ -74,8 +64,6 @@ static s32 Main_Arguments(Rom* rom, char* input, char* argv[]) {
 		
 		return 1;
 	}
-	
-	if (Arg("compress")) gCompressFlag = true;
 	
 	if (Arg("force")) gMakeForce = true;
 	
@@ -145,14 +133,18 @@ static void Main_Config(char** input, Rom* rom) {
 		projectRom = Toml_GetStr(config, "z_baserom");
 		buildRom = Toml_GetStr(config, "z_buildrom");
 		
-		if (strlen(buildRom) > 128 - strlen("-yaz-release.z64"))
+		if (strlen(buildRom) > 128 - strlen(sRomName[1]))
 			printf_error("z_buildrom name is too long");
 		
-		sprintf(gRomName_Output[0], "%s-release.z64", Toml_GetStr(config, "z_buildrom"));
-		sprintf(gRomName_Output[1], "%s-dev.z64", Toml_GetStr(config, "z_buildrom"));
+		sprintf(gRomName_Output[0], "%s%s", buildRom, sRomName[0]);
+		sprintf(gRomName_Output[1], "%s%s", buildRom, sRomName[1]);
 		
 		if (gBuildTarget == ROM_RELEASE) {
 			if (Sys_Stat(gRomName_Output[ROM_DEV]) > Sys_Stat(gRomName_Output[ROM_RELEASE])) {
+				gMakeForce = true;
+			}
+		} else {
+			if (Sys_Stat(gRomName_Output[ROM_RELEASE]) > Sys_Stat(gRomName_Output[ROM_DEV])) {
 				gMakeForce = true;
 			}
 		}
@@ -165,22 +157,11 @@ static void Main_Config(char** input, Rom* rom) {
 				printf_error("File does not exist [%s]", *input);
 			
 			for (s32 i = 0; i < 2; i++) {
-				if (Main_IsSameFile(*input, gRomName_Output[i])) {
+				if (StrEndCase(*input, gRomName_Output[i])) {
 					gCompressFlag = true;
-					
-#if 0
-					Main_CompressRom(gRomName_Output[i]);
-					
-					printf_getchar("Press enter to exit.");
-					exit(0);
-#else
-					
-					sprintf(gRomName_Output[0], "%s-yaz-release.z64", Toml_GetStr(config, "z_buildrom"));
-					sprintf(gRomName_Output[1], "%s-yaz-dev.z64", Toml_GetStr(config, "z_buildrom"));
 					*input = projectRom;
 					
 					return;
-#endif
 				}
 			}
 			
@@ -306,6 +287,9 @@ s32 Main(s32 argc, char* argv[]) {
 			input = argv[i];
 			romCount++;
 			Log("Rom [%s]", input);
+			
+			if (StrStr(argv[i], sRomName[ROM_RELEASE]))
+				gBuildTarget = ROM_RELEASE;
 		}
 		
 		if (StrStr(argv[i], "z64project.toml")) {
@@ -343,6 +327,8 @@ s32 Main(s32 argc, char* argv[]) {
 		
 		exit(0);
 	}
+	
+	if (Arg("yaz")) gCompressFlag = true;
 	
 	Main_Config(&input, rom);
 	if (Main_Arguments(rom, input, argv))
@@ -488,12 +474,6 @@ s32 Main(s32 argc, char* argv[]) {
 			if (pkgInstalled) {
 				printf_info("All packages have been installed successfully!\n");
 				goto free;
-			}
-			
-			if (gBuildTarget == true) {
-				if (Sys_Stat(gRomName_Output[ROM_RELEASE]) > Sys_Stat(gRomName_Output[ROM_DEV])) {
-					gMakeForce = true;
-				}
 			}
 			
 			if (Arg("update")) {

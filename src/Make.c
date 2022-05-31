@@ -518,6 +518,7 @@ static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* 
 		char* c = HeapMalloc(strlen(input) + 0x10);
 		char* z64rom;
 		char* z64ram;
+		char* z64next;
 		
 		strcpy(c, input);
 		if (!String_Replace(c, "rom/", "src/")) goto error;
@@ -526,16 +527,19 @@ static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* 
 		MemFile_LoadFile_String(&mem, c);
 		z64ram = StrStr(mem.str, "z64ram = ");
 		z64rom = StrStr(mem.str, "z64rom = ");
+		z64next = StrStr(mem.str, "z64next = ");
 		
 		if (z64ram == NULL) printf_error_align("No RAM Address:", "[%s]", Filename(c));
 		if (z64rom == NULL) printf_error_align("No ROM Address:", "[%s]", Filename(c));
 		
 		z64ram += strlen("z64ram = ");
 		z64rom += strlen("z64rom = ");
+		if (z64next) z64next += strlen("z64next = ");
 		
 		MemFile_Malloc(config, 0x280);
 		Toml_WriteHex(config, "rom", Value_Hex(z64rom), NO_COMMENT);
 		Toml_WriteHex(config, "ram", Value_Hex(z64ram), NO_COMMENT);
+		if (z64next) Toml_WriteHex(config, "next", Value_Hex(z64next), NO_COMMENT);
 		entryPoint[0] = Value_Hex(z64ram);
 		
 		strcpy(c, input);

@@ -257,7 +257,7 @@ u32 Dma_AllocEntry(Rom* rom, s32 id, Size size) {
 	
 	dma->vromStart = start;
 	dma->vromEnd = start + size;
-	dma->romStart = yazt->romStart;
+	dma->romStart = gCompressFlag ? yazt->romStart : slot->romStart;
 	dma->romEnd = 0;
 	
 	SwapBE(dma->romStart);
@@ -283,7 +283,7 @@ void Dma_UpdateRomSize(Rom* rom) {
 		slot = slot->next;
 	
 	rom->file.dataSize = slot->romStart;
-	rom->file.dataSize = Align(rom->file.dataSize, MbToBin(1));
+	rom->file.dataSize = Align(rom->file.dataSize, 16);
 }
 
 u32 Dma_GetVRomEnd(void) {

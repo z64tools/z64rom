@@ -4,6 +4,7 @@
 /*
    z64ram = 0x8000183C
    z64rom = 0x00243C
+   z64next = 0x80001A5C
  */
 
 #define THREAD_PRI_DMAMGR 16
@@ -34,11 +35,19 @@ void DmaMgr_Init(void) {
 		sizeof(DmaEntry) * 4
 	);
 	
-	DmaMgr_DmaRomToRam(
-		gDmaDataTable[3].romStart ? gDmaDataTable[3].romStart : gDmaDataTable[3].vromStart,
-		0x80700000,
-		gDmaDataTable[3].vromEnd - gDmaDataTable[3].vromStart
-	);
+	if (gDmaDataTable[3].romEnd) {
+		u32 romStart = gDmaDataTable[3].romStart;
+		u32 romSize = gDmaDataTable[3].romEnd - gDmaDataTable[3].romStart;
+		
+		osSetThreadPri(NULL, Z_PRIORITY_MAIN);
+		Yaz0_Decompress(romStart, (void*)0x80700000, romSize);
+		osSetThreadPri(NULL, Z_PRIORITY_DMAMGR);
+	} else
+		DmaMgr_DmaRomToRam(
+			gDmaDataTable[3].vromStart,
+			0x80700000,
+			gDmaDataTable[3].vromEnd - gDmaDataTable[3].vromStart
+		);
 	
 	DmaMgr_DmaRomToRam(
 		gDmaDataTable[2].vromStart,
@@ -58,7 +67,7 @@ void DmaMgr_Init(void) {
 	}
 	
 	osCreateMesgQueue(&sDmaMgrMsgQueue, sDmaMgrMsgBuf, 32);
-	StackCheck_Init(&sDmaMgrStackInfo, sDmaMgrStack, STACK_TOP(sDmaMgrStack), 0, 0x100, "dmamgr");
+	StackCheck_Init(&sDmaMgrStackInfo, sDmaMgrStack, STACK_TOP(sDmaMgrStack), 0, 0x100, "");
 	osCreateThread(
 		&sDmaMgrThread,
 		THREAD_ID_DMAMGR,

@@ -54,6 +54,7 @@ z64rom will convert the newest audio file it finds from this folder so you do no
 | **--actor [id]**      | Actor info, provide `.z64` rom also as an argument | _--actor 7 oot-debug.z64_ |
 | **--dma [id]**        | DMA info, provide `.z64` rom also as an argument   | _--dma 7 oot-debug.z64_   |
 | **--scene [id]**      | Scene info, provide `.z64` rom also as an argument | _--scene 7 oot-debug.z64_ |
+| **--yaz**             | Compress                                           |                           |
 | **--force**           | Force compile/convert                              |                           |
 | **--update**          | Update `z64hdr`                                    |                           |
 | **--reinstall**       | Reinstall `z64hdr` & `mips64-binutils`             |                           |

@@ -1324,6 +1324,7 @@ void Rom_Build(Rom* rom) {
 	
 	Rom_AllocDmaTable(rom);
 	
+	Log("Build");
 	Dir_Enter("rom/"); {
 		Dir_Enter("sound/"); {
 			Dir_Enter("sample/"); {

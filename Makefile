@@ -10,7 +10,7 @@ SOURCE_O_WIN32 := $(foreach f,$(SOURCE_C:.c=.o),bin/win32/$f)
 RELEASE_EXECUTABLE_LINUX := app_linux/z64rom
 RELEASE_EXECUTABLE_WIN32 := app_win32/z64rom.exe
 
-TOOLS_WIN32    := project/tools/novl.exe project/tools/z64audio.exe project/tools/z64convert.exe project/tools/z64compress.exe project/tools/seqas.exe
+TOOLS_WIN32    := project/tools/novl.exe project/tools/z64audio.exe project/tools/z64convert.exe project/tools/seqas.exe
 TOOLS_LINUX    := $(foreach f,$(TOOLS_WIN32:.exe=),$f)
 
 SOURCE_nOVL_C            := $(shell find tools/nOVL/src/* -type f -name '*.c')
@@ -77,7 +77,6 @@ project-files-linux: $(TOOLS_LINUX)
 	@rm -f                app_linux/tools/z64convert.exe
 	@rm -f                app_linux/tools/z64audio.exe
 	@rm -f                app_linux/tools/novl.exe
-	@rm -f                app_linux/tools/z64compress.exe
 	@rm -f                app_linux/tools/seq64_console.exe
 	@rm -f                app_linux/tools/seqas.exe
 project-files-win32: $(TOOLS_WIN32)
@@ -91,7 +90,6 @@ project-files-win32: $(TOOLS_WIN32)
 	@rm -f                app_win32/tools/z64convert
 	@rm -f                app_win32/tools/z64audio
 	@rm -f                app_win32/tools/novl
-	@rm -f                app_win32/tools/z64compress
 	@rm -f                app_win32/tools/seq64_console
 	@rm -f                app_win32/tools/seqas
 
@@ -140,17 +138,6 @@ project/tools/z64convert.exe: tools/z64convert/src/z64convert.c
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@$(MAKE) -C tools/z64convert wincli -j --no-print-directory --silent
 	@cp tools/z64convert/z64convert-cli.exe $@
-
-project/tools/z64compress:
-	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@$(MAKE) -C tools/z64compress linux -j --no-print-directory --silent
-	@cp tools/z64compress/z64compress $@
-	@$(MAKE) -C tools/z64compress clean --no-print-directory --silent
-project/tools/z64compress.exe:
-	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
-	@$(MAKE) -C tools/z64compress win32 -j --no-print-directory --silent
-	@cp tools/z64compress/z64compress.exe $@
-	@$(MAKE) -C tools/z64compress clean --no-print-directory --silent
 	
 project/tools/seqas: tools/seqas.cpp
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"

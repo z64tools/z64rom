@@ -21,7 +21,6 @@ const char* sTools[] = {
 	"tools\\mips64-binutils\\bin\\mips64-objcopy.exe",
 	"tools\\z64audio.exe",
 	"tools\\z64convert.exe",
-	"tools\\z64compress.exe",
 	"tools\\seq64_console.exe",
 	"tools\\seqas.exe",
 	"tools\\novl.exe",
@@ -33,7 +32,6 @@ const char* sTools[] = {
 	"tools/mips64-binutils/bin/mips64-objcopy",
 	"tools/z64audio",
 	"tools/z64convert",
-	"tools/z64compress",
 	"tools/seq64_console",
 	"tools/seqas",
 	"tools/novl",
@@ -197,7 +195,6 @@ static s32 Tools_ValidateTools_Required(void) {
 		"tools/novl.exe",
 		"tools/z64audio.exe",
 		"tools/z64convert.exe",
-		"tools/z64compress.exe",
 		"tools/seq64_console.exe",
 		"tools/seqas.exe",
 		
@@ -206,7 +203,6 @@ static s32 Tools_ValidateTools_Required(void) {
 		"tools/novl",
 		"tools/z64audio",
 		"tools/z64convert",
-		"tools/z64compress",
 		"tools/seq64_console",
 		"tools/seqas",
 #endif

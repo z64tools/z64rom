@@ -212,8 +212,8 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 
 u32 Dma_AllocEntry(Rom* rom, s32 id, Size size) {
 	DmaEntry* dma = &rom->table.dma[id];
-	Slot* slot;
-	Slot* yazt;
+	Slot* slot = NULL;
+	Slot* yazt = NULL;
 	u32 start;
 	
 	slot = Slot_GetFree(gSlotHead, size);

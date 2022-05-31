@@ -29,52 +29,6 @@ static s32 Main_IsSameFile(char* new, char* cur) {
 	return true;
 }
 
-#if 0
-static void Main_CompressRom(char* input) {
-	char cmd[512];
-	char romName[64];
-	MemFile mem = MemFile_Initialize();
-	char* tblstr;
-	u32 num;
-	
-	printf_toolinfo(gToolName, "Compressing");
-	strcpy(romName, input);
-	String_Insert(StrEnd(romName, ".z64"), "-yaz");
-	
-	if (!Sys_Stat("include/z_lib_user.ld"))
-		printf_error("Where is [include/z_lib_user.ld]?");
-	
-	MemFile_LoadFile_String(&mem, "src/lib_user/uLib.h");
-	tblstr = StrStr(mem.str, "EXT_DMA_MAX");
-	tblstr += strlen("EXT_DMA_MAX ");
-	while (!isdigit(tblstr[0])) tblstr++;
-	num = Value_Int(tblstr);
-	
-	Tools_Command(
-		cmd,
-		z64compress,
-		"--in %s "
-		"--out %s "
-		"--mb 32 "
-		"--codec yaz "
-		"--cache rom/cache "
-		"--dma \"0x%X,%d\" "
-		"--compress \"9-14,28-END\" "
-		"--matching "
-		"--threads 42 "
-		,
-		input,
-		romName,
-		/* Offset */ 0x12F70,
-		/* DmaNum */ num
-	);
-	printf("%s\n", cmd);
-	SysExe(cmd);
-	
-	MemFile_Free(&mem);
-}
-#endif
-
 static void Main_RenameRooms(const char* from, const char* to) {
 	ItemList list = ItemList_Initialize();
 	u32 times = 0;

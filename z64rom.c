@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.8.0";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.8.1";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gInfoFlag;

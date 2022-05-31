@@ -21,10 +21,12 @@ void Color_ToRGB(Color_RGB8* dest, Color_HSL* src);
 void Debug_Text(u32 rgba, s32 x, s32 y, char* fmt, ...);
 void Debug_DmaLog(DmaRequest* req);
 void DebugMenu_Update(GlobalContext* globalCtx);
+s32 DebugMenu_CineCamera(Camera* camera, Normal1* norm1, Player* player);
 #else
-#define Debug_Text(...)       ((void)0)
-#define Debug_DmaLog(...)     ((void)0)
-#define DebugMenu_Update(...) ((void)0)
+#define Debug_Text(...)           ((void)0)
+#define Debug_DmaLog(...)         ((void)0)
+#define DebugMenu_Update(...)     ((void)0)
+#define DebugMenu_CineCamera(...) 0
 #endif
 
 Vtx* Gui_AllocQuad(GlobalContext* globalCtx, s16 x, s16 y, s16 width, s16 height, s16 u, s16 v);

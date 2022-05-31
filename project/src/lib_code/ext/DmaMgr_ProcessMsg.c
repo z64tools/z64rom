@@ -45,5 +45,4 @@ void DmaMgr_ProcessMsg(DmaRequest* req) {
 		}
 		DmaMgr_DmaRomToRam(vrom, (u32)ram, size);
 	}
-	osLibPrintf("OK");
 }

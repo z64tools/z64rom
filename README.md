@@ -1,14 +1,14 @@
 # z64rom
 
-##### For questions and feature requests [join z64tools discord](https://discord.gg/52DgAggYAT)!
+### For questions and feature requests [join z64tools discord](https://discord.gg/52DgAggYAT)!
 
-##### [Download z64rom here!](https://github.com/z64tools/z64rom/releases)
+### [Download z64rom here!](https://github.com/z64tools/z64rom/releases)
 
-### Dumping
+# Dumping
 
 Copy rom to same directory where you have your z64rom set and run **z64rom.exe**. Alternatively you can keep the folder open and drag your rom from different directory on top of **z64rom.exe** to let it handle the copying and dump it.
 
-### Building
+# Building
 
 You can do 2 different builds, **build-dev** and **build-release**.
 
@@ -17,33 +17,60 @@ You can do 2 different builds, **build-dev** and **build-release**.
 | build-dev     | Run **z64rom.exe**                                | Debug/Developement, #define **DEV_BUILD** |
 | build-release | Drag'n'drop **z64project.toml** to **z64rom.exe** | Release                                   |
 
-##### build-developement
+### build-developement
 
 Has debugging, testing and developement related code enabled. This includes things like _level select_, _collision viewer_, etc.
 
-##### build-release
+### build-release
 
-Has all that's listed in **build-developement** disabled.
+All debug features are disabled.
 
-### Compressing
+# Compressing
 
 To compress your build, drag and drop it on **z64rom.exe**
 
-### Replacing Samples
+# Dev build features
+
+### Debug Menu
+
+Press `L + R + B` to access the menu. <br>
+Hold `R` while operating, `dpad` to move, `A` to select, `B` to exit.
+
+### osLibPrintf
+
+On boot the rom prints instructions to enable/disable vanilla prints. By default these are turned off. You can use `osLibPrintf` to have more cleaner and controlled output.
+
+# Provided Standard Patches
+
+### Instant textbox
+
+Pressing B will instantly draw the current textbox, even if it's marked to be unskippable. Nobody should need to deal with unskippable text.
+
+### Talking to NPC requires targeting
+
+Now you can roll around more freely with no need to fear that you will get into a lengthy conversation with NPC.
+
+### N64 button colors
+
+It's a N64 game after all.
+
+# Replacing Samples
 
 To replace a sample, copy the sample folder you want to replace from **rom/sound/sample/.vanilla/\*** and paste it in **rom/sound/sample/\***. Copy your audio into this folder copy and you should be done.
 
-##### Supported Audio Formats
+### Supported Audio Formats
 
-mp3, wav, aiff
+-   mp3
+-   wav
+-   aiff
 
-##### Auto Converting
+### Auto Converting
 
 z64rom will convert the newest audio file it finds from this folder so you do not have to clean old samples from this directory. Also naming does not matter as long as it's one of the formats listed above.
 
 ![](readme/z64rom-new-sample.gif)
 
-### Arguments
+# Arguments
 
 | Argument              | Action                                             | Example                   |
 | --------------------- | -------------------------------------------------- | ------------------------- |
@@ -71,7 +98,7 @@ z64rom will convert the newest audio file it finds from this folder so you do no
 | **--dump [rom]**      | Pair with **--audio-only**                         |                           |
 | **--build**           | Pair with **--audio-only**                         |                           |
 
-## Credits
+# Credits
 
 **Documentation:** <br>
 DezZival <br>
@@ -84,7 +111,9 @@ sklitte22
 
 **Special Thanks:** <br>
 Sauraen <br>
-Tharo
+Tharo <br>
+Dragorn421 <br>
+zel
 
 **Tools:** <br>
 [z64convert](https://github.com/z64me/z64convert) by [z64me](https://z64.me) <br>

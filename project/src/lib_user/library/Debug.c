@@ -42,8 +42,6 @@ void Debug_DmaLog(DmaRequest* req) {
 	if (gLibCtx.state.dmaLog == false)
 		return;
 	
-	osLibPrintf("Dma Request:");
-	
 	while (iter->vromEnd) {
 		if (req->vromAddr >= iter->vromStart && req->vromAddr < iter->vromEnd) {
 			break;
@@ -56,6 +54,8 @@ void Debug_DmaLog(DmaRequest* req) {
 	// No Messages || No LinkAnim
 	if (id == 0x14 || id == 0x6 || id == 0x11 || id == 0x12 || id >= EXT_DMA_MAX)
 		return;
+	
+	osLibPrintf("Dma Request:");
 	
 #if 0 // Crashes on some names
 	if (req->filename)

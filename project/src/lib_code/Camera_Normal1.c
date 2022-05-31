@@ -3,6 +3,7 @@
 /*
    z64ram = 0x800473A0
    z64rom = 0xABE540
+   z64next = 0x80047F64
  */
 
 s32 Camera_Normal1(Camera* camera) {
@@ -44,6 +45,9 @@ s32 Camera_Normal1(Camera* camera) {
 	if (R_RELOAD_CAM_PARAMS) {
 		Camera_CopyPREGToModeValues(camera);
 	}
+	
+	if (DebugMenu_CineCamera(camera, norm1, camera->player))
+		return 1;
 	
 	sCameraInterfaceFlags = norm1->interfaceFlags;
 	

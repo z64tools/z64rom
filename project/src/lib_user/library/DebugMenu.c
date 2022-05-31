@@ -511,7 +511,7 @@ static void DebugMenu_DrawQuad(GlobalContext* globalCtx, Vec2f* pos, Vec2f* scal
 
 static void DebugMenu_CollisionViewUpdate(GlobalContext* globalCtx) {
 	#define POLY_GFX_BUF_SIZE 0x4000
-	static Gfx sPolyBuffer[2][POLY_GFX_BUF_SIZE];
+	static Gfx sPolyBuffer[POLY_GFX_BUF_SIZE];
 	
 	DebugState* debugSysCtx = &sDebugMenuCtx;
 	
@@ -521,7 +521,7 @@ static void DebugMenu_CollisionViewUpdate(GlobalContext* globalCtx) {
 	
 	OPEN_DISPS(globalCtx->state.gfxCtx, __FILE__, __LINE__);
 	
-	Gfx* dlist = sPolyBuffer[globalCtx->gameplayFrames % 2];
+	Gfx* dlist = sPolyBuffer;
 	Gfx* pGfx = dlist;
 	Gfx* dGfx = dlist + POLY_GFX_BUF_SIZE;
 #undef POLY_GFX_BUF_SIZE
@@ -568,8 +568,10 @@ static void DebugMenu_CollisionViewUpdate(GlobalContext* globalCtx) {
 	// End
 	gSPEndDisplayList(pGfx++);
 	
-	if (pGfx > dGfx)
+	if (pGfx > dGfx) {
+		osLibPrintf("[DebugMenu] Collision View Gfx out of space!");
 		Fault_AddHungupAndCrash("[DebugMenu] Collision View Gfx out of space! : " __FILE__, __LINE__);
+	}
 	
 	// Add dlist to POLY_OPA
 	gSPDisplayList(POLY_OPA_DISP++, dlist);
@@ -822,7 +824,7 @@ static DebugPageInfo sDebugPageInfo[] = {
 	},
 	{
 		.func = DebugMenu_CollisionView,
-		.name = "Toggle Collision Viewer",
+		.name = "Toggle Collision Viewer [Emulator]",
 		.playerFreeze = false,
 	},
 	{
@@ -999,6 +1001,25 @@ void DebugMenu_Update(GlobalContext* globalCtx) {
 		DebugMenu_CollisionViewUpdate(globalCtx);
 		DebugMenu_HitboxViewUpdate(globalCtx);
 	}
+}
+
+s32 DebugMenu_CineCamera(Camera* camera, Normal1* norm1, Player* player) {
+	if (sDebugMenuCtx.cineModeEnabled == false)
+		return 0;
+	Vec3f pos;
+	
+	pos.x = player->actor.world.pos.x;
+	pos.y = player->actor.world.pos.y + Player_GetHeight(camera->player);
+	pos.z = player->actor.world.pos.z;
+	
+	pos.x += Math_SinS(player->actor.world.rot.y) * player->linearVelocity * 25.0f;
+	pos.z += Math_CosS(player->actor.world.rot.y) * player->linearVelocity * 25.0f;
+	
+	Math_SmoothStepToF(&camera->at.x, pos.x, 0.038f + player->linearVelocity * 0.01f, 10.0f, 0.0f);
+	Math_SmoothStepToF(&camera->at.y, pos.y, 0.038f + player->linearVelocity * 0.01f, 10.0f, 0.0f);
+	Math_SmoothStepToF(&camera->at.z, pos.z, 0.038f + player->linearVelocity * 0.01f, 10.0f, 0.0f);
+	
+	return 1;
 }
 
 #endif

@@ -74,26 +74,34 @@ z64rom will convert the newest audio file it finds from this folder so you do no
 
 | Argument              | Action                                             | Example                   |
 | --------------------- | -------------------------------------------------- | ------------------------- |
+|                       |                                                    |                           |
 | **--zmap**            | Renames all `.zroom`s to `.zmap`                   |                           |
 | **--zroom**           | Renames all `.zmap`s to `.zroom`                   |                           |
+|                       |                                                    |                           |
 | **--info**            | Print extra info, DMA entries, rom visualization   |                           |
+|                       |                                                    |                           |
 | **--target [option]** | Make only `audio / code`                           | _--target sound_          |
 | **--actor [id]**      | Actor info, provide `.z64` rom also as an argument | _--actor 7 oot-debug.z64_ |
 | **--dma [id]**        | DMA info, provide `.z64` rom also as an argument   | _--dma 7 oot-debug.z64_   |
 | **--scene [id]**      | Scene info, provide `.z64` rom also as an argument | _--scene 7 oot-debug.z64_ |
+|                       |                                                    |                           |
+| **--vanilla [name]**  | Set vanilla folder name. Default: `.vanilla`       |                           |
 | **--yaz**             | Compress                                           |                           |
 | **--force**           | Force compile/convert                              |                           |
 | **--update**          | Update `z64hdr`                                    |                           |
 | **--reinstall**       | Reinstall `z64hdr` & `mips64-binutils`             |                           |
 | **--log**             | Print Log before closing                           |                           |
 | **--make-only**       | Do not build, only make                            |                           |
+|                       |                                                    |                           |
 | **--clean**           | Clean `.elf`, `.o` and `entry.ld` files            |                           |
 | **--clean-samples**   | Clean unreferenced samples                         |                           |
+|                       |                                                    |                           |
 | **--no-threading**    | No multi-threading                                 |                           |
 | **--no-wait**         | Do not ask to press enter on exit                  | Win32 Only                |
 | **--no-make**         | Do not compile/convert                             |                           |
 | **--no-wav**          | Do not dump wavs                                   |                           |
 | **--no-beta**         | Remove all OoT unused assets from the project      |                           |
+|                       |                                                    |                           |
 | **--audio-only**      | Only dump/build audio                              |                           |
 | **--dump [rom]**      | Pair with **--audio-only**                         |                           |
 | **--build**           | Pair with **--audio-only**                         |                           |
@@ -132,27 +140,19 @@ You need git, make, and possibly other standard tools.
 
 You may need (?) the following packages to build:
 
-```
-sudo apt-get install glib2.0-dev libelf-dev
-```
+    sudo apt-get install glib2.0-dev libelf-dev
 
 Clone z64rom and its submodules:
 
-```
-git clone --recurse-submodules git@github.com:z64tools/z64rom.git
-```
+    git clone --recurse-submodules git@github.com:z64tools/z64rom.git
 
 Clone ExtLib and its submodules somewhere:
 
-```
-git clone --recurse-submodules git@github.com:rankaisija64/ExtLib.git
-```
+    git clone --recurse-submodules git@github.com:rankaisija64/ExtLib.git
 
 Set the environment variable `C_INCLUDE_PATH` to the path to the ExtLib folder:
 
-```
-export C_INCLUDE_PATH=/path/to/ExtLib
-```
+    export C_INCLUDE_PATH=/path/to/ExtLib
 
 With the z64rom folder as working directory, run `make linux` or `make win32` to build for linux or for win32.
 
@@ -160,10 +160,8 @@ The result of the compilation is in `app_linux` or `app_win32`.
 
 As an example, the following commands clone and build z64rom targeting linux:
 
-```
-git clone --recurse-submodules git@github.com:z64tools/z64rom.git
-cd z64rom
-git clone --recurse-submodules git@github.com:rankaisija64/ExtLib.git
-export C_INCLUDE_PATH=$(pwd)/ExtLib/
-make linux
-```
+    git clone --recurse-submodules git@github.com:z64tools/z64rom.git
+    cd z64rom
+    git clone --recurse-submodules git@github.com:rankaisija64/ExtLib.git
+    export C_INCLUDE_PATH=$(pwd)/ExtLib/
+    make linux

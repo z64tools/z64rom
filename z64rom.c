@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.8.3";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.8.4";
 s32 gExtractAudio = true;
 s32 gPrintInfo;
 s32 gInfoFlag;
@@ -17,6 +17,7 @@ char gRomName_Output[2][128] = {
 };
 s32 gDumpFlag;
 s32 gAudioOnly;
+char* gVanilla = ".vanilla";
 const char* sRomName[] = { "-release.z64", "-dev.z64" };
 
 static void Main_RenameRooms(const char* from, const char* to) {
@@ -122,6 +123,8 @@ static s32 Main_PreArguments(Rom* rom, char* input, char* argv[]) {
 		return 1;
 	}
 	
+	if (Arg("vanilla")) gVanilla = argv[parArg];
+	
 	return 0;
 }
 
@@ -209,6 +212,7 @@ static void Main_Config(char** input, Rom* rom) {
 		MemFile_LoadFile_String(config, projectConfig);
 		projectRom = Toml_GetStr(config, "z_baserom");
 		buildRom = Toml_GetStr(config, "z_buildrom");
+		gVanilla = Toml_GetStr(config, "z_vanilla");
 		
 		if (strlen(buildRom) > 128 - strlen(sRomName[1]))
 			printf_error("z_buildrom name is too long");
@@ -275,43 +279,49 @@ static void Main_Config(char** input, Rom* rom) {
 	MemFile_Reset(config);
 	MemFile_Malloc(config, MbToBin(2.5));
 	
-	MemFile_Printf(config, "# Project Settings\n");
+	Toml_WriteComment(config, "Project Settings");
 	if (*input)
-		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", Filename(*input));
+		Toml_WriteStr(config, "z_baserom", Filename(*input), QUOTES, NO_COMMENT);
 	else
-		MemFile_Printf(config, "%-15s = \"%s\"\n", "z_baserom", "__ROM_NAME__");
+		Toml_WriteStr(config, "z_baserom", "__ROM_NAME__", QUOTES, NO_COMMENT);
 	
-	MemFile_Printf(config, "%-15s = \"%s\"\n", "z_buildrom", "build");
-	MemFile_Printf(config, "%-15s = \"%s\" # [oot_debug/oot_u10]\n", "z_rom_type", "__PLACEHOLDER__");
+	Toml_WriteStr(config, "z_buildrom", "build", QUOTES, NO_COMMENT);
+	Toml_WriteStr(config, "z_rom_type", "__PLACEHOLDER__", QUOTES, NO_COMMENT);
+	Toml_WriteStr(config, "z_vanilla", gVanilla, QUOTES, NO_COMMENT);
+	Toml_Print(config, "\n");
 	
-	MemFile_Printf(config, "\n# Mips64 Flags\n");
+	Toml_WriteComment(config, "Mips64 Flag");
 	
-	MemFile_Printf(
+	Toml_WriteStr(
 		config,
-		"%-15s = \"%s\"\n",
 		"mips64_gcc_flags",
 		"-c -Iinclude/z64hdr -Iinclude/z64hdr/include "
 		"-Isrc/lib_user -G 0 -O1 -fno-reorder-blocks -fno-common -std=gnu99 -march=vr4300 -mabi=32"
 		" -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division -Wall"
-		" -Wno-builtin-declaration-mismatch"
+		" -Wno-builtin-declaration-mismatch",
+		QUOTES,
+		NO_COMMENT
 	);
-	MemFile_Printf(
+	Toml_WriteStr(
 		config,
-		"%-15s = \"%s\"\n",
 		"mips64_gcc_flags_code",
-		"-mno-gpopt -fomit-frame-pointer"
+		"-mno-gpopt -fomit-frame-pointer",
+		QUOTES,
+		NO_COMMENT
 	);
-	MemFile_Printf(
+	Toml_WriteStr(
 		config,
-		"%-15s = \"%s\"\n",
 		"mips64_ld_flags",
-		"-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld -T z_lib_user.ld --emit-relocs"
+		"-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T z64hdr.ld -T objects.ld -T z_lib_user.ld --emit-relocs",
+		QUOTES,
+		NO_COMMENT
 	);
-	MemFile_Printf(
+	Toml_WriteStr(
 		config,
-		"%-15s = \"%s\"\n",
 		"ulib_ld_flags",
-		"-Lrom/lib_user -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T ulib_linker.ld -T objects.ld --emit-relocs"
+		"-Lrom/lib_user -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ -T ulib_linker.ld -T objects.ld --emit-relocs",
+		QUOTES,
+		NO_COMMENT
 	);
 	
 	return;
@@ -438,11 +448,12 @@ s32 Main(s32 argc, char* argv[]) {
 		
 		if (gDumpFlag) {
 			s32 soundsDumped = false;
+			char* smpVanFldr = HeapPrint("rom/sound/sample/%s/", gVanilla);
 			
-			if (Sys_Stat("rom/sound/sample/.vanilla/")) {
+			if (Sys_Stat(smpVanFldr)) {
 				ItemList list = ItemList_Initialize();
 				
-				ItemList_List(&list, "rom/sound/sample/.vanilla/", -1, LIST_FILES | LIST_RELATIVE);
+				ItemList_List(&list, smpVanFldr, -1, LIST_FILES | LIST_RELATIVE);
 				
 				for (s32 i = 0, j = 0; i < list.num; i++) {
 					if (StrEndCase(list.item[i], ".wav")) {

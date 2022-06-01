@@ -319,7 +319,7 @@ static void Audio_PatchWavFiles(MemFile* dataFile, MemFile* config) {
 	
 	foreach(i, info) {
 		printf_progress("Update Sample", i + 1, ArrayCount(info));
-		char* file = HeapPrint("rom/sound/sample/.vanilla/%s/Sample.wav", info[i].info->name);
+		char* file = HeapPrint("rom/sound/sample/%s/%s/Sample.wav", gVanilla, info[i].info->name);
 		
 		MemFile_Reset(dataFile);
 		MemFile_LoadFile(dataFile, file);
@@ -346,7 +346,7 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	u32 off = 0;
 	
 	for (s32 i = 0; i < num; i++) {
-		char* path = HeapPrint("rom/sound/soundfont/.vanilla/0x%02X-%s/", i, gBankName_OoT[i]);
+		char* path = HeapPrint("rom/sound/soundfont/%s/0x%02X-%s/", gVanilla, i, gBankName_OoT[i]);
 		printf_progress("SoundFont", i + 1, num);
 		
 		entry = &head->entries[i];
@@ -444,7 +444,7 @@ void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	MemFile_Reset(config);
 	for (s32 i = 0; i < num; i++) {
-		char* path = HeapPrint("rom/sound/sequence/.vanilla/0x%02X-%s/", i, gSequenceName_OoT[i]);
+		char* path = HeapPrint("rom/sound/sequence/%s/0x%02X-%s/", gVanilla, i, gSequenceName_OoT[i]);
 		ItemList bankList = ItemList_Initialize();
 		u32 bankNum;
 		u32 bankId;
@@ -665,7 +665,7 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			arg[j].rom = rom;
 			arg[j].sample = &gSampleInfo[i + j];
 			arg[j].tbl = tbl[i + j];
-			arg[j].path = "rom/sound/sample/.vanilla/";
+			arg[j].path = HeapPrint("rom/sound/sample/%s/", gVanilla);
 			
 			ThreadLock_Create(&thread[j], SampleDump_Thread, &arg[j]);
 		}

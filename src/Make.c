@@ -83,7 +83,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		
 		if (!Sys_Stat(toml)) {
 			ItemList van = ItemList_Initialize();
-			ItemList_List(&van, "rom/sound/sequence/.vanilla/", 0, LIST_FOLDERS);
+			ItemList_List(&van, HeapPrint("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
 			
 			if (Sys_Stat(van.item[index]))
 				Sys_Copy(HeapPrint("%sconfig.toml", van.item[index]), toml, true);
@@ -107,7 +107,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		
 		if (!Sys_Stat(toml)) {
 			ItemList van = ItemList_Initialize();
-			ItemList_List(&van, "rom/sound/sequence/.vanilla/", 0, LIST_FOLDERS);
+			ItemList_List(&van, HeapPrint("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
 			
 			if (Sys_Stat(van.item[index]))
 				Sys_Copy(HeapPrint("%sconfig.toml", van.item[index]), toml, true);
@@ -225,7 +225,7 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 		Malloc(config, 0x1024);
 		
 		strcpy(config, targ->path);
-		StrRep(config, "rom/sound/sample/", "rom/sound/sample/.vanilla/");
+		StrRep(config, "rom/sound/sample/", HeapPrint("rom/sound/sample/%s/", gVanilla));
 		strcat(config, "config.toml");
 		
 		if (vadpcm == NULL)
@@ -812,7 +812,7 @@ static ThreadFunc Make_Code_Thread_O(MakeArg* arg) {
 	
 	if (Sys_IsDir(input)) {
 		u32 files = 0;
-		if (StrEnd(input, ".vanilla/"))
+		if (StrEnd(input, HeapPrint("%s/", gVanilla)))
 			return;
 		
 		Malloc(list, sizeof(ItemList));

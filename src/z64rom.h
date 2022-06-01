@@ -202,6 +202,7 @@ extern s32 gBuildTarget;
 extern char gRomName_Output[2][128];
 extern s32 gDumpFlag;
 extern s32 gAudioOnly;
+extern char* gVanilla;
 
 void fix_crc(unsigned char* rom);
 

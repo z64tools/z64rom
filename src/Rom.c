@@ -501,7 +501,7 @@ static void Rom_Dump_Actor(Rom* rom, MemFile* data, MemFile* config) {
 			continue;
 		
 		printf_progress("Actor", i + 1, rom->table.num.actor);
-		FileSys_Path("rom/actor/.vanilla/0x%04X-%s/", i, gActorName_OoT[i]);
+		FileSys_Path("rom/actor/%s/0x%04X-%s/", gVanilla, i, gActorName_OoT[i]);
 		
 		if (Rom_Extract(data, rf, FileSys_File("actor.zovl")))
 			Rom_Config_Actor(config, &rom->table.actor[i], gActorName_OoT[i], FileSys_File("config.toml"));
@@ -518,7 +518,7 @@ static void Rom_Dump_Effect(Rom* rom, MemFile* data, MemFile* config) {
 			continue;
 		
 		printf_progress("Effect", i + 1, rom->table.num.effect);
-		FileSys_Path("rom/effect/.vanilla/0x%04X-%s/", i, gEffectName_OoT[i]);
+		FileSys_Path("rom/effect/%s/0x%04X-%s/", gVanilla, i, gEffectName_OoT[i]);
 		
 		if (Rom_Extract(data, rf, FileSys_File("effect.zovl")))
 			Rom_Config_Effect(config, &rom->table.effect[i], gEffectName_OoT[i], FileSys_File("config.toml"));
@@ -535,7 +535,7 @@ static void Rom_Dump_Object(Rom* rom, MemFile* data, MemFile* config) {
 			continue;
 		
 		printf_progress("Object", i + 1, rom->table.num.obj);
-		FileSys_Path("rom/object/.vanilla/0x%04X-%s/", i, gObjectName_OoT[i]);
+		FileSys_Path("rom/object/%s/0x%04X-%s/", gVanilla, i, gObjectName_OoT[i]);
 		
 		Rom_Extract(data, rf, FileSys_File("object.zobj"));
 	}
@@ -553,7 +553,7 @@ static void Rom_Dump_Scene(Rom* rom, MemFile* data, MemFile* config) {
 			continue;
 		
 		printf_progress("Scene", i + 1, rom->table.num.scene);
-		FileSys_Path("rom/scene/.vanilla/0x%02X-%s/", i, gSceneName_OoT[i]);
+		FileSys_Path("rom/scene/%s/0x%02X-%s/", gVanilla, i, gSceneName_OoT[i]);
 		
 		if (Rom_Extract(data, rf, FileSys_File("scene.zscene"))) {
 			u32* seg;
@@ -622,7 +622,7 @@ static void Rom_Dump_State(Rom* rom, MemFile* data, MemFile* config) {
 			continue;
 		
 		printf_progress("System", i + 1, rom->table.num.state);
-		FileSys_Path("rom/system/state/.vanilla/0x%02X-%s/", i, gStateName_OoT[i]);
+		FileSys_Path("rom/system/state/%s/0x%02X-%s/", gVanilla, i, gStateName_OoT[i]);
 		
 		if (Rom_Extract(data, rf, FileSys_File("state.zovl")))
 			Rom_Config_GameState(config, &rom->table.state[i], gStateName_OoT[i], FileSys_File("config.toml"));
@@ -633,7 +633,7 @@ static void Rom_Dump_Kaleido(Rom* rom, MemFile* data, MemFile* config) {
 	RomFile rf;
 	
 	for (s32 i = 0; i < rom->table.num.kaleido; i++) {
-		FileSys_Path("rom/system/kaleido/.vanilla/0x%02X-%s/", i, gKaleidoName_OoT[i]);
+		FileSys_Path("rom/system/kaleido/%s/0x%02X-%s/", gVanilla, i, gKaleidoName_OoT[i]);
 		
 		rf.size = ReadBE(rom->table.kaleido[i].vromEnd) - ReadBE(rom->table.kaleido[i].vromStart);
 		rf.data = SegmentedToVirtual(0x0, ReadBE(rom->table.kaleido[i].vromStart));
@@ -649,7 +649,7 @@ static void Rom_Dump_Static(Rom* rom, MemFile* data, MemFile* config) {
 	foreach(i, gSystem_OoT) {
 		u32 id = gSystem_OoT[i].id;
 		
-		FileSys_Path("rom/system/static/.vanilla/");
+		FileSys_Path("rom/system/static/%s/", gVanilla);
 		
 		rf.romStart = ReadBE(rom->table.dma[id].vromStart);
 		rf.romEnd = ReadBE(rom->table.dma[id].vromEnd);
@@ -666,7 +666,7 @@ static void Rom_Dump_Skybox(Rom* rom, MemFile* data, MemFile* config) {
 	for (s32 i = 0; i < 32; i++) {
 		printf_progress("Skybox", i + 1, 32);
 		
-		FileSys_Path("rom/system/skybox/.vanilla/0x%02X-%s/", i, gSkyboxName_OoT[i]);
+		FileSys_Path("rom/system/skybox/%s/0x%02X-%s/", gVanilla, i, gSkyboxName_OoT[i]);
 		
 		rf.romStart = ReadBE(rom->table.dma[941 + i * 2].vromStart);
 		rf.romEnd = ReadBE(rom->table.dma[941 + i * 2].vromEnd);
@@ -1599,7 +1599,7 @@ void Rom_DeleteUnusedContent(s32 romType) {
 	u32 id;
 	
 	if (romType == Zelda_OoT_Debug) {
-		ItemList_List(&list, "rom/actor/.vanilla/", 0, LIST_FOLDERS | LIST_RELATIVE);
+		ItemList_List(&list, HeapPrint("rom/actor/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
 		ItemList_NumericalSort(&list);
 		for (s32 i = 0; i < ArrayCount(gBetaFlag_Actor_OoT); i++) {
 			id = gBetaFlag_Actor_OoT[i];
@@ -1607,14 +1607,14 @@ void Rom_DeleteUnusedContent(s32 romType) {
 			if (list.item[id] == NULL || id >= list.num)
 				continue;
 			
-			item = HeapPrint("rom/actor/.vanilla/%s", list.item[id]);
+			item = HeapPrint("rom/actor/%s/%s", gVanilla, list.item[id]);
 			
 			printf_info("Delete [%s]", item);
 			Sys_Delete_Recursive(item);
 		}
 		ItemList_Free(&list);
 		
-		ItemList_List(&list, "rom/object/.vanilla/", 0, LIST_FOLDERS | LIST_RELATIVE);
+		ItemList_List(&list, HeapPrint("rom/object/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
 		ItemList_NumericalSort(&list);
 		for (s32 i = 0; i < ArrayCount(gBetaFlag_Object_OoT); i++) {
 			id = gBetaFlag_Object_OoT[i];
@@ -1622,14 +1622,14 @@ void Rom_DeleteUnusedContent(s32 romType) {
 			if (list.item[id] == NULL || id >= list.num)
 				continue;
 			
-			item = HeapPrint("rom/object/.vanilla/%s", list.item[id]);
+			item = HeapPrint("rom/object/%s/%s", gVanilla, list.item[id]);
 			
 			printf_info("Delete [%s]", item);
 			Sys_Delete_Recursive(item);
 		}
 		ItemList_Free(&list);
 		
-		ItemList_List(&list, "rom/scene/.vanilla/", 0, LIST_FOLDERS | LIST_RELATIVE);
+		ItemList_List(&list, HeapPrint("rom/scene/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
 		ItemList_NumericalSort(&list);
 		for (s32 i = 0; i < ArrayCount(gBetaFlag_Scene_OoT); i++) {
 			id = gBetaFlag_Scene_OoT[i];
@@ -1637,7 +1637,7 @@ void Rom_DeleteUnusedContent(s32 romType) {
 			if (list.item[id] == NULL || id >= list.num)
 				continue;
 			
-			item = HeapPrint("rom/scene/.vanilla/%s", list.item[id]);
+			item = HeapPrint("rom/scene/%s/%s", gVanilla, list.item[id]);
 			
 			printf_info("Delete [%s]", item);
 			Sys_Delete_Recursive(item);
@@ -1692,11 +1692,12 @@ void Rom_ItemListDir(ItemList* list, bool isNum, bool isDir) {
 	ItemList modified = ItemList_Initialize();
 	ItemList result = ItemList_Initialize();
 	
-	Dir_Enter(".vanilla/"); {
+	Dir_Enter("%s/", gVanilla); {
 		Dir_ItemList(&vanilla, isDir);
 		
 		Dir_Leave();
 	}
+	ItemList_SetFilter(&modified, FILTER_WORD, gVanilla);
 	Dir_ItemList(&modified, isDir);
 	
 	if (isNum) {
@@ -1729,7 +1730,7 @@ void Rom_ItemListDir(ItemList* list, bool isNum, bool isDir) {
 			if (i < modified.num && modified.item[i] && Value_Int(modified.item[i]) == i) {
 				list->item[list->num] = HeapStrDup(modified.item[i]);
 			} else if (i < vanilla.num && vanilla.item[i] && Value_Int(vanilla.item[i]) == i) {
-				list->item[list->num] = HeapPrint(".vanilla/%s", vanilla.item[i]);
+				list->item[list->num] = HeapPrint("%s/%s", gVanilla, vanilla.item[i]);
 			} else {
 				list->item[list->num] = NULL;
 			}
@@ -1757,7 +1758,7 @@ void Rom_ItemListDir(ItemList* list, bool isNum, bool isDir) {
 			
 			if (cont) continue;
 			
-			list->item[list->num] = HeapPrint(".vanilla/%s", vanilla.item[i]);
+			list->item[list->num] = HeapPrint("%s/%s", gVanilla, vanilla.item[i]);
 			list->num++;
 			i++;
 		}
@@ -1795,7 +1796,9 @@ void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlag flags) 
 	ItemList modified = ItemList_Initialize();
 	ItemList result = ItemList_Initialize();
 	
-	ItemList_List(&vanilla, HeapPrint("%s.vanilla/", path), 0, flags | LIST_RELATIVE);
+	ItemList_List(&vanilla, HeapPrint("%s%s/", path, gVanilla), 0, flags | LIST_RELATIVE);
+	
+	ItemList_SetFilter(&modified, FILTER_WORD, gVanilla);
 	ItemList_List(&modified, path, 0, flags | LIST_NO_DOT | LIST_RELATIVE);
 	
 	if (isNum) {
@@ -1828,7 +1831,7 @@ void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlag flags) 
 			if (i < modified.num && modified.item[i] && Value_Int(modified.item[i]) == i) {
 				list->item[list->num] = HeapPrint("%s%s", path, modified.item[i]);
 			} else if (i < vanilla.num && vanilla.item[i] && Value_Int(vanilla.item[i]) == i) {
-				list->item[list->num] = HeapPrint("%s.vanilla/%s", path, vanilla.item[i]);
+				list->item[list->num] = HeapPrint("%s%s/%s", path, gVanilla, vanilla.item[i]);
 			} else {
 				list->item[list->num] = NULL;
 			}
@@ -1856,7 +1859,7 @@ void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlag flags) 
 			
 			if (cont) continue;
 			
-			list->item[list->num] = HeapPrint("%s.vanilla/%s", path, vanilla.item[i]);
+			list->item[list->num] = HeapPrint("%s%s/%s", path, gVanilla, vanilla.item[i]);
 			list->num++;
 			i++;
 		}

@@ -74,7 +74,7 @@ void Package_Sound(struct zip_t* pkg, char* toml) {
 		printf_error("Package Error!");
 	}
 	
-	char* fldr = HeapPrint("rom/sound/sample/.vanilla/%s/", name);
+	char* fldr = HeapPrint("rom/sound/sample/%s/%s/", gVanilla, name);
 	char* mkfldr = HeapPrint("rom/sound/sample/%s/", name);
 	
 	Sys_MakeDir(mkfldr);
@@ -87,7 +87,7 @@ void Package_Sound(struct zip_t* pkg, char* toml) {
 				break;
 			
 			char* target = HeapStrDup(list.item[i]);
-			StrRep(target, ".vanilla/", "");
+			StrRep(target, HeapPrint("%s/", gVanilla), "");
 			
 			Sys_Copy(list.item[i], target, StrEndCase(list.item[i], ".toml") ? true : false);
 		}

@@ -64,7 +64,7 @@ void Package_Sound(struct zip_t* pkg, char* toml) {
 	ItemList list = ItemList_Initialize();
 	MemFile mem = MemFile_Initialize();
 	void* f;
-	size_t size;
+	Size size;
 	
 	if (name == NULL || file == NULL) {
 		Log("Package:\n%s", toml);
@@ -202,7 +202,7 @@ void Package_Actor(struct zip_t* pkg, char* toml) {
 	
 	for (s32 i = 0; i < list.num; i++) {
 		char* file;
-		u32 size;
+		Size size;
 		void* f;
 		s32 write = false;
 		s32 string = false;
@@ -255,7 +255,7 @@ void Package_Actor(struct zip_t* pkg, char* toml) {
 void Package_Load(const char* item) {
 	struct zip_t* pkg;
 	char* toml;
-	size_t cfgSize;
+	Size cfgSize;
 	char* sct;
 	
 	if (!Sys_Stat(item)) return;

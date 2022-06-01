@@ -70,10 +70,14 @@ static s32 Main_PreArguments(Rom* rom, char* input, char* argv[]) {
 			
 			gMakeTarget = "sound";
 			
-			Make_Sound();
-			Make_Sequence();
+			if (!Arg("no-make")) {
+				Make_Sound();
+				Make_Sequence();
+			}
 			AudioOnly_Build(rom);
 		}
+		
+		printf_info("OK");
 		
 		return 1;
 	}

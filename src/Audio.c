@@ -1064,12 +1064,13 @@ static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setP
 	SwapBE(loop[1]);
 	SwapBE(loop[2]);
 	SwapBE(loop[3]);
+	
 	if (loop[2]) {
 		MemFile_Reset(dataFile);
 		if (Audio_LoadFile(dataFile, "sample.loopbook.bin")) {
 			printf_warning("" PRNT_REDD "[%s]" PRNT_RSET " has looppoints but could not find " PRNT_REDD "loopbook", sSampleTbl[sampleID].name);
 			loop[0] = 0;
-			WriteBE(loop[2], 0);
+			loop[2] = 0;
 			loopSize = 0;
 		} else {
 			for (s32 i = 0; i < 8; i++) {
@@ -1080,32 +1081,32 @@ static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setP
 		}
 	}
 	
-	if (!MemMemAlign(0x10, memLoopBook->data, memLoopBook->dataSize, loop, loopSize)) {
+	if (!MemMemAlign(16, memLoopBook->data, memLoopBook->dataSize, loop, loopSize)) {
 		smpl.loop = memLoopBook->seekPoint;
 		MemFile_Write(memLoopBook, loop, loopSize);
 		MemFile_Align(memLoopBook, 16);
 	} else {
-		void* ptr = MemMemAlign(0x10, memLoopBook->data, memLoopBook->dataSize, loop, loopSize);
+		void* ptr = MemMemAlign(16, memLoopBook->data, memLoopBook->dataSize, loop, loopSize);
 		smpl.loop = (uPtr)ptr - (uPtr)memLoopBook->data;
 	}
 	
 	MemFile_Reset(dataFile);
 	Audio_LoadFile(dataFile, "sample.book.bin");
-	if (!MemMemAlign(0x10, memBook->data, memBook->dataSize, dataFile->data, dataFile->dataSize)) {
+	if (!MemMemAlign(16, memBook->data, memBook->dataSize, dataFile->data, dataFile->dataSize)) {
 		smpl.book = memBook->seekPoint;
 		MemFile_Append(memBook, dataFile);
 		MemFile_Align(memBook, 16);
 	} else {
-		void* ptr = MemMemAlign(0x10, memBook->data, memBook->dataSize, dataFile->data, dataFile->dataSize);
+		void* ptr = MemMemAlign(16, memBook->data, memBook->dataSize, dataFile->data, dataFile->dataSize);
 		smpl.book = (uPtr)ptr - (uPtr)memBook->data;
 	}
 	
-	if (!MemMemAlign(0x10, memSample->data, memSample->dataSize, &smpl, sizeof(struct Sample))) {
+	if (!MemMemAlign(16, memSample->data, memSample->dataSize, &smpl, sizeof(struct Sample))) {
 		setPtr[0] = memSample->seekPoint;
 		MemFile_Write(memSample, &smpl, sizeof(struct Sample));
 		sampleNum[0]++;
 	} else {
-		void* ptr = MemMemAlign(0x10, memSample->data, memSample->dataSize, &smpl, sizeof(struct Sample));
+		void* ptr = MemMemAlign(16, memSample->data, memSample->dataSize, &smpl, sizeof(struct Sample));
 		setPtr[0] = (uPtr)ptr - (uPtr)memSample->data;
 	}
 	Dir_Set(restoreDir);
@@ -1269,15 +1270,12 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			for (s32 j = 0; j < listDrum.num; j++) {
 				Drum drum = { 0 };
 				Adsr adsr[4] = { 0 };
-				char* currentConf = HeapStrDup(Dir_File("drum/%s", listDrum.item[j]));
 				char* prim;
 				
 				if (j == 0) {
-					MemFile_Params(&memDrum, MEM_ALIGN, 0, MEM_END);
 					memDrum.seekPoint += 4 * listDrum.num;
 					memset(memDrum.data, 0, memDrum.seekPoint);
 					MemFile_Align(&memDrum, 16);
-					MemFile_Params(&memDrum, MEM_ALIGN, 16, MEM_END);
 				}
 				
 				if (listDrum.item[j] == NULL) {
@@ -1287,9 +1285,10 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				}
 				
 				MemFile_Reset(config);
-				MemFile_LoadFile_String(config, currentConf);
+				MemFile_LoadFile_String(config, Dir_File("drum/%s", listDrum.item[j]));
+				
 				Toml_GotoSection("prim");
-				prim = HeapStrDup(Toml_GetStr(config, "sample"));
+				prim = Toml_GetStr(config, "sample");
 				
 				if (!memcmp(prim, "NULL", 4)) {
 					memDrum.cast.u32[j] = 0;
@@ -1624,7 +1623,6 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 
 void Audio_DeleteUnreferencedSamples(void) {
 	ItemList sampleList = ItemList_Initialize();
-	ItemList nameList = ItemList_Initialize();
 	ItemList bankList = ItemList_Initialize();
 	MemFile mem = MemFile_Initialize();
 	const char* bankPath[] = {

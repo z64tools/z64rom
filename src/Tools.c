@@ -521,5 +521,7 @@ s32 Tools_Init(void) {
 		Sys_Delete("tools/.installing");
 	}
 	
+	Tools_Get(z64audio); // Init buffers
+	
 	return setupFlag;
 }

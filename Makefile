@@ -1,4 +1,4 @@
-CFLAGS          = -Wall -DEXTLIB=144 -DNDEBUG
+CFLAGS          = -Wall -DEXTLIB=145 -DNDEBUG
 CFLAGS_MAIN     = -Wall -DNDEBUG
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
@@ -167,6 +167,7 @@ bin/win32/%.o: %.c %.h $(HEADER) $(ExtLib_H)
 bin/win32/%.o: %.c $(HEADER) $(ExtLib_H)
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@i686-w64-mingw32.static-gcc -c -o $@ $< $(OPT_WIN32) $(CFLAGS) -D_WIN32
+	@i686-w64-mingw32.static-objdump -drz $@ > $(@:.o=.s)
 
 bin/win32/icon.o: src/icon.rc src/icon.ico
 	@i686-w64-mingw32.static-windres -o $@ $<

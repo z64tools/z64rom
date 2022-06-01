@@ -49,9 +49,9 @@ static void Make_Run(char* cmd) {
 	if (strlen(msg) > 1 && (StrStrCase(msg, "warning") || StrStrCase(msg, "error"))) {
 		char* word = CopyWord(msg, 0);
 		
-		String_Replace(msg, "warning", PRNT_PRPL "warning" PRNT_RSET);
-		String_Replace(msg, "error", PRNT_REDD "error" PRNT_RSET);
-		String_Replace(msg, word, HeapPrint(PRNT_YELW "%s" PRNT_RSET, word));
+		strrep(msg, "warning", PRNT_PRPL "warning" PRNT_RSET);
+		strrep(msg, "error", PRNT_REDD "error" PRNT_RSET);
+		strrep(msg, word, HeapPrint(PRNT_YELW "%s" PRNT_RSET, word));
 		printf_WinFix();
 		printf_lock("%s", msg);
 	}
@@ -225,13 +225,13 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 		Malloc(config, 0x1024);
 		
 		strcpy(config, targ->path);
-		String_Replace(config, "rom/sound/sample/", "rom/sound/sample/.vanilla/");
+		strrep(config, "rom/sound/sample/", "rom/sound/sample/.vanilla/");
 		strcat(config, "config.toml");
 		
 		if (vadpcm == NULL)
 			vadpcm = HeapPrint("%ssample.bin", targ->path);
 		else
-			String_Replace(vadpcm, ".vadpcm", "");
+			strrep(vadpcm, ".vadpcm", "");
 		
 		Log("Audio [%s] Vadpcm [%s]", audio, vadpcm);
 		
@@ -315,7 +315,7 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 	
 	if (type == PRE_GCC) {
 		ovl = HeapPrint("%soverlay.zovl", Path(input));
-		String_Replace(ovl, "src/", "rom/");
+		strrep(ovl, "src/", "rom/");
 		
 		if ((!Sys_Stat(ovl) && Sys_Stat(input)) || Sys_Stat(input) > Sys_Stat(ovl))
 			return CB_BUILD;
@@ -345,12 +345,12 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 		char* dump;
 		
 		ovl = HeapPrint("%soverlay.zovl", Path(input));
-		String_Replace(ovl, "src/", "rom/");
+		strrep(ovl, "src/", "rom/");
 		
 		info = PathSlot(input, -1);
 		if (StrMtch(info, "0x"))
-			String_Remove(info, strlen("0x0000-"));
-		String_Replace(info, "/", " ");
+			strrem(info, strlen("0x0000-"));
+		strrep(info, "/", " ");
 		
 		Tools_Command(command, nOVL, "-v -c -s -A 0x80800000 -o %s %s", ovl, input);
 		Make_Run(command);
@@ -389,7 +389,7 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 	
 	if (type == PRE_GCC) {
 		ovl = HeapPrint("%soverlay.zovl", Path(input));
-		String_Replace(ovl, "src/", "rom/");
+		strrep(ovl, "src/", "rom/");
 		
 		if ((!Sys_Stat(ovl) && Sys_Stat(input)) || Sys_Stat(input) > Sys_Stat(ovl))
 			return CB_BUILD;
@@ -420,10 +420,10 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 		char* dump;
 		
 		ovl = HeapPrint("%soverlay.zovl", Path(input));
-		String_Replace(ovl, "src/", "rom/");
+		strrep(ovl, "src/", "rom/");
 		
 		conf = HeapPrint("%sconfig.toml", Path(input));
-		String_Replace(conf, "src/", "rom/");
+		strrep(conf, "src/", "rom/");
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
 		dump = SysExeO(command); {
@@ -434,7 +434,7 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 			char* varName;
 			ItemList list = ItemList_Initialize();
 			
-			String_Replace(sourceFolder, "rom/", "src/");
+			strrep(sourceFolder, "rom/", "src/");
 			ItemList_List(&list, sourceFolder, -1, LIST_FILES | LIST_NO_DOT);
 			
 			MemFile_Malloc(&srcFile, MbToBin(1.0f));
@@ -472,9 +472,9 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 			
 			Malloc(varName, 64);
 			strcpy(varName, CopyWord(temp, 0));
-			String_Replace(varName, "=", "");
-			String_Replace(varName, "[", "");
-			String_Insert(varName, " ");
+			strrep(varName, "=", "");
+			strrep(varName, "[", "");
+			strins(varName, " ");
 			temp = LineHead(StrStr(dump, varName));
 			
 			MemFile_Printf(&newConf, "# %s\n", Basename(input));
@@ -490,7 +490,7 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 			Free(varName);
 		}
 		
-		info = PathSlot(input, -1); String_Remove(info, strlen("0x0000-")); String_Replace(info, "/", " ");
+		info = PathSlot(input, -1); strrem(info, strlen("0x0000-")); strrep(info, "/", " ");
 		
 		Tools_Command(command, nOVL, "-v -c -s -A 0x80800000 -o %s %s", ovl, input);
 		Make_Run(command);
@@ -521,8 +521,8 @@ static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* 
 		char* z64next;
 		
 		strcpy(c, input);
-		if (!String_Replace(c, "rom/", "src/")) goto error;
-		if (!String_Replace(c, ".o", ".c")) goto error;
+		if (!strrep(c, "rom/", "src/")) goto error;
+		if (!strrep(c, ".o", ".c")) goto error;
 		
 		MemFile_LoadFile_String(&mem, c);
 		z64ram = StrStr(mem.str, "z64ram = ");
@@ -543,7 +543,7 @@ static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* 
 		entryPoint[0] = Value_Hex(z64ram);
 		
 		strcpy(c, input);
-		if (!String_Replace(c, ".o", ".toml")) goto error;
+		if (!strrep(c, ".o", ".toml")) goto error;
 		
 		MemFile_SaveFile_String(config, c);
 		
@@ -552,7 +552,7 @@ static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* 
 		
 		return 0;
 error:
-		printf_error_align("String_Replace", "[%s] -> [%s]", input, c);
+		printf_error_align("strrep", "[%s] -> [%s]", input, c);
 	}
 	if (type == POST_LD) {
 		char* output;
@@ -560,7 +560,7 @@ error:
 		
 		output = HeapMalloc(strlen(input) + 8);
 		strcpy(output, input);
-		String_Replace(output, ".elf", ".bin");
+		strrep(output, ".elf", ".bin");
 		
 		Tools_Command(command, mips64_objcopy, "-R .MIPS.abiflags -O binary %s %s", input, output);
 		Make_Run(command);
@@ -797,8 +797,8 @@ static ThreadFunc Make_Code_Thread_C(MakeArg* arg) {
 	
 	Calloc(output, strlen(input) + 10);
 	strcpy(output, input);
-	String_Replace(output, ".c", ".o");
-	String_Replace(output, "src/", "rom/");
+	strrep(output, ".c", ".o");
+	strrep(output, "src/", "rom/");
 	
 	Code_GCC(input, output, arg->flag, arg->callback);
 	Free(output);
@@ -837,7 +837,7 @@ static ThreadFunc Make_Code_Thread_O(MakeArg* arg) {
 		
 		Calloc(output, strlen(input));
 		sprintf(output, "%sfile.elf", arg->itemList->item[arg->i]);
-		String_Replace(output, "src/", "rom/");
+		strrep(output, "src/", "rom/");
 	} else {
 		if (!StrEnd(input, ".o")) {
 			goto free;
@@ -845,8 +845,8 @@ static ThreadFunc Make_Code_Thread_O(MakeArg* arg) {
 		
 		Calloc(output, strlen(input) + 10);
 		strcpy(output, input);
-		String_Replace(output, ".o", ".elf");
-		String_Replace(output, "src/", "rom/");
+		strrep(output, ".o", ".elf");
+		strrep(output, "src/", "rom/");
 	}
 	
 	Code_LD(input, output, arg->flag, arg->callback);

@@ -689,7 +689,7 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			name = gSampleInfo[i].dublicate == NULL ? gSampleInfo[i].name : gSampleInfo[i].dublicate->name;
 			
 			sprintf(buff, "0x%X", sSortedSampleTbl[i]->sampleAddr);
-			if (String_Replace(config->data, buff, HeapPrint("\"%s\"", name))) {
+			if (strrep(config->data, buff, HeapPrint("\"%s\"", name))) {
 				replacedName = name;
 			}
 		}
@@ -715,13 +715,13 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			Log("%s", var);
 			
 			strcpy(instName, var);
-			String_Remove(instName, strlen("Inst_"));
-			String_Replace(instName, "_Prim", "");
-			String_Replace(instName, "Soft", "");
-			String_Replace(instName, "Hard", "");
-			String_Replace(instName, "Mute", "");
-			String_Replace(instName, "Open", "");
-			String_Replace(instName, "_Hi", "Var");
+			strrem(instName, strlen("Inst_"));
+			strrep(instName, "_Prim", "");
+			strrep(instName, "Soft", "");
+			strrep(instName, "Hard", "");
+			strrep(instName, "Mute", "");
+			strrep(instName, "Open", "");
+			strrep(instName, "_Hi", "Var");
 			
 			if (instName[0] == 0)
 				printf_error("String maniplation failed for instrument");
@@ -741,19 +741,17 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 // # # # # # # # # # # # # # # # # # # # #
 
 static s32 Audio_LoadFile(MemFile* dataFile, char* file) {
-	char buf[512];
+	char* buf;
 	char* smpl;
 	
-	Log("File: %s", file);
-	
-	strcpy(buf, file);
-	smpl = Dir_File(buf);
+	smpl = Dir_File(file);
 	
 	if (smpl && Sys_Stat(smpl)) {
 		if (MemFile_LoadFile(dataFile, smpl))
 			return 1;
 	} else {
-		String_Replace(buf, "sample", "*");
+		buf = HeapStrDup(file);
+		strrep(buf, "sample", "*");
 		smpl = Dir_File(file);
 		
 		if (smpl) {
@@ -827,7 +825,7 @@ void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			if (file == NULL)
 				printf_error("Could not locate sample in [%s]", itemList.item[i]);
 			
-			Log("smp: %s", file);
+			Log("smpl: %s", file);
 			Log("toml: %s", toml);
 			
 			if (MemFile_LoadFile(&sample, file))
@@ -846,7 +844,7 @@ void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			sSampleTbl[sSampleTblNum].size = sample.dataSize;
 			strcpy(sSampleTbl[sSampleTblNum].dir, Dir_File(""));
 			strcpy(sSampleTbl[sSampleTblNum].name, PathSlot(itemList.item[i], -1));
-			String_Replace(sSampleTbl[sSampleTblNum].name, "/", "\0");
+			strrep(sSampleTbl[sSampleTblNum].name, "/", "\0");
 			sSampleTblNum++;
 			MemFile_Append(dataFile, &sample);
 			
@@ -1661,7 +1659,7 @@ void Audio_DeleteUnreferencedSamples(void) {
 						continue;
 					
 					word = PathSlot(sampleList.item[l], -1);
-					String_Replace(word, "/", "");
+					strrep(word, "/", "");
 					
 					if (!StrStr(mem.str, word))
 						continue;

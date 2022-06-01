@@ -83,13 +83,13 @@ static void Tools_CloseDialog(const char* toolName, bool askClose) {
 }
 
 static s32 Tools_FileDialog(const char* output) {
-	char* buffer = String_Unquote(Terminal_GetStr());
+	char* buffer = strunq(Terminal_GetStr());
 	
-	if (buffer == NULL || !StrEnd(output, String_Extension(buffer))) {
+	if (buffer == NULL || !StrEnd(output, FileExtension(buffer))) {
 		Terminal_ClearLines(3);
 		printf_warning(
 			"This does not seem to be valid " PRNT_REDD "%s " PRNT_RSET "file. Try again.",
-			String_Extension(output)
+			FileExtension(output)
 		);
 		
 		return Tools_FileDialog(output);
@@ -398,7 +398,7 @@ redo:
 		char* input = itemList.item[i];
 		char* output = strdup(input);
 		
-		String_Replace(output, extract + strlen("include/"), "z64hdr/");
+		strrep(output, extract + strlen("include/"), "z64hdr/");
 		Sys_MakeDir(Path(output));
 		Sys_Rename(input, output);
 		

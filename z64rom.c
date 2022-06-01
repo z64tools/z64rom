@@ -37,7 +37,7 @@ static void Main_RenameRooms(const char* from, const char* to) {
 			continue;
 		
 		tmp = HeapStrDup(list.item[i]);
-		String_Replace(tmp, from, to);
+		strrep(tmp, from, to);
 		
 		if (Sys_Rename(list.item[i], tmp)) {
 			printf_warning("Could not rename [%s] to \"%s\" format", list.item[i], to);
@@ -421,7 +421,7 @@ s32 Main(s32 argc, char* argv[]) {
 					input = StrDup(list.item[i]);
 					gDumpFlag = true;
 					
-					String_Replace(rom->config.str, "__ROM_NAME__", input);
+					strrep(rom->config.str, "__ROM_NAME__", input);
 				}
 				
 				printf("\n");

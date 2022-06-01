@@ -263,7 +263,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 		
 		char* cmd = CopyWord(line, 0);
 		
-		String_Replace(config->str, cmd + 1, Toml_GetVariable(line, cmd));
+		strrep(config->str, cmd + 1, Toml_GetVariable(line, cmd));
 	}
 	
 	line = config->str;
@@ -286,7 +286,7 @@ static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char*
 			word = Toml_GetVariable(line, CopyWord(line, 0));
 			
 			// Toml_GetVariable sees that this is a string and does magics
-			String_Remove(word, strlen("ILE(\""));
+			strrem(word, strlen("ILE(\""));
 			
 			Sys_SetWorkDir(Path(file));
 			if (Sys_Stat(word)) {
@@ -1436,10 +1436,10 @@ void Rom_New(Rom* rom, char* romName) {
 			if (!strcmp(romType, "__PLACEHOLDER__")) {
 				if (hdr[0] != 0) {
 					rom->type = Zelda_OoT_Debug;
-					String_Replace(rom->config.str, "__PLACEHOLDER__", "oot_debug");
+					strrep(rom->config.str, "__PLACEHOLDER__", "oot_debug");
 				} else {
 					rom->type = Zelda_OoT_1_0;
-					String_Replace(rom->config.str, "__PLACEHOLDER__", "oot_u10");
+					strrep(rom->config.str, "__PLACEHOLDER__", "oot_u10");
 				}
 				rom->config.seekPoint = rom->config.dataSize = strlen(rom->config.str);
 			} else {

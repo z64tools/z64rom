@@ -689,7 +689,7 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			name = gSampleInfo[i].dublicate == NULL ? gSampleInfo[i].name : gSampleInfo[i].dublicate->name;
 			
 			sprintf(buff, "0x%X", sSortedSampleTbl[i]->sampleAddr);
-			if (strrep(config->data, buff, HeapPrint("\"%s\"", name))) {
+			if (StrRep(config->data, buff, HeapPrint("\"%s\"", name))) {
 				replacedName = name;
 			}
 		}
@@ -715,13 +715,13 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			Log("%s", var);
 			
 			strcpy(instName, var);
-			strrem(instName, strlen("Inst_"));
-			strrep(instName, "_Prim", "");
-			strrep(instName, "Soft", "");
-			strrep(instName, "Hard", "");
-			strrep(instName, "Mute", "");
-			strrep(instName, "Open", "");
-			strrep(instName, "_Hi", "Var");
+			StrRem(instName, strlen("Inst_"));
+			StrRep(instName, "_Prim", "");
+			StrRep(instName, "Soft", "");
+			StrRep(instName, "Hard", "");
+			StrRep(instName, "Mute", "");
+			StrRep(instName, "Open", "");
+			StrRep(instName, "_Hi", "Var");
 			
 			if (instName[0] == 0)
 				printf_error("String maniplation failed for instrument");
@@ -751,7 +751,7 @@ static s32 Audio_LoadFile(MemFile* dataFile, char* file) {
 			return 1;
 	} else {
 		buf = HeapStrDup(file);
-		strrep(buf, "sample", "*");
+		StrRep(buf, "sample", "*");
 		smpl = Dir_File(file);
 		
 		if (smpl) {
@@ -844,7 +844,7 @@ void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			sSampleTbl[sSampleTblNum].size = sample.dataSize;
 			strcpy(sSampleTbl[sSampleTblNum].dir, Dir_File(""));
 			strcpy(sSampleTbl[sSampleTblNum].name, PathSlot(itemList.item[i], -1));
-			strrep(sSampleTbl[sSampleTblNum].name, "/", "\0");
+			StrRep(sSampleTbl[sSampleTblNum].name, "/", "\0");
 			sSampleTblNum++;
 			MemFile_Append(dataFile, &sample);
 			
@@ -1659,7 +1659,7 @@ void Audio_DeleteUnreferencedSamples(void) {
 						continue;
 					
 					word = PathSlot(sampleList.item[l], -1);
-					strrep(word, "/", "");
+					StrRep(word, "/", "");
 					
 					if (!StrStr(mem.str, word))
 						continue;

@@ -107,7 +107,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 			Calloc(gYazBuf, MbToBin(32));
 		
 		strcpy(yazFile, memFile->info.name);
-		strrep(yazFile, "rom/", "rom/yaz-cache/");
+		StrRep(yazFile, "rom/", "rom/yaz-cache/");
 		strcat(yazFile, ".yaz");
 		
 		if (Sys_Stat(yazFile) >= memFile->info.age) {

@@ -37,7 +37,7 @@ static void Main_RenameRooms(const char* from, const char* to) {
 			continue;
 		
 		tmp = HeapStrDup(list.item[i]);
-		strrep(tmp, from, to);
+		StrRep(tmp, from, to);
 		
 		if (Sys_Rename(list.item[i], tmp)) {
 			printf_warning("Could not rename [%s] to \"%s\" format", list.item[i], to);
@@ -319,7 +319,7 @@ static void Main_Config(char** input, Rom* rom) {
 
 s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
-	Rom* rom = NULL;
+	Rom* rom;
 	u32 parArg = 0;
 	u32 romCount = 0;
 	
@@ -421,7 +421,7 @@ s32 Main(s32 argc, char* argv[]) {
 					input = StrDup(list.item[i]);
 					gDumpFlag = true;
 					
-					strrep(rom->config.str, "__ROM_NAME__", input);
+					StrRep(rom->config.str, "__ROM_NAME__", input);
 				}
 				
 				printf("\n");

@@ -1,4 +1,4 @@
-CFLAGS          = -Wall -DEXTLIB=145 -DNDEBUG
+CFLAGS          = -Wall -DEXTLIB=146 -DNDEBUG
 CFLAGS_MAIN     = -Wall -DNDEBUG
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast

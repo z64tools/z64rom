@@ -83,7 +83,7 @@ static void Tools_CloseDialog(const char* toolName, bool askClose) {
 }
 
 static s32 Tools_FileDialog(const char* output) {
-	char* buffer = strunq(Terminal_GetStr());
+	char* buffer = StrUnq(Terminal_GetStr());
 	
 	if (buffer == NULL || !StrEnd(output, FileExtension(buffer))) {
 		Terminal_ClearLines(3);
@@ -398,7 +398,7 @@ redo:
 		char* input = itemList.item[i];
 		char* output = strdup(input);
 		
-		strrep(output, extract + strlen("include/"), "z64hdr/");
+		StrRep(output, extract + strlen("include/"), "z64hdr/");
 		Sys_MakeDir(Path(output));
 		Sys_Rename(input, output);
 		

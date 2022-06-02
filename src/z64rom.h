@@ -42,13 +42,6 @@ typedef struct {
 	};
 } RestrictionFlag;
 
-typedef enum {
-	NoRom = 0,
-	Zelda_OoT_Debug,
-	Zelda_OoT_1_0,
-	Zelda_MM_U,
-} AttPacked RomType;
-
 typedef struct {
 	struct {
 		u32 dmaTable;
@@ -84,7 +77,6 @@ typedef struct {
 } RomOffset;
 
 typedef struct Rom {
-	RomType   type;
 	MemFile   file;
 	MemFile   config;
 	RomOffset offset;
@@ -199,10 +191,12 @@ extern u32 gCompressFlag;
 extern u32 gThreading;
 extern const char* gToolName;
 extern s32 gBuildTarget;
-extern char gRomName_Output[2][128];
+extern char gBuildrom[2][128];
 extern s32 gDumpFlag;
 extern s32 gAudioOnly;
 extern char* gVanilla;
+extern const char* gProjectConfig;
+extern const char* gBaserom;
 
 void fix_crc(unsigned char* rom);
 

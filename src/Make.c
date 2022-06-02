@@ -86,7 +86,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 			ItemList_List(&van, HeapPrint("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
 			
 			if (Sys_Stat(van.item[index]))
-				Sys_Copy(HeapPrint("%sconfig.toml", van.item[index]), toml, true);
+				Sys_Copy(HeapPrint("%sconfig.toml", van.item[index]), toml);
 			
 			ItemList_Free(&van);
 		}
@@ -110,7 +110,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 			ItemList_List(&van, HeapPrint("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
 			
 			if (Sys_Stat(van.item[index]))
-				Sys_Copy(HeapPrint("%sconfig.toml", van.item[index]), toml, true);
+				Sys_Copy(HeapPrint("%sconfig.toml", van.item[index]), toml);
 			
 			ItemList_Free(&van);
 		}

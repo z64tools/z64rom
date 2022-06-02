@@ -672,13 +672,13 @@ static void Rom_Dump_Skybox(Rom* rom, MemFile* data, MemFile* config) {
 		rf.romEnd = ReadBE(rom->table.dma[941 + i * 2].vromEnd);
 		rf.size = rf.romEnd - rf.romStart;
 		rf.data = SegmentedToVirtual(0x0, rf.romStart);
-		Rom_Extract(data, rf, FileSys_File("texel.bin"));
+		Rom_Extract(data, rf, FileSys_File("skybox.tex"));
 		
 		rf.romStart = ReadBE(rom->table.dma[942 + i * 2].vromStart);
 		rf.romEnd = ReadBE(rom->table.dma[942 + i * 2].vromEnd);
 		rf.size = rf.romEnd - rf.romStart;
 		rf.data = SegmentedToVirtual(0x0, rf.romStart);
-		Rom_Extract(data, rf, FileSys_File("palette.bin"));
+		Rom_Extract(data, rf, FileSys_File("skybox.pal"));
 	}
 }
 
@@ -1215,11 +1215,11 @@ static void Rom_Build_Skybox(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		FileSys_Path(list.item[i]);
 		
 		MemFile_Reset(memData);
-		MemFile_LoadFile(memData, FileSys_File("texel.bin"));
+		MemFile_LoadFile(memData, FileSys_FindFile(".tex"));
 		Dma_WriteEntry(rom, texId, memData, true);
 		
 		MemFile_Reset(memData);
-		MemFile_LoadFile(memData, FileSys_File("palette.bin"));
+		MemFile_LoadFile(memData, FileSys_FindFile(".pal"));
 		Dma_WriteEntry(rom, palId, memData, true);
 	}
 	
@@ -1310,7 +1310,7 @@ void Rom_Build(Rom* rom) {
 	MemFile_Params(&config, MEM_REALLOC, true, MEM_END);
 	
 	printf_info_align("Load Baserom", PRNT_REDD "%s", Filename(rom->file.info.name));
-	printf_info_align("Build Rom", PRNT_BLUE "%s",  gRomName_Output[gBuildTarget]);
+	printf_info_align("Build Rom", PRNT_BLUE "%s",  gBuildrom[gBuildTarget]);
 	
 	Rom_ExtTableNum(rom);
 	
@@ -1401,7 +1401,7 @@ void Rom_Build(Rom* rom) {
 	
 	Dma_UpdateRomSize(rom);
 	fix_crc(rom->file.data);
-	MemFile_SaveFile(&rom->file, gRomName_Output[gBuildTarget]);
+	MemFile_SaveFile(&rom->file, gBuildrom[gBuildTarget]);
 	
 	if (gCompressFlag)
 		printf_info_align("Compression", "[%.1f%c]", ((f32)rom->file.dataSize / sBaseromSize) * 100.0, '%');
@@ -1411,157 +1411,74 @@ void Rom_Build(Rom* rom) {
 }
 
 void Rom_New(Rom* rom, char* romName) {
-	u32* hdr;
 	u16* addr;
 	
 	rom->file = MemFile_Initialize();
-	
 	MemFile_Malloc(&rom->file, MbToBin(128));
-	
-	if (MemFile_LoadFile(&rom->file, romName)) {
+	if (MemFile_LoadFile(&rom->file, romName))
 		printf_error_align("Error Opening", "%s", romName);
-	}
-	
 	sBaseromSize = rom->file.dataSize;
-	
 	SetSegment(0x0, rom->file.data);
-	hdr = SegmentedToVirtual(0x0, 0xDB70);
 	
-	if (rom->type == NoRom) {
-		if (gAudioOnly) {
-			rom->type = Zelda_OoT_Debug;
-		} else {
-			char* romType = Toml_GetVariable(rom->config.str, "z_rom_type");
-			
-			if (!strcmp(romType, "__PLACEHOLDER__")) {
-				if (hdr[0] != 0) {
-					rom->type = Zelda_OoT_Debug;
-					StrRep(rom->config.str, "__PLACEHOLDER__", "oot_debug");
-				} else {
-					rom->type = Zelda_OoT_1_0;
-					StrRep(rom->config.str, "__PLACEHOLDER__", "oot_u10");
-				}
-				rom->config.seekPoint = rom->config.dataSize = strlen(rom->config.str);
-			} else {
-				if (!strcmp(romType, "oot_debug")) {
-					rom->type = Zelda_OoT_Debug;
-				} else if (!strcmp(romType, "oot_u10")) {
-					rom->type = Zelda_OoT_1_0;
-				} else {
-					rom->type = NoRom;
-				}
-			}
-		}
+	if (strcmp(SegmentedToVirtual(0, 0xBCF8F0), "NOT MARIO CLUB VERSION")) {
+		printf_warning("Provided rom, [%s], isn't " PRNT_YELW "OOT MQ DEBUG PAL", romName);
+		printf_error("z64rom does not support other roms currently.");
 	}
 	
-	switch (rom->type) {
-		case Zelda_OoT_Debug:
-			rom->offset.table.dmaTable = 0x012F70;
-			rom->offset.table.objTable = 0xB9E6C8;
-			rom->offset.table.actorTable = 0xB8D440;
-			rom->offset.table.effectTable = 0xB8CB50;
-			rom->offset.table.stateTable = 0xB969D0;
-			rom->offset.table.sceneTable = 0xBA0BB0;
-			rom->offset.table.kaleidoTable = 0xBA4340;
-			
-			rom->offset.table.seqFontTbl = 0xBCC4E0;
-			rom->offset.table.seqTable = 0xBCC6A0;
-			rom->offset.table.fontTable = 0xBCC270;
-			rom->offset.table.sampleTable = 0xBCCD90;
-			
-			rom->offset.table.restrictionFlags = 0x00B9CA10;
-			
-			addr = SegmentedToVirtual(0x0, 0xB5A4AE);
-			rom->offset.segment.seqRom = (ReadBE(addr[0]) - (ReadBE(addr[2]) > 0x7FFF)) << 16;
-			rom->offset.segment.seqRom |= ReadBE(addr[2]);
-			// rom->offset.segment.seqRom = 0x44DF0;
-			
-			addr = SegmentedToVirtual(0x0, 0xB5A4C2);
-			rom->offset.segment.fontRom = (ReadBE(addr[0]) - (ReadBE(addr[2]) > 0x7FFF)) << 16;
-			rom->offset.segment.fontRom |= ReadBE(addr[2]);
-			// rom->offset.segment.fontRom = 0x19030;
-			
-			addr = SegmentedToVirtual(0x0, 0xB5A4D6);
-			rom->offset.segment.smplRom = (ReadBE(addr[0]) - (ReadBE(addr[2]) > 0x7FFF)) << 16;
-			rom->offset.segment.smplRom |= ReadBE(addr[2]);
-			// rom->offset.segment.smplRom = 0x94870;
-			
-			rom->table.num.dma = 1548;
-			rom->table.num.obj = 402;
-			rom->table.num.actor = 471;
-			rom->table.num.effect = 37;
-			rom->table.num.state = 6;
-			rom->table.num.scene = 110;
-			rom->table.num.kaleido = 2;
-			
-			rom->offset.table.player.init = (HiLo) {
-				0x00B288F8, 0x00B28900
-			};
-			rom->offset.table.player.dest = (HiLo) {
-				0x00B28908, 0x00B28914
-			};
-			rom->offset.table.player.updt = (HiLo) {
-				0x00B2891C, 0x00B28928
-			};
-			rom->offset.table.player.draw = (HiLo) {
-				0x00B28930, 0x00B2893C
-			};
-			
-			rom->offset.table.pauseMenu.init = (HiLo) {
-				0x00B33208, 0x00B3320C
-			};
-			rom->offset.table.pauseMenu.updt = (HiLo) {
-				0x00B33218, 0x00B33220
-			};
-			break;
-		case Zelda_OoT_1_0:
-			rom->offset.table.dmaTable = 0x00007430;
-			rom->offset.table.objTable = 0x00B6EF58;
-			rom->offset.table.actorTable = 0x00B5E490;
-			rom->offset.table.effectTable = 0x00B5DBA0;
-			rom->offset.table.stateTable = 0x00B672A0;
-			rom->offset.table.sceneTable = 0x00B71440;
-			rom->offset.table.kaleidoTable = 0x00B743E0;
-			
-			rom->offset.table.seqFontTbl = 0x00B89910;
-			
-			rom->offset.table.seqTable = 0x00B89AD0;
-			rom->offset.table.fontTable = 0x00B896A0;
-			rom->offset.table.sampleTable = 0x00B8A1C0;
-			
-			rom->offset.segment.seqRom = 0x00029DE0;
-			rom->offset.segment.fontRom = 0x0000D390;
-			rom->offset.segment.smplRom = 0x00079470;
-			
-			rom->offset.table.restrictionFlags = 0x00B6D2B0;
-			
-			rom->table.num.dma = 1526;
-			rom->table.num.obj = 402;
-			rom->table.num.actor = 471;
-			rom->table.num.effect = 37;
-			rom->table.num.state = 6;
-			rom->table.num.scene = 101;
-			rom->table.num.kaleido = 2;
-			
-			rom->offset.table.player.init = (HiLo) {
-				0x00B0D5B8, 0x00B0D5C0
-			};
-			rom->offset.table.player.dest = (HiLo) {
-				0x00B0D5C8, 0x00B0D5D4
-			};
-			rom->offset.table.player.updt = (HiLo) {
-				0x00B0D5DC, 0x00B0D5E8
-			};
-			rom->offset.table.player.draw = (HiLo) {
-				0x00B0D5F0, 0x00B0D5FC
-			};
-			break;
-		case Zelda_MM_U:
-			break;
-		case NoRom:
-		default:
-			printf_error("Unknown ROM type");
-	}
+	rom->offset.table.dmaTable = 0x012F70;
+	rom->offset.table.objTable = 0xB9E6C8;
+	rom->offset.table.actorTable = 0xB8D440;
+	rom->offset.table.effectTable = 0xB8CB50;
+	rom->offset.table.stateTable = 0xB969D0;
+	rom->offset.table.sceneTable = 0xBA0BB0;
+	rom->offset.table.kaleidoTable = 0xBA4340;
+	
+	rom->offset.table.seqFontTbl = 0xBCC4E0;
+	rom->offset.table.seqTable = 0xBCC6A0;
+	rom->offset.table.fontTable = 0xBCC270;
+	rom->offset.table.sampleTable = 0xBCCD90;
+	
+	rom->offset.table.restrictionFlags = 0x00B9CA10;
+	
+	addr = SegmentedToVirtual(0x0, 0xB5A4AE);
+	rom->offset.segment.seqRom = (ReadBE(addr[0]) - (ReadBE(addr[2]) > 0x7FFF)) << 16;
+	rom->offset.segment.seqRom |= ReadBE(addr[2]);
+	
+	addr = SegmentedToVirtual(0x0, 0xB5A4C2);
+	rom->offset.segment.fontRom = (ReadBE(addr[0]) - (ReadBE(addr[2]) > 0x7FFF)) << 16;
+	rom->offset.segment.fontRom |= ReadBE(addr[2]);
+	
+	addr = SegmentedToVirtual(0x0, 0xB5A4D6);
+	rom->offset.segment.smplRom = (ReadBE(addr[0]) - (ReadBE(addr[2]) > 0x7FFF)) << 16;
+	rom->offset.segment.smplRom |= ReadBE(addr[2]);
+	
+	rom->table.num.dma = 1548;
+	rom->table.num.obj = 402;
+	rom->table.num.actor = 471;
+	rom->table.num.effect = 37;
+	rom->table.num.state = 6;
+	rom->table.num.scene = 110;
+	rom->table.num.kaleido = 2;
+	
+	rom->offset.table.player.init = (HiLo) {
+		0x00B288F8, 0x00B28900
+	};
+	rom->offset.table.player.dest = (HiLo) {
+		0x00B28908, 0x00B28914
+	};
+	rom->offset.table.player.updt = (HiLo) {
+		0x00B2891C, 0x00B28928
+	};
+	rom->offset.table.player.draw = (HiLo) {
+		0x00B28930, 0x00B2893C
+	};
+	
+	rom->offset.table.pauseMenu.init = (HiLo) {
+		0x00B33208, 0x00B3320C
+	};
+	rom->offset.table.pauseMenu.updt = (HiLo) {
+		0x00B33218, 0x00B33220
+	};
 	
 	rom->table.dma = SegmentedToVirtual(0x0, rom->offset.table.dmaTable);
 	rom->table.object = SegmentedToVirtual(0x0, rom->offset.table.objTable);
@@ -1583,6 +1500,79 @@ void Rom_New(Rom* rom, char* romName) {
 	MemFile_Malloc(&rom->mem.seqFontTbl, MbToBin(0.1));
 }
 
+void Rom_Compress(void) {
+	#define THREAD_NUM 32
+	Thread thread[THREAD_NUM];
+	const char* path[] = {
+		"rom/actor/",
+		"rom/effect/",
+		"rom/object/",
+		"rom/scene/",
+		
+		"rom/system/kaleido/",
+		"rom/system/skybox/",
+		"rom/system/skybox/",
+		"rom/system/state/",
+	};
+	const char* ext[] = {
+		".zovl",
+		".zovl",
+		".zobj",
+		".zscene",
+		
+		".zovl",
+		".pal",
+		".tex",
+		".zovl",
+	};
+	
+	if (gThreading)
+		ThreadLock_Init();
+	
+	foreach(o, path) {
+		ItemList list = ItemList_Initialize();
+		s32 i = 0;
+		
+		Rom_ItemList(&list, path[o], SORT_NUMERICAL, LIST_FOLDERS);
+		
+		printf_info_align("Compressing", "[%d / %d]", o + 1, ArrayCount(path));
+		
+		while (i < list.num) {
+			s32 skipList[THREAD_NUM] = { 0 };
+			u32 target = Clamp(list.num - i, 0, THREAD_NUM);
+			
+			printf_progress("Files", i + 1, list.num);
+			for (s32 j = 0; j < target; j++) {
+				char* file;
+				
+				if (list.item[i + j]) {
+					FileSys_Path(list.item[i + j]);
+					if ((file = FileSys_FindFile(ext[o]))) {
+						ThreadLock_Create(&thread[j], Yaz_EncodeThread, file);
+						continue;
+					}
+				}
+				
+				skipList[j] = 1;
+			}
+			
+			for (s32 j = 0; j < target; j++)
+				if (skipList[j] != 1)
+					ThreadLock_Join(&thread[j]);
+			
+			i += THREAD_NUM;
+		}
+		Terminal_ClearLines(3);
+		
+		ItemList_Free(&list);
+	}
+	
+	if (gThreading)
+		ThreadLock_Free();
+	
+#undef THREAD_NUM
+}
+
 void Rom_Free(Rom* rom) {
 	MemFile_Free(&rom->file);
 	MemFile_Free(&rom->config);
@@ -1593,57 +1583,55 @@ void Rom_Free(Rom* rom) {
 	memset(rom, 0, sizeof(struct Rom));
 }
 
-void Rom_DeleteUnusedContent(s32 romType) {
+void Rom_DeleteUnusedContent(void) {
 	ItemList list = ItemList_Initialize();
 	char* item;
 	u32 id;
 	
-	if (romType == Zelda_OoT_Debug) {
-		ItemList_List(&list, HeapPrint("rom/actor/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
-		ItemList_NumericalSort(&list);
-		for (s32 i = 0; i < ArrayCount(gBetaFlag_Actor_OoT); i++) {
-			id = gBetaFlag_Actor_OoT[i];
-			
-			if (list.item[id] == NULL || id >= list.num)
-				continue;
-			
-			item = HeapPrint("rom/actor/%s/%s", gVanilla, list.item[id]);
-			
-			printf_info("Delete [%s]", item);
-			Sys_Delete_Recursive(item);
-		}
-		ItemList_Free(&list);
+	ItemList_List(&list, HeapPrint("rom/actor/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
+	ItemList_NumericalSort(&list);
+	for (s32 i = 0; i < ArrayCount(gBetaFlag_Actor_OoT); i++) {
+		id = gBetaFlag_Actor_OoT[i];
 		
-		ItemList_List(&list, HeapPrint("rom/object/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
-		ItemList_NumericalSort(&list);
-		for (s32 i = 0; i < ArrayCount(gBetaFlag_Object_OoT); i++) {
-			id = gBetaFlag_Object_OoT[i];
-			
-			if (list.item[id] == NULL || id >= list.num)
-				continue;
-			
-			item = HeapPrint("rom/object/%s/%s", gVanilla, list.item[id]);
-			
-			printf_info("Delete [%s]", item);
-			Sys_Delete_Recursive(item);
-		}
-		ItemList_Free(&list);
+		if (list.item[id] == NULL || id >= list.num)
+			continue;
 		
-		ItemList_List(&list, HeapPrint("rom/scene/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
-		ItemList_NumericalSort(&list);
-		for (s32 i = 0; i < ArrayCount(gBetaFlag_Scene_OoT); i++) {
-			id = gBetaFlag_Scene_OoT[i];
-			
-			if (list.item[id] == NULL || id >= list.num)
-				continue;
-			
-			item = HeapPrint("rom/scene/%s/%s", gVanilla, list.item[id]);
-			
-			printf_info("Delete [%s]", item);
-			Sys_Delete_Recursive(item);
-		}
-		ItemList_Free(&list);
+		item = HeapPrint("rom/actor/%s/%s", gVanilla, list.item[id]);
+		
+		printf_info("Delete [%s]", item);
+		Sys_Delete_Recursive(item);
 	}
+	ItemList_Free(&list);
+	
+	ItemList_List(&list, HeapPrint("rom/object/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
+	ItemList_NumericalSort(&list);
+	for (s32 i = 0; i < ArrayCount(gBetaFlag_Object_OoT); i++) {
+		id = gBetaFlag_Object_OoT[i];
+		
+		if (list.item[id] == NULL || id >= list.num)
+			continue;
+		
+		item = HeapPrint("rom/object/%s/%s", gVanilla, list.item[id]);
+		
+		printf_info("Delete [%s]", item);
+		Sys_Delete_Recursive(item);
+	}
+	ItemList_Free(&list);
+	
+	ItemList_List(&list, HeapPrint("rom/scene/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
+	ItemList_NumericalSort(&list);
+	for (s32 i = 0; i < ArrayCount(gBetaFlag_Scene_OoT); i++) {
+		id = gBetaFlag_Scene_OoT[i];
+		
+		if (list.item[id] == NULL || id >= list.num)
+			continue;
+		
+		item = HeapPrint("rom/scene/%s/%s", gVanilla, list.item[id]);
+		
+		printf_info("Delete [%s]", item);
+		Sys_Delete_Recursive(item);
+	}
+	ItemList_Free(&list);
 }
 
 void Rom_Debug_ActorEntry(Rom* rom, u32 id) {

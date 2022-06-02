@@ -203,3 +203,71 @@ s32 Yaz_Encode(u8* dst, u8* src, s32 srcSize) {
 	
 	return dstPos;
 }
+
+_Thread_local MemFile sMemfile;
+_Thread_local MemFile sYazfile;
+
+void Yaz_EncodeThread(const char* file) {
+	#define THREAD_NUM 16
+	char* out = HeapMalloc(strlen(file) + strlen("rom/yaz-cache/") + strlen(".yaz") + 1);
+	
+	strcpy(out, file);
+	StrRep(out, "rom/", "rom/yaz-cache/");
+	strcat(out, ".yaz");
+	
+	if (Sys_Stat(out) > Sys_Stat(file))
+		return;
+	
+	MemFile_Malloc(&sMemfile, MbToBin(4.0));
+	MemFile_Malloc(&sYazfile, MbToBin(4.0));
+	
+	if (StrEndCase(file, ".zscene")) {
+		ItemList list;
+		Thread thread[THREAD_NUM];
+		
+		ItemList_SetFilter(
+			&list,
+			FILTER_END,
+			".toml",
+			FILTER_END,
+			".zscene",
+			FILTER_END,
+			".bin",
+			FILTER_END,
+			".cfg",
+			FILTER_END,
+			".png",
+			FILTER_START,
+			"."
+		);
+		ItemList_List(&list, Path(file), 0, LIST_FILES);
+		
+		s32 i = 0;
+		while (i < list.num) {
+			u32 target = Clamp(list.num - i, 0, THREAD_NUM);
+			
+			for (s32 j = 0; j < target; j++)
+				ThreadLock_Create(&thread[j], Yaz_EncodeThread, list.item[i + j]);
+			
+			for (s32 j = 0; j < target; j++)
+				ThreadLock_Join(&thread[j]);
+			
+			i += THREAD_NUM;
+		}
+		
+		ItemList_Free(&list);
+	}
+	
+	if (MemFile_LoadFile(&sMemfile, file))
+		printf_error("Could not open [%s]", file);
+	
+	sYazfile.dataSize = Yaz_Encode(sYazfile.data, sMemfile.data, sMemfile.dataSize);
+	
+	Sys_MakeDir(Path(out));
+	if (MemFile_SaveFile(&sYazfile, out))
+		printf_error("Could not save [%s]", out);
+	
+	MemFile_Free(&sMemfile);
+	MemFile_Free(&sYazfile);
+#undef THREAD_NUM
+}

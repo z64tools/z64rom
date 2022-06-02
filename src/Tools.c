@@ -98,7 +98,7 @@ static s32 Tools_FileDialog(const char* output) {
 	Terminal_ClearLines(4);
 	
 	printf_info_align("Copying", PRNT_REDD "%s", Filename(buffer));
-	if (Sys_Copy(buffer, output, false)) {
+	if (Sys_Copy(buffer, output)) {
 		Terminal_ClearLines(2);
 		printf_warning(
 			"Could not copy " PRNT_REDD "%s " PRNT_RSET "Try again? " PRNT_DGRY "[y/n]",

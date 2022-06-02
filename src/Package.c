@@ -89,7 +89,7 @@ void Package_Sound(struct zip_t* pkg, char* toml) {
 			char* target = HeapStrDup(list.item[i]);
 			StrRep(target, HeapPrint("%s/", gVanilla), "");
 			
-			Sys_Copy(list.item[i], target, StrEndCase(list.item[i], ".toml") ? true : false);
+			Sys_Copy(list.item[i], target);
 		}
 		
 		ItemList_Free(&list);

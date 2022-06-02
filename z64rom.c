@@ -125,6 +125,8 @@ static s32 Main_PreArguments(Rom* rom, char* input, char* argv[]) {
 	
 	if (Arg("vanilla")) gVanilla = argv[parArg];
 	
+	if (Arg("log")) Log_NoOutput();
+	
 	return 0;
 }
 
@@ -532,9 +534,6 @@ free:
 	
 	if (input && rom->config.dataSize)
 		MemFile_SaveFile_String(&rom->config, "z64project.toml");
-	
-	if (Arg("log"))
-		Log_Print();
 	
 #ifdef _WIN32
 	if (!Arg("no-wait")) {

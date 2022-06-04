@@ -393,11 +393,6 @@ static void Main_ReadProject(Rom* rom, char** input) {
 		else
 			*input = (char*)gBaserom;
 	}
-	
-	if (gCompressFlag) {
-		sprintf(gBuildrom[0], "%s-yaz%s", buildRom, sRomType[0]);
-		sprintf(gBuildrom[1], "%s-yaz%s", buildRom, sRomType[1]);
-	}
 }
 
 static void Main_WriteProject(Rom* rom, char** input) {
@@ -480,15 +475,17 @@ static void Main_Config(char** input, Rom* rom) {
 		if (gBuildTarget == ROM_RELEASE) {
 			if (Sys_Stat(gBuildrom[ROM_DEV]) > Sys_Stat(gBuildrom[ROM_RELEASE])) {
 				gMakeForce = true;
+				
+				return;
 			}
 		} else {
 			if (Sys_Stat(gBuildrom[ROM_RELEASE]) > Sys_Stat(gBuildrom[ROM_DEV])) {
 				gMakeForce = true;
+				
+				return;
 			}
 		}
 	}
-	
-	return;
 }
 
 s32 Main(s32 argc, char* argv[]) {

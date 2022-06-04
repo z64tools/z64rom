@@ -42,9 +42,9 @@ static u32 Yaz_SimpleEncode(u8* src, s32 size, s32 pos, u32* pMatchPos) {
 
 static u32 Yaz_NintendoEncode(u8* src, s32 size, s32 pos, u32* pMatchPos) {
 	u32 numBytes = 1;
-	static u32 numBytes1;
-	static u32 matchPos;
-	static s32 prevFlag = 0;
+	_Thread_local static u32 numBytes1;
+	_Thread_local static u32 matchPos;
+	_Thread_local static s32 prevFlag = 0;
 	
 	// if prevFlag is set, it means that the previous position
 	// was determined by look-ahead try.
@@ -209,17 +209,6 @@ _Thread_local MemFile sYazfile;
 
 void Yaz_EncodeThread(const char* file) {
 	#define THREAD_NUM 16
-	char* out = HeapMalloc(strlen(file) + strlen("rom/yaz-cache/") + strlen(".yaz") + 1);
-	
-	strcpy(out, file);
-	StrRep(out, "rom/", "rom/yaz-cache/");
-	strcat(out, ".yaz");
-	
-	if (Sys_Stat(out) > Sys_Stat(file))
-		return;
-	
-	MemFile_Malloc(&sMemfile, MbToBin(4.0));
-	MemFile_Malloc(&sYazfile, MbToBin(4.0));
 	
 	if (StrEndCase(file, ".zscene")) {
 		ItemList list;
@@ -256,7 +245,20 @@ void Yaz_EncodeThread(const char* file) {
 		}
 		
 		ItemList_Free(&list);
+		
+		return;
 	}
+	char* out = HeapMalloc(strlen(file) + strlen("rom/yaz-cache/") + strlen(".yaz") + 1);
+	
+	strcpy(out, file);
+	StrRep(out, "rom/", "rom/yaz-cache/");
+	strcat(out, ".yaz");
+	
+	if (Sys_Stat(out) > Sys_Stat(file))
+		return;
+	
+	MemFile_Malloc(&sMemfile, MbToBin(4.0));
+	MemFile_Malloc(&sYazfile, MbToBin(4.0));
 	
 	if (MemFile_LoadFile(&sMemfile, file))
 		printf_error("Could not open [%s]", file);

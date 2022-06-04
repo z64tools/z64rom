@@ -39,7 +39,7 @@ const char* sTools[] = {
 #endif
 };
 static char buffer[ArrayCount(sTools) + 1][256];
-bool gAutoDownload = true;
+bool sAutoDownload = true;
 
 static void Tools_CloseDialog(const char* toolName, bool askClose) {
 	static u32 failCount = 0;
@@ -54,15 +54,15 @@ static void Tools_CloseDialog(const char* toolName, bool askClose) {
 		printf("\n");
 		
 		printf_warning("Seems like download/installation has failed couple of times...");
-		printf_info("Want to switch to " PRNT_REDD "%s mode" PRNT_RSET " and try again? Otherwise z64rom will close. " PRNT_DGRY "[y/n]", downMode[gAutoDownload]);
+		printf_info("Want to switch to " PRNT_REDD "%s mode" PRNT_RSET " and try again? Otherwise z64rom will close. " PRNT_DGRY "[y/n]", downMode[sAutoDownload]);
 		if (Terminal_YesOrNo()) {
-			gAutoDownload ^= 1;
+			sAutoDownload ^= 1;
 			failCount = 0;
 			
 			return;
 		}
 	} else {
-		if (gAutoDownload)
+		if (sAutoDownload)
 			return;
 		printf("\n");
 		if (askClose) {
@@ -83,7 +83,18 @@ static void Tools_CloseDialog(const char* toolName, bool askClose) {
 }
 
 static s32 Tools_FileDialog(const char* output) {
-	char* buffer = StrUnq(Terminal_GetStr());
+	char* buffer;
+	
+	if (gAutoInstall == false) {
+		if (!strcmp(ZIP_Z64HDR, output))
+			buffer = StrUnq(gFile_z64hdr);
+		else if (!strcmp(ZIP_BINUTIL, output))
+			buffer = StrUnq(gFile_mips64);
+		else
+			buffer = StrUnq(Terminal_GetStr());
+	} else {
+		buffer = StrUnq(Terminal_GetStr());
+	}
 	
 	if (buffer == NULL || !StrEnd(output, FileExtension(buffer))) {
 		Terminal_ClearLines(3);
@@ -304,7 +315,7 @@ void Tools_Install_mips64(void) {
 		Sys_MakeDir("tools/mips64-binutils/");
 		
 redo:
-		if (gAutoDownload == false) {
+		if (sAutoDownload == false) {
 			printf_info("" PRNT_GRAY "https://github.com/z64tools/z64rom/releases/tag/z64rom_binutils");
 			printf_info("Download manually, drag and drop the file here and press enter.");
 			
@@ -321,7 +332,7 @@ redo:
 				printf("\n");
 				printf_warning("Failed to initialize download... Try again? Otherwise we'll do this manually. " PRNT_DGRY "[y/n]");
 				if (Terminal_YesOrNo() == false)
-					gAutoDownload = false;
+					sAutoDownload = false;
 				goto redo;
 			}
 			Terminal_ClearLines(2);
@@ -361,13 +372,13 @@ void Tools_Install_z64hdr(s32 isUpdate) {
 	printf_info("with the game with source code, usually in C.\n");
 	
 redo:
-	if (gAutoDownload == true) {
+	if (sAutoDownload == true) {
 		Tools_Command(command, wget, "%s -q --show-progress -O %s", URL_Z64HDR_DOWNLOAD, ZIP_Z64HDR);
 		if (SysExe(command)) {
 			printf("\n");
 			printf_warning("Failed to initialize download... Try again? Otherwise we'll do this manually. " PRNT_DGRY "[y/n]");
 			if (Terminal_YesOrNo() == false)
-				gAutoDownload = false;
+				sAutoDownload = false;
 			goto redo;
 		}
 		Terminal_ClearLines(2);
@@ -487,25 +498,29 @@ s32 Tools_Init(void) {
 			Tools_Clean();
 		
 		Sys_Touch("tools/.installing");
-		printf_toolinfo(gToolName, PRNT_BLUE "Initialization Setup");
-		printf_info("Play some chill music? " PRNT_DGRY "[y/n]");
 		
-		if (Terminal_YesOrNo())
-			Sound_Xm_Play(
-				dll.data,
-				dll.dataSize
-			);
-		Terminal_ClearLines(2);
-		SleepF(0.2);
-		
-		printf_warning("Would you like to let z64rom handle installation automatically? " PRNT_DGRY "[y/n]");
-		if (Terminal_YesOrNo()) {
-			gAutoDownload = true;
+		if (gAutoInstall == -1) {
+			printf_toolinfo(gToolName, PRNT_BLUE "Initialization Setup");
+			printf_info("Play some chill music? " PRNT_DGRY "[y/n]");
+			
+			if (Terminal_YesOrNo())
+				Sound_Xm_Play(
+					dll.data,
+					dll.dataSize
+				);
+			Terminal_ClearLines(2);
+			SleepF(0.2);
+			printf_warning("Would you like to let z64rom handle installation automatically? " PRNT_DGRY "[y/n]");
+			if (Terminal_YesOrNo()) {
+				sAutoDownload = true;
+			} else {
+				sAutoDownload = false;
+			}
+			Terminal_ClearLines(2);
+			SleepF(0.2);
 		} else {
-			gAutoDownload = false;
+			sAutoDownload = gAutoInstall;
 		}
-		Terminal_ClearLines(2);
-		SleepF(0.2);
 		
 		/* INIT */ {
 			if (Tools_ValidateTools_Additional() || Sys_Stat("tools/.failsafe"))

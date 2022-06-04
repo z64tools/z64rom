@@ -88,6 +88,10 @@ static Slot* Slot_GetFree(Slot* slot, Size size) {
 	return slot;
 }
 
+// # # # # # # # # # # # # # # # # # # # #
+// # MAIN                                #
+// # # # # # # # # # # # # # # # # # # # #
+
 /**
  * id < -1, write without assigning DMA entry
  * id == -1, write to first free entry
@@ -289,7 +293,9 @@ u32 Dma_GetVRomEnd(void) {
 	return sVromEnd;
 }
 
-/* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
+// # # # # # # # # # # # # # # # # # # # #
+// # FREE                                #
+// # # # # # # # # # # # # # # # # # # # #
 
 void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 	DmaEntry* dma = &rom->table.dma[id];
@@ -420,7 +426,9 @@ void Dma_FreeGroup(Rom* rom, DmaBank type) {
 	}
 }
 
-/* / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / * / */
+// # # # # # # # # # # # # # # # # # # # #
+// # OTHER                               #
+// # # # # # # # # # # # # # # # # # # # #
 
 void Dma_CombineSlots(void) {
 	Slot* slot = gSlotHead;

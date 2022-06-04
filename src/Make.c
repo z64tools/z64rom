@@ -8,7 +8,6 @@ static const char* sFlagsCode;
 static const char* sFlagsLink;
 static const char* sFlagsULibLink;
 static volatile bool sMake = false;
-u32 gThreading = true;
 
 static char* Make_Wildcard(const char* path, const char* fmt, ...) {
 	ItemList list = ItemList_Initialize();

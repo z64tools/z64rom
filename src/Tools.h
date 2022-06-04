@@ -1,7 +1,5 @@
 #include <ExtLib.h>
 
-extern bool gAutoDownload;
-
 typedef enum {
 	mips64_gcc,
 	mips64_ld,

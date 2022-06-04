@@ -74,40 +74,45 @@ z64rom will convert the newest audio file it finds from this folder so you do no
 
 Pass to z64rom as either `-arg` or `--arg`.
 
-| Argument      | Action                                             | Example                 |
-| ------------- | -------------------------------------------------- | ----------------------- |
-| actor [id]    | Actor info, provide `.z64` rom also as an argument | --actor 7 oot-debug.z64 |
-| dma [id]      | DMA info, provide `.z64` rom also as an argument   | --dma 7 oot-debug.z64   |
-| scene [id]    | Scene info, provide `.z64` rom also as an argument | --scene 7 oot-debug.z64 |
-|               |                                                    |                         |
-| vanilla [str] | Set vanilla folder name. Default: `.vanilla`       |                         |
-| target [str]  | Make only `audio / code`                           | --target sound          |
-|               |                                                    |                         |
-| info          | Print extra info, DMA entries, rom visualization   |                         |
-| yaz           | Compress                                           |                         |
-| release       | Manual flag to do release build                    |                         |
-| log           | Print Log before closing                           |                         |
-| force         | Force compile/convert                              |                         |
-| make-only     | Do not build, only make                            |                         |
-|               |                                                    |                         |
-| update        | Update `z64hdr`                                    |                         |
-| reinstall     | Reinstall `z64hdr` & `mips64-binutils`             |                         |
-| clear         | Clear dump                                         |                         |
-| clean         | Clean `.elf`, `.o` and `entry.ld` files            |                         |
-| clean-samples | Clean unreferenced samples                         |                         |
-|               |                                                    |                         |
-| no-threading  | No multi-threading                                 |                         |
-| no-wait       | Do not ask to press enter on exit                  | Win32 Only              |
-| no-make       | Do not compile/convert                             |                         |
-| no-wav        | Do not dump wavs                                   |                         |
-| no-beta       | Remove all OoT unused assets from the project      |                         |
-|               |                                                    |                         |
-| zmap          | Renames all `.zroom`s to `.zmap`                   |                         |
-| zroom         | Renames all `.zmap`s to `.zroom`                   |                         |
-|               |                                                    |                         |
-| audio-only    | Only dump/build audio                              |                         |
-| dump [rom]    | Pair with **--audio-only**                         |                         |
-| build         | Pair with **--audio-only**                         |                         |
+| Argument            | Action                                             | Example                 |
+| ------------------- | -------------------------------------------------- | ----------------------- |
+| actor [id]          | Actor info, provide `.z64` rom also as an argument | --actor 7 oot-debug.z64 |
+| dma [id]            | DMA info, provide `.z64` rom also as an argument   | --dma 7 oot-debug.z64   |
+| scene [id]          | Scene info, provide `.z64` rom also as an argument | --scene 7 oot-debug.z64 |
+|                     |                                                    |                         |
+| dump-rom [bool]     | Pre-answer to z64rom question prompts              | --dump-rom true         |
+| dump-audio [bool]   | Pre-answer to z64rom question prompts              | --dump-audio true       |
+| auto-install [bool] | Pre-answer to z64rom question prompts              |                         |
+| file-z64hdr [file]  | Path to zip file                                   |                         |
+| file-mips64 [file]  | Path to zip file                                   |                         |
+|                     |                                                    |                         |
+| vanilla [str]       | Set vanilla folder name. Default: `.vanilla`       |                         |
+| target [str]        | Make only `audio / code`                           | --target sound          |
+|                     |                                                    |                         |
+| info                | Print extra info, DMA entries, rom visualization   |                         |
+| yaz                 | Compress                                           |                         |
+| release             | Manual flag to do release build                    |                         |
+| log                 | Print Log before closing                           |                         |
+| force               | Force compile/convert                              |                         |
+| make-only           | Do not build, only make                            |                         |
+|                     |                                                    |                         |
+| update              | Update `z64hdr`                                    |                         |
+| reinstall           | Reinstall `z64hdr` & `mips64-binutils`             |                         |
+| clear               | Clear dump                                         |                         |
+| clean               | Clean `.elf`, `.o` and `entry.ld` files            |                         |
+| clean-samples       | Clean unreferenced samples                         |                         |
+|                     |                                                    |                         |
+| no-threading        | No multi-threading                                 |                         |
+| no-wait             | Do not ask to press enter on exit                  | Win32 Only              |
+| no-make             | Do not compile/convert                             |                         |
+| no-beta             | Remove all OoT unused assets from the project      |                         |
+|                     |                                                    |                         |
+| zmap                | Renames all `.zroom`s to `.zmap`                   |                         |
+| zroom               | Renames all `.zmap`s to `.zroom`                   |                         |
+|                     |                                                    |                         |
+| audio-only          | Only dump/build audio                              |                         |
+| dump [rom]          | Pair with **--audio-only**                         |                         |
+| build               | Pair with **--audio-only**                         |                         |
 
 # Credits
 

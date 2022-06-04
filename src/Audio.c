@@ -565,7 +565,7 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 		Rom_Extract(dataFile, rf, FILE_LBK);
 	}
 	
-	if (gExtractAudio) {
+	if (gDumpAudio) {
 		char cmd[2048];
 		
 		Tools_Command(
@@ -732,7 +732,7 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 		}
 	}
 	
-	if (gExtractAudio)
+	if (gDumpAudio)
 		Audio_PatchWavFiles(dataFile, config);
 }
 

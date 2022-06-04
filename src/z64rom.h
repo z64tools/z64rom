@@ -175,25 +175,32 @@ extern const char* gKaleidoName_OoT[2];
 extern const char* gSceneName_OoT[110];
 extern const char* gBankName_OoT[41];
 extern const char* gSequenceName_OoT[114];
-extern SystemInfo gSystem_OoT[29];
 extern const char* gSkyboxName_OoT[32];
+extern SystemInfo gSystem_OoT[29];
 
 extern s32 gBetaFlag_Actor_OoT[7];
 extern s32 gBetaFlag_Object_OoT[47];
 extern s32 gBetaFlag_Scene_OoT[9];
 
-extern s32 gExtractAudio;
+extern const char* gToolName;
+
+extern s32 gDumpRom;
+extern s32 gDumpAudio;
+extern s32 gAutoInstall;
+extern const char* gFile_z64hdr;
+extern const char* gFile_mips64;
+
+extern u32 gCompressFlag;
 extern s32 gPrintInfo;
-extern s32 gInfoFlag;
 extern s32 gMakeForce;
 extern const char* gMakeTarget;
-extern u32 gCompressFlag;
 extern u32 gThreading;
-extern const char* gToolName;
+extern s32 gDumpFlag;
+
+extern s32 gAudioOnly;
 extern s32 gBuildTarget;
 extern char gBuildrom[2][128];
-extern s32 gDumpFlag;
-extern s32 gAudioOnly;
+
 extern char* gVanilla;
 extern const char* gProjectConfig;
 extern const char* gBaserom;

@@ -3,70 +3,88 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.8.5";
-s32 gExtractAudio = true;
-s32 gPrintInfo;
-s32 gInfoFlag;
-s32 gMakeForce;
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.8.6";
+
+s32 gDumpRom = -1;
+s32 gDumpAudio = -1;
+s32 gAutoInstall = -1;
+const char* gFile_z64hdr;
+const char* gFile_mips64;
+
 u32 gCompressFlag = false;
+s32 gPrintInfo;
+s32 gMakeForce;
+const char* gMakeTarget;
+u32 gThreading = true;
+s32 gDumpFlag;
+
+s32 gAudioOnly;
 s32 gBuildTarget = ROM_DEV;
 char gBuildrom[2][128] = {
 	/* "build-release.z64", */
 	/* "build-dev.z64", */
 };
-s32 gDumpFlag;
-s32 gAudioOnly;
+
 char* gVanilla = ".vanilla";
-const char* gMakeTarget;
-const char* sRomType[] = { "-release.z64", "-dev.z64" };
 const char* gProjectConfig = "z64project.toml";
 const char* gBaserom = NULL;
+
+const char* sRomType[] = { "-release.z64", "-dev.z64" };
 const char* sHelp[][2] = {
-	{ "!" PRNT_BLUE "INFO", },
-	{ "actor [id]",      "" },
-	{ "dma   [id]",      "" },
-	{ "scene [id]",      "" },
-	{ NULL,              NULL },
+	{ "!" PRNT_BLUE "MANAGING", },
+	{ "update",                        "update z64hdr" },
+	{ "reinstall",                     "reinstall z64hdr & mips64-binutils" },
+	{ "clear-project",                 NULL },
+	{ "clear-cache",                   NULL },
+	{ "clean",                         "clean build files" },
+	{ "clean-samples",                 "clean unreferenced samples" },
+	{ NULL,                            NULL },
+	
+	{ "!" PRNT_BLUE "NO PROMPT", },
+	{ "!" PRNT_DGRY "Do not prompt questions when doing these operations.", },
+	{ "dump-rom     [bool]",           "" },
+	{ "dump-audio   [bool]",           "" },
+	{ "auto-install [bool]",           "" },
+	{ "!" PRNT_DGRY "If auto-install is \'false\', provide file-x arguments", },
+	{ "file-z64hdr  [file]",           "" },
+	{ "file-mips64  [file]",           "" },
+	{ NULL,                            NULL },
 	
 	{ "!" PRNT_BLUE "STRING OPTION", },
-	{ "vanilla [str]",   "vanilla folder name. default: .vanilla" },
-	{ "target  [str]",   "make target: \"audio\" / \"code\"" },
-	{ NULL,              NULL },
+	{ "vanilla [str]",                 "vanilla folder name. default: .vanilla" },
+	{ "target  [str]",                 "make target: \"audio\" / \"code\"" },
+	{ NULL,                            NULL },
 	
 	{ "!" PRNT_BLUE "VARIOUS", },
-	{ "info",            "print slots" },
-	{ "yaz",             "compress" },
-	{ "release",         "build release" },
-	{ "log",             "print logs on close" },
-	{ "force",           "force builds" },
-	{ "make-only",       "no build, only make" },
-	{ NULL,              NULL },
-	
-	{ "!" PRNT_BLUE "MANAGING", },
-	{ "update",          "update z64hdr" },
-	{ "reinstall",       "reinstall z64hdr & mips64-binutils" },
-	{ "clear-project",   NULL },
-	{ "clear-cache",     NULL },
-	{ "clean",           "clean build files" },
-	{ "clean-samples",   "clean unreferenced samples" },
-	{ NULL,              NULL },
+	{ "info",                          "print slots" },
+	{ "yaz",                           "compress" },
+	{ "release",                       "build release" },
+	{ "log",                           "print logs on close" },
+	{ "force",                         "force builds" },
+	{ "make-only",                     "no build, only make" },
+	{ NULL,                            NULL },
 	
 	{ "!" PRNT_BLUE "NO", },
-	{ "no-wait",         NULL },
-	{ "no-make",         NULL },
-	{ "no-wav",          NULL },
-	{ "no-beta",         NULL },
-	{ NULL,              NULL },
+	{ "no-wait",                       NULL },
+	{ "no-make",                       NULL },
+	{ "no-beta",                       NULL },
+	{ NULL,                            NULL },
 	
 	{ "!" PRNT_BLUE "RENAME", },
-	{ "zmap",            "rename all rooms to .zmap" },
-	{ "zroom",           "rename all rooms to .zroom" },
-	{ NULL,              NULL },
+	{ "zmap",                          "rename all rooms to .zmap" },
+	{ "zroom",                         "rename all rooms to .zroom" },
+	{ NULL,                            NULL },
 	
 	{ "!" PRNT_BLUE "AUDIO ONLY", },
-	{ "audio-only",      NULL },
-	{ "dump",            NULL },
-	{ "build",           NULL },
+	{ "audio-only",                    NULL },
+	{ "dump",                          NULL },
+	{ "build",                         NULL },
+	
+	{ "!" PRNT_BLUE "INFO", },
+	{ "actor [id]",                    "" },
+	{ "dma   [id]",                    "" },
+	{ "scene [id]",                    "" },
+	{ NULL,                            NULL },
 };
 
 static void Main_PrintHelp(void) {
@@ -150,38 +168,7 @@ static void Main_RenameRooms(const char* from, const char* to) {
 static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	u32 parArg = 0;
 	
-	if (Arg("actor") && input) {
-		u32 id = Value_Int(argv[parArg]);
-		
-		Rom_New(rom, input);
-		Rom_Debug_ActorEntry(rom, id);
-		
-		exit(0);
-	}
-	if (Arg("dma") && input) {
-		u32 id = Value_Int(argv[parArg]);
-		
-		Rom_New(rom, input);
-		Rom_Debug_DmaEntry(rom, id);
-		
-		exit(0);
-	}
-	if (Arg("scene") && input) {
-		u32 id = Value_Int(argv[parArg]);
-		
-		Rom_New(rom, input);
-		Rom_Debug_SceneEntry(rom, id);
-		
-		exit(0);
-	}
-	
-	if (Arg("vanilla")) gVanilla = argv[parArg];
-	if (Arg("target")) gMakeTarget = argv[parArg];
-	if (Arg("info")) gPrintInfo = true;
-	if (Arg("yaz")) gCompressFlag = true;
-	if (Arg("release")) gBuildTarget = ROM_RELEASE;
 	if (Arg("log")) Log_NoOutput();
-	if (Arg("force")) gMakeForce = true;
 	
 	if (Arg("reinstall")) {
 		MemFile mem = MemFile_Initialize();
@@ -190,18 +177,66 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		MemFile_SaveFile(&mem, "tools/.installing");
 		MemFile_Free(&mem);
 	}
-	if (Arg("clear-project") || Arg("clear-cache")) {
-		if (Arg("clear-project")) {
+	
+	if (Arg("clear-project") || Arg("clear-cache") || Arg("clear-all")) {
+		if (Arg("clear-project") || Arg("clear-all")) {
 			Main_ClearProject();
 		}
 		
-		if (Arg("clear-cache")) {
+		if (Arg("clear-cache") || Arg("clear-all")) {
 			Main_ClearCache();
 		}
 		
-		printf_getchar("Cleared! Press enter to exit.");
-		exit(0);
+		Terminal_ClearLines(2);
 	}
+	
+	if (Arg("clean-samples")) {
+		Audio_DeleteUnreferencedSamples();
+		
+		return 1;
+	}
+	
+	if (Arg("no-beta")) {
+		Rom_DeleteUnusedContent();
+		
+		return 1;
+	}
+	
+	if (Arg("zmap")) {
+		Main_RenameRooms(".zroom", ".zmap");
+		
+		return 1;
+	}
+	if (Arg("zroom")) {
+		Main_RenameRooms(".zmap", ".zroom");
+		
+		return 1;
+	}
+	
+	if (Arg("dump-rom")) gDumpRom = Value_Bool(argv[parArg]);
+	if (Arg("dump-audio")) gDumpAudio = Value_Bool(argv[parArg]);
+	if (Arg("auto-install")) {
+		gAutoInstall = Value_Bool(argv[parArg]);
+		
+		if (gAutoInstall == false) {
+			if (Arg("file-z64hdr"))
+				gFile_z64hdr = argv[parArg];
+			if (Arg("file-mips64"))
+				gFile_mips64 = argv[parArg];
+			
+			if (Sys_Stat(gFile_mips64) == 0)
+				printf_error("Could not stat [%s]", gFile_mips64);
+			if (Sys_Stat(gFile_z64hdr) == 0)
+				printf_error("Could not stat [%s]", gFile_mips64);
+		}
+	}
+	
+	if (Arg("vanilla")) gVanilla = argv[parArg];
+	if (Arg("target")) gMakeTarget = argv[parArg];
+	if (Arg("info")) gPrintInfo = true;
+	if (Arg("yaz")) gCompressFlag = true;
+	if (Arg("release")) gBuildTarget = ROM_RELEASE;
+	if (Arg("force")) gMakeForce = true;
 	if (Arg("clean")) {
 		ItemList list = ItemList_Initialize();
 		
@@ -225,28 +260,31 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		
 		return 1;
 	}
-	if (Arg("clean-samples")) {
-		Audio_DeleteUnreferencedSamples();
-		
-		return 1;
-	}
 	if (Arg("no-threading")) gThreading = false;
-	if (Arg("no-wav")) gExtractAudio = false;
-	if (Arg("no-beta")) {
-		Rom_DeleteUnusedContent();
-		
-		return 1;
-	}
 	
-	if (Arg("zmap")) {
-		Main_RenameRooms(".zroom", ".zmap");
+	if (Arg("actor") && input) {
+		u32 id = Value_Int(argv[parArg]);
 		
-		return 1;
+		Rom_New(rom, input);
+		Rom_Debug_ActorEntry(rom, id);
+		
+		exit(0);
 	}
-	if (Arg("zroom")) {
-		Main_RenameRooms(".zmap", ".zroom");
+	if (Arg("dma") && input) {
+		u32 id = Value_Int(argv[parArg]);
 		
-		return 1;
+		Rom_New(rom, input);
+		Rom_Debug_DmaEntry(rom, id);
+		
+		exit(0);
+	}
+	if (Arg("scene") && input) {
+		u32 id = Value_Int(argv[parArg]);
+		
+		Rom_New(rom, input);
+		Rom_Debug_SceneEntry(rom, id);
+		
+		exit(0);
 	}
 	
 	if (Arg("audio-only")) {
@@ -317,6 +355,7 @@ static void Main_ReadProject(Rom* rom, char** input) {
 		
 		if (gCompressFlag == false) {
 			if (!strcmp(gBaserom, "__ROM_NAME__") || !Sys_Stat(gProjectConfig)) {
+				printf_toolinfo(gToolName, "Dumping Rom");
 				gBaserom = StrDup(Filename(*input));
 				gDumpFlag = true;
 				
@@ -325,7 +364,7 @@ static void Main_ReadProject(Rom* rom, char** input) {
 				printf_toolinfo(gToolName, "");
 				printf_warning("Dump rom [%s] ? " PRNT_DGRY "[y/n]", PathAbs(*input));
 				
-				if (Terminal_YesOrNo() == true) {
+				if (gDumpRom == true || Terminal_YesOrNo() == true) {
 					gBaserom = StrDup(Filename(*input));
 					gDumpFlag = true;
 					
@@ -344,6 +383,7 @@ static void Main_ReadProject(Rom* rom, char** input) {
 		if (Sys_Copy(*input, gBaserom))
 			printf_error("Could not copy [%s] to [%s]", PathAbs(*input), PathAbs(gBaserom));
 		
+		Sys_Sleep(0.1);
 		Terminal_ClearLines(2);
 	}
 	
@@ -569,43 +609,46 @@ s32 Main(s32 argc, char* argv[]) {
 		printf_toolinfo(gToolName, "");
 		
 		if (gDumpFlag) {
-			s32 soundsDumped = false;
 			char* smpVanFldr = HeapPrint("rom/sound/sample/%s/", gVanilla);
 			
-			if (Sys_Stat(smpVanFldr)) {
-				ItemList list = ItemList_Initialize();
+			if (gDumpAudio == -1) {
+				s32 soundsDumped = false;
 				
-				ItemList_List(&list, smpVanFldr, -1, LIST_FILES | LIST_RELATIVE);
-				
-				for (s32 i = 0, j = 0; i < list.num; i++) {
-					if (StrEndCase(list.item[i], ".wav")) {
-						j++;
-						if (j > 400) {
-							printf_info("WAV dump already exists.");
-							printf_info("Want to redump WAV anyway? " PRNT_DGRY "[y/n]");
-							if (Terminal_YesOrNo()) {
-								gExtractAudio = true;
-							} else {
-								gExtractAudio = false;
+				if (Sys_Stat(smpVanFldr)) {
+					ItemList list = ItemList_Initialize();
+					
+					ItemList_List(&list, smpVanFldr, -1, LIST_FILES | LIST_RELATIVE);
+					
+					for (s32 i = 0, j = 0; i < list.num; i++) {
+						if (StrEndCase(list.item[i], ".wav")) {
+							j++;
+							if (j > 400) {
+								printf_info("WAV dump already exists.");
+								printf_info("Want to redump WAV anyway? " PRNT_DGRY "[y/n]");
+								if (Terminal_YesOrNo()) {
+									gDumpAudio = true;
+								} else {
+									gDumpAudio = false;
+								}
+								Terminal_ClearLines(3);
+								
+								soundsDumped = true;
+								
+								break;
 							}
-							Terminal_ClearLines(3);
-							
-							soundsDumped = true;
-							
-							break;
 						}
 					}
+					
+					ItemList_Free(&list);
 				}
 				
-				ItemList_Free(&list);
-			}
-			
-			if (gExtractAudio && soundsDumped == false) {
-				printf_info("Extract " PRNT_REDD "wav audio samples" PRNT_RSET "?");
-				printf_info("This is required if you want to make changes to audio. " PRNT_DGRY "[y/n]");
-				if (!Terminal_YesOrNo()) gExtractAudio = false;
-				
-				printf("\n");
+				if (soundsDumped == false) {
+					printf_info("Extract " PRNT_REDD "wav audio samples" PRNT_RSET "?");
+					printf_info("This is required if you want to make changes to audio. " PRNT_DGRY "[y/n]");
+					if (!Terminal_YesOrNo()) gDumpAudio = false;
+					
+					printf("\n");
+				}
 			}
 			
 			Rom_New(rom, input);

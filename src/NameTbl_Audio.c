@@ -60,7 +60,7 @@ const N64AudioInfo gSampleInfo[] = {
 	/* 045 */ { 16000, 0, NULL, "Generic_Ice_Crackle" },
 	/* 046 */ { 16000, 0, NULL, "Metal_Sword_Hit1" },
 	/* 047 */ { 16000, 0, NULL, "Generic_Swipe1" },
-	/* 048 */ { 22050, 0, NULL, "Metal_Shieth" },
+	/* 048 */ { 22050, 0, NULL, "Metal_Sheath" },
 	/* 049 */ { 22050, 0, NULL, "Metal_Draw" },
 	/* 050 */ { 22050, 0, NULL, "Generic_Swipe2" },
 	/* 051 */ { 22050, 0, NULL, "Unk_Swoosh" },

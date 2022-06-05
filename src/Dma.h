@@ -173,10 +173,7 @@ RomFile Dma_RomFile_Proto(DmaEntry);
 RomFile Dma_RomFile_Proto(GameState);
 RomFile Dma_RomFile_Proto(Scene);
 
-typedef enum {
-	DMA_FIND_FREE = -1,
-	DMA_NO_ENTRY  = -2,
-} DmaParam;
+#define DMA_FIND_FREE -1
 
 u32 Dma_WriteEntry(struct Rom* rom, s32 id, MemFile* memFile, s32 compress);
 u32 Dma_AllocEntry(struct Rom* rom, s32 id, Size size);

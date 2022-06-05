@@ -865,7 +865,7 @@ void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 		MemFile_SaveFile(dataFile, "samples.bin");
 	
 	else
-		rom->offset.segment.smplRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, dataFile, false);
+		rom->offset.segment.smplRom = Dma_WriteEntry(rom, DMA_FIND_FREE, dataFile, false);
 	MemFile_Params(dataFile, MEM_ALIGN, 0, MEM_END);
 	
 	MemFile_Free(&sample);
@@ -1474,7 +1474,7 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		MemFile_SaveFile(&soundFontMem, "soundfonts.bin");
 	
 	else
-		rom->offset.segment.fontRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, &soundFontMem, false);
+		rom->offset.segment.fontRom = Dma_WriteEntry(rom, DMA_FIND_FREE, &soundFontMem, false);
 	
 	MemFile_Free(&soundFontMem);
 	MemFile_Free(&memBank);
@@ -1608,7 +1608,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 		MemFile_SaveFile(&sequenceMem, "sequences.bin");
 	
 	else
-		rom->offset.segment.seqRom = Dma_WriteEntry(rom, DMA_NO_ENTRY, &sequenceMem, false);
+		rom->offset.segment.seqRom = Dma_WriteEntry(rom, DMA_FIND_FREE, &sequenceMem, false);
 	
 	MemFile_Free(&memIndexTable);
 	MemFile_Free(&memLookUpTable);

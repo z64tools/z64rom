@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.8.6";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.8.7";
 
 s32 gDumpRom = -1;
 s32 gDumpAudio = -1;
@@ -134,6 +134,59 @@ static void Main_ClearCache(void) {
 	printf_toolinfo(gToolName, "Clearing Cache\n");
 	
 	RemoveFolder("rom/yaz-cache/");
+}
+
+static void Main_WiiVC() {
+	char buffer[512];
+	MemFile conf;
+	char* path;
+	char* wad;
+	char* rom;
+	char* target;
+	
+	if (MemFile_LoadFile_String(&conf, gProjectConfig))
+		printf_error("Could not open [%s]", gProjectConfig);
+	
+	path = Toml_GetStr(&conf, "vc_dolphin");
+	wad = Toml_GetStr(&conf, "vc_basewad");
+	rom = Toml_GetStr(&conf, "z_buildrom");
+	
+	if (!strcmp(path, "NULL"))
+		printf_error("" PRNT_YELW "vc_dolphin" PRNT_RSET " not defined in [%s]]", gProjectConfig);
+	if (!strcmp(wad, "NULL"))
+		printf_error("" PRNT_YELW "vc_basewad" PRNT_RSET " not defined in [%s]]", gProjectConfig);
+	
+	if (!StrEnd(path, "/"))
+		path = HeapPrint("%s/", path);
+	if (PathIsRel(wad))
+		wad = PathAbs(wad);
+	
+	asprintf(&target, "%s.wad", PathAbs(rom));
+	asprintf(&rom, "%s%s", PathAbs(rom), sRomType[gBuildTarget]);
+	Sys_Delete_Recursive(HeapPrint("%sWii/title/00010001/", path));
+	Sys_Delete_Recursive(HeapPrint("%sWii/title/00000001/", path));
+	
+	Sys_SetWorkDir(HeapPrint("%stools/", Sys_AppDir()));
+	
+	sprintf(
+		buffer,
+		"gzinject.exe "
+		"-a inject "
+		"-w \"%s\" "
+		"-m \"%s\" "
+		"-p patches/NACE.gzi "
+		"-p patches/gz_raphnet_remap.gzi "
+		"-p patches/analog_substick.NACE.gzi "
+		"-o \"%s\" "
+		"--verbose",
+		wad,
+		rom,
+		target
+	);
+	
+	SysExe(buffer);
+	Free(target);
+	Free(rom);
 }
 
 static void Main_RenameRooms(const char* from, const char* to) {
@@ -268,7 +321,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		Rom_New(rom, input);
 		Rom_Debug_ActorEntry(rom, id);
 		
-		exit(0);
+		return 1;
 	}
 	if (Arg("dma") && input) {
 		u32 id = Value_Int(argv[parArg]);
@@ -276,7 +329,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		Rom_New(rom, input);
 		Rom_Debug_DmaEntry(rom, id);
 		
-		exit(0);
+		return 1;
 	}
 	if (Arg("scene") && input) {
 		u32 id = Value_Int(argv[parArg]);
@@ -284,7 +337,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		Rom_New(rom, input);
 		Rom_Debug_SceneEntry(rom, id);
 		
-		exit(0);
+		return 1;
 	}
 	
 	if (Arg("audio-only")) {
@@ -318,6 +371,15 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		return 1;
 	}
 	
+	if (Arg("inject-vc")) {
+		Main_WiiVC();
+		
+		return 1;
+	}
+	
+	if (Arg("build-vc"))
+		gCompressFlag = true;
+	
 	return 0;
 }
 
@@ -336,10 +398,8 @@ static void Main_ReadProject(Rom* rom, char** input) {
 	sprintf(gBuildrom[1], "%s%s", buildRom, sRomType[1]);
 	
 	if (*input) {
-		switch (PathType(*input)) {
-			case ABSOLUTE:
-				*input = PathRel(*input);
-				break;
+		if (PathIsAbs(*input)) {
+			*input = PathRel(*input);
 		}
 		
 		if (!Sys_Stat(*input))
@@ -408,10 +468,15 @@ static void Main_WriteProject(Rom* rom, char** input) {
 	else
 		Toml_WriteStr(config, "z_baserom", "__ROM_NAME__", QUOTES, NO_COMMENT);
 	
-	Toml_WriteStr(config, "z_buildrom", "build", QUOTES, NO_COMMENT);
-	Toml_WriteStr(config, "z_vanilla", gVanilla, QUOTES, NO_COMMENT);
-	Toml_Print(config, "\n");
+	Toml_WriteStr(config, "z_buildrom", "build", QUOTES, "Name used for the rom that is built by z64rom.");
+	Toml_WriteStr(config, "z_vanilla", gVanilla, QUOTES, "Name of the vanilla item folders");
 	
+	Toml_Print(config, "\n");
+	Toml_WriteComment(config, "Wii VC");
+	Toml_WriteStr(config, "vc_basewad", "NULL", QUOTES, NULL);
+	Toml_WriteStr(config, "vc_dolphin", "NULL", QUOTES, "Path to documents folder, not the app folder.");
+	
+	Toml_Print(config, "\n");
 	Toml_WriteComment(config, "Mips64 Flag");
 	
 	Toml_WriteStr(
@@ -679,7 +744,7 @@ s32 Main(s32 argc, char* argv[]) {
 				Make(rom, true);
 			}
 			if (Arg("make-only")) goto free;
-			if (gCompressFlag) Rom_Compress();
+			if (gCompressFlag && gThreading) Rom_Compress();
 			
 			Rom_New(rom, input);
 			Rom_Build(rom);
@@ -689,15 +754,22 @@ s32 Main(s32 argc, char* argv[]) {
 	
 	printf_toolinfo(gToolName, "Nothing provided, nothing happens!");
 	
-free:
-	
 	MemFile_SaveFile_String(&rom->config, "z64project.toml");
+	
+	if (Arg("build-vc")) {
+		if (rom->file.dataSize <= 0x2015000)
+			Main_WiiVC();
+		else
+			printf_warning("Compressed rom is too big to be injected to a wad. Consider running z64rom with --no-beta to remove unused beta content.");
+	}
 	
 #ifdef _WIN32
 	if (!Arg("no-wait")) {
 		printf_getchar("Press enter to exit.");
 	}
 #endif
+	
+free:
 	
 	Rom_Free(rom);
 	Free(rom);

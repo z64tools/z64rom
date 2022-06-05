@@ -286,7 +286,7 @@ void Dma_UpdateRomSize(Rom* rom) {
 		slot = slot->next;
 	
 	rom->file.dataSize = slot->romStart;
-	rom->file.dataSize = Align(rom->file.dataSize, 16);
+	rom->file.dataSize = Align(rom->file.dataSize, 0x1000);
 }
 
 u32 Dma_GetVRomEnd(void) {

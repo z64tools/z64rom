@@ -1501,7 +1501,7 @@ void Rom_New(Rom* rom, char* romName) {
 }
 
 void Rom_Compress(void) {
-	#define THREAD_NUM 32
+	#define THREAD_NUM 64
 	Thread thread[THREAD_NUM];
 	const char* path[] = {
 		"rom/actor/",

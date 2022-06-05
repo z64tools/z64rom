@@ -16,6 +16,7 @@ header_name      = zero8 zero8 zero8 0x000000
 
 # max 20 characters
 header_name      = "z64romhack"
+# CZLE is required for Wii VC compatibility
 header_media_fmt = "C"
 header_game_id   = "ZL"
 header_region    = "E"

@@ -723,6 +723,8 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			var = Toml_GetStr(config, "sample");
 			Log("%s", var);
 			
+			Toml_GotoSection(NULL);
+			
 			strcpy(instName, var);
 			StrRem(instName, strlen("Inst_"));
 			StrRep(instName, "_Prim", "");
@@ -821,7 +823,7 @@ void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Params(dataFile, MEM_ALIGN, 16, MEM_END);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
-		printf_progress("Append Sample", i + 1, itemList.num);
+		printf_progress("Sample", i + 1, itemList.num);
 		MemFile_Reset(config);
 		MemFile_Reset(&sample);
 		
@@ -957,6 +959,8 @@ static s32 SoundFont_Instrument_AssignNames(MemFile* mem, char** smplNam, MemFil
 		smplNum++;
 	}
 	
+	Toml_GotoSection(NULL);
+	
 	if (smplNum == 0) {
 		u32 null = 0xFFFF; // Empty Instrument Entry
 		MemFile_Write(memBank, &null, sizeof(u32));
@@ -982,6 +986,8 @@ static void SoundFont_Instrument_AssignIndexes(MemFile* mem, char** smplNam, s32
 				if (inst->sound[soundID].tuning == 0) {
 					Toml_GotoSection(sInstSectionNames[soundID]);
 					inst->sound[soundID].tuning = Toml_GetFloat(mem, "tuning");
+					
+					Toml_GotoSection(NULL);
 				}
 				
 				SwapBE(inst->sound[soundID].swap32);
@@ -1153,7 +1159,7 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		ItemList listInst = ItemList_Initialize();
 		ItemList listSfx = ItemList_Initialize();
 		ItemList listDrum = ItemList_Initialize();
-		printf_progress("Build SoundFont", i + 1, itemList.num);
+		printf_progress("SoundFont", i + 1, itemList.num);
 		MemFile_Reset(&memBank);
 		MemFile_Reset(&memBook);
 		MemFile_Reset(&memLoopBook);
@@ -1254,6 +1260,7 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 				
 				MemFile_Reset(config);
 				MemFile_LoadFile_String(config, Dir_File("sfx/%s", listSfx.item[j]));
+				
 				Toml_GotoSection("prim");
 				prim = Toml_GetStr(config, "sample");
 				
@@ -1262,9 +1269,10 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					continue;
 				}
 				
-				Toml_GotoSection("prim");
 				sfx.tuning = Toml_GetFloat(config, "tuning");
 				idx = SoundFont_SmplID(prim);
+				
+				Toml_GotoSection(NULL);
 				
 				if (sSampleTbl[idx].tuninOverride > 0)
 					sfx.tuning = sSampleTbl[idx].tuninOverride;
@@ -1305,8 +1313,10 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 					memDrum.cast.u32[j] = memDrum.seekPoint;
 				}
 				
-				Toml_GotoSection("prim");
 				drum.sound.tuning = Toml_GetFloat(config, "tuning");
+				
+				Toml_GotoSection(NULL);
+				
 				drum.loaded = 0;
 				drum.pan = Toml_GetInt(config, "pan");
 				drum.release = Audio_GetReleaseID(Toml_GetFloat(config, "release_rate"));
@@ -1516,7 +1526,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Write(&rom->mem.seqTbl, &sqHead, 16);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
-		printf_progress("Append Sequences", i + 1, itemList.num);
+		printf_progress("Sequences", i + 1, itemList.num);
 		u32 addr;
 		u8 fontNum;
 		

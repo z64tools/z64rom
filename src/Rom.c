@@ -707,7 +707,7 @@ static void Rom_ExtTableNum(Rom* rom) {
 	
 	MemFile_Free(&ulib);
 	
-	Dma_FreeEntry(rom, DMA_ID_UNUSED_2, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_2, false);
+	Dma_FreeEntry(rom, DMA_ID_DMADATA, 0x10); Dma_WriteFlag(DMA_ID_DMADATA, false);
 }
 
 #define Rom_MoveTable(OFFSET, O_TABLE, NUM, NEW_NUM) \
@@ -1209,7 +1209,7 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			}
 		}
 		
-		printf_progress("Link Static", i + 1, ArrayCount(gSystem_OoT));
+		printf_progress("Static", i + 1, ArrayCount(gSystem_OoT));
 		
 		if (id < 0) {
 			printf_warning("Skipping [%s]", list.item[k]);
@@ -1341,11 +1341,12 @@ void Rom_Build(Rom* rom) {
 	Rom_Build_State(rom, &dataFile, &config);
 	Rom_Build_Kaleido(rom, &dataFile, &config);
 	Rom_Build_Skybox(rom, &dataFile, &config);
-	Rom_Build_Static(rom, &dataFile, &config);
 	
 	printf_info("Patching");
 	Rom_Build_Patch(rom, &dataFile, &config);
 	Rom_Build_Code(rom, &dataFile, &config);
+	
+	Rom_Build_Static(rom, &dataFile, &config);
 	
 	if (Sys_Stat("rom/lib_user/z_lib_user.bin")) {
 		MemFile_Reset(&dataFile);
@@ -1374,6 +1375,10 @@ void Rom_Build(Rom* rom) {
 	MemFile_Free(&config);
 }
 
+// # # # # # # # # # # # # # # # # # # # #
+// # OTHER                               #
+// # # # # # # # # # # # # # # # # # # # #
+
 void Rom_New(Rom* rom, char* romName) {
 	u16* addr;
 	
@@ -1401,7 +1406,6 @@ void Rom_New(Rom* rom, char* romName) {
 	rom->offset.table.seqTable = 0xBCC6A0;
 	rom->offset.table.fontTable = 0xBCC270;
 	rom->offset.table.sampleTable = 0xBCCD90;
-	
 	rom->offset.table.restrictionFlags = 0x00B9CA10;
 	
 	addr = SegmentedToVirtual(0x0, 0xB5A4AE);

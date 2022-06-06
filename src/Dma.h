@@ -123,8 +123,8 @@ typedef enum {
 
 typedef enum {
 	DMA_ID_MAKEROM,
-	DMA_ID_UNUSED_1, // boot
-	DMA_ID_UNUSED_2, // dmadata
+	DMA_ID_BOOT, // boot
+	DMA_ID_DMADATA, // dmadata
 	DMA_ID_UNUSED_3, // SoundFont
 	DMA_ID_UNUSED_4, // Sequence
 	DMA_ID_UNUSED_5, // SampleTable

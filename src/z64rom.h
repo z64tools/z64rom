@@ -110,6 +110,8 @@ typedef struct Rom {
 	struct {
 		u32 dmaNum, actorNum, objectNum, sceneNum, effectNum;
 	} ext;
+	MemFile code;
+	MemFile boot;
 } Rom;
 
 typedef struct N64AudioInfo {
@@ -176,7 +178,7 @@ extern const char* gSceneName_OoT[110];
 extern const char* gBankName_OoT[41];
 extern const char* gSequenceName_OoT[114];
 extern const char* gSkyboxName_OoT[32];
-extern SystemInfo gSystem_OoT[29];
+extern SystemInfo gSystem_OoT[30];
 
 extern s32 gBetaFlag_Actor_OoT[7];
 extern s32 gBetaFlag_Object_OoT[47];

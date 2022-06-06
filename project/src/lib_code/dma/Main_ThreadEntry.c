@@ -3,6 +3,7 @@
 /*
    z64ram = 0x800005A0
    z64rom = 0x0011A0
+   z64next = 0x80000694
  */
 
 void Main_ThreadEntry(void* arg) {

@@ -114,6 +114,14 @@ static void RemoveFolder(const char* item) {
 }
 
 static void Main_ClearProject(void) {
+	MemFile mem;
+	
+	if (Sys_Stat(gProjectConfig)) {
+		MemFile_LoadFile_String(&mem, gProjectConfig);
+		gVanilla = Toml_GetStr(&mem, "z_vanilla");
+		MemFile_Free(&mem);
+	}
+	
 	printf_toolinfo(gToolName, "Clearing Project\n");
 	
 	RemoveFolder(HeapPrint("rom/actor/%s/", gVanilla));
@@ -128,6 +136,9 @@ static void Main_ClearProject(void) {
 	RemoveFolder(HeapPrint("rom/system/state/%s/", gVanilla));
 	RemoveFolder(HeapPrint("rom/system/static/%s/", gVanilla));
 	Sys_Delete(gProjectConfig);
+	
+	gVanilla = StrDup(".vanilla");
+	qFree(gVanilla);
 }
 
 static void Main_ClearCache(void) {
@@ -170,7 +181,11 @@ static void Main_WiiVC() {
 	
 	sprintf(
 		buffer,
-		"gzinject.exe "
+		"gzinject"
+#ifdef _WIN32
+		".exe"
+#endif
+		" "
 		"-a inject "
 		"-w \"%s\" "
 		"-m \"%s\" "
@@ -391,7 +406,7 @@ static void Main_ReadProject(Rom* rom, char** input) {
 	
 	gBaserom = Toml_GetStr(config, "z_baserom");
 	buildRom = Toml_GetStr(config, "z_buildrom");
-	gVanilla = StrDup(Toml_GetStr(config, "z_vanilla"));
+	gVanilla = StrDup(Toml_GetStr(config, "z_vanilla")); qFree(gVanilla);
 	
 	if (strlen(buildRom) > 128 - strlen(sRomType[1]))
 		printf_error("z_buildrom name is too long");
@@ -438,7 +453,7 @@ static void Main_ReadProject(Rom* rom, char** input) {
 		}
 	}
 	
-	gBaserom = StrDup(Toml_GetStr(config, "z_baserom"));
+	gBaserom = StrDup(Toml_GetStr(config, "z_baserom")); qFree(gBaserom);
 	
 	if (gDumpFlag && strcmp(*input, gBaserom)) {
 		printf_info("Copying Rom to App Path");
@@ -537,7 +552,7 @@ static void Main_Config(char** input, Rom* rom) {
 	Main_ReadProject(rom, input);
 	
 	if (gDumpFlag == true) {
-		*input = strdup(Filename(*input));
+		*input = StrDup(Filename(*input)); qFree(*input);
 	} else {
 		if (gBuildTarget == ROM_RELEASE) {
 			if (Sys_Stat(gBuildrom[ROM_DEV]) > Sys_Stat(gBuildrom[ROM_RELEASE])) {
@@ -654,7 +669,7 @@ s32 Main(s32 argc, char* argv[]) {
 				printf_info("Want to use it as your baserom and dump it now? " PRNT_DGRY "[y/n]");
 				
 				if (Terminal_YesOrNo()) {
-					input = StrDup(list.item[i]);
+					input = StrDup(list.item[i]); qFree(input);
 					gDumpFlag = true;
 					
 					StrRep(rom->config.str, "__ROM_NAME__", input);
@@ -776,8 +791,8 @@ free:
 	FileSys_Free();
 	Rom_Free(rom);
 	Free(rom);
-	Log_Free();
 	Sound_Xm_Stop();
+	Log_Free();
 	
 	return 0;
 }

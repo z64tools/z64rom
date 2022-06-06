@@ -215,6 +215,8 @@ static void Main_RenameRooms(const char* from, const char* to) {
 		times++;
 	}
 	
+	ItemList_Free(&list);
+	
 	printf_info("%d rooms renamed to *%s.", times, to);
 }
 

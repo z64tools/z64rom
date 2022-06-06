@@ -386,6 +386,8 @@ static void Rom_Build_Patch(Rom* rom, MemFile* dataFile, MemFile* config) {
 		if (StrEndCase(list.item[i], ".toml"))
 			Rom_Patch_Config(rom, dataFile, config, list.item[i]);
 	}
+	
+	ItemList_Free(&list);
 }
 
 static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
@@ -1096,7 +1098,7 @@ static void Rom_Build_State(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	for (s32 i = 0; i < list.num; i++) {
 		printf_progress("System", i + 1, list.num);
 		
-		if (list.item[i] == NULL || strlen(list.item[i]) == 0)
+		if (list.item[i] == NULL)
 			continue;
 		
 		FileSys_Path(list.item[i]);
@@ -1874,8 +1876,7 @@ void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlag flags) 
 		result.writePoint += strlen(result.item[i]) + 1;
 	}
 	
-	list[0] = result;
-	
+	*list = result;
 	ItemList_Free(&vanilla);
 	ItemList_Free(&modified);
 }

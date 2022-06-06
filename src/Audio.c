@@ -1590,6 +1590,8 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 				MemFile_Write(&memIndexTable, &bankId, 1);
 			}
 			
+			ItemList_Free(&bankList);
+			
 			Dir_Leave();
 		}
 	}
@@ -1613,6 +1615,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Free(&memIndexTable);
 	MemFile_Free(&memLookUpTable);
 	MemFile_Free(&sequenceMem);
+	ItemList_Free(&itemList);
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -1681,4 +1684,6 @@ void Audio_DeleteUnreferencedSamples(void) {
 	}
 	
 	MemFile_Free(&mem);
+	ItemList_Free(&sampleList);
+	ItemList_Free(&bankList);
 }

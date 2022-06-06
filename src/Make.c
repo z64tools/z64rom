@@ -324,18 +324,29 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 	
 	if (type == PRE_LD) {
 		ItemList list = ItemList_Initialize();
+		s32 ret = CB_BREAK;
+		
 		ItemList_Separated(&list, input, ' ');
 		
-		if (!ItemList_StatMin(&list))
-			return CB_BREAK;
+		if (!ItemList_StatMin(&list)) {
+			ret = CB_BREAK;
+			goto retval;
+		}
 		
-		if (!Sys_Stat(arg2))
-			return CB_BUILD;
+		if (!Sys_Stat(arg2)) {
+			ret = CB_BUILD;
+			goto retval;
+		}
 		
-		if (Sys_Stat(arg2) < ItemList_StatMax(&list))
-			return CB_BUILD;
+		if (Sys_Stat(arg2) < ItemList_StatMax(&list)) {
+			ret = CB_BUILD;
+			goto retval;
+		}
 		
-		return CB_BREAK;
+retval:
+		ItemList_Free(&list);
+		
+		return ret;
 	}
 	
 	if (type == POST_LD) {
@@ -355,26 +366,26 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 		Make_Run(command);
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
-		dump = SysExeO(command); {
-			char* config = HeapPrint("%sconfig.toml", Path(input));
-			MemFile mem = MemFile_Initialize();
-			char* _StateInit = LineHead(StrStr(dump, "_StateInit"));
-			char* _StateDestroy = LineHead(StrStr(dump, "_StateDestroy"));
-			
-			if (_StateInit == NULL)
-				printf_error_align("No StateInit", "%s", input);
-			if (_StateDestroy == NULL)
-				printf_error_align("No StateDestroy", "%s", input);
-			
-			MemFile_Malloc(&mem, 0x800);
-			MemFile_Printf(&mem, "# %s\n\n", Basename(input));
-			MemFile_Printf(&mem, "vram_addr = 0x80800000\n");
-			MemFile_Printf(&mem, "init_func = 0x%.8s\n", _StateInit);
-			MemFile_Printf(&mem, "dest_func = 0x%.8s\n", _StateDestroy);
-			
-			MemFile_SaveFile_String(&mem, config);
-			MemFile_Free(&mem);
-		}
+		dump = SysExeO(command);
+		
+		char* config = HeapPrint("%sconfig.toml", Path(input));
+		MemFile mem = MemFile_Initialize();
+		char* stateInit = LineHead(StrStr(dump, "_StateInit"));
+		char* stateDestroy = LineHead(StrStr(dump, "_StateDestroy"));
+		
+		if (stateInit == NULL)
+			printf_error_align("No StateInit", "%s", input);
+		if (stateDestroy == NULL)
+			printf_error_align("No StateDestroy", "%s", input);
+		
+		MemFile_Malloc(&mem, 0x800);
+		MemFile_Printf(&mem, "# %s\n\n", Basename(input));
+		MemFile_Printf(&mem, "vram_addr = 0x80800000\n");
+		MemFile_Printf(&mem, "init_func = 0x%.8s\n", stateInit);
+		MemFile_Printf(&mem, "dest_func = 0x%.8s\n", stateDestroy);
+		
+		MemFile_SaveFile_String(&mem, config);
+		MemFile_Free(&mem);
 		
 		Free(dump);
 	}
@@ -398,19 +409,29 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 	
 	if (type == PRE_LD) {
 		ItemList list = ItemList_Initialize();
+		s32 ret = CB_BREAK;
 		
 		ItemList_Separated(&list, input, ' ');
 		
-		if (!ItemList_StatMin(&list))
-			return CB_BREAK;
+		if (!ItemList_StatMin(&list)) {
+			ret = CB_BREAK;
+			goto retval;
+		}
 		
-		if (!Sys_Stat(arg2))
-			return CB_BUILD;
+		if (!Sys_Stat(arg2)) {
+			ret = CB_BUILD;
+			goto retval;
+		}
 		
-		if (Sys_Stat(arg2) < ItemList_StatMax(&list))
-			return CB_BUILD;
+		if (Sys_Stat(arg2) < ItemList_StatMax(&list)) {
+			ret = CB_BUILD;
+			goto retval;
+		}
 		
-		return CB_BREAK;
+retval:
+		ItemList_Free(&list);
+		
+		return ret;
 	}
 	
 	if (type == POST_LD) {
@@ -484,6 +505,7 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 			
 			if (MemFile_SaveFile_String(&newConf, conf)) printf_error("Could not save [%s]", conf);
 			
+			ItemList_Free(&list);
 			MemFile_Free(&srcFile);
 			MemFile_Free(&newConf);
 			Free(varName);

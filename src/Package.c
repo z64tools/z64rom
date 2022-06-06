@@ -104,6 +104,7 @@ void Package_Sound(struct zip_t* pkg, char* toml) {
 	MemFile_Write(&mem, f, size);
 	MemFile_SaveFile(&mem, HeapPrint("rom/sound/sample/%s/%s", name, Filename(file)));
 	
+	ItemList_Free(&list);
 	MemFile_Free(&mem);
 	Free(f);
 }

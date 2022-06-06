@@ -1466,6 +1466,45 @@ void Rom_New(Rom* rom, char* romName) {
 	MemFile_Malloc(&rom->mem.fontTbl, MbToBin(0.1));
 	MemFile_Malloc(&rom->mem.seqTbl, MbToBin(0.1));
 	MemFile_Malloc(&rom->mem.seqFontTbl, MbToBin(0.1));
+	
+	if (!gDumpFlag) {
+		s32 targetId[] = {
+			DMA_ID_CODE,
+			DMA_ID_BOOT
+		};
+		MemFile* targetMem[] = {
+			&rom->code,
+			&rom->boot
+		};
+		char* targetFile[] = {
+			"z_code.bin",
+			"z_boot.bin"
+		};
+		u8 targetSegment[] = {
+			SEG_CODE,
+			SEG_BOOT
+		};
+		
+		foreach(k, targetId) {
+			s32 id = -1;
+			char* file;
+			
+			foreach(i, gSystem_OoT) {
+				if (gSystem_OoT[i].id == targetId[k])
+					id = i;
+			}
+			
+			if (id == -1)
+				printf_error("Could not solve ID for [%s]...", targetFile[k]);
+			
+			file = HeapPrint("rom/system/static/%s.bin", gSystem_OoT[id].name);
+			if (!Sys_Stat(file)) file = HeapPrint("rom/system/static/%s/%s.bin", gVanilla, gSystem_OoT[id].name);
+			if (!Sys_Stat(file)) printf_error("Could not find [%s.bin]", gSystem_OoT[id].name);
+			
+			MemFile_LoadFile(targetMem[k], file);
+			SetSegment(targetSegment[k], targetMem[k]->data);
+		}
+	}
 }
 
 void Rom_Compress(void) {

@@ -12,6 +12,9 @@
 #define ROM_RELEASE 0
 #define ROM_DEV     1
 
+#define SEG_CODE 0xDE
+#define SEG_BOOT 0xDF
+
 typedef void (* PatchFunc)(struct Rom*, MemFile*, MemFile*, char*);
 
 typedef struct {

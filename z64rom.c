@@ -418,7 +418,7 @@ static void Main_ReadProject(Rom* rom, char** input) {
 		if (gCompressFlag == false) {
 			if (!strcmp(gBaserom, "__ROM_NAME__") || !Sys_Stat(gProjectConfig)) {
 				printf_toolinfo(gToolName, "Dumping Rom");
-				gBaserom = StrDup(Filename(*input));
+				gBaserom = Filename(*input);
 				gDumpFlag = true;
 				
 				Toml_ReplaceVariable(config, "z_baserom", gBaserom);
@@ -427,7 +427,7 @@ static void Main_ReadProject(Rom* rom, char** input) {
 				printf_warning("Dump rom [%s] ? " PRNT_DGRY "[y/n]", PathAbs(*input));
 				
 				if (gDumpRom == true || Terminal_YesOrNo() == true) {
-					gBaserom = StrDup(Filename(*input));
+					gBaserom = Filename(*input);
 					gDumpFlag = true;
 					
 					Toml_ReplaceVariable(config, "z_baserom", Filename(*input));
@@ -773,6 +773,7 @@ s32 Main(s32 argc, char* argv[]) {
 	
 free:
 	
+	FileSys_Free();
 	Rom_Free(rom);
 	Free(rom);
 	Log_Free();

@@ -454,45 +454,6 @@ static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
 // # MAIN                                #
 // # # # # # # # # # # # # # # # # # # # #
 
-static char* __sPath;
-
-void FileSys_Path(const char* fmt, ...) {
-	va_list va;
-	
-	Free(__sPath);
-	va_start(va, fmt);
-	vasprintf(&__sPath, fmt, va);
-	va_end(va);
-	
-	if (gDumpFlag)
-		Sys_MakeDir(__sPath);
-}
-
-char* FileSys_File(const char* str) {
-	return HeapPrint("%s%s", __sPath, str);
-}
-
-char* FileSys_FindFile(const char* str) {
-	ItemList list = ItemList_Initialize();
-	char* file = NULL;
-	Time stat = 0;
-	
-	ItemList_List(&list, __sPath, 0, LIST_FILES | LIST_NO_DOT);
-	for (s32 i = 0; i < list.num; i++) {
-		if (StrEndCase(list.item[i], str) && Sys_Stat(list.item[i]) > stat) {
-			file = list.item[i];
-			stat = Sys_Stat(file);
-		}
-	}
-	
-	if (file)
-		file = HeapStrDup(file);
-	
-	ItemList_Free(&list);
-	
-	return file;
-}
-
 static void Rom_Dump_Actor(Rom* rom, MemFile* data, MemFile* config) {
 	RomFile rf;
 	
@@ -693,6 +654,7 @@ void Rom_Dump(Rom* rom) {
 	
 	printf_info_align("Dumping Rom", PRNT_REDD "%s", Filename(rom->file.info.name));
 	
+	FileSys_MakePath(true);
 	Rom_Dump_Actor(rom, &dataFile, &config);
 	Rom_Dump_Effect(rom, &dataFile, &config);
 	Rom_Dump_Object(rom, &dataFile, &config);

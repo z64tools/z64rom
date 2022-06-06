@@ -508,65 +508,60 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 	SampleInfo* tbl = arg->tbl;
 	AdpcmLoop* loop;
 	AdpcmBook* book;
-	MemFile* dataFile;
-	MemFile* config;
+	MemFile* memF;
+	MemFile* memC;
 	RomFile rf;
 	Rom* rom = arg->rom;
 	char* name = sample->name;
 	u32 sampRate = sample->sampleRate;
-	char FILE_WAV[512];
-	char FILE_VAD[512];
-	char FILE_BOK[512];
-	char FILE_LBK[512];
-	char FILE_CFG[512];
+	char* FILE_WAV;
+	char* FILE_VAD;
+	char* FILE_BOK;
+	char* FILE_LBK;
+	char* FILE_CFG;
 	
-	if (sample->dublicate)
-		return;
-	
-	if (name == NULL)
-		printf_error("Sample ID [%D] is missing name", arg->i);
-	
-	if (sampRate == 0)
-		printf_error("Sample [%s] is missing samplerate", name);
+	if (sample->dublicate) return;
+	if (name == NULL) printf_error("Sample ID [%D] is missing name", arg->i);
+	if (sampRate == 0) printf_error("Sample [%s] is missing samplerate", name);
 	
 	book = SegmentedToVirtual(0x0, tbl->book);
 	loop = SegmentedToVirtual(0x0, tbl->loop);
 	
 	Sys_MakeDir("%s%s/", arg->path, name);
-	snprintf(FILE_WAV, 512, "%s%s/Sample.wav", arg->path, name);
-	snprintf(FILE_VAD, 512, "%s%s/sample.vadpcm.bin", arg->path, name);
-	snprintf(FILE_BOK, 512, "%s%s/sample.book.bin", arg->path, name);
-	snprintf(FILE_LBK, 512, "%s%s/sample.loopbook.bin", arg->path, name);
-	snprintf(FILE_CFG, 512, "%s%s/config.toml", arg->path, name);
+	asprintf(&FILE_WAV, "%s%s/Sample.wav", arg->path, name);
+	asprintf(&FILE_VAD, "%s%s/sample.vadpcm.bin", arg->path, name);
+	asprintf(&FILE_BOK, "%s%s/sample.book.bin", arg->path, name);
+	asprintf(&FILE_LBK, "%s%s/sample.loopbook.bin", arg->path, name);
+	asprintf(&FILE_CFG, "%s%s/config.toml", arg->path, name);
 	
-	Malloc(dataFile, sizeof(MemFile));
-	Malloc(config, sizeof(MemFile));
-	*dataFile = MemFile_Initialize();
-	*config = MemFile_Initialize();
-	MemFile_Malloc(dataFile, MbToBin(4.0));
-	MemFile_Malloc(config, MbToBin(1.0));
+	Malloc(memF, sizeof(MemFile));
+	Malloc(memC, sizeof(MemFile));
+	*memF = MemFile_Initialize();
+	*memC = MemFile_Initialize();
+	MemFile_Malloc(memF, MbToBin(1.0));
+	MemFile_Malloc(memC, MbToBin(1.0));
 	
-	MemFile_Params(dataFile, MEM_REALLOC, true, MEM_END);
-	
-	Log("Size %X", ReadBE(tbl->data) & 0x00FFFFFF);
 	rf.size = ReadBE(tbl->data) & 0x00FFFFFF;
 	rf.data = SegmentedToVirtual(0x0, tbl->sampleAddr);
-	Rom_Extract(dataFile, rf, FILE_VAD);
+	Rom_Extract(memF, rf, FILE_VAD);
 	
 	rf.size = sizeof(s16) * 8 * ReadBE(book->order) * ReadBE(book->npredictors) + 8;
 	rf.data = book;
-	Rom_Extract(dataFile, rf, FILE_BOK);
+	Rom_Extract(memF, rf, FILE_BOK);
 	
-	Rom_Config_Sample(rom, config, (Sample*)tbl, name, FILE_CFG);
+	Rom_Config_Sample(rom, memC, (Sample*)tbl, name, FILE_CFG);
 	
 	if (loop->count) {
 		rf.size = 0x20;
 		rf.data = SegmentedToVirtual(0x0, tbl->loop + 0x10);
-		Rom_Extract(dataFile, rf, FILE_LBK);
+		Rom_Extract(memF, rf, FILE_LBK);
 	}
+	
+	MemFile_Free(memF);
 	
 	if (gDumpAudio) {
 		char cmd[2048];
+		s8* instInfo;
 		
 		Tools_Command(
 			cmd,
@@ -588,33 +583,35 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 				catprintf(cmd, "--split-lo %d", tbl->splitLo + 21);
 		}
 		
-		char* r = SysExeO(cmd);
-		if (SysExe_GetError()) {
-			printf_error("%s", r);
-		}
+		SysExe(cmd);
 		
-		MemFile_Reset(dataFile);
-		if (MemFile_LoadFile(dataFile, FILE_WAV))
+		if (MemFile_LoadFile(memF, FILE_WAV))
 			printf_warning_align("Sample not found", "%s", FILE_WAV);
 		
-		s8* instInfo = MemMem(dataFile->data, dataFile->dataSize, "inst", 4);
+		instInfo = MemMem(memF->data, memF->dataSize, "inst", 4);
 		
 		if (instInfo) {
-			Toml_Print(config, "\n ");
-			Toml_WriteComment(config, "Instrument Info");
-			Toml_WriteInt(config, "basenote", instInfo[8], NO_COMMENT);
-			Toml_WriteInt(config, "finetune", instInfo[9], NO_COMMENT);
-			MemFile_SaveFile_String(config, FILE_CFG);
+			Toml_Print(memC, "\n ");
+			Toml_WriteComment(memC, "Instrument Info");
+			Toml_WriteInt(memC, "basenote", instInfo[8], NO_COMMENT);
+			Toml_WriteInt(memC, "finetune", instInfo[9], NO_COMMENT);
+			MemFile_SaveFile_String(memC, FILE_CFG);
 		} else {
-			if (dataFile->dataSize == 0)
+			if (memF->dataSize == 0)
 				printf_warning_align("Audio", "Empty File [%s]", FILE_WAV);
 		}
+		
+		MemFile_Free(memF);
 	}
 	
-	MemFile_Free(dataFile);
-	MemFile_Free(config);
-	Free(dataFile);
-	Free(config);
+	MemFile_Free(memC);
+	Free(memF);
+	Free(memC);
+	Free(FILE_WAV);
+	Free(FILE_VAD);
+	Free(FILE_BOK);
+	Free(FILE_LBK);
+	Free(FILE_CFG);
 }
 
 void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
@@ -656,7 +653,9 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	SampleDumpArg arg[THREAD_NUM];
 	Thread thread[THREAD_NUM];
 	
-	ThreadLock_Init();
+	if (gThreading)
+		ThreadLock_Init();
+	
 	while (i < sSortID) {
 		u32 target = Clamp(sSortID - i, 0, THREAD_NUM);
 		
@@ -667,17 +666,27 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			arg[j].tbl = tbl[i + j];
 			arg[j].path = HeapPrint("rom/sound/sample/%s/", gVanilla);
 			
-			ThreadLock_Create(&thread[j], SampleDump_Thread, &arg[j]);
+			if (gThreading)
+				ThreadLock_Create(&thread[j], SampleDump_Thread, &arg[j]);
+			
+			else {
+				SampleDump_Thread(&arg[j]);
+				printf_progressFst("Sample", i + j + 1, sSortID);
+			}
 		}
 		
-		for (s32 j = 0; j < target; j++) {
-			ThreadLock_Join(&thread[j]);
-			printf_progressFst("Sample", i + j + 1, sSortID);
+		if (gThreading) {
+			for (s32 j = 0; j < target; j++) {
+				ThreadLock_Join(&thread[j]);
+				printf_progressFst("Sample", i + j + 1, sSortID);
+			}
 		}
 		
 		i += THREAD_NUM;
 	}
-	ThreadLock_Free();
+	
+	if (gThreading)
+		ThreadLock_Free();
 	
 	for (s32 j = 0; j < sBankNum; j++) {
 		char* replacedName = NULL;

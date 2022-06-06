@@ -14,10 +14,6 @@ typedef struct PatchNode {
 	char source[64];
 } PatchNode;
 
-void FileSys_Path(const char* fmt, ...);
-char* FileSys_File(const char* str);
-char* FileSys_FindFile(const char* str);
-
 void Rom_New(struct Rom* rom, char* romName);
 void Rom_Free(struct Rom* rom);
 void Rom_Dump(struct Rom* rom);

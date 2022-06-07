@@ -161,24 +161,26 @@ static void Main_WiiVC() {
 	if (MemFile_LoadFile_String(&conf, gProjectConfig))
 		printf_error("Could not open [%s]", gProjectConfig);
 	
-	path = Toml_GetStr(&conf, "vc_dolphin");
 	wad = Toml_GetStr(&conf, "vc_basewad");
 	rom = Toml_GetStr(&conf, "z_buildrom");
 	
-	if (!strcmp(path, "NULL"))
-		printf_error("" PRNT_YELW "vc_dolphin" PRNT_RSET " not defined in [%s]]", gProjectConfig);
-	if (!strcmp(wad, "NULL"))
+	if (!wad || !strcmp(wad, "NULL"))
 		printf_error("" PRNT_YELW "vc_basewad" PRNT_RSET " not defined in [%s]]", gProjectConfig);
 	
-	if (!StrEnd(path, "/"))
-		path = HeapPrint("%s/", path);
-	if (PathIsRel(wad))
-		wad = PathAbs(wad);
+	if (PathIsRel(wad)) wad = PathAbs(wad);
 	
 	asprintf(&target, "%s.wad", PathAbs(rom));
 	asprintf(&rom, "%s%s", PathAbs(rom), sRomType[gBuildTarget]);
-	Sys_Delete_Recursive(HeapPrint("%sWii/title/00010001/", path));
-	Sys_Delete_Recursive(HeapPrint("%sWii/title/00000001/", path));
+	
+	path = Toml_GetStr(&conf, "vc_dolphin");
+	if (path && strcmp(path, "NULL")) {
+		if (!StrEnd(path, "/"))
+			path = HeapPrint("%s/", path);
+		if (Sys_Stat(path)) {
+			Sys_Delete_Recursive(HeapPrint("%sWii/title/00010001/", path));
+			Sys_Delete_Recursive(HeapPrint("%sWii/title/00000001/", path));
+		}
+	}
 	
 	Sys_SetWorkDir(HeapPrint("%stools/", Sys_AppDir()));
 	

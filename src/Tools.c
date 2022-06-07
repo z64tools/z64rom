@@ -416,9 +416,6 @@ redo:
 		Free(output);
 	}
 	
-	Log("Create objects.ld");
-	Sys_Touch("include/objects.ld");
-	
 	Log("Clean Temporal Extraction");
 	if (Sys_Delete_Recursive(extract)) printf_error("Could not delete [%s]", extract);
 	

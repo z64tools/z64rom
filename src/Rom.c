@@ -319,6 +319,7 @@ void Patch_Free() {
 
 void Patch_File(MemFile* memDest, const char* section) {
 	ItemList vlist;
+	u32 isPatched = false;
 	
 	if (section) {
 		section = qFree(StrDup(section));
@@ -356,6 +357,12 @@ void Patch_File(MemFile* memDest, const char* section) {
 			
 			addr = Value_Hex(vlist.item[i]) - reloc;
 			variable = Toml_GetVariable(toml->str, vlist.item[i]);
+			
+			// Force Comrpession
+			if (isPatched == false)
+				Sys_Touch(memDest->info.name);
+			
+			isPatched = 1;
 			
 			if (Toml_Variable(toml->str, vlist.item[i])[0] == '\"')
 				isHex = false;
@@ -1268,13 +1275,20 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			MemFile_Append(&rom->file, &rom->boot);
 			
 			continue;
+		} else if (id == DMA_ID_CODE) {
+			Patch_File(&rom->code, list.item[k]);
+			// MemFile_Seek(&rom->file, RELOC_CODE);
+			// MemFile_Append(&rom->file, &rom->code);
+			Patch_File(&rom->code, list.item[k]);
+			Dma_WriteEntry(rom, id, &rom->code, true);
+			
+			continue;
 		}
 		
 		MemFile_Reset(memData);
 		MemFile_LoadFile(memData, list.item[k]);
 		
 		switch (id) {
-			case DMA_ID_CODE:
 			case DMA_ID_TITLE_STATIC:
 				compress = true;
 				break;
@@ -1568,7 +1582,6 @@ void Rom_Compress(void) {
 		"rom/object/",
 		"rom/scene/",
 		
-		"rom/system/kaleido/",
 		"rom/system/skybox/",
 		"rom/system/skybox/",
 		"rom/system/state/",
@@ -1579,7 +1592,6 @@ void Rom_Compress(void) {
 		".zobj",
 		".zscene",
 		
-		".zovl",
 		".pal",
 		".tex",
 		".zovl",
@@ -1639,6 +1651,8 @@ void Rom_Free(Rom* rom) {
 	MemFile_Free(&rom->mem.fontTbl);
 	MemFile_Free(&rom->mem.seqTbl);
 	MemFile_Free(&rom->mem.seqFontTbl);
+	MemFile_Free(&rom->code);
+	MemFile_Free(&rom->boot);
 	memset(rom, 0, sizeof(struct Rom));
 }
 

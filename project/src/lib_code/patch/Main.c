@@ -3,6 +3,7 @@
 /*
    z64ram = 0x800C6E20
    z64rom = 0xB3DFC0
+   z64next = 0x800c7250
  */
 
 extern PreNmiBuff* gAppNmiBufferPtr;

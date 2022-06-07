@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.9.0";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.9.1";
 
 s32 gDumpRom = -1;
 s32 gDumpAudio = -1;
@@ -135,6 +135,9 @@ static void Main_ClearProject(void) {
 	RemoveFolder(HeapPrint("rom/system/skybox/%s/", gVanilla));
 	RemoveFolder(HeapPrint("rom/system/state/%s/", gVanilla));
 	RemoveFolder(HeapPrint("rom/system/static/%s/", gVanilla));
+	
+	RemoveFolder(HeapPrint("rom/lib_code/"));
+	RemoveFolder(HeapPrint("rom/lib_user/"));
 	Sys_Delete(gProjectConfig);
 	
 	gVanilla = StrDup(".vanilla");
@@ -260,28 +263,14 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		Terminal_ClearLines(2);
 	}
 	
-	if (Arg("clean-samples")) {
+	if (Arg("clean-samples"))
 		Audio_DeleteUnreferencedSamples();
-		
-		return 1;
-	}
-	
-	if (Arg("no-beta")) {
+	if (Arg("no-beta"))
 		Rom_DeleteUnusedContent();
-		
-		return 1;
-	}
-	
-	if (Arg("zmap")) {
+	if (Arg("zmap"))
 		Main_RenameRooms(".zroom", ".zmap");
-		
-		return 1;
-	}
-	if (Arg("zroom")) {
+	if (Arg("zroom"))
 		Main_RenameRooms(".zmap", ".zroom");
-		
-		return 1;
-	}
 	
 	if (Arg("dump-rom")) gDumpRom = Value_Bool(argv[parArg]);
 	if (Arg("dump-audio")) gDumpAudio = Value_Bool(argv[parArg]);
@@ -518,7 +507,6 @@ static void Main_WriteProject(Rom* rom, char** input) {
 		"mips64_ld_flags",
 		"-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ "
 		"-T z64hdr.ld "
-		"-T objects.ld "
 		"-T z_lib_user.ld "
 		"--emit-relocs",
 		QUOTES,
@@ -529,7 +517,6 @@ static void Main_WriteProject(Rom* rom, char** input) {
 		"ulib_ld_flags",
 		"-Lrom/lib_user -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ "
 		"-T ulib_linker.ld "
-		"-T objects.ld "
 		"--emit-relocs",
 		QUOTES,
 		NO_COMMENT
@@ -656,7 +643,7 @@ s32 Main(s32 argc, char* argv[]) {
 		}
 	}
 	
-	if (input == NULL) {
+	if (input == NULL && gDumpRom != false) {
 		ItemList list = ItemList_Initialize();
 		
 		ItemList_List(&list, "", 0, LIST_FILES);

@@ -776,39 +776,41 @@ static s32 Audio_LoadFile(MemFile* dataFile, char* file) {
 }
 
 void Audio_UpdateSegments(Rom* rom) {
-	#define INST_ADDR(x, y) SegmentedToVirtual(0x0, ((x) - 0x7F588E60)), SegmentedToVirtual(0x0, ((y) - 0x7F588E60))
-	#define RAM_ADDR rom->file.seekPoint + 0x7F588E60
+	#define RAM_CODE ((u32)0x8001CE60)
+	#define INST_ADDR(x, y) SegmentedToVirtual(SEG_CODE, ((x) - RAM_CODE)), SegmentedToVirtual(SEG_CODE, ((y) - RAM_CODE))
+	#define RAM_ADDR rom->code.seekPoint + 0x8001CE60
 	
-	MemFile_Params(&rom->file, MEM_ALIGN, 16, MEM_END);
-	MemFile_Seek(&rom->file, 0xB65C00);
+	MemFile_Params(&rom->code, MEM_ALIGN, 16, MEM_END);
+	MemFile_Seek(&rom->code, 0xD1C00 /* 0xB65C00 - RELOC_CODE */);
 	
 	Mips64_SplitLoad(INST_ADDR(0x800E330C, 0x800E3310), MIPS_REG_A1, rom->offset.segment.seqRom);
 	Mips64_SplitLoad(INST_ADDR(0x800E3320, 0x800E3324), MIPS_REG_A1, rom->offset.segment.fontRom);
 	Mips64_SplitLoad(INST_ADDR(0x800E3334, 0x800E3338), MIPS_REG_A1, rom->offset.segment.smplRom);
 	
 	Mips64_SplitLoad(INST_ADDR(0x800E32C4, 0x800E32D4), MIPS_REG_T1, RAM_ADDR);
-	MemFile_Append(&rom->file, &rom->mem.seqTbl);
+	MemFile_Append(&rom->code, &rom->mem.seqTbl);
 	
 	Mips64_SplitLoad(INST_ADDR(0x800E32C8, 0x800E32D8), MIPS_REG_T2, RAM_ADDR);
-	MemFile_Append(&rom->file, &rom->mem.fontTbl);
+	MemFile_Append(&rom->code, &rom->mem.fontTbl);
 	
 	Mips64_SplitLoad(INST_ADDR(0x800E32CC, 0x800E32DC), MIPS_REG_T3, RAM_ADDR);
-	MemFile_Append(&rom->file, &rom->mem.sampleTbl);
+	MemFile_Append(&rom->code, &rom->mem.sampleTbl);
 	
 	Mips64_SplitLoad(INST_ADDR(0x800E32D0, 0x800E32E0), MIPS_REG_T6, RAM_ADDR);
-	MemFile_Append(&rom->file, &rom->mem.seqFontTbl);
+	MemFile_Append(&rom->code, &rom->mem.seqFontTbl);
 	
 	// Move Audio Heap
 	Mips64_SplitLoad(INST_ADDR(0x800E3204, 0x800E3208), MIPS_REG_T9, 0x806C0000);
 	
-	MemFile_Params(&rom->file, MEM_ALIGN, 0, MEM_END);
+	MemFile_Params(&rom->code, MEM_ALIGN, 0, MEM_END);
 	
-	if (rom->file.seekPoint - 0xB65C00 > 0x318C - 0x10) {
+	if (rom->code.seekPoint - 0xD1C00 > 0x318C - 0x10) {
 		printf_warning("AudioDebug_Draw overwriting exceeded. Might cause trouble...");
 	}
 	
 #undef INST_ADDR
 #undef RAM_ADDR
+#undef FUNC_RAM
 }
 
 void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {

@@ -1208,7 +1208,6 @@ const char* gSequenceName_OoT[] = {
 };
 
 SystemInfo gSystem_OoT[] = {
-	{ 1, "z_boot" },
 	{ 6, "link_animation" },
 	{ 7, "icon_item_static" },
 	{ 8, "icon_item_24_static" },
@@ -1231,13 +1230,15 @@ SystemInfo gSystem_OoT[] = {
 	{ 25, "map_grand_static" },
 	{ 26, "map_i_static" },
 	{ 27, "map_48x85_static" },
-	{ 28, "z_code" },
 	{ 937, "z_select_static" },
 	{ 938, "nintendo_rogo_static" },
 	{ 939, "title_static" },
 	{ 940, "parameter_static" },
 	{ 1005, "elf_message_field" },
 	{ 1006, "elf_message_ydan" },
+	
+	{ 1, "z_boot" },
+	{ 28, "z_code" },
 };
 
 const char* gSkyboxName_OoT[] = {

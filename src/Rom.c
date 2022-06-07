@@ -241,213 +241,212 @@ static void Rom_Config_Scene(Rom* rom, MemFile* config, u32 id, const char* name
 // # PATCH                               #
 // # # # # # # # # # # # # # # # # # # # #
 
-PatchNode* sPatchHead;
+Patch gPatch;
 
-static void Rom_Patch_Config(Rom* rom, MemFile* dataFile, MemFile* config, char* file) {
-	u32 lineCount;
-	char* line;
+void Patch_Init() {
+	ItemList list = ItemList_Initialize();
 	
-	MemFile_Reset(config);
-	Log("Loading Patch [%s]", file);
-	MemFile_LoadFile_String(config, file);
-	MemFile_Realloc(config, config->memSize * 2);
+	ItemList_List(&list, "patch/", -1, LIST_FILES | LIST_NO_DOT);
+	Calloc(gPatch.toml.file, sizeof(struct MemFile) * list.num);
 	
-	line = config->str;
-	lineCount = LineNum(config->str);
-	
-	for (s32 i = 0; i < lineCount; i++, line = Line(line, 1)) {
-		if (line == NULL)
-			break;
-		if (line[0] != '@')
-			continue;
-		
-		char* cmd = CopyWord(line, 0);
-		
-		StrRep(config->str, cmd + 1, Toml_GetVariable(line, cmd));
-	}
-	
-	line = config->str;
-	
-	for (s32 i = 0; i < lineCount; i++, line = Line(line, 1)) {
-		PatchNode* node;
-		char* word;
-		if (line == NULL)
-			break;
-		if (line[0] == '@')
-			continue;
-		
-		if (Value_ValidateHex(CopyWord(line, 0)) == false)
-			continue;
-		
-		word = Toml_Variable(line, CopyWord(line, 0));
-		rom->file.seekPoint = Value_Hex(CopyWord(line, 0));
-		
-		if (StrMtch(word, "FILE(\"")) {
-			word = Toml_GetVariable(line, CopyWord(line, 0));
+	for (s32 i = 0; i < list.num; i++) {
+		if (StrEndCase(list.item[i], ".toml")) {
+			MemFile* mem = &gPatch.toml.file[gPatch.toml.num++];
+			char* line;
+			u32 lineCount;
 			
-			// Toml_GetVariable sees that this is a string and does magics
-			StrRem(word, strlen("ILE(\""));
+			MemFile_LoadFile_String(mem, list.item[i]);
+			MemFile_Realloc(mem, mem->memSize * 4);
 			
-			Sys_SetWorkDir(Path(file));
-			if (Sys_Stat(word)) {
-				MemFile ptch = MemFile_Initialize();
-				
-				if (MemFile_LoadFile(&ptch, word))
-					printf_error("Could not open a file that should exist [%s]", word);
-				
-				Calloc(node, sizeof(struct PatchNode));
-				node->start = rom->file.seekPoint;
-				node->end = rom->file.seekPoint + strlen(word);
-				strncpy(node->source, file, 63);
-				Node_Add(sPatchHead, node);
-				
-				MemFile_Append(&rom->file, &ptch);
-			} else {
-				printf_warning("Could not locate patch file [%s] provided by [%s]", word, file);
-			}
-			Sys_SetWorkDir(Sys_AppDir());
-			
-			continue;
-		}
-		
-		if (word[0] == '"') {
-			word = Toml_GetVariable(line, CopyWord(line, 0));
-			
-			Calloc(node, sizeof(struct PatchNode));
-			node->start = rom->file.seekPoint;
-			node->end = rom->file.seekPoint + strlen(word);
-			strncpy(node->source, file, 63);
-			Node_Add(sPatchHead, node);
-			
-			Log("STR: 0x%08X = \"%s\"", rom->file.seekPoint, word);
-			MemFile_Printf(&rom->file, word);
-			
-			continue;
-		}
-		
-		word = Toml_GetVariable(line, CopyWord(line, 0));
-		
-		if (Value_ValidateHex(word)) {
-			u8* data = &rom->file.cast.u8[rom->file.seekPoint];
-			u32 size = 0;
-			
-			Log("HEX: 0x%08X = %s", rom->file.seekPoint, word);
-			
-			for (s32 o = 0, j = word[1] == 'x' ? 2 : 0; j < strlen(word); j++) {
-				u8 new;
-				char strval[] = {
-					word[j],
-					'\0'
-				};
-				
-				if (word[j] == '#' || word[j] < ' ' || word[j] == '\0')
+			// @macro
+			line = mem->str;
+			lineCount = LineNum(mem->str);
+			for (s32 i = 0; i < lineCount; i++, line = Line(line, 1)) {
+				if (line == NULL)
 					break;
-				
-				if (word[j] == ' ' || word[j] == '\t' || (word[j] == '0' && word[j + 1] == 'x') || word[j] == 'x')
+				if (line[0] != '@')
 					continue;
 				
-				if (word[j] == '.') {
-					if (o % 2 != 0) {
-						data++;
-						size++;
-					}
-				} else {
-					if (o % 2 == 0) {
-						new = data[0] & 0x0F;
-						new |= Value_Hex(strval) << 4;
-						data[0] = new;
-					} else {
-						new = data[0] & 0xF0;
-						new |= Value_Hex(strval) & 0xF;
-						data[0] = new;
-						data++;
-						size++;
-					}
-				}
+				char* cmd = CopyWord(line, 0);
 				
-				o++;
+				StrRep(mem->str, cmd + 1, Toml_GetVariable(line, cmd));
 			}
-			
-			Calloc(node, sizeof(struct PatchNode));
-			node->start = rom->file.seekPoint;
-			node->end = rom->file.seekPoint + size;
-			strncpy(node->source, file, 63);
-			Node_Add(sPatchHead, node);
 		}
 	}
-}
-
-static void Rom_Build_Patch(Rom* rom, MemFile* dataFile, MemFile* config) {
-	ItemList list = ItemList_Initialize();
 	
-	ItemList_List(&list, "patch/", -1, LIST_FILES);
+	ItemList_Free(&list);
+	ItemList_List(&list, "rom/lib_code/", -1, LIST_FILES | LIST_NO_DOT);
+	Calloc(gPatch.bin.file, sizeof(struct MemFile) * list.num);
+	Calloc(gPatch.bin.offset, sizeof(u32) * list.num);
 	
 	for (s32 i = 0; i < list.num; i++) {
-		if (StrEndCase(list.item[i], ".toml"))
-			Rom_Patch_Config(rom, dataFile, config, list.item[i]);
+		if (StrEndCase(list.item[i], ".bin")) {
+			u32* offset = &gPatch.bin.offset[gPatch.bin.num];
+			MemFile* mem = &gPatch.bin.file[gPatch.bin.num++];
+			MemFile toml;
+			char* line;
+			u32 lineCount;
+			char* tname = HeapMalloc(strlen(list.item[i] + 8));
+			
+			strcpy(tname, list.item[i]);
+			StrRep(tname, ".bin", ".toml");
+			
+			if (MemFile_LoadFile(mem, list.item[i])) printf_error("Could not open [%s]", list.item[i]);
+			if (MemFile_LoadFile_String(&toml, tname)) printf_error("Could not open [%s]", tname);
+			*offset = Toml_GetInt(&toml, "rom");
+			
+			if (Toml_Variable(toml.str, "next") &&
+				Toml_GetInt(&toml, "next") - Toml_GetInt(&toml, "ram") < mem->dataSize)
+				printf_error("Can't fit [%s] between z64ram - z64next!", list.item[i]);
+			
+			MemFile_Free(&toml);
+		}
 	}
 	
 	ItemList_Free(&list);
 }
 
-static void Rom_Build_Code(Rom* rom, MemFile* dataFile, MemFile* config) {
-	ItemList list = ItemList_Initialize();
+void Patch_Free() {
+	for (s32 i = 0; i < gPatch.toml.num; i++)
+		MemFile_Free(&gPatch.toml.file[i]);
+	Free(gPatch.toml.file);
 	
-	ItemList_List(&list, "rom/lib_code/", -1, LIST_FILES | LIST_NO_DOT);
+	for (s32 i = 0; i < gPatch.bin.num; i++)
+		MemFile_Free(&gPatch.bin.file[i]);
+	Free(gPatch.bin.file);
+	Free(gPatch.bin.offset);
+}
+
+void Patch_File(MemFile* memDest, const char* section) {
+	ItemList vlist;
 	
-	for (s32 i = 0; i < list.num; i++) {
-		if (!StrEndCase(list.item[i], ".bin"))
+	if (section) {
+		section = qFree(StrDup(section));
+		
+		StrRep((char*)section, gVanilla, "");
+		StrRep((char*)section, "//", "/");
+	}
+	
+	for (s32 p = 0; p < gPatch.toml.num; p++) {
+		MemFile* toml = &gPatch.toml.file[p];
+		u32 reloc = 0;
+		
+		if (section && !StrStr(toml->str, section))
 			continue;
 		
-		PatchNode* node = sPatchHead;
-		u32 nodeID = 0;
-		char* toml = HeapPrint("%s%s.toml", Path(list.item[i]), Basename(list.item[i]));
-		s64 maxSize;
+		Toml_GotoSection(section);
+		Toml_ListVariables(toml, &vlist, section);
 		
-		MemFile_Reset(dataFile);
-		MemFile_Reset(config);
-		
-		if (!Sys_Stat(toml))
-			printf_error("Could not find [%s]", toml);
-		
-		if (MemFile_LoadFile(dataFile, list.item[i])) printf_error("Exiting...");
-		if (MemFile_LoadFile_String(config, toml)) printf_error("Exiting...");
-		
-		rom->file.seekPoint = Toml_GetInt(config, "rom");
-		
-		if (Toml_Variable(config->str, "next")) {
-			maxSize = Toml_GetInt(config, "next") - Toml_GetInt(config, "ram");
+		forlist(i, vlist) {
+			char* variable;
+			s64 addr;
+			u32 isHex = true;
 			
-			if (dataFile->dataSize > maxSize)
-				printf_error("Could not fit file [%s] [%d / %d]", dataFile->info.name, dataFile->dataSize, (u32)maxSize);
-		}
-		
-		while (node) {
-			if (Intersect(node->start, node->end, rom->file.seekPoint, rom->file.seekPoint + dataFile->dataSize)) {
-				printf_warning(
-					"Patch to "
-					"[" PRNT_REDD "0x%08X" PRNT_RSET "]"
-					" from "
-					"[" PRNT_REDD "patch/%s" PRNT_RSET "]"
-					" has been overwritten by "
-					"[" PRNT_REDD "rom/lib_code/%s" PRNT_RSET "]!",
-					node->start,
-					node->source,
-					list.item[i]
-				);
+			if (!strcmp(vlist.item[i], "reloc_from")) {
+				reloc = Toml_GetInt(toml, vlist.item[i]);
+				
+				// Comment out already processed variables
+				LineHead(Toml_Variable(toml->str, vlist.item[i]))[0] = '#';
+				
+				continue;
 			}
 			
-			nodeID++;
-			node = node->next;
+			if (!Value_ValidateHex(vlist.item[i]))
+				continue;
+			
+			addr = Value_Hex(vlist.item[i]) - reloc;
+			variable = Toml_GetVariable(toml->str, vlist.item[i]);
+			
+			if (Toml_Variable(toml->str, vlist.item[i])[0] == '\"')
+				isHex = false;
+			
+			// Comment out already processed variables
+			LineHead(Toml_Variable(toml->str, vlist.item[i]))[0] = '#';
+			
+			if (addr + strlen(variable) >= memDest->dataSize || addr < 0) {
+				printf_warning("Patch [0x%08X] from [%s] does not fit into [%s]", addr, toml->info.name, section);
+				continue;
+			}
+			
+			if (isHex) {
+				u32 len = strlen(variable);
+				u32 wp = 0;
+				
+				for (s32 j = 0; j < len; j++) {
+					u8 val;
+					u8* dst = &memDest->cast.u8[addr + (s32)floorf((f32)wp / 2)];
+					
+					if (!memcmp(&variable[j], "0x", 2))
+						continue;
+					
+					if (variable[j] == 'x' || variable[j] == ' ' || variable[j] == '\t' || variable[j] == '.')
+						continue;
+					
+					val = Value_Hex(HeapPrint("%c", variable[j]));
+					
+					if (wp % 2 == 0) {
+						*dst &= ~0xF0;
+						*dst |= val << 4;
+					} else {
+						*dst &= ~0x0F;
+						*dst |= val & 0xF;
+					}
+					wp++;
+				}
+			} else {
+				MemFile_Seek(memDest, addr);
+				
+				if (!strcmp(variable, "FILE(")) {
+					MemFile bmem;
+					char* bin = StrDup(variable);
+					
+					StrRep(bin, "FILE(", "");
+					StrRep(bin, ")", "");
+					
+					FileSys_Path(Path(toml->info.name));
+					
+					if (!Sys_Stat(FileSys_File(bin))) {
+						printf_warning("Could not locate file [%s] referenced by patch [%s]", FileSys_File(bin), toml->info.name);
+						FileSys_Path(Sys_AppDir());
+						
+						continue;
+					}
+					
+					MemFile_LoadFile(&bmem, FileSys_File(bin));
+					MemFile_Append(memDest, &bmem);
+					MemFile_Free(&bmem);
+					
+					FileSys_Path(Sys_AppDir());
+				} else
+					MemFile_Write(memDest, variable, strlen(variable));
+			}
 		}
-		
-		MemFile_Append(&rom->file, dataFile);
 	}
 	
-	ItemList_Free(&list);
+	Toml_GotoSection(NULL);
 	
-	while (sPatchHead)
-		Node_Kill(sPatchHead, sPatchHead);
+	if (!StrStr(section, "z_code.bin") && !StrStr(section, "z_boot.bin"))
+		return;
+	
+	u32 reloc;
+	u32 end;
+	
+	if (StrStr(section, "z_boot.bin")) {
+		reloc = RELOC_BOOT;
+		end = 0x00012F70;
+	} else {
+		reloc = RELOC_CODE;
+		end = 0x00BCEF30;
+	}
+	
+	for (s32 p = 0; p < gPatch.bin.num; p++) {
+		u32 offset = gPatch.bin.offset[p];
+		
+		if (offset >= reloc && offset <= end) {
+			MemFile_Seek(memDest, offset - reloc);
+			MemFile_Append(memDest, &gPatch.bin.file[p]);
+		}
+	}
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -798,7 +797,7 @@ static void Rom_Build_Actor(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			
 			Log("Filename Offset [%08X]", romAddr);
 			
-			target = SegmentedToVirtual(0, romAddr);
+			target = SegmentedToVirtual(SEG_CODE, romAddr - RELOC_CODE);
 			sscanf(PathSlot(list.item[i], -1), "0x%04X-%s/", &id, buf);
 			strncpy(target, buf, strlen(target));
 		}
@@ -1098,6 +1097,7 @@ static void Rom_Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	Rom_ItemList(&list, "rom/system/kaleido/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	for (s32 i = 0; i < list.num; i++) {
+		char* file;
 		printf_progress("Kaleido", i + 1, list.num);
 		
 		FileSys_Path(list.item[i]);
@@ -1105,8 +1105,41 @@ static void Rom_Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_Reset(memCfg);
 		MemFile_Reset(memData);
 		
+		file = FileSys_FindFile(".zovl");
 		MemFile_LoadFile_String(memCfg, FileSys_File("config.toml"));
-		MemFile_LoadFile(memData, FileSys_FindFile(".zovl"));
+		MemFile_LoadFile(memData, file);
+		Patch_File(memData, file);
+		
+		if (i == 1 && Sys_Stat("include/z_lib_user.ld")) {
+			SetSegment(6, memData->data);
+			MemFile mem;
+			u16* cVal[] = {
+				(u16*)SegmentedToVirtual(6, 0x8c74),
+				(u16*)SegmentedToVirtual(6, 0x8c78),
+			};
+			u16 oVal[] = {
+				cVal[0][1],
+				cVal[1][1]
+			};
+			char* val;
+			
+			MemFile_LoadFile_String(&mem, "include/z_lib_user.ld");
+			val = StrStr(mem.str, "__ext_gObjectTable");
+			val = StrStr(val, "0x");
+			if (val == NULL) printf_error("Could not locate \"__ext_gObjectTable\"");
+			
+			Mips64_SplitLoad(
+				SegmentedToVirtual(6, 0x8c74),
+				SegmentedToVirtual(6, 0x8c78),
+				MIPS_REG_T8,
+				Value_Hex(val)
+			);
+			
+			if (oVal[0] != cVal[0][1] || oVal[0] != cVal[1][1])
+				Sys_Touch(file);
+			
+			MemFile_Free(&mem);
+		}
 		
 		entry[i].vramStart = Toml_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
@@ -1120,39 +1153,39 @@ static void Rom_Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		if (i == 1) {  // PLAYER
 			Mips64_SplitLoad(
-				SegmentedToVirtual(0x0, romOff->table.player.init.hi),
-				SegmentedToVirtual(0x0, romOff->table.player.init.lo),
+				SegmentedToVirtual(SEG_CODE, romOff->table.player.init.hi - RELOC_CODE),
+				SegmentedToVirtual(SEG_CODE, romOff->table.player.init.lo - RELOC_CODE),
 				MIPS_REG_A0,
 				Toml_GetInt(memCfg, "init")
 			);
 			Mips64_SplitLoad(
-				SegmentedToVirtual(0x0, romOff->table.player.dest.hi),
-				SegmentedToVirtual(0x0, romOff->table.player.dest.lo),
+				SegmentedToVirtual(SEG_CODE, romOff->table.player.dest.hi - RELOC_CODE),
+				SegmentedToVirtual(SEG_CODE, romOff->table.player.dest.lo - RELOC_CODE),
 				MIPS_REG_A0,
 				Toml_GetInt(memCfg, "dest")
 			);
 			Mips64_SplitLoad(
-				SegmentedToVirtual(0x0, romOff->table.player.updt.hi),
-				SegmentedToVirtual(0x0, romOff->table.player.updt.lo),
+				SegmentedToVirtual(SEG_CODE, romOff->table.player.updt.hi - RELOC_CODE),
+				SegmentedToVirtual(SEG_CODE, romOff->table.player.updt.lo - RELOC_CODE),
 				MIPS_REG_A0,
 				Toml_GetInt(memCfg, "updt")
 			);
 			Mips64_SplitLoad(
-				SegmentedToVirtual(0x0, romOff->table.player.draw.hi),
-				SegmentedToVirtual(0x0, romOff->table.player.draw.lo),
+				SegmentedToVirtual(SEG_CODE, romOff->table.player.draw.hi - RELOC_CODE),
+				SegmentedToVirtual(SEG_CODE, romOff->table.player.draw.lo - RELOC_CODE),
 				MIPS_REG_A0,
 				Toml_GetInt(memCfg, "draw")
 			);
 		} else {       // PAUSE_MENU
 			Mips64_SplitLoad(
-				SegmentedToVirtual(0x0, romOff->table.pauseMenu.init.hi),
-				SegmentedToVirtual(0x0, romOff->table.pauseMenu.init.lo),
+				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.init.hi - RELOC_CODE),
+				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.init.lo - RELOC_CODE),
 				MIPS_REG_A0,
 				Toml_GetInt(memCfg, "init")
 			);
 			Mips64_SplitLoad(
-				SegmentedToVirtual(0x0, romOff->table.pauseMenu.updt.hi),
-				SegmentedToVirtual(0x0, romOff->table.pauseMenu.updt.lo),
+				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.updt.hi - RELOC_CODE),
+				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.updt.lo - RELOC_CODE),
 				MIPS_REG_A0,
 				Toml_GetInt(memCfg, "updt")
 			);
@@ -1212,12 +1245,14 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		printf_progress("Static", i + 1, ArrayCount(gSystem_OoT));
 		
 		if (id < 0) {
-			printf_warning("Skipping [%s]", list.item[k]);
+			printf_warning("Missing [%s]", gSystem_OoT[i].name);
 			continue;
 		}
 		
 		switch (id) {
+			case DMA_ID_BOOT:
 			case DMA_ID_LINK_ANIMATION:
+			case DMA_ID_CODE:
 			case DMA_ID_TITLE_STATIC:
 			case DMA_ID_PARAMETER_STATIC:
 			case DMA_ID_ELF_MESSAGE_FIELD:
@@ -1227,10 +1262,19 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				continue;
 		}
 		
+		if (id == DMA_ID_BOOT) {
+			Patch_File(&rom->boot, list.item[k]);
+			MemFile_Seek(&rom->file, RELOC_BOOT);
+			MemFile_Append(&rom->file, &rom->boot);
+			
+			continue;
+		}
+		
 		MemFile_Reset(memData);
 		MemFile_LoadFile(memData, list.item[k]);
 		
 		switch (id) {
+			case DMA_ID_CODE:
 			case DMA_ID_TITLE_STATIC:
 				compress = true;
 				break;
@@ -1239,18 +1283,19 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				break;
 		}
 		
+		Patch_File(memData, list.item[k]);
 		start = Dma_WriteEntry(rom, id, memData, compress);
 		end = Dma_GetVRomEnd();
 		
 		switch (id) {
 			case DMA_ID_ELF_MESSAGE_FIELD:
-				data = SegmentedToVirtual(0, 0xB9E6A8);
+				data = SegmentedToVirtual(SEG_CODE, 0xB9E6A8 - RELOC_CODE);
 				data[0] = ReadBE(start);
 				data[1] = ReadBE(end);
 				
 				break;
 			case DMA_ID_ELF_MESSAGE_YDAN:
-				data = SegmentedToVirtual(0, 0xB9E6A8);
+				data = SegmentedToVirtual(SEG_CODE, 0xB9E6A8 - RELOC_CODE);
 				data[2] = ReadBE(start);
 				data[3] = ReadBE(end);
 				
@@ -1266,6 +1311,8 @@ static Size sBaseromSize;
 void Rom_Build(Rom* rom) {
 	MemFile dataFile = MemFile_Initialize();
 	MemFile config = MemFile_Initialize();
+	
+	Patch_Init();
 	
 	MemFile_Malloc(&dataFile, 0x460000);
 	MemFile_Malloc(&config, 0x25000);
@@ -1283,6 +1330,7 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_5, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_5, false);
 	
 	Dma_FreeEntry(rom, DMA_ID_LINK_ANIMATION, 0x1000); Dma_WriteFlag(DMA_ID_LINK_ANIMATION, false);
+	Dma_FreeEntry(rom, DMA_ID_CODE, 0x10); Dma_WriteFlag(DMA_ID_CODE, false);
 	Dma_FreeEntry(rom, DMA_ID_TITLE_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_TITLE_STATIC, false);
 	Dma_FreeEntry(rom, DMA_ID_PARAMETER_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_PARAMETER_STATIC, false);
 	Dma_FreeEntry(rom, DMA_ID_ELF_MESSAGE_FIELD, 0x1000); Dma_WriteFlag(DMA_ID_ELF_MESSAGE_FIELD, false);
@@ -1343,8 +1391,7 @@ void Rom_Build(Rom* rom) {
 	Rom_Build_Skybox(rom, &dataFile, &config);
 	
 	printf_info("Patching");
-	Rom_Build_Patch(rom, &dataFile, &config);
-	Rom_Build_Code(rom, &dataFile, &config);
+	Patch_File(&rom->file, NULL);
 	
 	Rom_Build_Static(rom, &dataFile, &config);
 	
@@ -1373,6 +1420,7 @@ void Rom_Build(Rom* rom) {
 	
 	MemFile_Free(&dataFile);
 	MemFile_Free(&config);
+	Patch_Free();
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -1504,6 +1552,10 @@ void Rom_New(Rom* rom, char* romName) {
 			MemFile_LoadFile(targetMem[k], file);
 			SetSegment(targetSegment[k], targetMem[k]->data);
 		}
+		
+		rom->table.state = SegmentedToVirtual(SEG_CODE, rom->offset.table.stateTable - RELOC_CODE);
+		rom->table.kaleido = SegmentedToVirtual(SEG_CODE, rom->offset.table.kaleidoTable - RELOC_CODE);
+		rom->table.restrictionFlags = SegmentedToVirtual(SEG_CODE, rom->offset.table.restrictionFlags - RELOC_CODE);
 	}
 }
 

@@ -15,6 +15,10 @@
 #define SEG_CODE 0xDE
 #define SEG_BOOT 0xDF
 
+#define RELOC_CODE   0x00A94000
+#define RELOC_BOOT   0x00001060
+#define RELOC_PLAYER 0x00C010B0
+
 typedef void (* PatchFunc)(struct Rom*, MemFile*, MemFile*, char*);
 
 typedef struct {
@@ -152,6 +156,18 @@ typedef struct SampleInfo {
 } SampleInfo;
 
 typedef struct {
+	struct {
+		MemFile* file;
+		s32 num;
+	} toml;
+	struct {
+		MemFile* file;
+		u32* offset;
+		s32  num;
+	} bin;
+} Patch;
+
+typedef struct {
 	N64AudioInfo* sample;
 	const char*   object;
 	const char*   actor;
@@ -169,6 +185,8 @@ typedef struct {
 	u32 id;
 	const char* name;
 } SystemInfo;
+
+extern Patch gPatch;
 
 extern char* gWaveSample[8];
 extern const N64AudioInfo gSampleInfo[];

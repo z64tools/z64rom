@@ -5,32 +5,39 @@
 @audio_init_pool_size      = 0xBC1868
 @audio_permanent_pool_size = 0xBC186C
 
-# SpeedUP: Stop Writing AB To Empty RAM Slots
-0x00B74FE0 = zero4
-0x00B75094 = zero4
+[rom/system/static/z_boot.bin]
+    reloc_from = 0x00001060
+    # SpeedUP: Remove printf Debug Function
+    0x00002CF0 = 03E00008
+    0x00002CF8 = zero4
 
-# SpeedUP: Remove printf Debug Function
-0x00002CF0 = 03E00008
-0x00002CF8 = zero4
+    # Faster Boot Loading(For RAM) & Extended RAM
+    0x00005DFC = AFA10008
+    0x00005E00 = zero4
 
-# SpeedUP: Remove the Exception Handler On osStartThread
-0x00C09D78 = 0x1000
+[rom/system/static/z_code.bin]
+    reloc_from = 0x00A94000
+    # SpeedUP: Stop Writing AB To Empty RAM Slots
+    0x00B74FE0 = zero4
+    0x00B75094 = zero4
 
-# Faster Boot Loading(For RAM) & Extended RAM
-0x00005DFC = AFA10008
-0x00005E00 = zero4
 
-# Subscreen Delay Fix
-0x00B36B6B = 03
-0x00B3A994 = zero4
+    # Subscreen Delay Fix
+    0x00B36B6B = 03
+    0x00B3A994 = zero4
 
-# Crash Debugger: Disable Button Combo
-0x00B4C55C = 03E00008 zero8 zero8
+    # Crash Debugger: Disable Button Combo
+    0x00B4C55C = 03E00008 zero8 zero8
 
-# NOP AudioDebug_Draw
-0x00B65BF0 = 03E00008 zero8 zero4
+    # NOP AudioDebug_Draw
+    0x00B65BF0 = 03E00008 zero8 zero4
 
-# vanilla values
-audio_heap_size           = 00040000
-audio_init_pool_size      = 00012160
-audio_permanent_pool_size = 0000FD60
+    # vanilla values
+    audio_heap_size           = 00040000
+    audio_init_pool_size      = 00012160
+    audio_permanent_pool_size = 0000FD60
+    
+[rom/system/kaleido/0x01-Player/overlay.zovl]
+    reloc_from = 0xC010B0
+    # SpeedUP: Player GI Thing
+    0x00C09D78 = 0x1000

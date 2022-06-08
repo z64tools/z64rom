@@ -487,7 +487,7 @@ void Play_Draw(GlobalContext* globalCtx) {
 				if (R_PAUSE_MENU_MODE == 1) {
 					globalCtx->pauseBgPreRender.cvgSave = (u8*)gfxCtx->curFrameBuffer;
 					func_800C20B4(&globalCtx->pauseBgPreRender, &sp70);
-					R_PAUSE_MENU_MODE = 2;
+					R_PAUSE_MENU_MODE = 3;
 				} else {
 					gTrnsnUnkState = 2;
 				}

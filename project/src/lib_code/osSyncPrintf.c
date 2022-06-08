@@ -3,6 +3,7 @@
 /*
    z64ram = 0x80002130
    z64rom = 0x002D30
+   z64next = 0x800021B0
  */
 
 void osSyncPrintf(const char* fmt, ...) {

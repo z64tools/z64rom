@@ -22,8 +22,7 @@
     0x00B75094 = zero4
 
     # Subscreen Delay Fix
-    0x00B36B6B = 03
-    0x00B3A994 = zero4
+    0x00B3A994 = zero4 # NULL jal func_800C2500 in PreRender_Calc
 
     # Crash Debugger: Disable Button Combo
     0x00B4C55C = 03E00008 zero8 zero8

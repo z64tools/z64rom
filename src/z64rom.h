@@ -8,6 +8,7 @@
 #include "Mips64.h"
 #include "yaz.h"
 #include "Texture.h"
+#include "Text.h"
 
 #define ROM_RELEASE 0
 #define ROM_DEV     1

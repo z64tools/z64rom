@@ -11,7 +11,8 @@ typedef struct PatchNode {
 	struct PatchNode* next;
 	u32  start;
 	u32  end;
-	char source[64];
+	char source[128];
+	char section[128];
 } PatchNode;
 
 void Rom_New(struct Rom* rom, char* romName);

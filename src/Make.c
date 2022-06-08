@@ -472,14 +472,16 @@ retval:
 				temp = StrStr(srcFile.str, "\nActorInit ");
 				if (temp)
 					temp += strlen("\nActorInit ");
+				
 				else {
 					temp = StrStr(srcFile.str, "\nconst ActorInit ");
 					if (temp)
 						temp += strlen("\nconst ActorInit ");
+					
 					else {
-						temp = StrStr(srcFile.str, " ActorInit ");
+						temp = StrStr(srcFile.str, "ActorInit ");
 						if (temp)
-							temp += strlen(" ActorInit ");
+							temp += strlen("ActorInit ");
 					}
 				}
 				
@@ -490,11 +492,12 @@ retval:
 			if (temp == NULL)
 				printf_error("Could not locate [ActorInit] from files in [%s]", sourceFolder);
 			
+			while (!isalpha(*temp)) temp++;
+			
 			Malloc(varName, 64);
 			strcpy(varName, CopyWord(temp, 0));
-			StrRep(varName, "=", "");
-			StrRep(varName, "[", "");
-			StrIns(varName, " ");
+			if (StrStr(varName, " ")) ((char*)StrStr(varName, " "))[0] = '\0';
+			if (StrStr(varName, "=")) ((char*)StrStr(varName, "="))[0] = '\0';
 			temp = LineHead(StrStr(dump, varName));
 			
 			MemFile_Printf(&newConf, "# %s\n", Basename(input));

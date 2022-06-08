@@ -21,7 +21,6 @@
     0x00B74FE0 = zero4
     0x00B75094 = zero4
 
-
     # Subscreen Delay Fix
     0x00B36B6B = 03
     0x00B3A994 = zero4
@@ -41,3 +40,11 @@
     reloc_from = 0xC010B0
     # SpeedUP: Player GI Thing
     0x00C09D78 = 0x1000
+
+[rom/actor/0x00FF-Push_Block/actor.zovl]
+    # Push Max Speed
+    0x11EE = 0x4080 # 0000 == 4.0f
+    # Push Accel
+    0x1202 = 0x3f80 # 0000 == 1.0f
+    # Timer
+    0x138E = 0x0004

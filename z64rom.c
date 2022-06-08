@@ -244,6 +244,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	u32 parArg = 0;
 	
 	if (Arg("log")) Log_NoOutput();
+	if (Arg("fun-text")) gTextFlag = true;
 	
 	if (Arg("reinstall")) {
 		MemFile mem = MemFile_Initialize();
@@ -745,12 +746,12 @@ s32 Main(s32 argc, char* argv[]) {
 				goto free;
 			}
 			
+			if (gCompressFlag && gThreading) Rom_Compress();
 			if (!Arg("no-make") || gMakeForce) {
 				printf_toolinfo(gToolName, "");
 				Make(rom, true);
 			}
 			if (Arg("make-only")) goto free;
-			if (gCompressFlag && gThreading) Rom_Compress();
 			
 			Rom_New(rom, input);
 			Rom_Build(rom);

@@ -284,8 +284,6 @@ void Patch_Init() {
 			u32* offset = &gPatch.bin.offset[gPatch.bin.num];
 			MemFile* mem = &gPatch.bin.file[gPatch.bin.num++];
 			MemFile toml;
-			char* line;
-			u32 lineCount;
 			char* tname = HeapMalloc(strlen(list.item[i] + 8));
 			
 			strcpy(tname, list.item[i]);
@@ -318,6 +316,7 @@ void Patch_Free() {
 }
 
 void Patch_File(MemFile* memDest, const char* section) {
+	PatchNode* nodeHead = NULL;
 	ItemList vlist;
 	u32 isPatched = false;
 	
@@ -371,9 +370,17 @@ void Patch_File(MemFile* memDest, const char* section) {
 			LineHead(Toml_Variable(toml->str, vlist.item[i]))[0] = '#';
 			
 			if (addr + strlen(variable) >= memDest->dataSize || addr < 0) {
-				printf_warning("Patch [0x%08X] from [%s] does not fit into [%s]", addr, toml->info.name, section);
+				printf_warning("\aPatch [0x%08X] from [%s] does not fit into [%s]", addr, toml->info.name, section);
 				continue;
 			}
+			
+			PatchNode* node = HeapMalloc(sizeof(struct PatchNode));
+			
+			Node_Add(nodeHead, node);
+			node->start = addr + reloc;
+			strcpy(node->source, toml->info.name);
+			if (section)
+				strcpy(node->section, section);
 			
 			if (isHex) {
 				u32 len = strlen(variable);
@@ -400,6 +407,8 @@ void Patch_File(MemFile* memDest, const char* section) {
 					}
 					wp++;
 				}
+				
+				node->end = addr + wp + reloc;
 			} else {
 				MemFile_Seek(memDest, addr);
 				
@@ -420,12 +429,15 @@ void Patch_File(MemFile* memDest, const char* section) {
 					}
 					
 					MemFile_LoadFile(&bmem, FileSys_File(bin));
+					node->end = addr + bmem.dataSize + reloc;
 					MemFile_Append(memDest, &bmem);
 					MemFile_Free(&bmem);
 					
 					FileSys_Path(Sys_AppDir());
-				} else
+				} else {
 					MemFile_Write(memDest, variable, strlen(variable));
+					node->end = addr + strlen(variable) + reloc;
+				}
 			}
 		}
 	}
@@ -450,8 +462,24 @@ void Patch_File(MemFile* memDest, const char* section) {
 		u32 offset = gPatch.bin.offset[p];
 		
 		if (offset >= reloc && offset <= end) {
+			PatchNode* node = nodeHead;
 			MemFile_Seek(memDest, offset - reloc);
 			MemFile_Append(memDest, &gPatch.bin.file[p]);
+			
+			while (node) {
+				if (Intersect(node->start, node->end, offset, offset + gPatch.bin.file[p].dataSize))
+					printf_warning(
+						"" PRNT_YELW "WARNING!" PRNT_RSET
+						"\nToml patch from [" PRNT_YELW "%s" PRNT_RSET "] to [" PRNT_REDD "%s" PRNT_GRAY ":" PRNT_REDD "%X" PRNT_RSET "]"
+						"\nhas been overwritten by a binary patch [" PRNT_YELW "%s" PRNT_RSET "]",
+						node->source,
+						strlen(node->section) ? node->section : "rom",
+						node->start,
+						gPatch.bin.file[p].info.name
+					);
+				
+				node = node->next;
+			}
 		}
 	}
 }
@@ -669,6 +697,7 @@ void Rom_Dump(Rom* rom) {
 	Rom_Dump_Kaleido(rom, &dataFile, &config);
 	Rom_Dump_Static(rom, &dataFile, &config);
 	Rom_Dump_Skybox(rom, &dataFile, &config);
+	Text_Dump(rom);
 	Audio_DumpSoundFont(rom, &dataFile, &config);
 	Audio_DumpSequence(rom, &dataFile, &config);
 	Audio_DumpSampleTable(rom, &dataFile, &config);
@@ -784,6 +813,7 @@ static void Rom_Build_Actor(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		entry[i].vramStart = Toml_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
 		
+		Patch_File(memData, memData->info.name);
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		
@@ -1327,6 +1357,8 @@ void Rom_Build(Rom* rom) {
 	MemFile config = MemFile_Initialize();
 	
 	Patch_Init();
+	
+	Text_Build(rom);
 	
 	MemFile_Malloc(&dataFile, 0x460000);
 	MemFile_Malloc(&config, 0x25000);

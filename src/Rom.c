@@ -315,7 +315,7 @@ void Patch_Free() {
 	Free(gPatch.bin.offset);
 }
 
-void Patch_File(MemFile* memDest, const char* section) {
+s32 Patch_File(MemFile* memDest, const char* section) {
 	PatchNode* nodeHead = NULL;
 	ItemList vlist;
 	u32 isPatched = false;
@@ -356,10 +356,6 @@ void Patch_File(MemFile* memDest, const char* section) {
 			
 			addr = Value_Hex(vlist.item[i]) - reloc;
 			variable = Toml_GetVariable(toml->str, vlist.item[i]);
-			
-			// Force Comrpession
-			if (isPatched == false)
-				Sys_Touch(memDest->info.name);
 			
 			isPatched = 1;
 			
@@ -445,7 +441,7 @@ void Patch_File(MemFile* memDest, const char* section) {
 	Toml_GotoSection(NULL);
 	
 	if (!StrStr(section, "z_code.bin") && !StrStr(section, "z_boot.bin"))
-		return;
+		return isPatched;
 	
 	u32 reloc;
 	u32 end;
@@ -465,6 +461,7 @@ void Patch_File(MemFile* memDest, const char* section) {
 			PatchNode* node = nodeHead;
 			MemFile_Seek(memDest, offset - reloc);
 			MemFile_Append(memDest, &gPatch.bin.file[p]);
+			isPatched = 1;
 			
 			while (node) {
 				if (Intersect(node->start, node->end, offset, offset + gPatch.bin.file[p].dataSize))
@@ -482,6 +479,8 @@ void Patch_File(MemFile* memDest, const char* section) {
 			}
 		}
 	}
+	
+	return isPatched;
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -653,6 +652,11 @@ static void Rom_Dump_Static(Rom* rom, MemFile* data, MemFile* config) {
 		rf.size = rf.romEnd - rf.romStart;
 		rf.data = SegmentedToVirtual(0x0, rf.romStart);
 		
+		switch (id) {
+			case DMA_ID_DO_ACTION_STATIC:
+				rf.size = 0x2B80;
+		}
+		
 		Rom_Extract(data, rf, FileSys_File(HeapPrint("%s.bin", gSystem_OoT[i].name)));
 	}
 }
@@ -813,8 +817,8 @@ static void Rom_Build_Actor(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		entry[i].vramStart = Toml_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
 		
-		Patch_File(memData, memData->info.name);
-		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
+		s32 p = Patch_File(memData, memData->info.name);
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, p ? NOCACHE_COMPRESS : COMPRESS);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		
 		SwapBE(entry[i].allocType);
@@ -1180,7 +1184,7 @@ static void Rom_Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		entry[i].vramStart = Toml_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
-		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, NOCACHE_COMPRESS);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		
 		SwapBE(entry[i].vromStart);
@@ -1309,8 +1313,7 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			Patch_File(&rom->code, list.item[k]);
 			// MemFile_Seek(&rom->file, RELOC_CODE);
 			// MemFile_Append(&rom->file, &rom->code);
-			Patch_File(&rom->code, list.item[k]);
-			Dma_WriteEntry(rom, id, &rom->code, true);
+			Dma_WriteEntry(rom, id, &rom->code, NOCACHE_COMPRESS);
 			
 			continue;
 		}
@@ -1318,16 +1321,17 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_Reset(memData);
 		MemFile_LoadFile(memData, list.item[k]);
 		
+		s32 p = Patch_File(memData, list.item[k]);
+		
 		switch (id) {
 			case DMA_ID_TITLE_STATIC:
-				compress = true;
+				compress = p ? NOCACHE_COMPRESS : COMPRESS;
 				break;
 			default:
 				compress = false;
 				break;
 		}
 		
-		Patch_File(memData, list.item[k]);
 		start = Dma_WriteEntry(rom, id, memData, compress);
 		end = Dma_GetVRomEnd();
 		
@@ -1376,6 +1380,12 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_5, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_5, false);
 	
 	Dma_FreeEntry(rom, DMA_ID_LINK_ANIMATION, 0x1000); Dma_WriteFlag(DMA_ID_LINK_ANIMATION, false);
+	
+	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_GER_STATIC, 0x1000);
+	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_FRA_STATIC, 0x1000);
+	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_GER, 0x1000);
+	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_FRA, 0x1000);
+	
 	Dma_FreeEntry(rom, DMA_ID_CODE, 0x10); Dma_WriteFlag(DMA_ID_CODE, false);
 	Dma_FreeEntry(rom, DMA_ID_TITLE_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_TITLE_STATIC, false);
 	Dma_FreeEntry(rom, DMA_ID_PARAMETER_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_PARAMETER_STATIC, false);

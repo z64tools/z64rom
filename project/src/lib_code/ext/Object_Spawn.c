@@ -6,5 +6,7 @@
  */
 
 s32 Object_Spawn(ObjectContext* objectCtx, s16 objectId) {
+	osLibPrintf("Spawn Object: 0x%04X", (u16)objectId);
+	
 	return uObject_Spawn(objectCtx, objectId);
 }

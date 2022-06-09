@@ -103,28 +103,29 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 	Slot* yazt = NULL;
 	u32 size = memFile->dataSize;
 	u32 start;
-	u32 recompress = false;
-	
-	if (id == DMA_ID_CODE)
-		recompress = true;
 	
 	if (compress && gCompressFlag) {
-		char* yazFile = HeapMalloc(strlen(memFile->info.name) + 0x80);
-		
 		if (gYazBuf == NULL)
 			Calloc(gYazBuf, MbToBin(32));
 		
-		strcpy(yazFile, memFile->info.name);
-		StrRep(yazFile, "rom/", "rom/yaz-cache/");
-		strcat(yazFile, ".yaz");
-		
-		if (Sys_Stat(yazFile) >= memFile->info.age && !recompress) {
-			MemFile_LoadFile(memFile, yazFile);
-		} else {
-			Sys_MakeDir(Path(yazFile));
+		if (compress == NOCACHE_COMPRESS) {
 			memcpy(gYazBuf, memFile->data, memFile->dataSize);
 			memFile->dataSize = Yaz_Encode(memFile->data, gYazBuf, memFile->dataSize);
-			MemFile_SaveFile(memFile, yazFile);
+		} else {
+			char* yazFile = HeapMalloc(strlen(memFile->info.name) + 0x80);
+			
+			strcpy(yazFile, memFile->info.name);
+			StrRep(yazFile, "rom/", "rom/yaz-cache/");
+			strcat(yazFile, ".yaz");
+			
+			if (Sys_Stat(yazFile) >= memFile->info.age) {
+				MemFile_LoadFile(memFile, yazFile);
+			} else {
+				Sys_MakeDir(Path(yazFile));
+				memcpy(gYazBuf, memFile->data, memFile->dataSize);
+				memFile->dataSize = Yaz_Encode(memFile->data, gYazBuf, memFile->dataSize);
+				MemFile_SaveFile(memFile, yazFile);
+			}
 		}
 	}
 	

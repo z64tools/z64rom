@@ -8,6 +8,7 @@ asm ("D_801333E8 = 0x801333E8");
 // char wow[0x100000];
 
 void uLib_Update(GameState* gameState) {
+	gSaveContext.language = 0;
 #ifdef DEV_BUILD
 	static s32 firstMessage;
 	const char* state[] = {

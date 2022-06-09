@@ -1,7 +1,6 @@
 #include <ExtLib.h>
 
 s32 gBetaFlag_Actor_OoT[] = {
-	0x004F,
 	0x0072,
 	0x007C,
 	0x007D,

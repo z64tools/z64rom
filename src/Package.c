@@ -4,60 +4,6 @@
 MemFile __actor_object_list;
 MemFile* sDepList = &__actor_object_list;
 
-static inline char* __ForSection(char* toml) {
-	u32 lineCount = LineNum(toml);
-	char* scfg = toml;
-	
-	for (s32 k = 0; k < lineCount; k++) {
-		scfg = Line(toml, k);
-		
-		while (scfg[0] == ' ' || scfg[0] == '\t')
-			scfg++;
-		
-		if (scfg[0] == '[')
-			break;
-		
-		for (s32 i = 0;; i++) {
-			if (scfg[i] == '\n')
-				break;
-			if (scfg[i] == '\0')
-				return NULL;
-		}
-	}
-	
-	return scfg;
-}
-
-static char* Package_GetSection(char* toml, s32 i) {
-	char* ret;
-	char* scfg;
-	u32 size;
-	
-	for (s32 j = 0; j <= i; j++) {
-		toml = __ForSection(toml);
-		
-		if (toml == NULL)
-			return NULL;
-		
-		// Readvance
-		if (j < i)
-			toml = Line(toml, 1);
-	}
-	
-	scfg = toml + 1;
-	scfg = __ForSection(scfg);
-	scfg = &toml[strlen(toml)];
-	
-	size = (uPtr)scfg - (uPtr)toml;
-	
-	Log("Copying [%d]", size);
-	
-	Calloc(ret, size + 2);
-	memcpy(ret, toml, size);
-	
-	return ret;
-}
-
 void Package_Sound(struct zip_t* pkg, char* toml) {
 	char* name = Toml_GetVariable(toml, "name");
 	char* file = Toml_GetVariable(toml, "file");
@@ -80,19 +26,13 @@ void Package_Sound(struct zip_t* pkg, char* toml) {
 	Sys_MakeDir(mkfldr);
 	
 	if (Sys_Stat(fldr)) {
-		ItemList_List(&list, fldr, -1, LIST_FILES);
+		char* file;
+		FileSys_Path(fldr);
 		
-		for (s32 i = 0; i < list.num; i++) {
-			if (!StrEndCase(list.item[i], ".toml") && !StrEndCase(list.item[i], ".book.bin"))
-				break;
-			
-			char* target = HeapStrDup(list.item[i]);
-			StrRep(target, HeapPrint("%s/", gVanilla), "");
-			
-			Sys_Copy(list.item[i], target);
-		}
+		file = FileSys_FindFile("config.toml");
 		
-		ItemList_Free(&list);
+		if (file)
+			Sys_Copy(file, HeapPrint("%sconfig.toml", mkfldr));
 	}
 	
 	zip_entry_open(pkg, file);
@@ -273,7 +213,10 @@ void Package_Load(const char* item) {
 	
 	MemFile_LoadFile_String(sDepList, "tools/actor-object-deb.toml");
 	
-	for (s32 i = 0; (sct = Package_GetSection(toml, i)) != NULL; i++) {
+	s32 lnum = LineNum(toml);
+	char* line = toml;
+	
+	for (s32 i = 0; i< lnum; i++, line = Line(line, 1)) {
 		s32 j = 0;
 		const char* str[] = {
 			"[sound]",
@@ -286,14 +229,27 @@ void Package_Load(const char* item) {
 			NULL,
 		};
 		
-		for (; j < ArrayCount(str); j++)
-			if (StrMtch(toml, str[j]))
+		if (*line == ' ' || *line == '\t') line++;
+		
+		if (*line != '[')
+			continue;
+		
+		for (;; j++) {
+			if (j >= ArrayCount(str))
+				j = -1;
+			if (!memcmp(toml, str[j], strlen(str[j])))
 				break;
+		}
+		
+		if (j < 0)
+			continue;
+		
+		line = Line(line, 1);
 		
 		Log("Func %s", str[j]);
 		
 		if (func[j])
-			func[j](pkg, sct);
+			func[j](pkg, line);
 		
 		Free(sct);
 	}

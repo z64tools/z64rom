@@ -172,7 +172,11 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	char* audio = NULL;
 	char* book = NULL;
 	char* table = NULL;
+	char* modTomlName = NULL;
+	char* vanTomlName = NULL;
+	MemFile ttoml = MemFile_Initialize();
 	bool normalize = false;
+	bool inherit = false;
 	const char* fmt[] = {
 		".wav",
 		".aiff",
@@ -185,13 +189,13 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	ItemList_List(list, targ->path, 0, LIST_FILES | LIST_NO_DOT);
 	
 	for (s32 i = 0; i < list->num; i++) {
-		if (StrStr(list->item[i], "normalize"))
-			normalize = true;
+		if (StrEnd(list->item[i], ".toml"))
+			modTomlName = list->item[i];
 		
 		if (StrEndCase(list->item[i], ".book.bin"))
 			book = list->item[i];
 		
-		if (StrEndCase(list->item[i], "/design.confg"))
+		if (StrEndCase(list->item[i], "/design.toml"))
 			table = list->item[i];
 		
 		if (audio == NULL) {
@@ -217,15 +221,46 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	if (audio == NULL)
 		goto free;
 	
-	if (vadpcm == NULL || (Sys_Stat(audio) > Sys_Stat(vadpcm)) || gMakeForce) {
+	Malloc(vanTomlName, 0x1024);
+	strcpy(vanTomlName, targ->path);
+	StrRep(vanTomlName, "rom/sound/sample/", HeapPrint("rom/sound/sample/%s/", gVanilla));
+	strcat(vanTomlName, "config.toml");
+	
+	if (modTomlName == NULL) {
+		MemFile mem;
+		modTomlName = HeapPrint("%sconfig.toml", targ->path);
+		
+		MemFile_LoadFile_String(&mem, vanTomlName);
+		MemFile_Seek(&mem, MEMFILE_SEEK_END);
+		Toml_WriteFloat(&mem, "tuning", 0.0f, NO_COMMENT);
+		MemFile_SaveFile_String(&mem, modTomlName);
+	}
+	
+	if (!Sys_Stat(modTomlName))
+		printf_error("Could not locate [%s]", modTomlName);
+	
+	MemFile_LoadFile_String(&ttoml, modTomlName);
+	
+	if (!StrStr(ttoml.str, "[z64rom]")) {
+		char* end = MemFile_Seek(&ttoml, MEMFILE_SEEK_END);
+		
+		MemFile_Realloc(&ttoml, ttoml.memSize * 4);
+		
+		if (end[-2] != '\n')
+			Toml_Print(&ttoml, "\n");
+		Toml_WriteSection(&ttoml, "z64rom");
+		Toml_WriteStr(&ttoml, "normalize", "true", NO_QUOTES, NO_COMMENT);
+		Toml_WriteStr(&ttoml, "inherit_vanilla", "false", NO_QUOTES, "Get 'basenote' and 'finetune' from vanilla config");
+		MemFile_SaveFile_String(&ttoml, modTomlName);
+	}
+	
+	Toml_GotoSection("z64rom");
+	normalize = Toml_GetBool(&ttoml, "normalize");
+	inherit = Toml_GetBool(&ttoml, "inherit_vanilla");
+	Toml_GotoSection(NULL);
+	
+	if (vadpcm == NULL || (Sys_Stat(modTomlName) > Sys_Stat(vadpcm)) || (Sys_Stat(audio) > Sys_Stat(vadpcm)) || gMakeForce) {
 		char command[2056];
-		char* config;
-		
-		Malloc(config, 0x1024);
-		
-		strcpy(config, targ->path);
-		StrRep(config, "rom/sound/sample/", HeapPrint("rom/sound/sample/%s/", gVanilla));
-		strcat(config, "config.toml");
 		
 		if (vadpcm == NULL)
 			vadpcm = HeapPrint("%ssample.bin", targ->path);
@@ -242,13 +277,14 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 		if (normalize)
 			catprintf(command, " --m --n");
 		
-		if (Sys_Stat(config)) {
+		if (inherit && Sys_Stat(vanTomlName)) {
 			MemFile mem = MemFile_Initialize();
 			
-			MemFile_LoadFile_String(&mem, config);
+			Log("inherit [%s]", vanTomlName);
+			MemFile_LoadFile_String(&mem, vanTomlName);
 			catprintf(
 				command,
-				" --z64rom --basenote %d --finetune %d",
+				" --basenote %d --finetune %d",
 				Toml_GetInt(&mem, "basenote"),
 				Toml_GetInt(&mem, "finetune")
 			);
@@ -260,9 +296,11 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	}
 	
 free:
+	MemFile_Free(&ttoml);
 	ItemList_Free(list);
 	Free(list);
 	Free(vadpcm);
+	Free(vanTomlName);
 }
 
 void Make_Sound(void) {

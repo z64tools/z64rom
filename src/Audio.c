@@ -570,7 +570,8 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 			"--o %s "
 			"--S "
 			"--srate %d "
-			"--tuning %f ",
+			"--tuning %f "
+			"--config-override",
 			FILE_VAD,
 			FILE_WAV,
 			sampRate,

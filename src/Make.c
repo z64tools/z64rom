@@ -241,6 +241,14 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	
 	MemFile_LoadFile_String(&ttoml, modTomlName);
 	
+	if (!Toml_Variable(ttoml.str, "tuning")) {
+		char* p = Toml_Variable(ttoml.str, "finetune");
+		
+		p = Line(p, 1);
+		
+		StrIns(p, "tuning = 0.0\n");
+	}
+	
 	if (!StrStr(ttoml.str, "[z64rom]")) {
 		char* end = MemFile_Seek(&ttoml, MEMFILE_SEEK_END);
 		

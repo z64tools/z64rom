@@ -1314,6 +1314,8 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		switch (id) {
 			case DMA_ID_BOOT:
 			case DMA_ID_LINK_ANIMATION:
+			case DMA_ID_DO_ACTION_STATIC:
+			case DMA_ID_MESSAGE_STATIC:
 			case DMA_ID_CODE:
 			case DMA_ID_TITLE_STATIC:
 			case DMA_ID_PARAMETER_STATIC:
@@ -1332,8 +1334,6 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			continue;
 		} else if (id == DMA_ID_CODE) {
 			Patch_File(&rom->code, list.item[k]);
-			// MemFile_Seek(&rom->file, RELOC_CODE);
-			// MemFile_Append(&rom->file, &rom->code);
 			Dma_WriteEntry(rom, id, &rom->code, NOCACHE_COMPRESS);
 			
 			continue;
@@ -1346,7 +1346,7 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		switch (id) {
 			case DMA_ID_TITLE_STATIC:
-				compress = p ? NOCACHE_COMPRESS : COMPRESS;
+				compress = true;
 				break;
 			default:
 				compress = false;
@@ -1404,6 +1404,10 @@ void Rom_Build(Rom* rom) {
 	
 	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_GER_STATIC, 0x1000);
 	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_FRA_STATIC, 0x1000);
+	
+	Dma_FreeEntry(rom, DMA_ID_DO_ACTION_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_DO_ACTION_STATIC, false);
+	Dma_FreeEntry(rom, DMA_ID_MESSAGE_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_MESSAGE_STATIC, false);
+	
 	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_GER, 0x1000);
 	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_FRA, 0x1000);
 	

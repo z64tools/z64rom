@@ -8,7 +8,6 @@
 void _Object_InitBank(GlobalContext* globalCtx, ObjectContext* objectCtx) {
 	u32 spaceSize;
 	s32 i;
-	u32 imUnused;
 	
 	spaceSize = 0x200000; // 2.0 MB
 	

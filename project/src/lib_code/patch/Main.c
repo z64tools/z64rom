@@ -31,7 +31,6 @@ void Main(void* arg) {
 	OSMesgQueue irqMgrMsgQ;
 	OSMesg irqMgrMsgBuf[60];
 	u32 sysHeap;
-	u32 fb;
 	s16* msg;
 	
 	gScreenWidth = SCREEN_WIDTH;
@@ -41,7 +40,7 @@ void Main(void* arg) {
 	Fault_Init();
 	SysCfb_Init(0);
 	sysHeap = (u32)gAudioHeap; // gSystemHeap
-	fb = SysCfb_GetFbPtr(0);
+	SysCfb_GetFbPtr(0);
 	gSystemHeapSize = (0x806C0000 - sysHeap); // (fb - sysHeap)
 	SystemHeap_Init((void*)sysHeap, gSystemHeapSize);
 	func_800636C0();

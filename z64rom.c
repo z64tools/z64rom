@@ -491,10 +491,15 @@ static void Main_WriteProject(Rom* rom, char** input) {
 	Toml_WriteStr(
 		config,
 		"mips64_gcc_flags",
-		"-c -Iinclude/z64hdr -Iinclude/z64hdr/include "
-		"-Isrc/lib_user -G 0 -O1 -fno-reorder-blocks -fno-common -std=gnu99 -march=vr4300 -mabi=32"
-		" -mips3 -mno-explicit-relocs -mno-memcpy -mno-check-zero-division -Wall"
-		" -Wno-builtin-declaration-mismatch",
+		"-c -G 0 -O1 -std=gnu99 -march=vr4300 -mabi=32 -mips3"
+		" "
+		"-mno-explicit-relocs -mno-memcpy -mno-check-zero-division"
+		" "
+		"-fno-reorder-blocks -fno-common"
+		" "
+		"-Wall -Wno-builtin-declaration-mismatch"
+		" "
+		"-Isrc/lib_user -Iinclude/z64hdr -Iinclude/z64hdr/include",
 		QUOTES,
 		NO_COMMENT
 	);

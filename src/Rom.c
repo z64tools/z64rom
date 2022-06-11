@@ -389,8 +389,13 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 					if (!memcmp(&variable[j], "0x", 2))
 						continue;
 					
-					if (variable[j] == 'x' || variable[j] == ' ' || variable[j] == '\t' || variable[j] == '.')
+					if (variable[j] == 'x' || variable[j] == ' ' || variable[j] == '\t')
 						continue;
+					
+					if (variable[j] == '.') {
+						wp++;
+						continue;
+					}
 					
 					val = Value_Hex(HeapPrint("%c", variable[j]));
 					
@@ -944,6 +949,9 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		u32* vromSeg;
 		u32 roomNum;
 		u32 roomListSeg;
+		u8* preDigest;
+		u8* postDigest;
+		char* zscene;
 		
 		if (list.item[i] == NULL)
 			printf_error("Empty scene %d", i);
@@ -956,10 +964,15 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		FileSys_Path(list.item[i]);
 		
+		zscene = FileSys_FindFile(".zscene");
+		
 		MemFile_Reset(memCfg);
 		MemFile_Reset(memData);
 		MemFile_LoadFile_String(memCfg, FileSys_File("config.toml"));
-		MemFile_LoadFile(memData, FileSys_FindFile(".zscene"));
+		MemFile_LoadFile(memData, zscene);
+		
+		preDigest = Sys_Sha256(memData->data, memData->dataSize);
+		
 		SetSegment(0x1, memData->data);
 		seg = SegmentedToVirtual(0x1, 0);
 		
@@ -1041,6 +1054,14 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				}
 			}
 		}
+		
+		postDigest = Sys_Sha256(memData->data, memData->dataSize);
+		
+		if (memcmp(preDigest, postDigest, memData->dataSize))
+			MemFile_SaveFile(memData, zscene);
+		
+		Free(preDigest);
+		Free(postDigest);
 		
 		entry[i].config = Toml_GetInt(memCfg, "scene_func_id");
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);

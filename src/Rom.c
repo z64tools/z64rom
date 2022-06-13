@@ -1321,6 +1321,7 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			case DMA_ID_PARAMETER_STATIC:
 			case DMA_ID_ELF_MESSAGE_FIELD:
 			case DMA_ID_ELF_MESSAGE_YDAN:
+			case DMA_ID_NINTENDO_ROGO_STATIC:
 				break;
 			default:
 				continue;
@@ -1412,6 +1413,7 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_FRA, 0x1000);
 	
 	Dma_FreeEntry(rom, DMA_ID_CODE, 0x10); Dma_WriteFlag(DMA_ID_CODE, false);
+	Dma_FreeEntry(rom, DMA_ID_NINTENDO_ROGO_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_NINTENDO_ROGO_STATIC, false);
 	Dma_FreeEntry(rom, DMA_ID_TITLE_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_TITLE_STATIC, false);
 	Dma_FreeEntry(rom, DMA_ID_PARAMETER_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_PARAMETER_STATIC, false);
 	Dma_FreeEntry(rom, DMA_ID_ELF_MESSAGE_FIELD, 0x1000); Dma_WriteFlag(DMA_ID_ELF_MESSAGE_FIELD, false);

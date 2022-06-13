@@ -16,6 +16,7 @@ s32 gPrintInfo;
 s32 gMakeForce;
 const char* gMakeTarget;
 u32 gThreading = true;
+u32 gThreadNum = 128;
 s32 gDumpFlag;
 
 s32 gAudioOnly;
@@ -62,6 +63,7 @@ const char* sHelp[][2] = {
 	{ "log",                           "print logs on close" },
 	{ "force",                         "force builds" },
 	{ "make-only",                     "no build, only make" },
+	{ "threads [num]",                 "max threads amount, default 128" },
 	{ NULL,                            NULL },
 	
 	{ "!" PRNT_BLUE "NO", },
@@ -245,6 +247,14 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	
 	if (Arg("log")) Log_NoOutput();
 	if (Arg("fun-text")) gTextFlag = true;
+	if (Arg("threads")) {
+		gThreadNum = Value_Int(argv[parArg]);
+		
+		if (gThreadNum == 0 || gThreadNum > 512) {
+			printf_warning("Dangerous threadNum [%d], using default [128] instead.", gThreadNum);
+			gThreadNum = 128;
+		}
+	}
 	
 	if (Arg("reinstall")) {
 		MemFile mem = MemFile_Initialize();

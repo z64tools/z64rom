@@ -1,7 +1,7 @@
 #include "z64rom.h"
 #include "Make.h"
 
-#define THREAD_NUM 42
+extern u32 gThreadNum;
 
 static const char* sFlags;
 static const char* sFlagsCode;
@@ -128,9 +128,12 @@ free:
 
 void Make_Sequence(void) {
 	ItemList list = ItemList_Initialize();
-	MakeArg targ[THREAD_NUM];
-	Thread thread[THREAD_NUM];
+	MakeArg* targ;
+	Thread* thread;
 	s32 i = 0;
+	
+	Calloc(targ, sizeof(MakeArg) * gThreadNum);
+	Calloc(thread, sizeof(Thread) * gThreadNum);
 	
 	ItemList_List(&list, "rom/sound/sequence/", 0, LIST_FOLDERS | LIST_NO_DOT);
 	
@@ -141,7 +144,7 @@ void Make_Sequence(void) {
 		ThreadLock_Init();
 	
 	while (i < list.num) {
-		u32 target = Clamp(list.num - i, 0, THREAD_NUM);
+		u32 target = Clamp(list.num - i, 0, gThreadNum);
 		
 		for (s32 j = 0; j < target; j++) {
 			targ[j].path = list.item[i + j];
@@ -157,12 +160,15 @@ void Make_Sequence(void) {
 			for (s32 j = 0; j < target; j++)
 				ThreadLock_Join(&thread[j]);
 		
-		i += THREAD_NUM;
+		i += gThreadNum;
 	}
 	if (gThreading)
 		ThreadLock_Free();
 	
 free:
+	
+	Free(targ);
+	Free(thread);
 	ItemList_Free(&list);
 }
 
@@ -315,9 +321,12 @@ free:
 
 void Make_Sound(void) {
 	ItemList list = ItemList_Initialize();
-	MakeArg targ[THREAD_NUM];
-	Thread thread[THREAD_NUM];
+	MakeArg* targ;
+	Thread* thread;
 	s32 i = 0;
+	
+	Calloc(targ, sizeof(MakeArg) * gThreadNum);
+	Calloc(thread, sizeof(Thread) * gThreadNum);
 	
 	ItemList_List(&list, "rom/sound/sample/", 0, LIST_FOLDERS | LIST_NO_DOT);
 	
@@ -328,7 +337,7 @@ void Make_Sound(void) {
 		ThreadLock_Init();
 	
 	while (i < list.num) {
-		u32 target = Clamp(list.num - i, 0, THREAD_NUM);
+		u32 target = Clamp(list.num - i, 0, gThreadNum);
 		
 		for (s32 j = 0; j < target; j++) {
 			targ[j].path = list.item[i + j];
@@ -344,12 +353,14 @@ void Make_Sound(void) {
 			for (s32 j = 0; j < target; j++)
 				ThreadLock_Join(&thread[j]);
 		
-		i += THREAD_NUM;
+		i += gThreadNum;
 	}
 	if (gThreading)
 		ThreadLock_Free();
 	
 free:
+	Free(targ);
+	Free(thread);
 	ItemList_Free(&list);
 }
 
@@ -933,9 +944,12 @@ free:
 
 static ThreadFunc Make_Code_Thread_Single(MakeArg* arg) {
 	s32 i = 0;
-	Thread thread[THREAD_NUM];
-	MakeArg passArg[THREAD_NUM];
+	Thread* thread;
+	MakeArg* passArg;
 	ItemList itemList = ItemList_Initialize();
+	
+	Calloc(thread, sizeof(Thread) * gThreadNum);
+	Calloc(passArg, sizeof(MakeArg) * gThreadNum);
 	
 	if (!Sys_Stat(arg->path))
 		return;
@@ -943,7 +957,7 @@ static ThreadFunc Make_Code_Thread_Single(MakeArg* arg) {
 	ItemList_List(&itemList, arg->path, -1, LIST_FILES | LIST_NO_DOT);
 	
 	while (i < itemList.num) {
-		u32 target = Clamp(itemList.num - i, 0, THREAD_NUM);
+		u32 target = Clamp(itemList.num - i, 0, gThreadNum);
 		
 		for (s32 j = 0; j < target; j++) {
 			memcpy(&passArg[j], arg, sizeof(MakeArg));
@@ -961,17 +975,22 @@ static ThreadFunc Make_Code_Thread_Single(MakeArg* arg) {
 			for (s32 j = 0; j < target; j++)
 				ThreadLock_Join(&thread[j]);
 		
-		i += THREAD_NUM;
+		i += gThreadNum;
 	}
 	
+	Free(thread);
+	Free(passArg);
 	ItemList_Free(&itemList);
 }
 
 static ThreadFunc Make_Code_Thread_Folder(MakeArg* arg) {
 	s32 i = 0;
-	Thread thread[THREAD_NUM];
-	MakeArg passArg[THREAD_NUM];
+	Thread* thread;
+	MakeArg* passArg;
 	ItemList itemList = ItemList_Initialize();
+	
+	Calloc(thread, sizeof(Thread) * gThreadNum);
+	Calloc(passArg, sizeof(MakeArg) * gThreadNum);
 	
 	if (!Sys_Stat(arg->path))
 		return;
@@ -979,7 +998,7 @@ static ThreadFunc Make_Code_Thread_Folder(MakeArg* arg) {
 	ItemList_List(&itemList, arg->path, 0, LIST_FOLDERS | LIST_NO_DOT);
 	
 	while (i < itemList.num) {
-		u32 target = Clamp(itemList.num - i, 0, THREAD_NUM);
+		u32 target = Clamp(itemList.num - i, 0, gThreadNum);
 		
 		for (s32 j = 0; j < target; j++) {
 			memcpy(&passArg[j], arg, sizeof(MakeArg));
@@ -997,8 +1016,11 @@ static ThreadFunc Make_Code_Thread_Folder(MakeArg* arg) {
 			for (s32 j = 0; j < target; j++)
 				ThreadLock_Join(&thread[j]);
 		
-		i += THREAD_NUM;
+		i += gThreadNum;
 	}
+	
+	Free(thread);
+	Free(passArg);
 	
 	ItemList_Free(&itemList);
 }

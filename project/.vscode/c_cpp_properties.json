@@ -3,12 +3,12 @@
         {
             "name": "Mips64",
             "includePath": [
-                "${workspaceFolder}/include/**",
+                "${workspaceFolder}/src/lib_user/**",
                 "${workspaceFolder}/include/z64hdr/**",
                 "${workspaceFolder}/include/z64hdr/include/**"
             ],
             "defines": [],
-            "compilerPath": "/mnt/f/Zelda/z64rom/release_win32/tools/mips64-binutils/bin/mips64-gcc",
+            "compilerPath": "${workspaceFolder}/tools/mips64-binutils/bin/mips64-gcc.exe",
             "cStandard": "gnu17",
             "cppStandard": "gnu++14",
             "intelliSenseMode": "linux-gcc-x64"

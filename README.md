@@ -95,6 +95,7 @@ Pass to z64rom as either `-arg` or `--arg`.
 | log                 | Print Log before closing                           |                         |
 | force               | Force compile/convert                              |                         |
 | make-only           | Do not build, only make                            |                         |
+| threads [num]       | Max threads amount                                 | --thread 64             |
 |                     |                                                    |                         |
 | update              | Update `z64hdr`                                    |                         |
 | reinstall           | Reinstall `z64hdr` & `mips64-binutils`             |                         |

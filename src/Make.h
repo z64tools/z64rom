@@ -38,6 +38,7 @@ typedef enum {
 	POST_GCC,
 	PRE_LD,
 	POST_LD,
+	MID_GCC,
 } MakeCallType;
 
 typedef enum {

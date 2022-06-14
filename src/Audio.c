@@ -615,6 +615,8 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 	Free(FILE_CFG);
 }
 
+extern u32 gThreadNum;
+
 void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	SampleInfo* smallest = sUnsortedSampleTbl;
 	SampleInfo* largest = sUnsortedSampleTbl;
@@ -648,17 +650,19 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	}
 	
 	tbl = sSortedSampleTbl;
-	
-	#define THREAD_NUM 42
+
 	s32 i = 0;
-	SampleDumpArg arg[THREAD_NUM];
-	Thread thread[THREAD_NUM];
+	SampleDumpArg* arg;
+	Thread* thread;
+	
+	Calloc(arg, sizeof(SampleDumpArg) * gThreadNum);
+	Calloc(thread, sizeof(Thread) * gThreadNum);
 	
 	if (gThreading)
 		ThreadLock_Init();
 	
 	while (i < sSortID) {
-		u32 target = Clamp(sSortID - i, 0, THREAD_NUM);
+		u32 target = Clamp(sSortID - i, 0, gThreadNum);
 		
 		for (s32 j = 0; j < target; j++) {
 			arg[j].i = i + j;
@@ -683,7 +687,7 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			}
 		}
 		
-		i += THREAD_NUM;
+		i += gThreadNum;
 	}
 	
 	if (gThreading)

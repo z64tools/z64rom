@@ -1,1 +1,1 @@
-flags = "-Wno-missing-braces"
+gcc_flags = "-Wno-missing-braces"

@@ -3,10 +3,14 @@
 
 extern u32 gThreadNum;
 
-static const char* sFlags;
-static const char* sFlagsCode;
-static const char* sFlagsLink;
-static const char* sFlagsULibLink;
+static const char* sGccBaseFlags;
+static const char* sGccActorFlags;
+static const char* sGccCodeFlags;
+static const char* sGccKaleidoFlags;
+static const char* sGccStateFlags;
+
+static const char* sLinkerBaseFlags;
+static const char* sLinkerULibFlags;
 static volatile bool sMake = false;
 
 static char* Make_Wildcard(const char* path, const char* fmt, ...) {
@@ -539,8 +543,8 @@ retval:
 		
 		char* config = HeapPrint("%sconfig.toml", Path(input));
 		MemFile mem = MemFile_Initialize();
-		char* stateInit = LineHead(StrStr(dump, "_StateInit"));
-		char* stateDestroy = LineHead(StrStr(dump, "_StateDestroy"));
+		char* stateInit = LineHead(StrStr(dump, "__z64_init"));
+		char* stateDestroy = LineHead(StrStr(dump, "__z64_dest"));
 		
 		if (stateInit == NULL)
 			printf_error_align("No StateInit", "%s", input);
@@ -792,38 +796,34 @@ build:
 	if (Sys_Stat(flagFile)) {
 		MemFile mem = MemFile_Initialize();
 		char* var;
+		char* basename = Basename(source);
 		
 		MemFile_LoadFile_String(&mem, flagFile);
 		
-		if ((var = Toml_Variable(mem.str, "flags"))) {
-			Calloc(newFlags, 1024 * 2);
-			
-			strcpy(newFlags, flags);
-			catprintf(newFlags, " %s", var);
-			
-			flags = newFlags;
+		if ((var = Toml_Variable(mem.str, "gcc_flags"))) {
+			newFlags = StrDupX(Toml_GetVariable(mem.str, "gcc_flags"), 1024 * 2);
+		}
+		if ((var = Toml_Variable(mem.str, basename))) {
+			if (!newFlags)
+				newFlags = StrDupX(Toml_GetVariable(mem.str, basename), 1024 * 2);
+			else
+				catprintf(newFlags, " %s", Toml_GetVariable(mem.str, basename));
 		}
 		
-		if ((var = Toml_Variable(mem.str, Basename(source)))) {
-			Calloc(newFlags, 1024 * 2);
-			
-			strcpy(newFlags, flags);
-			catprintf(newFlags, " %s", var);
-			
+		if (newFlags)
 			flags = newFlags;
-		}
 		
 		MemFile_Free(&mem);
 	}
 	
-	Tools_Command(command, mips64_gcc, "%s %s %s -o %s", sFlags, flags, source, output);
+	Tools_Command(command, mips64_gcc, "%s %s %s -o %s", sGccBaseFlags, flags, source, output);
 	Sys_MakeDir(output);
 	
 	Time_Start(1);
 	Make_Run(command);
+	Make_Info("GCC", command);
 	sTimeGCC += Time_Get(1);
 	sCountGCC++;
-	Make_Info("GCC", source);
 	
 	if (callback)
 		callback(output, POST_GCC, command, NULL);
@@ -1162,20 +1162,20 @@ void Make_Code(void) {
 		"rom/system/kaleido/",
 	};
 	const char* flagObject[] = {
-		sFlagsCode,
-		sFlagsCode,
-		"",
-		"",
-		"",
-		"",
+		sGccCodeFlags,
+		sGccCodeFlags,
+		sGccActorFlags,
+		sGccActorFlags,
+		sGccStateFlags,
+		sGccKaleidoFlags,
 	};
 	const char* flagLinker[] = {
-		sFlagsULibLink,
-		sFlagsLink,
-		sFlagsLink,
-		sFlagsLink,
-		sFlagsLink,
-		sFlagsLink,
+		sLinkerULibFlags,
+		sLinkerBaseFlags,
+		sLinkerBaseFlags,
+		sLinkerBaseFlags,
+		sLinkerBaseFlags,
+		sLinkerBaseFlags,
 	};
 	BinutilCallback callback[] = {
 		NULL,
@@ -1258,19 +1258,18 @@ void Make_Code(void) {
 // # # # # # # # # # # # # # # # # # # # #
 
 void Make(Rom* rom, s32 message) {
-	sFlags = Toml_GetStr(&rom->config, "mips64_gcc_flags");
-	sFlagsCode = Toml_GetStr(&rom->config, "mips64_gcc_flags_code");
-	sFlagsLink = Toml_GetStr(&rom->config, "mips64_ld_flags");
-	sFlagsULibLink = Toml_GetStr(&rom->config, "ulib_ld_flags");
-	
-	if (!sFlags || !sFlagsCode || !sFlagsLink || !sFlagsULibLink)
-		printf_error("Missing a required flags from [z64project.toml]. Do a redump by drag'n'dropping your baserom on z64rom.");
+	Toml_SetErrorState(true);
+	sGccBaseFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_base_flags")));
+	sGccActorFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_actor_flags")));
+	sGccCodeFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_code_flags")));
+	sGccKaleidoFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_kaleido_flags")));
+	sGccStateFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_state_flags")));
+	sLinkerBaseFlags = qFree(StrDup(Toml_GetStr(&rom->config, "ld_base_flags")));
+	sLinkerULibFlags = qFree(StrDup(Toml_GetStr(&rom->config, "ld_ulib_flags")));
+	Toml_SetErrorState(false);
 	
 	if (gBuildTarget)
-		sFlags = HeapPrint("%s -DDEV_BUILD", sFlags);
-	
-	if (!sFlags || !sFlagsCode || !sFlagsLink)
-		printf_error("[z64project.toml] is missing mips64 flags! Please, do fresh dump!");
+		sGccBaseFlags = HeapPrint("%s -DDEV_BUILD", sGccBaseFlags);
 	
 	setvbuf(stdout, NULL, _IONBF, 0);
 	setvbuf(stderr, NULL, _IONBF, 0);

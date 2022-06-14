@@ -4,7 +4,11 @@
  * Description: Displays the Nintendo Logo
  */
 
+#include <asm_macros.h>
 #include <uLib.h>
+
+Asm_SymbolAlias("__z64_init", BootTitle_Init);
+Asm_SymbolAlias("__z64_dest", BootTitle_Destroy);
 
 extern u64 nintendo_rogo_static_Tex_000000[];
 extern u64 nintendo_rogo_static_Tex_001800[];
@@ -21,7 +25,7 @@ asm("Opening_Init = 0x80803CAC");
 void BootTitle_Calc(TitleContext* this) {
 	if (CHK_ANY(press, BTN_A | BTN_B)) {
 		this->visibleDuration = 0;
-		this->addAlpha = 3;
+		this->addAlpha = 6;
 	}
 	
 	if ((this->coverAlpha == 0) && (this->visibleDuration != 0)) {
@@ -66,13 +70,9 @@ void BootTitle_Draw(TitleContext* this) {
 	static s16 sTitleRotY = 0;
 	static Lights1 sTitleLights = gdSPDefLights1(100, 100, 100, 255, 255, 255, 69, 69, 69);
 	
-	u16 y;
-	u16 idx;
-	s32 pad1;
 	Vec3f v3;
 	Vec3f v1;
 	Vec3f v2;
-	s32 pad2[2];
 	
 	OPEN_DISPS(this->state.gfxCtx, "../z_title.c", 395);
 	
@@ -204,13 +204,13 @@ void BootTitle_Main(GameState* thisx) {
 	CLOSE_DISPS(this->state.gfxCtx, "../z_title.c", 541);
 }
 
-void BootTitle_StateDestroy(GameState* thisx) {
+void BootTitle_Destroy(GameState* thisx) {
 	TitleContext* this = (TitleContext*)thisx;
 	
 	Sram_InitSram(&this->state, &this->sramCtx);
 }
 
-void BootTitle_StateInit(GameState* thisx) {
+void BootTitle_Init(GameState* thisx) {
 	u32 size = gDmaDataTable[938].vromEnd - gDmaDataTable[938].vromStart;
 	TitleContext* this = (TitleContext*)thisx;
 	
@@ -220,7 +220,7 @@ void BootTitle_StateInit(GameState* thisx) {
 	Matrix_Init(&this->state);
 	View_Init(&this->view, this->state.gfxCtx);
 	this->state.main = BootTitle_Main;
-	this->state.destroy = BootTitle_StateDestroy;
+	this->state.destroy = BootTitle_Destroy;
 	this->exit = false;
 	gSaveContext.fileNum = 0xFF;
 	Sram_Alloc(&this->state, &this->sramCtx);

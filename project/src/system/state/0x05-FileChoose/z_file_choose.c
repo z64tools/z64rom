@@ -1,4 +1,8 @@
+#include <asm_macros.h>
 #include "z_file_choose.h"
+
+Asm_SymbolAlias("__z64_init", FileSelect_Init);
+Asm_SymbolAlias("__z64_dest", FileSelect_Destroy);
 
 s16 sUnused = 106;
 
@@ -2259,10 +2263,10 @@ void FileSelect_InitContext(GameState* thisx) {
 	}
 }
 
-void FileSelect_StateDestroy(GameState* thisx) {
+void FileSelect_Destroy(GameState* thisx) {
 }
 
-void FileSelect_StateInit(GameState* thisx) {
+void FileSelect_Init(GameState* thisx) {
 	FileChooseContext* this = (FileChooseContext*)thisx;
 	u32 size = gDmaDataTable[939].vromEnd - gDmaDataTable[939].vromStart;
 	
@@ -2284,7 +2288,7 @@ void FileSelect_StateInit(GameState* thisx) {
 	Matrix_Init(&this->state);
 	View_Init(&this->view, this->state.gfxCtx);
 	this->state.main = FileSelect_Main;
-	this->state.destroy = FileSelect_StateDestroy;
+	this->state.destroy = FileSelect_Destroy;
 	FileSelect_InitContext(&this->state);
 	Font_LoadOrderedFont(&this->font);
 	Audio_QueueSeqCmd(0xF << 28 | SEQ_PLAYER_BGM_MAIN << 24 | 0xA);

@@ -500,12 +500,12 @@ static void Main_WriteProject(Rom* rom, char** input) {
 	
 	Toml_WriteStr(
 		config,
-		"mips64_gcc_flags",
+		"gcc_base_flags",
 		"-c -G 0 -O1 -std=gnu99 -march=vr4300 -mabi=32 -mips3"
 		" "
 		"-mno-explicit-relocs -mno-memcpy -mno-check-zero-division"
 		" "
-		"-fno-reorder-blocks -fno-common"
+		"-fno-common"
 		" "
 		"-Wall -Wno-builtin-declaration-mismatch"
 		" "
@@ -513,16 +513,42 @@ static void Main_WriteProject(Rom* rom, char** input) {
 		QUOTES,
 		NO_COMMENT
 	);
+	
 	Toml_WriteStr(
 		config,
-		"mips64_gcc_flags_code",
+		"gcc_actor_flags",
+		"",
+		QUOTES,
+		NO_COMMENT
+	);
+	
+	Toml_WriteStr(
+		config,
+		"gcc_code_flags",
 		"-mno-gpopt -fomit-frame-pointer",
 		QUOTES,
 		NO_COMMENT
 	);
+	
 	Toml_WriteStr(
 		config,
-		"mips64_ld_flags",
+		"gcc_kaleido_flags",
+		"",
+		QUOTES,
+		NO_COMMENT
+	);
+	
+	Toml_WriteStr(
+		config,
+		"gcc_state_flags",
+		"",
+		QUOTES,
+		NO_COMMENT
+	);
+	
+	Toml_WriteStr(
+		config,
+		"ld_base_flags",
 		"-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ "
 		"-T z64hdr.ld "
 		"-T z_lib_user.ld "
@@ -530,9 +556,10 @@ static void Main_WriteProject(Rom* rom, char** input) {
 		QUOTES,
 		NO_COMMENT
 	);
+	
 	Toml_WriteStr(
 		config,
-		"ulib_ld_flags",
+		"ld_ulib_flags",
 		"-Lrom/lib_user -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ "
 		"-T ulib_linker.ld "
 		"--emit-relocs",
@@ -589,6 +616,11 @@ s32 Main(s32 argc, char* argv[]) {
 	if (Arg("help")) Main_PrintHelp();
 	
 	Calloc(rom, sizeof(struct Rom));
+	
+	char* v = "variable = \n";
+	
+	printf("[%s]\n", Toml_GetVariable(v, "variable"));
+	exit(0);
 	
 	for (s32 i = 1; i < argc; i++) {
 		if (StrEndCase(StrUnq(argv[i]), ".z64")) {

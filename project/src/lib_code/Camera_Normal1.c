@@ -22,7 +22,6 @@ s32 Camera_Normal1(Camera* camera) {
 	VecSph eyeAdjustment;
 	VecSph atEyeGeo;
 	VecSph atEyeNextGeo;
-	PosRot* playerPosRot = &camera->playerPosRot;
 	Normal1ReadOnlyData* roData = &camera->paramData.norm1.roData;
 	Normal1ReadWriteData* rwData = &camera->paramData.norm1.rwData;
 	f32 playerHeight;

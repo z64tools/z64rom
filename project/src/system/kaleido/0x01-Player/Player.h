@@ -14,6 +14,10 @@
 #include "assets/objects/gameplay_keep/gameplay_keep.h"
 #include "assets/objects/object_link_child/object_link_child.h"
 
+s32 __func_80835C58(PlayState* play, Player* this, PlayerFunc674 func, s32 flags, const char* setFunc, const char* srcFunc, u32 line);
+
+#define func_80835C58(play, this, func, flags) __func_80835C58(play, this, func, flags, #func , __FUNCTION__, __LINE__)
+
 typedef struct {
    /* 0x00 */ u8 itemId;
    /* 0x01 */ u8 field; // various bit-packed data
@@ -251,7 +255,7 @@ void func_8084F9C0(Player* this, PlayState* play);
 void func_8084FA54(Player* this, PlayState* play);
 void func_8084FB10(Player* this, PlayState* play);
 void func_8084FBF4(Player* this, PlayState* play);
-s32 func_8084FCAC(Player* this, PlayState* play);
+s32 Player_DebugMode(Player* this, PlayState* play);
 void func_8084FF7C(Player* this);
 void func_8085002C(Player* this);
 s32 func_80850224(Player* this, PlayState* play);

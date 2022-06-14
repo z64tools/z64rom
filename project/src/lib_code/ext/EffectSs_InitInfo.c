@@ -4,6 +4,7 @@
 /*
    z64ram = 0x800272B0
    z64rom = 0xA9E450
+   z64next = 0x80027410
  */
 
 void EffectSs_InitInfo(PlayState* playState, s32 tableSize) {
@@ -12,7 +13,8 @@ void EffectSs_InitInfo(PlayState* playState, s32 tableSize) {
 	EffectSsOverlay* overlay;
 	
 	sEffectSsInfo.table = GameState_Alloc(&playState->state, tableSize * sizeof(EffectSs), (char*)__FUNCTION__, __LINE__);
-	Assert(sEffectSsInfo.table != NULL);
+	if (sEffectSsInfo.table == NULL)
+		__assert("sEffectSsInfo.table != NULL", __FUNCTION__, __LINE__);
 	
 	sEffectSsInfo.searchStartIndex = 0;
 	sEffectSsInfo.tableSize = tableSize;

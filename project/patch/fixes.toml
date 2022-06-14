@@ -35,14 +35,6 @@
     audio_init_pool_size      = 00012160
     audio_permanent_pool_size = 0000FD60
 
-[rom/system/kaleido/0x01-Player/overlay.zovl]
-    # SpeedUP: Player GI Thing
-    0x00008CC8 = 0x1000
-    
-    # func_8084FCAC
-    # Camera_ChangeMode(Play_GetCamera(playState, CAM_ID_MAIN), XXXX);
-    0x0001DB34 = 0x....0001 # CAM_MODE_TARGET
-
 [rom/actor/0x00FF-Push_Block/actor.zovl]
     # Push Max Speed
     0x11EE = 0x4080 # 0000 == 4.0f

@@ -4,6 +4,7 @@
 /*
    z64ram = 0x80027410
    z64rom = 0xA9E5B0
+   z64next = 0x800274E0
  */
 
 void EffectSs_ClearAll(PlayState* playState) {

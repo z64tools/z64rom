@@ -368,6 +368,113 @@ free:
 // # MAKE_CODE                           #
 // # # # # # # # # # # # # # # # # # # # #
 
+volatile f32 sTimeGCC, sTimeLD, sTimeZOVL;
+volatile u32 sCountGCC, sCountLD, sCountZOVL;
+
+static s32 Callback_Kaleido(const char* input, MakeCallType type, void* arg, void* arg2) {
+	char* ovl;
+	char* conf;
+	
+	if (type == PRE_GCC) {
+		ovl = HeapPrint("%soverlay.zovl", Path(input));
+		StrRep(ovl, "src/", "rom/");
+		
+		if ((!Sys_Stat(ovl) && Sys_Stat(input)) || Sys_Stat(input) > Sys_Stat(ovl))
+			return CB_BUILD;
+		
+		return CB_BREAK;
+	}
+	
+	if (type == PRE_LD) {
+		ItemList list = ItemList_Initialize();
+		s32 ret = CB_BREAK;
+		
+		ItemList_Separated(&list, input, ' ');
+		
+		if (!ItemList_StatMin(&list)) {
+			ret = CB_BREAK;
+			goto retval;
+		}
+		
+		if (!Sys_Stat(arg2)) {
+			ret = CB_BUILD;
+			goto retval;
+		}
+		
+		if (Sys_Stat(arg2) < ItemList_StatMax(&list)) {
+			ret = CB_BUILD;
+			goto retval;
+		}
+		
+retval:
+		ItemList_Free(&list);
+		
+		return ret;
+	}
+	
+	if (type == POST_LD) {
+		char* command = arg;
+		char* info;
+		char* dump;
+		
+		ovl = HeapPrint("%soverlay.zovl", Path(input));
+		StrRep(ovl, "src/", "rom/");
+		
+		conf = HeapPrint("%sconfig.toml", Path(input));
+		StrRep(conf, "src/", "rom/");
+		
+		Tools_Command(command, mips64_objdump, "-t %s", input);
+		dump = SysExeO(command); {
+			MemFile newConf = MemFile_Initialize();
+			u32 init, dest, updt, draw;
+			char* str;
+			
+			if ((str = StrStr(dump, "__z64_init")) == NULL)
+				printf_error("Could not find symbol [__z64_init] from [%s]", input);
+			init = Value_Hex(LineHead(str));
+			
+			if ((str = StrStr(dump, "__z64_dest")) == NULL)
+				printf_error("Could not find symbol [__z64_dest] from [%s]", input);
+			dest = Value_Hex(LineHead(str));
+			
+			if ((str = StrStr(dump, "__z64_updt")) == NULL)
+				printf_error("Could not find symbol [__z64_updt] from [%s]", input);
+			updt = Value_Hex(LineHead(str));
+			
+			if ((str = StrStr(dump, "__z64_draw")) == NULL)
+				printf_error("Could not find symbol [__z64_draw] from [%s]", input);
+			draw = Value_Hex(LineHead(str));
+			
+			MemFile_Malloc(&newConf, 0x800);
+			MemFile_Printf(&newConf, "# %s\n", Basename(input));
+			Toml_WriteHex(&newConf, "vram_addr", 0x80800000, NO_COMMENT);
+			Toml_WriteHex(&newConf, "init", init, NO_COMMENT);
+			Toml_WriteHex(&newConf, "dest", dest, NO_COMMENT);
+			Toml_WriteHex(&newConf, "updt", updt, NO_COMMENT);
+			Toml_WriteHex(&newConf, "draw", draw, NO_COMMENT);
+			
+			if (MemFile_SaveFile_String(&newConf, conf)) printf_error("Could not save [%s]", conf);
+			
+			MemFile_Free(&newConf);
+		}
+		
+		info = PathSlot(input, -1);
+		StrRep(info, "/", " ");
+		
+		Tools_Command(command, nOVL, "-v -c -s -A 0x80800000 -o %s %s", ovl, input);
+		Time_Start(1);
+		Make_Run(command);
+		sTimeZOVL += Time_Get(1);
+		sCountZOVL++;
+		
+		Free(dump);
+		
+		return 0;
+	}
+	
+	return 0;
+}
+
 static s32 Callback_System(const char* input, MakeCallType type, void* arg, void* arg2) {
 	char* ovl = NULL;
 	
@@ -422,7 +529,10 @@ retval:
 		StrRep(info, "/", " ");
 		
 		Tools_Command(command, nOVL, "-v -c -s -A 0x80800000 -o %s %s", ovl, input);
+		Time_Start(1);
 		Make_Run(command);
+		sTimeZOVL += Time_Get(1);
+		sCountZOVL++;
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
 		dump = SysExeO(command);
@@ -576,7 +686,10 @@ retval:
 		info = PathSlot(input, -1); StrRem(info, strlen("0x0000-")); StrRep(info, "/", " ");
 		
 		Tools_Command(command, nOVL, "-v -c -s -A 0x80800000 -o %s %s", ovl, input);
+		Time_Start(1);
 		Make_Run(command);
+		sTimeZOVL += Time_Get(1);
+		sCountZOVL++;
 		
 		Free(dump);
 		
@@ -706,7 +819,10 @@ build:
 	Tools_Command(command, mips64_gcc, "%s %s %s -o %s", sFlags, flags, source, output);
 	Sys_MakeDir(output);
 	
+	Time_Start(1);
 	Make_Run(command);
+	sTimeGCC += Time_Get(1);
+	sCountGCC++;
 	Make_Info("GCC", source);
 	
 	if (callback)
@@ -753,7 +869,10 @@ build:
 	Tools_Command(command, mips64_ld, "-o %s %s -L%s %s", output, source, Path(entryDir), flags);
 	Sys_MakeDir(output);
 	
+	Time_Start(1);
 	Make_Run(command);
+	sTimeLD += Time_Get(1);
+	sCountLD++;
 	Make_Info("LD", source);
 	
 	if (callback)
@@ -1032,6 +1151,7 @@ void Make_Code(void) {
 		"src/actor/",
 		"src/effect/",
 		"src/system/state/",
+		"src/system/kaleido/",
 	};
 	const char* pathO[] = {
 		"rom/lib_user/",
@@ -1039,6 +1159,7 @@ void Make_Code(void) {
 		"rom/actor/",
 		"rom/effect/",
 		"rom/system/state/",
+		"rom/system/kaleido/",
 	};
 	const char* flagObject[] = {
 		sFlagsCode,
@@ -1046,9 +1167,11 @@ void Make_Code(void) {
 		"",
 		"",
 		"",
+		"",
 	};
 	const char* flagLinker[] = {
 		sFlagsULibLink,
+		sFlagsLink,
 		sFlagsLink,
 		sFlagsLink,
 		sFlagsLink,
@@ -1060,6 +1183,7 @@ void Make_Code(void) {
 		Callback_Actor,
 		NULL,
 		Callback_System,
+		Callback_Kaleido
 	};
 	Thread thread[ArrayCount(pathC)];
 	MakeArg args[ArrayCount(pathC)] = { 0 };
@@ -1166,9 +1290,15 @@ void Make(Rom* rom, s32 message) {
 	
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 	setvbuf(stderr, NULL, _IONBF, BUFSIZ);
-	
 	printf_WinFix();
 	
 	if (sMake && message)
 		printf_info("Make OK");
+	
+	if (gPrintInfo) {
+		printf_info("Average Build Times:");
+		printf("GCC:  " PRNT_YELW "%.4f" PRNT_RSET "s\n", sTimeGCC / sCountGCC);
+		printf("LD:   " PRNT_YELW "%.4f" PRNT_RSET "s\n", sTimeLD / sCountLD);
+		printf("ZOVL: " PRNT_YELW "%.4f" PRNT_RSET "s\n", sTimeZOVL / sCountZOVL);
+	}
 }

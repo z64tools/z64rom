@@ -3,7 +3,7 @@
 #include "src/Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.9.3";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.9.4";
 
 s32 gDumpRom = -1;
 s32 gDumpAudio = -1;
@@ -16,7 +16,7 @@ s32 gPrintInfo;
 s32 gMakeForce;
 const char* gMakeTarget;
 u32 gThreading = true;
-u32 gThreadNum = 128;
+u32 gThreadNum = 64;
 s32 gDumpFlag;
 
 s32 gAudioOnly;
@@ -312,7 +312,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	if (Arg("clean")) {
 		ItemList list = ItemList_Initialize();
 		
-		ItemList_List(&list, "", -1, LIST_FILES);
+		ItemList_List(&list, "rom/", -1, LIST_FILES);
 		forlist(i, list) {
 			if (StrEndCase(list.item[i], ".o") || StrEndCase(list.item[i], ".elf") || StrEndCase(list.item[i], "entry.ld")) {
 				printf_warning("rm " PRNT_BLUE "%s", list.item[i]);
@@ -321,7 +321,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		}
 		ItemList_Free(&list);
 		
-		ItemList_List(&list, "", -1, LIST_FOLDERS);
+		ItemList_List(&list, "rom/", -1, LIST_FOLDERS);
 		forlist(i, list) {
 			if (StrEndCase(list.item[i], ".entry/")) {
 				printf_warning("rm " PRNT_YELW "%s", list.item[i]);

@@ -661,13 +661,13 @@ retval:
 			if (temp == NULL)
 				printf_error("Could not locate [ActorInit] from files in [%s]", sourceFolder);
 			
-			while (!isalpha(*temp)) temp++;
+			while (*temp <= ' ') temp++;
 			
-			Malloc(varName, 64);
-			strcpy(varName, CopyWord(temp, 0));
+			varName = StrDupX(temp, 64);
 			if (StrStr(varName, " ")) ((char*)StrStr(varName, " "))[0] = '\0';
 			if (StrStr(varName, "=")) ((char*)StrStr(varName, "="))[0] = '\0';
-			temp = LineHead(StrStr(dump, varName));
+			
+			temp = LineHead(StrStrWhole(dump, varName));
 			
 			MemFile_Printf(&newConf, "# %s\n", Basename(input));
 			MemFile_Printf(&newConf, "alloc_type = 0\n");

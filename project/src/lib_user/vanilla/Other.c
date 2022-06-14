@@ -138,7 +138,7 @@ void uObject_UpdateBank(ObjectContext* objectCtx) {
 	}
 }
 
-u32 PlayerLib_InitSkelanime(GlobalContext* globalCtx, u8* segment, SkelAnime* skelAnime) {
+u32 PlayerLib_InitSkelanime(PlayState* playState, u8* segment, SkelAnime* skelAnime) {
 	s16 linkObjectId = gLinkObjectIds[(void)0, gSaveContext.linkAge];
 	u32 size;
 	void* ptr;
@@ -157,7 +157,7 @@ u32 PlayerLib_InitSkelanime(GlobalContext* globalCtx, u8* segment, SkelAnime* sk
 	gSegments[6] = VIRTUAL_TO_PHYSICAL(segment + PAUSE_EQUIP_BUFFER_SIZE + PAUSE_PLAYER_SEGMENT_GAMEPLAY_KEEP_BUFFER_SIZE);
 	
 	SkelAnime_InitLink(
-		globalCtx,
+		playState,
 		skelAnime,
 		gPlayerSkelHeaders[(void)0, gSaveContext.linkAge],
 		(void*)0x04003238,
@@ -171,11 +171,11 @@ u32 PlayerLib_InitSkelanime(GlobalContext* globalCtx, u8* segment, SkelAnime* sk
 	       sizeof(Vec3s[PLAYER_LIMB_BUF_COUNT]);
 }
 
-s32 Actor_TalkCondition(Actor* actor, GlobalContext* globalCtx, f32 xDist, f32 yDist, u32 exchangeItemId) {
-	Player* player = GET_PLAYER(globalCtx);
+s32 Actor_TalkCondition(Actor* actor, PlayState* playState, f32 xDist, f32 yDist, u32 exchangeItemId) {
+	Player* player = GET_PLAYER(playState);
 	s32 distCheck = (yDist < fabsf(actor->yDistToPlayer) || xDist < actor->xzDistToPlayer);
 	
-	if ((player->actor.flags & ACTOR_FLAG_8) || ((exchangeItemId != EXCH_ITEM_NONE) && Player_InCsMode(globalCtx)) ||
+	if ((player->actor.flags & ACTOR_FLAG_8) || ((exchangeItemId != EXCH_ITEM_NONE) && Player_InCsMode(playState)) ||
 		((player->linearVelocity > 0 || distCheck) && !actor->isTargeted)
 	) {
 		return false;

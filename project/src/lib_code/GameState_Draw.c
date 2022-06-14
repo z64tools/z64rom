@@ -1,4 +1,5 @@
 #include <uLib.h>
+#include "code/game.h"
 
 /*
    z64ram = 0x800C46EC

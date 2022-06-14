@@ -5,6 +5,6 @@
    z64rom = 0xB088D8
  */
 
-u32 func_80091738(GlobalContext* globalCtx, u8* segment, SkelAnime* skelAnime) {
-	return PlayerLib_InitSkelanime(globalCtx, segment, skelAnime);
+u32 func_80091738(PlayState* playState, u8* segment, SkelAnime* skelAnime) {
+	return PlayerLib_InitSkelanime(playState, segment, skelAnime);
 }

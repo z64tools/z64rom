@@ -11,7 +11,7 @@ const char* URL_BINUTIL_DOWNLOAD = "https://github.com/z64tools/z64rom/releases/
 #endif
 
 const char* ZIP_Z64HDR = "include/z64hdr.zip";
-const char* URL_Z64HDR_DOWNLOAD = "https://codeload.github.com/z64tools/z64hdr/zip/refs/heads/temp-update";
+const char* URL_Z64HDR_DOWNLOAD = "https://codeload.github.com/rankaisija64/z64hdr/zip/refs/heads/main-dev";
 const char* URL_Z64HDR_UPDT_API = "https://api.github.com/repos/z64tools/z64hdr";
 const char* sTools[] = {
 #ifdef _WIN32
@@ -360,7 +360,7 @@ redo:
 }
 
 void Tools_Install_z64hdr(s32 isUpdate) {
-	const char* extract = "include/z64hdr-temp-update/";
+	const char* extract = "include/z64hdr-main-dev/";
 	char command[512];
 	ItemList itemList = ItemList_Initialize();
 	
@@ -395,8 +395,8 @@ redo:
 		}
 	}
 	
-	if (Tools_BinutilsSHA256(ZIP_Z64HDR, "tools/z64hdr-sha256"))
-		goto redo;
+	// if (Tools_BinutilsSHA256(ZIP_Z64HDR, "tools/z64hdr-sha256"))
+	// 	goto redo;
 	Terminal_ClearLines(1);
 	
 	if (zip_extract(ZIP_Z64HDR, "include/", Tools_ZipExtractCallback, 0)) printf_error_align("zip_extract", "Failed");

@@ -6,6 +6,6 @@
    z64rom = 0xB344B4
  */
 
-void Gameplay_Update(GlobalContext* globalCtx) {
-	Play_Update(globalCtx);
+void Gameplay_Update(PlayState* playState) {
+	NewPlay_Update(playState);
 }

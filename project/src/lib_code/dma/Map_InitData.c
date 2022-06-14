@@ -9,12 +9,12 @@ extern s16 sEntranceIconMapIndex;
 asm ("sEntranceIconMapIndex = 0x80123A5C");
 asm ("gMapData = 0x8015FFD0");
 
-void Map_InitData(GlobalContext* globalCtx, s16 room) {
+void Map_InitData(PlayState* playState, s16 room) {
 	s32 mapIndex = gSaveContext.mapIndex;
-	InterfaceContext* interfaceCtx = &globalCtx->interfaceCtx;
+	InterfaceContext* interfaceCtx = &playState->interfaceCtx;
 	s16 extendedMapIndex;
 	
-	switch (globalCtx->sceneNum) {
+	switch (playState->sceneNum) {
 		case SCENE_SPOT00:
 		case SCENE_SPOT01:
 		case SCENE_SPOT02:
@@ -36,19 +36,19 @@ void Map_InitData(GlobalContext* globalCtx, s16 room) {
 		case SCENE_SPOT20:
 		case SCENE_GANON_TOU:
 			extendedMapIndex = mapIndex;
-			if (globalCtx->sceneNum == SCENE_SPOT02) {
+			if (playState->sceneNum == SCENE_SPOT02) {
 				if (CHECK_QUEST_ITEM(QUEST_SONG_NOCTURNE)) {
 					extendedMapIndex = 0x14;
 				}
-			} else if (globalCtx->sceneNum == SCENE_SPOT06) {
+			} else if (playState->sceneNum == SCENE_SPOT06) {
 				if ((LINK_AGE_IN_YEARS == YEARS_ADULT) && !CHECK_QUEST_ITEM(QUEST_MEDALLION_WATER)) {
 					extendedMapIndex = 0x15;
 				}
-			} else if (globalCtx->sceneNum == SCENE_SPOT09) {
+			} else if (playState->sceneNum == SCENE_SPOT09) {
 				if ((LINK_AGE_IN_YEARS == YEARS_ADULT) && !((gSaveContext.eventChkInf[9] & 0xF) == 0xF)) {
 					extendedMapIndex = 0x16;
 				}
-			} else if (globalCtx->sceneNum == SCENE_SPOT12) {
+			} else if (playState->sceneNum == SCENE_SPOT12) {
 				if ((gSaveContext.eventChkInf[9] & 0xF) == 0xF) {
 					extendedMapIndex = 0x17;
 				}
@@ -83,7 +83,7 @@ void Map_InitData(GlobalContext* globalCtx, s16 room) {
 		case SCENE_JYASINBOSS:
 		case SCENE_HAKADAN_BS:
 			DmaMgr_SendRequest1(
-				globalCtx->interfaceCtx.mapSegment,
+				playState->interfaceCtx.mapSegment,
 				gDmaDataTable[26].vromStart +
 				((gMapData->dgnMinimapTexIndexOffset[mapIndex] + room) * 0xFF0),
 				0xFF0,
@@ -92,7 +92,7 @@ void Map_InitData(GlobalContext* globalCtx, s16 room) {
 			);
 			R_COMPASS_OFFSET_X = gMapData->roomCompassOffsetX[mapIndex][room];
 			R_COMPASS_OFFSET_Y = gMapData->roomCompassOffsetY[mapIndex][room];
-			Map_SetFloorPalettesData(globalCtx, VREG(30));
+			Map_SetFloorPalettesData(playState, VREG(30));
 			break;
 	}
 }

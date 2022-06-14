@@ -11,8 +11,8 @@ asm ("AnimationContext_AddEntry = 0x800A3334");
 #define NEW_LINK_ANIMATION_OFFSET(addr, offset) \
 	((gDmaDataTable[6].vromStart) + ((u32)addr) - (0x07000000) + ((u32)offset))
 
-void AnimationContext_SetLoadFrame(GlobalContext* globalCtx, LinkAnimationHeader* animation, s32 frame, s32 limbCount, Vec3s* frameTable) {
-	AnimationEntry* entry = AnimationContext_AddEntry(&globalCtx->animationCtx, ANIMENTRY_LOADFRAME);
+void AnimationContext_SetLoadFrame(PlayState* playState, LinkAnimationHeader* animation, s32 frame, s32 limbCount, Vec3s* frameTable) {
+	AnimationEntry* entry = AnimationContext_AddEntry(&playState->animationCtx, ANIMENTRY_LOADFRAME);
 	
 	if (entry != NULL) {
 		LinkAnimationHeader* linkAnimHeader = SEGMENTED_TO_VIRTUAL(animation);

@@ -1,17 +1,18 @@
 #include <uLib.h>
+#include "code/z_demo.h"
 
 /*
    z64ram = 0x800645A0
    z64rom = 0xADB740
  */
 
-typedef void (* CutsceneStateHandler)(GlobalContext*, CutsceneContext*);
+typedef void (* CutsceneStateHandler)(PlayState*, CutsceneContext*);
 extern CutsceneStateHandler sCsStateHandlers2[];
 asm ("sCsStateHandlers2 = 0x8011E1DC;");
 
-void func_800645A0(GlobalContext* globalCtx, CutsceneContext* csCtx) {
+void func_800645A0(PlayState* playState, CutsceneContext* csCtx) {
 #if 0
-	Input* input = &globalCtx->state.input[0];
+	Input* input = &playState->state.input[0];
 	if (CHECK_BTN_ALL(input->press.button, BTN_DLEFT) && (csCtx->state == CS_STATE_IDLE) &&
 		(gSaveContext.sceneSetupIndex >= 4)) {
 		D_8015FCC8 = 0;
@@ -27,7 +28,7 @@ void func_800645A0(GlobalContext* globalCtx, CutsceneContext* csCtx) {
 	}
 #endif
 	
-	if ((gSaveContext.cutsceneTrigger != 0) && (globalCtx->sceneLoadFlag == TRANS_TRIGGER_START)) {
+	if ((gSaveContext.cutsceneTrigger != 0) && (playState->transitionTrigger == TRANS_TRIGGER_START)) {
 		gSaveContext.cutsceneTrigger = 0;
 	}
 	
@@ -37,7 +38,7 @@ void func_800645A0(GlobalContext* globalCtx, CutsceneContext* csCtx) {
 	}
 	
 	if (gSaveContext.cutsceneIndex >= 0xFFF0) {
-		func_80068ECC(globalCtx, csCtx);
-		sCsStateHandlers2[csCtx->state](globalCtx, csCtx);
+		func_80068ECC(playState, csCtx);
+		sCsStateHandlers2[csCtx->state](playState, csCtx);
 	}
 }

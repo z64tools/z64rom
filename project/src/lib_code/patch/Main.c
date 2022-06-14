@@ -7,7 +7,7 @@
  */
 
 extern PreNmiBuff* gAppNmiBufferPtr;
-extern SchedContext gSchedContext;
+extern Scheduler gScheduler;
 extern PadMgr gPadMgr;
 extern IrqMgr gIrqMgr;
 extern OSThread sGraphThread;
@@ -22,20 +22,22 @@ extern StackEntry sAudioStackInfo;
 extern StackEntry sPadMgrStackInfo;
 extern StackEntry sIrqMgrStackInfo;
 extern AudioMgr gAudioMgr;
-extern OSMesgQueue sSiIntMsgQ;
-extern OSMesg sSiIntMsgBuf[1];
+extern OSMesgQueue sSerialEventQueue;
+extern OSMesg sSerialMsgBuf[1];
 extern u32 gSystemHeapSize;
+
+asm ("osAppNMIBuffer = 0x8000031C");
 
 void Main(void* arg) {
 	IrqMgrClient irqClient;
-	OSMesgQueue irqMgrMsgQ;
+	OSMesgQueue irqMgrMsgQueue;
 	OSMesg irqMgrMsgBuf[60];
 	u32 sysHeap;
 	s16* msg;
 	
 	gScreenWidth = SCREEN_WIDTH;
 	gScreenHeight = SCREEN_HEIGHT;
-	gAppNmiBufferPtr = (PreNmiBuff*)osAppNmiBuffer;
+	gAppNmiBufferPtr = (PreNmiBuff*)osAppNMIBuffer;
 	PreNmiBuff_Init(gAppNmiBufferPtr);
 	Fault_Init();
 	SysCfb_Init(0);
@@ -47,44 +49,45 @@ void Main(void* arg) {
 	
 	R_ENABLE_ARENA_DBG = 0;
 	
-	osCreateMesgQueue(&sSiIntMsgQ, sSiIntMsgBuf, 1);
-	osSetEventMesg(5, &sSiIntMsgQ, 0);
+	osCreateMesgQueue(&sSerialEventQueue, sSerialMsgBuf, 1);
+	osSetEventMesg(5, &sSerialEventQueue, 0);
 	
 	Main_LogSystemHeap();
 	
-	osCreateMesgQueue(&irqMgrMsgQ, irqMgrMsgBuf, 0x3c);
-	StackCheck_Init(&sIrqMgrStackInfo, sIrqMgrStack, sIrqMgrStack + sizeof(sIrqMgrStack), 0, 0x100, "irqmgr");
-	IrqMgr_Init(&gIrqMgr, &sGraphStackInfo, Z_PRIORITY_IRQMGR, 1);
-	
-	StackCheck_Init(&sSchedStackInfo, sSchedStack, sSchedStack + sizeof(sSchedStack), 0, 0x100, "sched");
-	Sched_Init(&gSchedContext, &sAudioStack, Z_PRIORITY_SCHED, D_80013960, 1, &gIrqMgr);
-	
-	IrqMgr_AddClient(&gIrqMgr, &irqClient, &irqMgrMsgQ);
-	
-	StackCheck_Init(&sAudioStackInfo, sAudioStack, sAudioStack + sizeof(sAudioStack), 0, 0x100, "audio");
-	AudioMgr_Init(&gAudioMgr, sAudioStack + sizeof(sAudioStack), Z_PRIORITY_AUDIOMGR, 0xa, &gSchedContext, &gIrqMgr);
-	
-	StackCheck_Init(&sPadMgrStackInfo, sPadMgrStack, sPadMgrStack + sizeof(sPadMgrStack), 0, 0x100, "padmgr");
-	PadMgr_Init(&gPadMgr, &sSiIntMsgQ, &gIrqMgr, 7, Z_PRIORITY_PADMGR, &sIrqMgrStack);
-	
-	AudioMgr_Unlock(&gAudioMgr);
-	
-	StackCheck_Init(&sGraphStackInfo, sGraphStack, sGraphStack + sizeof(sGraphStack), 0, 0x100, "graph");
-	osCreateThread(&sGraphThread, 4, Graph_ThreadEntry, arg, sGraphStack + sizeof(sGraphStack), Z_PRIORITY_GRAPH);
-	osStartThread(&sGraphThread);
-	osSetThreadPri(0, Z_PRIORITY_SCHED);
-	
-	while (true) {
-		msg = NULL;
-		osRecvMesg(&irqMgrMsgQ, (OSMesg) & msg, OS_MESG_BLOCK);
-		if (msg == NULL) {
-			break;
-		}
-		if (*msg == OS_SC_PRE_NMI_MSG) {
-			PreNmiBuff_SetReset(gAppNmiBufferPtr);
-		}
-	}
-	
-	osDestroyThread(&sGraphThread);
-	RcpUtils_Reset();
+	osCreateMesgQueue(&irqMgrMsgQueue, irqMgrMsgBuf, ARRAY_COUNT(irqMgrMsgBuf));
+    StackCheck_Init(&sIrqMgrStackInfo, sIrqMgrStack, STACK_TOP(sIrqMgrStack), 0, 0x100, "irqmgr");
+    IrqMgr_Init(&gIrqMgr, STACK_TOP(sIrqMgrStack), THREAD_PRI_IRQMGR, 1);
+
+    osSyncPrintf("タスクスケジューラの初期化\n"); // "Initialize the task scheduler"
+    StackCheck_Init(&sSchedStackInfo, sSchedStack, STACK_TOP(sSchedStack), 0, 0x100, "sched");
+    Sched_Init(&gScheduler, STACK_TOP(sSchedStack), THREAD_PRI_SCHED, D_80013960, 1, &gIrqMgr);
+
+    IrqMgr_AddClient(&gIrqMgr, &irqClient, &irqMgrMsgQueue);
+
+    StackCheck_Init(&sAudioStackInfo, sAudioStack, STACK_TOP(sAudioStack), 0, 0x100, "audio");
+    AudioMgr_Init(&gAudioMgr, STACK_TOP(sAudioStack), THREAD_PRI_AUDIOMGR, THREAD_ID_AUDIOMGR, &gScheduler, &gIrqMgr);
+
+    StackCheck_Init(&sPadMgrStackInfo, sPadMgrStack, STACK_TOP(sPadMgrStack), 0, 0x100, "padmgr");
+    PadMgr_Init(&gPadMgr, &sSerialEventQueue, &gIrqMgr, THREAD_ID_PADMGR, THREAD_PRI_PADMGR, STACK_TOP(sPadMgrStack));
+
+    AudioMgr_Unlock(&gAudioMgr);
+
+    StackCheck_Init(&sGraphStackInfo, sGraphStack, STACK_TOP(sGraphStack), 0, 0x100, "graph");
+    osCreateThread(&sGraphThread, THREAD_ID_GRAPH, Graph_ThreadEntry, arg, STACK_TOP(sGraphStack), THREAD_PRI_GRAPH);
+    osStartThread(&sGraphThread);
+    osSetThreadPri(NULL, THREAD_PRI_MAIN);
+
+    while (true) {
+        msg = NULL;
+        osRecvMesg(&irqMgrMsgQueue, (OSMesg*)&msg, OS_MESG_BLOCK);
+        if (msg == NULL) {
+            break;
+        }
+        if (*msg == OS_SC_PRE_NMI_MSG) {
+            PreNmiBuff_SetReset(gAppNmiBufferPtr);
+        }
+    }
+
+    osDestroyThread(&sGraphThread);
+    RcpUtils_Reset();
 }

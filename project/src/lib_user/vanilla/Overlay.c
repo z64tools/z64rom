@@ -1,7 +1,9 @@
 #include <uLib.h>
 #include "vt.h"
+#include "code/z_actor.h"
+#include "code/z_effect_soft_sprite.h"
 
-Actor* Overlay_ActorSpawn(ActorContext* actorCtx, GlobalContext* globalCtx, s16 actorId, f32 posX, f32 posY, f32 posZ, s16 rotX, s16 rotY, s16 rotZ, s16 params) {
+Actor* Overlay_ActorSpawn(ActorContext* actorCtx, PlayState* playState, s16 actorId, f32 posX, f32 posY, f32 posZ, s16 rotX, s16 rotY, s16 rotZ, s16 params) {
 	Actor* actor;
 	ActorInit* actorInit;
 	s32 objBankIndex;
@@ -95,10 +97,10 @@ Actor* Overlay_ActorSpawn(ActorContext* actorCtx, GlobalContext* globalCtx, s16 
 				     : NULL);
 	}
 	
-	objBankIndex = Object_GetIndex(&globalCtx->objectCtx, actorInit->objectId);
+	objBankIndex = Object_GetIndex(&playState->objectCtx, actorInit->objectId);
 	
 	if ((objBankIndex < 0) ||
-		((actorInit->category == ACTORCAT_ENEMY) && Flags_GetClear(globalCtx, globalCtx->roomCtx.curRoom.num))) {
+		((actorInit->category == ACTORCAT_ENEMY) && Flags_GetClear(playState, playState->roomCtx.curRoom.num))) {
 		// "No data bank!! <data bank＝%d> (profilep->bank=%d)"
 		osSyncPrintf(
 			VT_COL(RED, WHITE) "データバンク無し！！<データバンク＝%d>(profilep->bank=%d)\n" VT_RST,
@@ -150,7 +152,7 @@ Actor* Overlay_ActorSpawn(ActorContext* actorCtx, GlobalContext* globalCtx, s16 
 	actor->destroy = actorInit->destroy;
 	actor->update = actorInit->update;
 	actor->draw = actorInit->draw;
-	actor->room = globalCtx->roomCtx.curRoom.num;
+	actor->room = playState->roomCtx.curRoom.num;
 	actor->home.pos.x = posX;
 	actor->home.pos.y = posY;
 	actor->home.pos.z = posZ;
@@ -162,13 +164,13 @@ Actor* Overlay_ActorSpawn(ActorContext* actorCtx, GlobalContext* globalCtx, s16 
 	Actor_AddToCategory(actorCtx, actor, actorInit->category);
 	
 	temp = gSegments[6];
-	Actor_Init(actor, globalCtx);
+	Actor_Init(actor, playState);
 	gSegments[6] = temp;
 	
 	return actor;
 }
 
-void Overlay_EffectSpawn(GlobalContext* globalCtx, s32 type, s32 priority, void* initParams) {
+void Overlay_EffectSpawn(PlayState* playState, s32 type, s32 priority, void* initParams) {
 	s32 index;
 	u32 overlaySize;
 	EffectSsOverlay* overlayEntry;
@@ -234,7 +236,7 @@ void Overlay_EffectSpawn(GlobalContext* globalCtx, s32 type, s32 priority, void*
 	sEffectSsInfo.table[index].type = type;
 	sEffectSsInfo.table[index].priority = priority;
 	
-	if (initInfo->init(globalCtx, index, &sEffectSsInfo.table[index], initParams) == 0) {
+	if (initInfo->init(playState, index, &sEffectSsInfo.table[index], initParams) == 0) {
 		osLibPrintf(osInfo("Break"));
 		osLibPrintf("Construction failed for some reason. The constructor returned an error");
 		osLibPrintf("Ceasing effect addition...");

@@ -5,6 +5,6 @@
    z64rom = 0xA9E938
  */
 
-void EffectSs_Spawn(GlobalContext* globalCtx, s32 type, s32 priority, void* initParams) {
-	Overlay_EffectSpawn(globalCtx, type, priority, initParams);
+void EffectSs_Spawn(PlayState* playState, s32 type, s32 priority, void* initParams) {
+	Overlay_EffectSpawn(playState, type, priority, initParams);
 }

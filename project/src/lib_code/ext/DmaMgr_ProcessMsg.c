@@ -1,4 +1,5 @@
 #include <uLib.h>
+#include "boot/z_std_dma.h"
 
 /*
    z64ram = 0x800013FC
@@ -26,9 +27,9 @@ void DmaMgr_ProcessMsg(DmaRequest* req) {
 				romStart = iter->romStart;
 				romSize = iter->romEnd - iter->romStart;
 				
-				osSetThreadPri(NULL, Z_PRIORITY_MAIN);
+				osSetThreadPri(NULL, THREAD_PRI_DMAMGR_LOW);
 				Yaz0_Decompress(romStart, ram, romSize);
-				osSetThreadPri(NULL, Z_PRIORITY_DMAMGR);
+				osSetThreadPri(NULL, THREAD_PRI_DMAMGR);
 				found = true;
 			}
 			

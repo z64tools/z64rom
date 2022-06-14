@@ -6,5 +6,5 @@
 #include <uLib.h>
 
 void __Gameplay_Init(GameState* thisx) {
-	Play_Init((void*)thisx);
+	NewPlay_Init((void*)thisx);
 }

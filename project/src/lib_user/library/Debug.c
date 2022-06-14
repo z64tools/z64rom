@@ -1,4 +1,5 @@
 #include <uLib.h>
+#include "code/gfxprint.h"
 u32 __mib_DebugC;
 
 #ifdef DEV_BUILD

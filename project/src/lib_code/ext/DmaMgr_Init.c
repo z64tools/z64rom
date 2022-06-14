@@ -1,29 +1,12 @@
 #define __NO_EXT_MACROS__
 #include <uLib.h>
+#include "boot/z_std_dma.h"
 
 /*
    z64ram = 0x8000183C
    z64rom = 0x00243C
    z64next = 0x80001A5C
  */
-
-#define THREAD_PRI_DMAMGR 16
-
-#define THREAD_ID_IDLE     1
-#define THREAD_ID_FAULT    2
-#define THREAD_ID_MAIN     3
-#define THREAD_ID_GRAPH    4
-#define THREAD_ID_SCHED    5
-#define THREAD_ID_PADMGR   7
-#define THREAD_ID_AUDIOMGR 10
-#define THREAD_ID_DMAMGR   18
-#define THREAD_ID_IRQMGR   19
-
-#define STACK(stack, size) \
-	u64 stack[ALIGN8(size) / sizeof(u64)]
-
-#define STACK_TOP(stack) \
-	((u8*)(stack) + sizeof(stack))
 
 void DmaMgr_Init(void) {
 	DmaEntry* iter;
@@ -39,9 +22,9 @@ void DmaMgr_Init(void) {
 		u32 romStart = gDmaDataTable[3].romStart;
 		u32 romSize = gDmaDataTable[3].romEnd - gDmaDataTable[3].romStart;
 		
-		osSetThreadPri(NULL, Z_PRIORITY_MAIN);
+		osSetThreadPri(NULL, THREAD_PRI_DMAMGR_LOW);
 		Yaz0_Decompress(romStart, (void*)0x80700000, romSize);
-		osSetThreadPri(NULL, Z_PRIORITY_DMAMGR);
+		osSetThreadPri(NULL, THREAD_PRI_DMAMGR);
 	} else
 		DmaMgr_DmaRomToRam(
 			gDmaDataTable[3].vromStart,

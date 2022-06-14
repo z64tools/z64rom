@@ -5,8 +5,8 @@
    z64rom = 0xB87B50
  */
 
-void func_801109B0(GlobalContext* globalCtx) {
-	InterfaceContext* interfaceCtx = &globalCtx->interfaceCtx;
+void func_801109B0(PlayState* playState) {
+	InterfaceContext* interfaceCtx = &playState->interfaceCtx;
 	u32 parameterSize;
 	u16 doActionOffset;
 	u8 temp;
@@ -14,12 +14,12 @@ void func_801109B0(GlobalContext* globalCtx) {
 	gSaveContext.sunsSongState = SUNSSONG_INACTIVE;
 	gSaveContext.unk_13E8 = gSaveContext.unk_13EA = 0;
 	
-	View_Init(&interfaceCtx->view, globalCtx->state.gfxCtx);
+	View_Init(&interfaceCtx->view, playState->state.gfxCtx);
 	
 	interfaceCtx->unk_1FA = interfaceCtx->unk_261 = interfaceCtx->unk_1FC = 0;
 	interfaceCtx->unk_1EC = interfaceCtx->unk_1EE = interfaceCtx->unk_1F0 = 0;
 	interfaceCtx->unk_22E = 0;
-	interfaceCtx->unk_230 = 16;
+	interfaceCtx->lensMagicConsumptionTimer = 16;
 	interfaceCtx->unk_1F4 = 0.0f;
 	interfaceCtx->unk_228 = XREG(95);
 	interfaceCtx->minimapAlpha = 0;
@@ -30,7 +30,7 @@ void func_801109B0(GlobalContext* globalCtx) {
 	
 	parameterSize = gDmaDataTable[940].vromEnd - gDmaDataTable[940].vromStart;
 	
-	interfaceCtx->parameterSegment = GameState_Alloc(&globalCtx->state, parameterSize, "", __LINE__);
+	interfaceCtx->parameterSegment = GameState_Alloc(&playState->state, parameterSize, "", __LINE__);
 	DmaMgr_SendRequest1(
 		interfaceCtx->parameterSegment,
 		gDmaDataTable[940].vromStart,
@@ -39,7 +39,7 @@ void func_801109B0(GlobalContext* globalCtx) {
 		__LINE__
 	);
 	
-	interfaceCtx->doActionSegment = GameState_Alloc(&globalCtx->state, 0x480, "", __LINE__);
+	interfaceCtx->doActionSegment = GameState_Alloc(&playState->state, 0x480, "", __LINE__);
 	
 	if (gSaveContext.language == LANGUAGE_ENG) {
 		doActionOffset = 0;
@@ -73,7 +73,7 @@ void func_801109B0(GlobalContext* globalCtx) {
 		__LINE__
 	);
 	
-	interfaceCtx->iconItemSegment = GameState_Alloc(&globalCtx->state, 0x4000, "", __LINE__);
+	interfaceCtx->iconItemSegment = GameState_Alloc(&playState->state, 0x4000, "", __LINE__);
 	
 	if (gSaveContext.equips.buttonItems[0] < 0xF0) {
 		DmaMgr_SendRequest1(
@@ -152,8 +152,8 @@ void func_801109B0(GlobalContext* globalCtx) {
 		gSaveContext.timer1State = 0;
 	}
 	
-	HealthMeter_Init(globalCtx);
-	Map_Init(globalCtx);
+	Health_InitMeter(playState);
+	Map_Init(playState);
 	
 	interfaceCtx->unk_23C = interfaceCtx->unk_242 = 0;
 	

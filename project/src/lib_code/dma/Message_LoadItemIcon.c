@@ -38,11 +38,11 @@
 #define R_TEXTBOX_CLEF_YPOS VREG(8)
 #endif
 
-void Message_LoadItemIcon(GlobalContext* globalCtx, u16 itemId, s16 y) {
+void Message_LoadItemIcon(PlayState* playState, u16 itemId, s16 y) {
 	static s16 sIconItem32XOffsets[] = { 74, 74, 74 };
 	static s16 sIconItem24XOffsets[] = { 72, 72, 72 };
-	MessageContext* msgCtx = &globalCtx->msgCtx;
-	InterfaceContext* interfaceCtx = &globalCtx->interfaceCtx;
+	MessageContext* msgCtx = &playState->msgCtx;
+	InterfaceContext* interfaceCtx = &playState->interfaceCtx;
 	
 	if (itemId == ITEM_DUNGEON_MAP) {
 		interfaceCtx->mapPalette[30] = 0xFF;

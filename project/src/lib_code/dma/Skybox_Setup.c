@@ -14,11 +14,10 @@ s8 gSkyboxDmaIdTable[];
 
 f32 Environment_LerpWeight(u16 max, u16 min, u16 val);
 extern NewSkyboxFiles gNewSkyboxFiles[];
-extern struct_8011FC1C D_8011FC1C[][9];
 extern u8 gWeatherMode;
 asm ("gNewSkyboxFiles = 0x8011FD3C");
 
-void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skyboxId) {
+void Skybox_Setup(PlayState* playState, SkyboxContext* skyboxCtx, s16 skyboxId) {
 	u32 size;
 	s16 i;
 	u8 imageIdx1 = 0;
@@ -33,46 +32,46 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 		
 		start = entry->vromStart;
 		size = entry->vromEnd - entry->vromStart;
-		skyboxCtx->staticSegments[0] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
+		skyboxCtx->staticSegments[0] = GameState_Alloc(&playState->state, size, "Skybox_Setup", __LINE__);
 		DmaMgr_SendRequest1(skyboxCtx->staticSegments[0], start, size, "Skybox_Setup", __LINE__);
 		entry++;
 		start = entry->vromStart;
 		size = entry->vromEnd - entry->vromStart;
-		skyboxCtx->palettes = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
+		skyboxCtx->palettes = GameState_Alloc(&playState->state, size, "Skybox_Setup", __LINE__);
 		DmaMgr_SendRequest1(skyboxCtx->palettes, start, size, "Skybox_Setup", __LINE__);
 	}
 	
 	switch (skyboxId) {
 		case SKYBOX_NORMAL_SKY:
 			phi_v1 = 0;
-			if (gSaveContext.unk_13C3 != 0 && gSaveContext.sceneSetupIndex < 4 && gWeatherMode > 0 &&
+			if (gSaveContext.retainWeatherMode != 0 && gSaveContext.sceneSetupIndex < 4 && gWeatherMode > 0 &&
 				gWeatherMode < 6) {
 				phi_v1 = 1;
 			}
 			
 			for (i = 0; i < 9; i++) {
-				if (gSaveContext.skyboxTime >= D_8011FC1C[phi_v1][i].startTime &&
-					(gSaveContext.skyboxTime < D_8011FC1C[phi_v1][i].endTime ||
-					D_8011FC1C[phi_v1][i].endTime == 0xFFFF)) {
-					globalCtx->envCtx.skybox1Index = imageIdx1 = D_8011FC1C[phi_v1][i].skybox1Index;
-					globalCtx->envCtx.skybox2Index = imageIdx2 = D_8011FC1C[phi_v1][i].skybox2Index;
-					if (D_8011FC1C[phi_v1][i].blend != 0) {
-						globalCtx->envCtx.skyboxBlend =
+				if (gSaveContext.skyboxTime >= gTimeBasedSkyboxConfigs[phi_v1][i].startTime &&
+					(gSaveContext.skyboxTime < gTimeBasedSkyboxConfigs[phi_v1][i].endTime ||
+					gTimeBasedSkyboxConfigs[phi_v1][i].endTime == 0xFFFF)) {
+					playState->envCtx.skybox1Index = imageIdx1 = gTimeBasedSkyboxConfigs[phi_v1][i].skybox1Index;
+					playState->envCtx.skybox2Index = imageIdx2 = gTimeBasedSkyboxConfigs[phi_v1][i].skybox2Index;
+					if (gTimeBasedSkyboxConfigs[phi_v1][i].changeSkybox != 0) {
+						playState->envCtx.skyboxBlend =
 							Environment_LerpWeight(
-							D_8011FC1C[phi_v1][i].endTime,
-							D_8011FC1C[phi_v1][i].startTime,
+							gTimeBasedSkyboxConfigs[phi_v1][i].endTime,
+							gTimeBasedSkyboxConfigs[phi_v1][i].startTime,
 							((void)0, gSaveContext.skyboxTime)
 							) *
 							255.0f;
 					} else {
-						globalCtx->envCtx.skyboxBlend = 0;
+						playState->envCtx.skyboxBlend = 0;
 					}
 					break;
 				}
 			}
 			
 			size = gNewSkyboxFiles[imageIdx1].file->vromEnd - gNewSkyboxFiles[imageIdx1].file->vromStart;
-			skyboxCtx->staticSegments[0] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
+			skyboxCtx->staticSegments[0] = GameState_Alloc(&playState->state, size, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(
 				skyboxCtx->staticSegments[0],
@@ -83,7 +82,7 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 			);
 			
 			size = gNewSkyboxFiles[imageIdx2].file->vromEnd - gNewSkyboxFiles[imageIdx2].file->vromStart;
-			skyboxCtx->staticSegments[1] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
+			skyboxCtx->staticSegments[1] = GameState_Alloc(&playState->state, size, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(
 				skyboxCtx->staticSegments[1],
@@ -96,7 +95,7 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 			if ((imageIdx1 & 1) ^ ((imageIdx1 & 4) >> 2)) {
 				size = gNewSkyboxFiles[imageIdx1].palette->vromEnd - gNewSkyboxFiles[imageIdx1].palette->vromStart;
 				
-				skyboxCtx->palettes = GameState_Alloc(&globalCtx->state, size * 2, "Skybox_Setup", __LINE__);
+				skyboxCtx->palettes = GameState_Alloc(&playState->state, size * 2, "Skybox_Setup", __LINE__);
 				
 				DmaMgr_SendRequest1(
 					skyboxCtx->palettes,
@@ -115,7 +114,7 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 			} else {
 				size = gNewSkyboxFiles[imageIdx1].palette->vromEnd - gNewSkyboxFiles[imageIdx1].palette->vromStart;
 				
-				skyboxCtx->palettes = GameState_Alloc(&globalCtx->state, size * 2, "Skybox_Setup", __LINE__);
+				skyboxCtx->palettes = GameState_Alloc(&playState->state, size * 2, "Skybox_Setup", __LINE__);
 				
 				DmaMgr_SendRequest1(
 					skyboxCtx->palettes,
@@ -138,14 +137,14 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 			start = gDmaDataTable[953].vromStart;
 			size = gDmaDataTable[953].vromEnd - start;
 			
-			skyboxCtx->staticSegments[0] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
+			skyboxCtx->staticSegments[0] = GameState_Alloc(&playState->state, size, "Skybox_Setup", __LINE__);
 			DmaMgr_SendRequest1(skyboxCtx->staticSegments[0], start, size, "Skybox_Setup", 1159);
-			skyboxCtx->staticSegments[1] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
+			skyboxCtx->staticSegments[1] = GameState_Alloc(&playState->state, size, "Skybox_Setup", __LINE__);
 			DmaMgr_SendRequest1(skyboxCtx->staticSegments[1], start, size, "Skybox_Setup", 1166);
 			
 			start = gDmaDataTable[953 + 1].vromStart;
 			size = gDmaDataTable[953 + 1].vromEnd - start;
-			skyboxCtx->palettes = GameState_Alloc(&globalCtx->state, size * 2, "Skybox_Setup", __LINE__);
+			skyboxCtx->palettes = GameState_Alloc(&playState->state, size * 2, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(skyboxCtx->palettes, start, size, "Skybox_Setup", __LINE__);
 			DmaMgr_SendRequest1((void*)((u32)skyboxCtx->palettes + size), start, size, "Skybox_Setup", __LINE__);
@@ -154,19 +153,19 @@ void Skybox_Setup(GlobalContext* globalCtx, SkyboxContext* skyboxCtx, s16 skybox
 		case SKYBOX_CUTSCENE_MAP:
 			start = gDmaDataTable[957].vromStart;
 			size = gDmaDataTable[957].vromEnd - start;
-			skyboxCtx->staticSegments[0] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
+			skyboxCtx->staticSegments[0] = GameState_Alloc(&playState->state, size, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(skyboxCtx->staticSegments[0], start, size, "Skybox_Setup", __LINE__);
 			
 			start = gDmaDataTable[957 + 2].vromStart;
 			size = gDmaDataTable[957 + 2].vromEnd - start;
-			skyboxCtx->staticSegments[1] = GameState_Alloc(&globalCtx->state, size, "Skybox_Setup", __LINE__);
+			skyboxCtx->staticSegments[1] = GameState_Alloc(&playState->state, size, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(skyboxCtx->staticSegments[1], start, size, "Skybox_Setup", __LINE__);
 			
 			start = gDmaDataTable[958].vromStart;
 			size = gDmaDataTable[958].vromEnd - start;
-			skyboxCtx->palettes = GameState_Alloc(&globalCtx->state, size * 2, "Skybox_Setup", __LINE__);
+			skyboxCtx->palettes = GameState_Alloc(&playState->state, size * 2, "Skybox_Setup", __LINE__);
 			
 			DmaMgr_SendRequest1(skyboxCtx->palettes, start, size, "Skybox_Setup", __LINE__);
 			DmaMgr_SendRequest1(

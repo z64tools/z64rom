@@ -1,8 +1,8 @@
 #ifndef __ULIB_MACROS_H__
 #define __ULIB_MACROS_H__
 
-#define CHK_ALL(AB, combo)      (~((gGlobalContext.state.input[0].AB.button) | ~(combo)) == 0)
-#define CHK_ANY(AB, combo)      (((gGlobalContext.state.input[0].AB.button) & (combo)) != 0)
+#define CHK_ALL(AB, combo)      (~((gPlayState.state.input[0].AB.button) | ~(combo)) == 0)
+#define CHK_ANY(AB, combo)      (((gPlayState.state.input[0].AB.button) & (combo)) != 0)
 #define AVAL(base, type, value) ((type*)((u8*)base + value))
 
 #define PRNT_DGRY "\e[90;2m"
@@ -72,7 +72,7 @@ typedef enum {
 } TransitionMode;
 
 #define View_SetPerspective      func_800AA460
-#define View_Apply               func_800AAA50
+#define View_Apply               View_Apply
 #define View_ApplyTo             func_800AB9EC
 #define View_UpdateViewingMatrix func_800AB944
 

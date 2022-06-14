@@ -1,10 +1,15 @@
 #include <uLib.h>
+#include "code/code_80069420.h"
 
 /*
    z64ram = 0x800005A0
    z64rom = 0x0011A0
    z64next = 0x80000694
  */
+
+asm ("_codeSegmentStart = 0x8001ce60");
+asm ("_codeSegmentBssEnd = 0x801759c0");
+asm ("_codeSegmentBssStart = 0x80157d90");
 
 void Main_ThreadEntry(void* arg) {
 	OSTime time;

@@ -1,4 +1,5 @@
 #include <oot_mq_debug/z64hdr.h>
+#include "code/z_kankyo.h"
 
 /*
    z64ram = 0x8006FC88
@@ -9,8 +10,6 @@ typedef struct {
 	DmaEntry* file;
 	DmaEntry* palette;
 } NewSkyboxFiles;
-
-void func_8006FB94(EnvironmentContext* envCtx, u8 unused);
 
 extern NewSkyboxFiles gNewSkyboxFiles[];
 asm ("gNewSkyboxFiles = 0x8011FD3C");
@@ -23,16 +22,16 @@ void Environment_UpdateSkybox(u8 skyboxId, EnvironmentContext* envCtx, SkyboxCon
 	u8 skyboxBlend = 0;
 	
 	if (skyboxId == SKYBOX_CUTSCENE_MAP) {
-		envCtx->unk_17 = 3;
+		envCtx->skyboxConfig = 3;
 		
-		for (i = 0; i < ARRAY_COUNT(D_8011FC1C[envCtx->unk_17]); i++) {
-			if (gSaveContext.skyboxTime >= D_8011FC1C[envCtx->unk_17][i].startTime &&
-				(gSaveContext.skyboxTime < D_8011FC1C[envCtx->unk_17][i].endTime ||
-				D_8011FC1C[envCtx->unk_17][i].endTime == 0xFFFF)) {
-				if (D_8011FC1C[envCtx->unk_17][i].blend) {
+		for (i = 0; i < ARRAY_COUNT(gTimeBasedSkyboxConfigs[envCtx->skyboxConfig]); i++) {
+			if (gSaveContext.skyboxTime >= gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].startTime &&
+				(gSaveContext.skyboxTime < gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].endTime ||
+				gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].endTime == 0xFFFF)) {
+				if (gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].changeSkybox) {
 					envCtx->skyboxBlend = Environment_LerpWeight(
-						D_8011FC1C[envCtx->unk_17][i].endTime,
-						D_8011FC1C[envCtx->unk_17][i].startTime,
+						gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].endTime,
+						gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].startTime,
 						((void)0, gSaveContext.skyboxTime)
 						) *
 						255;
@@ -43,33 +42,34 @@ void Environment_UpdateSkybox(u8 skyboxId, EnvironmentContext* envCtx, SkyboxCon
 			}
 		}
 	} else if (skyboxId == SKYBOX_NORMAL_SKY && !envCtx->skyboxDisabled) {
-		for (i = 0; i < ARRAY_COUNT(D_8011FC1C[envCtx->unk_17]); i++) {
-			if (gSaveContext.skyboxTime >= D_8011FC1C[envCtx->unk_17][i].startTime &&
-				(gSaveContext.skyboxTime < D_8011FC1C[envCtx->unk_17][i].endTime ||
-				D_8011FC1C[envCtx->unk_17][i].endTime == 0xFFFF)) {
-				newSkybox1Index = D_8011FC1C[envCtx->unk_17][i].skybox1Index;
-				newSkybox2Index = D_8011FC1C[envCtx->unk_17][i].skybox2Index;
-				gSkyboxBlendingEnabled = D_8011FC1C[envCtx->unk_17][i].blend;
+		for (i = 0; i < ARRAY_COUNT(gTimeBasedSkyboxConfigs[envCtx->skyboxConfig]); i++) {
+			if (gSaveContext.skyboxTime >= gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].startTime &&
+				(gSaveContext.skyboxTime < gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].endTime ||
+				gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].endTime == 0xFFFF)) {
+				newSkybox1Index = gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].skybox1Index;
+				newSkybox2Index = gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].skybox2Index;
+				gSkyboxIsChanging = gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].changeSkybox;
 				
-				if (gSkyboxBlendingEnabled) {
+				if (gSkyboxIsChanging) {
 					skyboxBlend = Environment_LerpWeight(
-						D_8011FC1C[envCtx->unk_17][i].endTime,
-						D_8011FC1C[envCtx->unk_17][i].startTime,
+						gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].endTime,
+						gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].startTime,
 						((void)0, gSaveContext.skyboxTime)
 						) *
 						255;
 				} else {
 					skyboxBlend = Environment_LerpWeight(
-						D_8011FC1C[envCtx->unk_17][i].endTime,
-						D_8011FC1C[envCtx->unk_17][i].startTime,
+						gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].endTime,
+						gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].startTime,
 						((void)0, gSaveContext.skyboxTime)
 						) *
 						255;
 					
 					skyboxBlend = (skyboxBlend < 0x80) ? 0xFF : 0;
 					
-					if ((envCtx->unk_19 != 0) && (envCtx->unk_19 < 3)) {
-						envCtx->unk_19++;
+					if ((envCtx->changeSkyboxState != CHANGE_SKYBOX_INACTIVE) &&
+						(envCtx->changeSkyboxState < CHANGE_SKYBOX_ACTIVE)) {
+						envCtx->changeSkyboxState++;
 						skyboxBlend = 0;
 					}
 				}
@@ -77,22 +77,22 @@ void Environment_UpdateSkybox(u8 skyboxId, EnvironmentContext* envCtx, SkyboxCon
 			}
 		}
 		
-		func_8006FB94(envCtx, skyboxBlend);
+		Environment_UpdateStorm(envCtx, skyboxBlend);
 		
-		if (envCtx->unk_19 >= 3) {
-			newSkybox1Index = D_8011FC1C[envCtx->unk_17][i].skybox1Index;
-			newSkybox2Index = D_8011FC1C[envCtx->unk_18][i].skybox2Index;
+		if (envCtx->changeSkyboxState >= 3) {
+			newSkybox1Index = gTimeBasedSkyboxConfigs[envCtx->skyboxConfig][i].skybox1Index;
+			newSkybox2Index = gTimeBasedSkyboxConfigs[envCtx->changeSkyboxNextConfig][i].skybox2Index;
 			
-			skyboxBlend = ((f32)envCtx->unk_24 - envCtx->unk_1A--) / (f32)envCtx->unk_24 * 255;
+			skyboxBlend = ((f32)envCtx->changeDuration - envCtx->changeSkyboxTimer--) / (f32)envCtx->changeDuration * 255;
 			
-			if (envCtx->unk_1A <= 0) {
-				envCtx->unk_19 = 0;
-				envCtx->unk_17 = envCtx->unk_18;
+			if (envCtx->changeSkyboxTimer <= 0) {
+				envCtx->changeSkyboxState = 0;
+				envCtx->skyboxConfig = envCtx->changeSkyboxNextConfig;
 			}
 		}
 		
 		if ((envCtx->skybox1Index != newSkybox1Index) && (envCtx->skyboxDmaState == SKYBOX_DMA_INACTIVE)) {
-			envCtx->skyboxDmaState = SKYBOX_DMA_FILE1_START;
+			envCtx->skyboxDmaState = SKYBOX_DMA_TEXTURE1_START;
 			size = gNewSkyboxFiles[newSkybox1Index].file->vromEnd - gNewSkyboxFiles[newSkybox1Index].file->vromStart;
 			
 			osCreateMesgQueue(&envCtx->loadQueue, &envCtx->loadMsg, 1);
@@ -111,7 +111,7 @@ void Environment_UpdateSkybox(u8 skyboxId, EnvironmentContext* envCtx, SkyboxCon
 		}
 		
 		if ((envCtx->skybox2Index != newSkybox2Index) && (envCtx->skyboxDmaState == SKYBOX_DMA_INACTIVE)) {
-			envCtx->skyboxDmaState = SKYBOX_DMA_FILE2_START;
+			envCtx->skyboxDmaState = SKYBOX_DMA_TEXTURE2_START;
 			size = gNewSkyboxFiles[newSkybox2Index].file->vromEnd - gNewSkyboxFiles[newSkybox2Index].file->vromStart;
 			
 			osCreateMesgQueue(&envCtx->loadQueue, &envCtx->loadMsg, 1);
@@ -129,8 +129,8 @@ void Environment_UpdateSkybox(u8 skyboxId, EnvironmentContext* envCtx, SkyboxCon
 			envCtx->skybox2Index = newSkybox2Index;
 		}
 		
-		if (envCtx->skyboxDmaState == SKYBOX_DMA_FILE1_DONE) {
-			envCtx->skyboxDmaState = SKYBOX_DMA_PAL1_START;
+		if (envCtx->skyboxDmaState == SKYBOX_DMA_TEXTURE1_DONE) {
+			envCtx->skyboxDmaState = SKYBOX_DMA_TLUT1_START;
 			
 			if ((newSkybox1Index & 1) ^ ((newSkybox1Index & 4) >> 2)) {
 				size = gNewSkyboxFiles[newSkybox1Index].palette->vromEnd - gNewSkyboxFiles[newSkybox1Index].palette->vromStart;
@@ -164,8 +164,8 @@ void Environment_UpdateSkybox(u8 skyboxId, EnvironmentContext* envCtx, SkyboxCon
 			}
 		}
 		
-		if (envCtx->skyboxDmaState == SKYBOX_DMA_FILE2_DONE) {
-			envCtx->skyboxDmaState = SKYBOX_DMA_PAL2_START;
+		if (envCtx->skyboxDmaState == SKYBOX_DMA_TEXTURE2_DONE) {
+			envCtx->skyboxDmaState = SKYBOX_DMA_TLUT2_START;
 			
 			if ((newSkybox2Index & 1) ^ ((newSkybox2Index & 4) >> 2)) {
 				size = gNewSkyboxFiles[newSkybox2Index].palette->vromEnd - gNewSkyboxFiles[newSkybox2Index].palette->vromStart;
@@ -199,11 +199,11 @@ void Environment_UpdateSkybox(u8 skyboxId, EnvironmentContext* envCtx, SkyboxCon
 			}
 		}
 		
-		if ((envCtx->skyboxDmaState == SKYBOX_DMA_FILE1_START) || (envCtx->skyboxDmaState == SKYBOX_DMA_FILE2_START)) {
+		if ((envCtx->skyboxDmaState == SKYBOX_DMA_TEXTURE1_START) || (envCtx->skyboxDmaState == SKYBOX_DMA_TEXTURE2_START)) {
 			if (osRecvMesg(&envCtx->loadQueue, 0, OS_MESG_NOBLOCK) == 0) {
 				envCtx->skyboxDmaState++;
 			}
-		} else if (envCtx->skyboxDmaState >= SKYBOX_DMA_FILE1_DONE) {
+		} else if (envCtx->skyboxDmaState >= SKYBOX_DMA_TEXTURE1_DONE) {
 			if (osRecvMesg(&envCtx->loadQueue, 0, OS_MESG_NOBLOCK) == 0) {
 				envCtx->skyboxDmaState = SKYBOX_DMA_INACTIVE;
 			}

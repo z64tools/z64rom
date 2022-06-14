@@ -1,11 +1,12 @@
 #include <uLib.h>
+#include "code/z_effect_soft_sprite.h"
 
 /*
    z64ram = 0x80027410
    z64rom = 0xA9E5B0
  */
 
-void EffectSs_ClearAll(GlobalContext* globalCtx) {
+void EffectSs_ClearAll(PlayState* playState) {
 	u32 i;
 	EffectSsOverlay* overlay;
 	void* addr;

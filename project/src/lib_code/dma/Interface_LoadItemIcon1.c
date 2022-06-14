@@ -5,8 +5,8 @@
    z64rom = 0xAFBC0C
  */
 
-void Interface_LoadItemIcon1(GlobalContext* globalCtx, u16 button) {
-	InterfaceContext* interfaceCtx = &globalCtx->interfaceCtx;
+void Interface_LoadItemIcon1(PlayState* playState, u16 button) {
+	InterfaceContext* interfaceCtx = &playState->interfaceCtx;
 	
 	osCreateMesgQueue(&interfaceCtx->loadQueue, &interfaceCtx->loadMsg, OS_MESG_BLOCK);
 	DmaMgr_SendRequest2(

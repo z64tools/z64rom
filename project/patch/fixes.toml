@@ -40,7 +40,7 @@
     0x00008CC8 = 0x1000
     
     # func_8084FCAC
-    # Camera_ChangeMode(Play_GetCamera(globalCtx, CAM_ID_MAIN), XXXX);
+    # Camera_ChangeMode(Play_GetCamera(playState, CAM_ID_MAIN), XXXX);
     0x0001DB34 = 0x....0001 # CAM_MODE_TARGET
 
 [rom/actor/0x00FF-Push_Block/actor.zovl]

@@ -1,4 +1,5 @@
 #include <uLib.h>
+#include "code/z_message_PAL.h"
 
 /*
    z64ram = 0x8010B0C0
@@ -6,21 +7,11 @@
    z64next = 0x8010B680
  */
 
-typedef enum {
-	/*  0 */ TEXTBOX_TYPE_BLACK,
-	/*  1 */ TEXTBOX_TYPE_WOODEN,
-	/*  2 */ TEXTBOX_TYPE_BLUE,
-	/*  3 */ TEXTBOX_TYPE_OCARINA,
-	/*  4 */ TEXTBOX_TYPE_NONE_BOTTOM,
-	/*  5 */ TEXTBOX_TYPE_NONE_NO_SHADOW,
-	/* 11 */ TEXTBOX_TYPE_CREDITS = 11
-} TextBoxType;
-
 #define GET_EVENTCHKINF(flag) (gSaveContext.eventChkInf[(flag) >> 4] & (1 << ((flag) & 0xF)))
 
-void Message_OpenText(GlobalContext* globalCtx, u16 textId) {
+void Message_OpenText(PlayState* playState, u16 textId) {
 	static s16 messageStaticIndices[] = { 0, 1, 3, 2 };
-	MessageContext* msgCtx = &globalCtx->msgCtx;
+	MessageContext* msgCtx = &playState->msgCtx;
 	Font* font = &msgCtx->font;
 	s16 textBoxType;
 	
@@ -67,7 +58,7 @@ void Message_OpenText(GlobalContext* globalCtx, u16 textId) {
 		gSaveContext.eventInf[0] = gSaveContext.eventInf[1] = gSaveContext.eventInf[2] = gSaveContext.eventInf[3] = 0;
 	
 	if (sTextIsCredits) {
-		Message_FindCreditsMessage(globalCtx, textId);
+		Message_FindCreditsMessage(playState, textId);
 		msgCtx->msgLength = font->msgLength;
 		DmaMgr_SendRequest1(
 			font->msgBuf,
@@ -77,7 +68,7 @@ void Message_OpenText(GlobalContext* globalCtx, u16 textId) {
 			0
 		);
 	} else {
-		Message_FindMessage(globalCtx, textId);
+		Message_FindMessage(playState, textId);
 		msgCtx->msgLength = font->msgLength;
 		DmaMgr_SendRequest1(
 			font->msgBuf,

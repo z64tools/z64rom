@@ -1,13 +1,14 @@
 #include <uLib.h>
 #include <include/message_data_fmt.h>
 #include <include/message_data_static.h>
+#include "code/z_message_PAL.h"
 
 /*
    z64ram = 0x80109B3C
    z64rom = 0xB80CDC
  */
 
-void Message_Decode(GlobalContext* globalCtx) {
+void Message_Decode(PlayState* playState) {
 	u8 temp_s2;
 	u8 phi_s1;
 	u16 phi_s0_3;
@@ -19,11 +20,11 @@ void Message_Decode(GlobalContext* globalCtx) {
 	s16 i;
 	s16 digits[4];
 	f32 timeInSeconds;
-	MessageContext* msgCtx = &globalCtx->msgCtx;
-	Font* font = &globalCtx->msgCtx.font;
+	MessageContext* msgCtx = &playState->msgCtx;
+	Font* font = &playState->msgCtx.font;
 	
-	globalCtx->msgCtx.textDelayTimer = 0;
-	globalCtx->msgCtx.textUnskippable = globalCtx->msgCtx.textDelay = globalCtx->msgCtx.textDelayTimer = 0;
+	playState->msgCtx.textDelayTimer = 0;
+	playState->msgCtx.textUnskippable = playState->msgCtx.textDelay = playState->msgCtx.textDelayTimer = 0;
 	sTextFade = false;
 	
 	while (true) {
@@ -341,7 +342,7 @@ void Message_Decode(GlobalContext* globalCtx) {
 		} else if (temp_s2 == MESSAGE_ITEM_ICON) {
 			msgCtx->msgBufDecoded[++decodedBufPos] = font->msgBuf[msgCtx->msgBufPos + 1];
 			
-			Message_LoadItemIcon(globalCtx, font->msgBuf[msgCtx->msgBufPos + 1], R_TEXTBOX_Y + 10);
+			Message_LoadItemIcon(playState, font->msgBuf[msgCtx->msgBufPos + 1], R_TEXTBOX_Y + 10);
 		} else if (temp_s2 == MESSAGE_BACKGROUND) {
 			msgCtx->textboxBackgroundIdx = font->msgBuf[msgCtx->msgBufPos + 1] * 2;
 			msgCtx->textboxBackgroundForeColorIdx = (font->msgBuf[msgCtx->msgBufPos + 2] & 0xF0) >> 4;

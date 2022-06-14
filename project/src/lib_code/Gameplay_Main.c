@@ -7,6 +7,6 @@
  */
 
 void Gameplay_Main(GameState* thisx) {
-	GlobalContext* globalCtx = (GlobalContext*)thisx;
-	Play_Main(globalCtx);
+	PlayState* playState = (PlayState*)thisx;
+	NewPlay_Main(playState);
 }

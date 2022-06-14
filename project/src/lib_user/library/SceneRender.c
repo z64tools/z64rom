@@ -1,14 +1,14 @@
 #include "uLib.h"
 #include "SceneRender.h"
 
-void func_8009BEEC(GlobalContext* globalCtx);
+void func_8009BEEC(PlayState* playState);
 asm ("func_8009BEEC = 0x8009BEEC");
 
 static SceneAnimContext gSceneAnimCtx;
 
 /* propagate ram segment with pointer to data */
-static void segment(GlobalContext* globalCtx, s32 seg, void* data) {
-	GraphicsContext* gfx = globalCtx->state.gfxCtx;
+static void segment(PlayState* playState, s32 seg, void* data) {
+	GraphicsContext* gfx = playState->state.gfxCtx;
 	
 	gSPSegment(gfx->polyOpa.p++, seg, data);
 	gSPSegment(gfx->polyXlu.p++, seg, data);
@@ -17,32 +17,32 @@ static void segment(GlobalContext* globalCtx, s32 seg, void* data) {
 }
 
 /* returns 1 = flag active; 0 = flag inactive */
-static s32 flag(GlobalContext* globalCtx, Flag* f) {
+static s32 flag(PlayState* playState, Flag* f) {
 	s32 r = 0;
 	
 	switch (f->type) {
 		case FLAG_TYPE_ROOMCLEAR:
-			r = Flags_GetClear(globalCtx, f->flag);
+			r = Flags_GetClear(playState, f->flag);
 			break;
 			
 		case FLAG_TYPE_TREASURE:
-			r = Flags_GetTreasure(globalCtx, f->flag);
+			r = Flags_GetTreasure(playState, f->flag);
 			break;
 			
 		case FLAG_TYPE_USCENE:
-			r = Flags_GetUnknown(globalCtx, f->flag);
+			r = Flags_GetUnknown(playState, f->flag);
 			break;
 			
 		case FLAG_TYPE_TEMP:
-			r = Flags_GetTempClear(globalCtx, f->flag);
+			r = Flags_GetTempClear(playState, f->flag);
 			break;
 			
 		case FLAG_TYPE_SCENECOLLECT:
-			r = Flags_GetCollectible(globalCtx, f->flag);
+			r = Flags_GetCollectible(playState, f->flag);
 			break;
 			
 		case FLAG_TYPE_SWITCH:
-			r = Flags_GetSwitch(globalCtx, f->flag);
+			r = Flags_GetSwitch(playState, f->flag);
 			break;
 			
 		case FLAG_TYPE_EVENTCHKINF:
@@ -63,7 +63,7 @@ static s32 flag(GlobalContext* globalCtx, Flag* f) {
 			
 		case FLAG_TYPE_GLOBAL:
 			r = !!(
-				(*(u32*)((u8*)(globalCtx) + f->flag)) & f->and
+				(*(u32*)((u8*)(playState) + f->flag)) & f->and
 			);
 			break;
 			
@@ -240,10 +240,10 @@ static float SceneAnim_Interpolate(u32 frame, u32 next, enum8(ease) ease) {
 	return factor;
 }
 
-static void SceneAnim_Color_Loop(GlobalContext* globalCtx, Gfx** work, ColorList* list) {
+static void SceneAnim_Color_Loop(PlayState* playState, Gfx** work, ColorList* list) {
 	ColorKey* from;
 	ColorKey* to;
-	u32 frame = globalCtx->gameplayFrames;
+	u32 frame = playState->gameplayFrames;
 	float factor;
 	
 	from = SceneAnim_GetColorKey(list, &frame);
@@ -257,18 +257,18 @@ static void SceneAnim_Color_Loop(GlobalContext* globalCtx, Gfx** work, ColorList
 	SceneAnim_PutColorKey(list->which, work, &gSceneAnimCtx.Pcolorkey);
 }
 
-static void SceneAnim_Color_LoopFlag(GlobalContext* globalCtx, Gfx** work, ColorListFlag* c) {
+static void SceneAnim_Color_LoopFlag(PlayState* playState, Gfx** work, ColorListFlag* c) {
 	Flag* f = &c->flag;
 	ColorList* list = &c->list;
 	
 	ColorKey* key;
 	ColorKey Nkey;
-	s32 active = flag(globalCtx, f);
+	s32 active = flag(playState, f);
 	s32 xfading = (f->frames || active) && f->frames <= f->xfade && f->xfade;
 	
 	enum8(ColorKeyTypes) which = list->which;
 	
-	// if (flag(globalCtx, &SceneAnim_TexScroll_One->flag))
+	// if (flag(playState, &SceneAnim_TexScroll_One->flag))
 	//	SceneAnim_TexScroll_One->flag.frames++;
 	
 	/* if not cross fading, write to Pcolorkey */
@@ -285,7 +285,7 @@ static void SceneAnim_Color_LoopFlag(GlobalContext* globalCtx, Gfx** work, Color
 	if (active || xfading) {
 		ColorKey* from;
 		ColorKey* to;
-		u32 frame = globalCtx->gameplayFrames;
+		u32 frame = playState->gameplayFrames;
 		float factor;
 		
 		from = SceneAnim_GetColorKey(list, &frame);
@@ -321,8 +321,8 @@ static s32 SceneAnim_ABS(s32 x) {
 }
 
 /* TODO SEGMENTED_TO_VIRTUAL should do the same thing; test it later */
-static void* SceneAnim_Mkabs(GlobalContext* globalCtx, void* ptr) {
-	u8* scene = (u8*)globalCtx->sceneSegment;
+static void* SceneAnim_Mkabs(PlayState* playState, void* ptr) {
+	u8* scene = (u8*)playState->sceneSegment;
 	u32 ptr32 = (u32)ptr;
 	
 	if (!ptr)
@@ -334,15 +334,15 @@ static void* SceneAnim_Mkabs(GlobalContext* globalCtx, void* ptr) {
 }
 
 /* change pointer based on flag */
-static void SceneAnim_Pointer_Flag(GlobalContext* globalCtx, Gfx** work, PointerFlag* ptr) {
+static void SceneAnim_Pointer_Flag(PlayState* playState, Gfx** work, PointerFlag* ptr) {
 	// TODO don't forget to uncomment this
-	*work = (void*)SEGMENTED_TO_VIRTUAL(ptr->ptr[flag(globalCtx, &ptr->flag)]);
+	*work = (void*)SEGMENTED_TO_VIRTUAL(ptr->ptr[flag(playState, &ptr->flag)]);
 	// testing:
 	// *work = (void*)SEGMENTED_TO_VIRTUAL(ptr->ptr[0]);
 }
 
 /* change pointer as time progresses (each pointer has its own time) */
-static void SceneAnim_Pointer_Timeloop(GlobalContext* globalCtx, Gfx** work, PointerTimeloop* ptr) {
+static void SceneAnim_Pointer_Timeloop(PlayState* playState, Gfx** work, PointerTimeloop* ptr) {
 	s32 item;
 	s32 num = ptr->num;
 	u32* list = (void*)(ptr->each + num + !(num & 1));
@@ -366,19 +366,19 @@ static void SceneAnim_Pointer_Timeloop(GlobalContext* globalCtx, Gfx** work, Poi
 
 /* change pointer as time progresses (each pointer has its own time) */
 /* skipped if flag is undesirable */
-static s32 SceneAnim_Pointer_TimeloopFlag(GlobalContext* globalCtx, Gfx** work, PointerTimeloopFlag* _ptr) {
+static s32 SceneAnim_Pointer_TimeloopFlag(PlayState* playState, Gfx** work, PointerTimeloopFlag* _ptr) {
 	PointerTimeloop* ptr = &_ptr->list;
 	
-	if (!flag(globalCtx, &_ptr->flag))
+	if (!flag(playState, &_ptr->flag))
 		return 0;
 	
-	SceneAnim_Pointer_Timeloop(globalCtx, work, ptr);
+	SceneAnim_Pointer_Timeloop(playState, work, ptr);
 	
 	return 1;
 }
 
 /* change pointer as time progresses */
-static void SceneAnim_Pointer_Loop(GlobalContext* globalCtx, Gfx** work, PointerLoop* ptr) {
+static void SceneAnim_Pointer_Loop(PlayState* playState, Gfx** work, PointerLoop* ptr) {
 	s32 item;
 	
 	/* overflow test */
@@ -394,15 +394,15 @@ static void SceneAnim_Pointer_Loop(GlobalContext* globalCtx, Gfx** work, Pointer
 
 /* change pointer as time progresses */
 /* skipped if flag is undesirable */
-static s32 SceneAnim_Pointer_LoopFlag(GlobalContext* globalCtx, Gfx** work, PointerLoopFlag* _ptr) {
+static s32 SceneAnim_Pointer_LoopFlag(PlayState* playState, Gfx** work, PointerLoopFlag* _ptr) {
 	PointerLoop* ptr = &_ptr->list;
-	u8 flagstate = flag(globalCtx, &_ptr->flag);
+	u8 flagstate = flag(playState, &_ptr->flag);
 	Flag* f = &_ptr->flag;
 	
 	if (!flagstate && f->freeze == 0)
 		return 0;
 	
-	SceneAnim_Pointer_Loop(globalCtx, work, ptr);
+	SceneAnim_Pointer_Loop(playState, work, ptr);
 	
 	// if freeze mode is set, time doesnt advance when flag is not set
 	if (!flagstate && f->freeze == 1)
@@ -413,8 +413,8 @@ static s32 SceneAnim_Pointer_LoopFlag(GlobalContext* globalCtx, Gfx** work, Poin
 
 /* SceneAnim_TexScroll_One one tile layer */
 // TODO does MM really SceneAnim_TexScroll_One only one layer using this?
-static void SceneAnim_TexScroll_One(GlobalContext* globalCtx, Gfx** work, TexScroll* sc) {
-	u32 frame = globalCtx->gameplayFrames;
+static void SceneAnim_TexScroll_One(PlayState* playState, Gfx** work, TexScroll* sc) {
+	u32 frame = playState->gameplayFrames;
 	
 	gDPSetTileSize(
 		(*work)++
@@ -428,9 +428,9 @@ static void SceneAnim_TexScroll_One(GlobalContext* globalCtx, Gfx** work, TexScr
 }
 
 /* SceneAnim_TexScroll_One two tile layers */
-static void SceneAnim_TexScroll_Two(GlobalContext* globalCtx, Gfx** work, TexScroll* sc) {
+static void SceneAnim_TexScroll_Two(PlayState* playState, Gfx** work, TexScroll* sc) {
 	TexScroll* sc1 = sc + 1;
-	u32 frame = globalCtx->gameplayFrames;
+	u32 frame = playState->gameplayFrames;
 	
 	gDPSetTileSize(
 		(*work)++
@@ -454,12 +454,12 @@ static void SceneAnim_TexScroll_Two(GlobalContext* globalCtx, Gfx** work, TexScr
 }
 
 /* SceneAnim_TexScroll_One tiles based on flag */
-static void SceneAnim_TexScroll_Flag(GlobalContext* globalCtx, Gfx** work, TexScrollFlag* SceneAnim_TexScroll_One) {
+static void SceneAnim_TexScroll_Flag(PlayState* playState, Gfx** work, TexScrollFlag* SceneAnim_TexScroll_One) {
 	TexScroll* sc = SceneAnim_TexScroll_One->sc;
 	TexScroll* sc1 = sc + 1;
 	u16 frame = SceneAnim_TexScroll_One->flag.frames;
 	
-	if (flag(globalCtx, &SceneAnim_TexScroll_One->flag))
+	if (flag(playState, &SceneAnim_TexScroll_One->flag))
 		SceneAnim_TexScroll_One->flag.frames++;
 	
 	gDPSetTileSize(
@@ -485,38 +485,38 @@ static void SceneAnim_TexScroll_Flag(GlobalContext* globalCtx, Gfx** work, TexSc
 
 /* change pointer as time progresses (each pointer has its own time) */
 /* skipped if flag is undesirable */
-static s32 SceneAnim_CameraEffect(GlobalContext* globalCtx, Gfx** work, CameraEffect* cam) { // TODO
+static s32 SceneAnim_CameraEffect(PlayState* playState, Gfx** work, CameraEffect* cam) { // TODO
 	u8 cameratype = cam->cameratype;
 	
-	if (!flag(globalCtx, &cam->flag))
+	if (!flag(playState, &cam->flag))
 		return 0;
 	
 	if (cameratype == 0) {
-		func_8009BEEC(globalCtx); // camera shake
+		func_8009BEEC(playState); // camera shake
 	} else { // jabu jabu
 		static s16 D_UNK_JAB1 = 538;
 		static s16 D_UNK_JAB2 = 4272;
 		
 		f32 temp;
 		
-		if (FrameAdvance_IsEnabled(globalCtx) != true) {
+		if (FrameAdvance_IsEnabled(playState) != true) {
 			D_UNK_JAB1 += 1820;
 			D_UNK_JAB2 += 1820;
 			
 			temp = 0.020000001f;
-			func_800AA76C(
-				&globalCtx->view,
+			View_SetDistortionOrientation(
+				&playState->view,
 				((360.00018f / 65535.0f) * (M_PI / 180.0f)) * temp * Math_CosS(D_UNK_JAB1),
 				((360.00018f / 65535.0f) * (M_PI / 180.0f)) * temp * Math_SinS(D_UNK_JAB1),
 				((360.00018f / 65535.0f) * (M_PI / 180.0f)) * temp * Math_SinS(D_UNK_JAB2)
 			);
-			func_800AA78C(
-				&globalCtx->view,
+			View_SetDistortionScale(
+				&playState->view,
 				1.f + (0.79999995f * temp * Math_SinS(D_UNK_JAB2)),
 				1.f + (0.39999998f * temp * Math_CosS(D_UNK_JAB2)),
 				1.f + (1 * temp * Math_CosS(D_UNK_JAB1))
 			);
-			func_800AA7AC(&globalCtx->view, 0.95f);
+			View_SetDistortionSpeed(&playState->view, 0.95f);
 		}
 	}
 	
@@ -525,15 +525,15 @@ static s32 SceneAnim_CameraEffect(GlobalContext* globalCtx, Gfx** work, CameraEf
 
 /* change pointer as time progresses (each pointer has its own time) */
 /* skipped if flag is undesirable */
-static s32 SceneAnim_DrawCondition(GlobalContext* globalCtx, Gfx** work, DrawCondition* _ptr) {
-	if (!flag(globalCtx, &_ptr->flag))
+static s32 SceneAnim_DrawCondition(PlayState* playState, Gfx** work, DrawCondition* _ptr) {
+	if (!flag(playState, &_ptr->flag))
 		return 0;
 	
 	return 1;
 }
 
-static void* SceneAnim_GetSceneHeader(GlobalContext* globalCtx) {
-	u32* header = (u32*)globalCtx->sceneSegment;
+static void* SceneAnim_GetSceneHeader(PlayState* playState) {
+	u32* header = (u32*)playState->sceneSegment;
 	u32 setup = gSaveContext.sceneSetupIndex;
 	
 	if (setup && *header == 0x18000000) {
@@ -572,8 +572,8 @@ static void SceneAnim_UnusedDL(Gfx** work) {
 	gSPEndDisplayList((*work)++);
 }
 
-static void SceneAnim_UnusedSegment(GlobalContext* globalCtx, s32 seg) {
-	GraphicsContext* gfx = globalCtx->state.gfxCtx;
+static void SceneAnim_UnusedSegment(PlayState* playState, s32 seg) {
+	GraphicsContext* gfx = playState->state.gfxCtx;
 	Gfx* buf;
 	Gfx* Obuf;
 	
@@ -581,20 +581,20 @@ static void SceneAnim_UnusedSegment(GlobalContext* globalCtx, s32 seg) {
 	
 	SceneAnim_UnusedDL(&buf);
 	
-	segment(globalCtx, seg, Obuf);
+	segment(playState, seg, Obuf);
 }
 
-void SceneAnim_Init(GlobalContext* globalCtx) {
+void SceneAnim_Init(PlayState* playState) {
 	AnimInfo* item;
 	
-	gSceneAnimCtx.animInfoList = SceneAnim_GetSceneAnimCommand(SceneAnim_GetSceneHeader(globalCtx));
+	gSceneAnimCtx.animInfoList = SceneAnim_GetSceneAnimCommand(SceneAnim_GetSceneHeader(playState));
 	
 	if (gSceneAnimCtx.animInfoList) {
 		if (((u32)gSceneAnimCtx.animInfoList->data & 0xFF000000) != 0x80000000) {
 			for (item = gSceneAnimCtx.animInfoList; ; ++item) {
 				s8 Oseg = item->seg;
 				item->seg = SceneAnim_ABS(item->seg) + 7;
-				item->data = SceneAnim_Mkabs(globalCtx, item->data);
+				item->data = SceneAnim_Mkabs(playState, item->data);
 				
 				if (Oseg <= 0) {
 					item->seg |= 0x80;
@@ -605,7 +605,7 @@ void SceneAnim_Init(GlobalContext* globalCtx) {
 	}
 }
 
-void SceneAnim_Update(GlobalContext* globalCtx) {
+void SceneAnim_Update(PlayState* playState) {
 	AnimInfo* item;
 	TwoHeadGfxArena* buf;
 	GraphicsContext* gfxCtx;
@@ -614,9 +614,9 @@ void SceneAnim_Update(GlobalContext* globalCtx) {
 	Gfx* Owork = 0;
 	s32 hasWrittenPointer = 0; /* used to test if pointer written */
 	
-	gfxCtx = (globalCtx->state).gfxCtx;
+	gfxCtx = (playState->state).gfxCtx;
 	
-	SceneAnim_Init(globalCtx);
+	SceneAnim_Init(playState);
 	
 	buf = &(gfxCtx->polyOpa);
 	gDPPipeSync(buf->p++);
@@ -630,7 +630,7 @@ void SceneAnim_Update(GlobalContext* globalCtx) {
 		/* propagate ram segments with defaults so scene *
 		* headers lacking a 0x1A command do not crash   */
 		for (s32 i = 0x08; i <= 0x0F; ++i)
-			SceneAnim_UnusedSegment(globalCtx, i);
+			SceneAnim_UnusedSegment(playState, i);
 		
 		return;
 	}
@@ -647,11 +647,11 @@ void SceneAnim_Update(GlobalContext* globalCtx) {
 				if (work > Owork)
 					gSPEndDisplayList(work++);
 				
-				segment(globalCtx, prevSeg, Owork);
+				segment(playState, prevSeg, Owork);
 			}
 			
 			/* request space for 8 opcodes in graphics memory */
-			Owork = work = Graph_Alloc(globalCtx->state.gfxCtx, 8 * 8);
+			Owork = work = Graph_Alloc(playState->state.gfxCtx, 8 * 8);
 			prevSeg = seg;
 			
 			/* zero-initialize any variables needing it */
@@ -661,12 +661,12 @@ void SceneAnim_Update(GlobalContext* globalCtx) {
 		switch (item->type) {
 			/* SceneAnim_TexScroll_One one layer */
 			case 0x0000:
-				SceneAnim_TexScroll_One(globalCtx, &work, data);
+				SceneAnim_TexScroll_One(playState, &work, data);
 				break;
 				
 			/* SceneAnim_TexScroll_One two layers */
 			case 0x0001:
-				SceneAnim_TexScroll_Two(globalCtx, &work, data);
+				SceneAnim_TexScroll_Two(playState, &work, data);
 				break;
 				
 			/* cycle through color list (advance one per frame) */
@@ -702,23 +702,23 @@ void SceneAnim_Update(GlobalContext* globalCtx) {
 				if (hasWrittenPointer)
 					break;
 				hasWrittenPointer = 1;
-				SceneAnim_Pointer_Flag(globalCtx, &work, data);
+				SceneAnim_Pointer_Flag(playState, &work, data);
 				Owork = work;
 				break;
 				
 			/* SceneAnim_TexScroll_One tiles based on flag */
 			case 0x0008:
-				SceneAnim_TexScroll_Flag(globalCtx, &work, data);
+				SceneAnim_TexScroll_Flag(playState, &work, data);
 				break;
 				
 			/* loop through color list */
 			case 0x0009:
-				SceneAnim_Color_Loop(globalCtx, &work, data);
+				SceneAnim_Color_Loop(playState, &work, data);
 				break;
 				
 			/* loop through color list, with flag */
 			case 0x000A:
-				SceneAnim_Color_LoopFlag(globalCtx, &work, data);
+				SceneAnim_Color_LoopFlag(playState, &work, data);
 				break;
 				
 			/* loop through pointer list */
@@ -726,7 +726,7 @@ void SceneAnim_Update(GlobalContext* globalCtx) {
 				if (hasWrittenPointer)
 					break;
 				hasWrittenPointer = 1;
-				SceneAnim_Pointer_Loop(globalCtx, &work, data);
+				SceneAnim_Pointer_Loop(playState, &work, data);
 				Owork = work;
 				break;
 				
@@ -735,7 +735,7 @@ void SceneAnim_Update(GlobalContext* globalCtx) {
 			case 0x000C:
 				if (hasWrittenPointer)
 					break;
-				if (SceneAnim_Pointer_LoopFlag(globalCtx, &work, data))
+				if (SceneAnim_Pointer_LoopFlag(playState, &work, data))
 					hasWrittenPointer = 1;
 				Owork = work;
 				break;
@@ -745,7 +745,7 @@ void SceneAnim_Update(GlobalContext* globalCtx) {
 				if (hasWrittenPointer)
 					break;
 				hasWrittenPointer = 1;
-				SceneAnim_Pointer_Timeloop(globalCtx, &work, data);
+				SceneAnim_Pointer_Timeloop(playState, &work, data);
 				Owork = work;
 				break;
 				
@@ -754,19 +754,19 @@ void SceneAnim_Update(GlobalContext* globalCtx) {
 			case 0x000E:
 				if (hasWrittenPointer)
 					break;
-				if (SceneAnim_Pointer_TimeloopFlag(globalCtx, &work, data))
+				if (SceneAnim_Pointer_TimeloopFlag(playState, &work, data))
 					hasWrittenPointer = 1;
 				Owork = work;
 				break;
 				
 			/* camera effect if flag is set */
 			case 0x000F:
-				SceneAnim_CameraEffect(globalCtx, &work, data);
+				SceneAnim_CameraEffect(playState, &work, data);
 				break;
 				
 			/* draw if flag is set */
 			case 0x0010:
-				SceneAnim_DrawCondition(globalCtx, &work, data);
+				SceneAnim_DrawCondition(playState, &work, data);
 				break;
 				
 			default:
@@ -782,7 +782,7 @@ void SceneAnim_Update(GlobalContext* globalCtx) {
 				if (work > Owork)
 					gSPEndDisplayList(work++);
 				
-				segment(globalCtx, prevSeg, Owork);
+				segment(playState, prevSeg, Owork);
 			}
 			break;
 		}

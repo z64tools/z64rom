@@ -2,9 +2,11 @@
 #include <uLib.h>
 #include "vt.h"
 
-asm ("D_801333D4 = 0x801333D4");
-asm ("D_801333E0 = 0x801333E0");
-asm ("D_801333E8 = 0x801333E8");
+asm ("gSfxDefaultPos = 0x801333D4");
+asm ("gSfxDefaultFreqAndVolScale = 0x801333E0");
+asm ("gSfxDefaultReverb = 0x801333E8");
+
+asm ("Select_Init = 0x80801E44");
 // char wow[0x100000];
 
 void uLib_Update(GameState* gameState) {
@@ -44,8 +46,8 @@ void uLib_Update(GameState* gameState) {
 	/* Skip current textbox when pressing B */
 	if (gSaveContext.gameMode == 0) {
 		static s32 soundFlag;
-		GlobalContext* globalCtx = &gGlobalContext;
-		MessageContext* msgCtx = &globalCtx->msgCtx;
+		PlayState* playState = &gPlayState;
+		MessageContext* msgCtx = &playState->msgCtx;
 		
 		msgCtx->textUnskippable = 1;
 		
@@ -57,7 +59,7 @@ void uLib_Update(GameState* gameState) {
 		#define msgCtx_DecodeCur *AVAL(msgCtx, u16, 0xE3D2)
 		#define msgCtx_DecodeEnd *AVAL(msgCtx, u16, 0xE3D4)
 		
-		if (CHK_ALL(press, BTN_B) && globalCtx->msgCtx.msgMode == 6 && msgCtx_DecodeCur >= 1 && msgCtx_DecodeCur < msgCtx_DecodeEnd) {
+		if (CHK_ALL(press, BTN_B) && playState->msgCtx.msgMode == 6 && msgCtx_DecodeCur >= 1 && msgCtx_DecodeCur < msgCtx_DecodeEnd) {
 			msgCtx_DecodeCur = msgCtx_DecodeEnd;
 			soundFlag = 1;
 		}

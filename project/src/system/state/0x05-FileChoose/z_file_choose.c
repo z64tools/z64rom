@@ -40,8 +40,8 @@ void FileSelect_SetView(FileChooseContext* this, f32 eyeX, f32 eyeY, f32 eyeZ) {
 	
 	up.y = 1.0f;
 	
-	func_800AA358(&this->view, &eye, &lookAt, &up);
-	func_800AAA50(&this->view, 0x7F);
+	View_LookAt(&this->view, &eye, &lookAt, &up);
+	View_Apply(&this->view, 0x7F);
 }
 
 Gfx* FileSelect_QuadTextureIA8(Gfx* gfx, void* texture, s16 width, s16 height, s16 point) {
@@ -189,7 +189,7 @@ void FileSelect_UpdateMainMenu(GameState* thisx) {
 	if (CHECK_BTN_ALL(input->press.button, BTN_START) || CHECK_BTN_ALL(input->press.button, BTN_A)) {
 		if (this->buttonIndex <= FS_BTN_MAIN_FILE_3) {
 			if (!SLOT_OCCUPIED(sramCtx, this->buttonIndex)) {
-				Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+				Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
 				this->configMode = CM_ROTATE_TO_NAME_ENTRY;
 				this->kbdButton = FS_KBD_BTN_NONE;
 				this->charPage = FS_CHAR_PAGE_ENG;
@@ -200,20 +200,20 @@ void FileSelect_UpdateMainMenu(GameState* thisx) {
 				this->newFileNameCharCount = 0;
 				this->nameEntryBoxPosX = 120;
 				this->nameEntryBoxAlpha = 0;
-				MemCopy(&this->fileNames[this->buttonIndex][0], &emptyName, 8);
+				MemCpy(&this->fileNames[this->buttonIndex][0], &emptyName, 8);
 			} else if (this->n64ddFlags[this->buttonIndex] == this->n64ddFlag) {
-				Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+				Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
 				this->actionTimer = 8;
 				this->selectMode = SM_FADE_MAIN_TO_SELECT;
 				this->selectedFileIndex = this->buttonIndex;
 				this->menuMode = FS_MENU_MODE_SELECT;
 				this->nextTitleLabel = FS_TITLE_OPEN_FILE;
 			} else if (!this->n64ddFlags[this->buttonIndex]) {
-				Audio_PlaySoundGeneral(NA_SE_SY_FSEL_ERROR, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+				Audio_PlaySoundGeneral(NA_SE_SY_FSEL_ERROR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
 			}
 		} else {
 			if (this->warningLabel == FS_WARNING_NONE) {
-				Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+				Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
 				this->prevConfigMode = this->configMode;
 				
 				if (this->buttonIndex == FS_BTN_MAIN_COPY) {
@@ -234,12 +234,12 @@ void FileSelect_UpdateMainMenu(GameState* thisx) {
 				
 				this->actionTimer = 8;
 			} else {
-				Audio_PlaySoundGeneral(NA_SE_SY_FSEL_ERROR, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+				Audio_PlaySoundGeneral(NA_SE_SY_FSEL_ERROR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
 			}
 		}
 	} else {
 		if (ABS(this->stickRelY) > 30) {
-			Audio_PlaySoundGeneral(NA_SE_SY_FSEL_CURSOR, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+			Audio_PlaySoundGeneral(NA_SE_SY_FSEL_CURSOR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
 			
 			if (this->stickRelY > 30) {
 				this->buttonIndex--;
@@ -1480,7 +1480,7 @@ void FileSelect_ConfigModeDraw(GameState* thisx) {
 	ZREG(11) += ZREG(10);
 	Environment_UpdateSkybox(SKYBOX_NORMAL_SKY, &this->envCtx, &this->skyboxCtx);
 	gDPPipeSync(POLY_OPA_DISP++);
-	func_800949A8(this->state.gfxCtx);
+	Gfx_SetupDL_42Opa(this->state.gfxCtx);
 	FileSelect_SetView(this, 0.0f, 0.0f, 64.0f);
 	FileSelect_SetWindowVtx(&this->state);
 	FileSelect_SetWindowContentVtx(&this->state);
@@ -1699,18 +1699,18 @@ void FileSelect_ConfirmFile(GameState* thisx) {
 	if (CHECK_BTN_ALL(input->press.button, BTN_START) || (CHECK_BTN_ALL(input->press.button, BTN_A))) {
 		if (this->confirmButtonIndex == FS_BTN_CONFIRM_YES) {
 			func_800AA000(300.0f, 180, 20, 100);
-			Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+			Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
 			this->selectMode = SM_FADE_OUT;
 			func_800F6964(0xF);
 		} else {
-			Audio_PlaySoundGeneral(NA_SE_SY_FSEL_CLOSE, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+			Audio_PlaySoundGeneral(NA_SE_SY_FSEL_CLOSE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
 			this->selectMode++;
 		}
 	} else if (CHECK_BTN_ALL(input->press.button, BTN_B)) {
-		Audio_PlaySoundGeneral(NA_SE_SY_FSEL_CLOSE, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+		Audio_PlaySoundGeneral(NA_SE_SY_FSEL_CLOSE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
 		this->selectMode++;
 	} else if (ABS(this->stickRelY) >= 30) {
-		Audio_PlaySoundGeneral(NA_SE_SY_FSEL_CURSOR, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+		Audio_PlaySoundGeneral(NA_SE_SY_FSEL_CURSOR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
 		this->confirmButtonIndex ^= 1;
 	}
 }
@@ -1813,11 +1813,11 @@ void FileSelect_LoadGame(GameState* thisx) {
 	FileChooseContext* this = (FileChooseContext*)thisx;
 	u16 swordEquipMask;
 	
-	Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &D_801333D4, 4, &D_801333E0, &D_801333E0, &D_801333E8);
+	Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale, &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
 	gSaveContext.fileNum = this->buttonIndex;
 	Sram_OpenSave(&this->sramCtx);
 	gSaveContext.gameMode = 0;
-	SET_NEXT_GAMESTATE(&this->state, Gameplay_Init, GlobalContext);
+	SET_NEXT_GAMESTATE(&this->state, Play_Init, PlayState);
 	this->state.running = false;
 	
 	gSaveContext.respawn[0].entranceIndex = -1;
@@ -1835,24 +1835,24 @@ void FileSelect_LoadGame(GameState* thisx) {
 	gSaveContext.unk_13EE = 0x32;
 	gSaveContext.nayrusLoveTimer = 0;
 	gSaveContext.healthAccumulator = 0;
-	gSaveContext.unk_13F0 = 0;
-	gSaveContext.unk_13F2 = 0;
+	gSaveContext.magicState = MAGIC_STATE_IDLE;
+	gSaveContext.prevMagicState = MAGIC_STATE_IDLE;
 	gSaveContext.forcedSeqId = NA_BGM_GENERAL_SFX;
 	gSaveContext.skyboxTime = 0;
-	gSaveContext.nextTransition = 0xFF;
+	gSaveContext.nextTransitionType = TRANS_NEXT_TYPE_DEFAULT;
 	gSaveContext.nextCutsceneIndex = 0xFFEF;
 	gSaveContext.cutsceneTrigger = 0;
 	gSaveContext.chamberCutsceneNum = 0;
 	gSaveContext.nextDayTime = 0xFFFF;
-	gSaveContext.unk_13C3 = 0;
+	gSaveContext.retainWeatherMode = 0;
 	
 	gSaveContext.buttonStatus[0] = gSaveContext.buttonStatus[1] = gSaveContext.buttonStatus[2] =
 		gSaveContext.buttonStatus[3] = gSaveContext.buttonStatus[4] = BTN_ENABLED;
 	
 	gSaveContext.unk_13E7 = gSaveContext.unk_13E8 = gSaveContext.unk_13EA = gSaveContext.unk_13EC =
-		gSaveContext.unk_13F4 = 0;
+		gSaveContext.magicCapacity = 0;
 	
-	gSaveContext.unk_13F6 = gSaveContext.magic;
+	gSaveContext.magicFillTarget = gSaveContext.magic;
 	gSaveContext.magic = 0;
 	gSaveContext.magicLevel = gSaveContext.magic;
 	gSaveContext.naviTimer = 0;
@@ -1862,9 +1862,9 @@ void FileSelect_LoadGame(GameState* thisx) {
 		(gSaveContext.equips.buttonItems[0] != ITEM_SWORD_BGS) &&
 		(gSaveContext.equips.buttonItems[0] != ITEM_SWORD_KNIFE)) {
 		gSaveContext.equips.buttonItems[0] = ITEM_NONE;
-		swordEquipMask = gEquipMasks[EQUIP_SWORD] & gSaveContext.equips.equipment;
-		gSaveContext.equips.equipment &= gEquipNegMasks[EQUIP_SWORD];
-		gSaveContext.inventory.equipment ^= (gBitFlags[swordEquipMask - 1] << gEquipShifts[EQUIP_SWORD]);
+		swordEquipMask = gEquipMasks[EQUIP_TYPE_SWORD] & gSaveContext.equips.equipment;
+		gSaveContext.equips.equipment &= gEquipNegMasks[EQUIP_TYPE_SWORD];
+		gSaveContext.inventory.equipment ^= (gBitFlags[swordEquipMask - 1] << gEquipShifts[EQUIP_TYPE_SWORD]);
 	}
 }
 
@@ -1899,7 +1899,7 @@ void FileSelect_SelectModeDraw(GameState* thisx) {
 	ZREG(11) += ZREG(10);
 	Environment_UpdateSkybox(SKYBOX_NORMAL_SKY, &this->envCtx, &this->skyboxCtx);
 	gDPPipeSync(POLY_OPA_DISP++);
-	func_800949A8(this->state.gfxCtx);
+	Gfx_SetupDL_42Opa(this->state.gfxCtx);
 	FileSelect_SetView(this, 0.0f, 0.0f, 64.0f);
 	FileSelect_SetWindowVtx(&this->state);
 	FileSelect_SetWindowContentVtx(&this->state);
@@ -2039,7 +2039,7 @@ void FileSelect_Main(GameState* thisx) {
 	
 	// do not draw controls text in the options menu
 	if ((this->configMode <= CM_NAME_ENTRY_TO_MAIN) || (this->configMode >= CM_UNUSED_DELAY)) {
-		func_800944C4(this->state.gfxCtx);
+		Gfx_SetupDL_39Opa(this->state.gfxCtx);
 		
 		gDPSetCombineLERP(
 			POLY_OPA_DISP++,
@@ -2224,23 +2224,23 @@ void FileSelect_InitContext(GameState* thisx) {
 	
 	Skybox_Init(&this->state, &this->skyboxCtx, SKYBOX_NORMAL_SKY);
 	
-	gTimeIncrement = 10;
+	gTimeSpeed = 10;
 	
-	envCtx->unk_19 = 0;
-	envCtx->unk_1A = 0;
-	envCtx->unk_21 = 0;
-	envCtx->unk_22 = 0;
-	envCtx->skyboxDmaState = SKYBOX_DMA_INACTIVE;
-	envCtx->skybox1Index = 99;
-	envCtx->skybox2Index = 99;
-	envCtx->unk_1F = 0;
-	envCtx->unk_20 = 0;
-	envCtx->unk_BD = 0;
-	envCtx->unk_17 = 2;
-	envCtx->skyboxDisabled = 0;
-	envCtx->skyboxBlend = 0;
-	envCtx->unk_84 = 0.0f;
-	envCtx->unk_88 = 0.0f;
+	envCtx->changeSkyboxState = CHANGE_SKYBOX_INACTIVE;
+    envCtx->changeSkyboxTimer = 0;
+    envCtx->changeLightEnabled = false;
+    envCtx->changeLightTimer = 0;
+    envCtx->skyboxDmaState = SKYBOX_DMA_INACTIVE;
+    envCtx->skybox1Index = 99;
+    envCtx->skybox2Index = 99;
+    envCtx->lightConfig = 0;
+    envCtx->changeLightNextConfig = 0;
+    envCtx->lightSetting = 0;
+    envCtx->skyboxConfig = 2;
+    envCtx->skyboxDisabled = 0;
+    envCtx->skyboxBlend = 0;
+    envCtx->glareAlpha = 0.0f;
+    envCtx->lensFlareAlphaScale = 0.0f;
 	
 	Environment_UpdateSkybox(SKYBOX_NORMAL_SKY, &this->envCtx, &this->skyboxCtx);
 	

@@ -1,16 +1,17 @@
 #include <uLib.h>
+#include "code/z_effect_soft_sprite.h"
 
 /*
    z64ram = 0x800272B0
    z64rom = 0xA9E450
  */
 
-void EffectSs_InitInfo(GlobalContext* globalCtx, s32 tableSize) {
+void EffectSs_InitInfo(PlayState* playState, s32 tableSize) {
 	u32 i;
 	EffectSs* effectSs;
 	EffectSsOverlay* overlay;
 	
-	sEffectSsInfo.table = GameState_Alloc(&globalCtx->state, tableSize * sizeof(EffectSs), (char*)__FUNCTION__, __LINE__);
+	sEffectSsInfo.table = GameState_Alloc(&playState->state, tableSize * sizeof(EffectSs), (char*)__FUNCTION__, __LINE__);
 	Assert(sEffectSsInfo.table != NULL);
 	
 	sEffectSsInfo.searchStartIndex = 0;

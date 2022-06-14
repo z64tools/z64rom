@@ -5,7 +5,7 @@
 
 #include <uLib.h>
 
-void _Object_InitBank(GlobalContext* globalCtx, ObjectContext* objectCtx) {
+void _Object_InitBank(PlayState* playState, ObjectContext* objectCtx) {
 	u32 spaceSize;
 	s32 i;
 	
@@ -19,7 +19,7 @@ void _Object_InitBank(GlobalContext* globalCtx, ObjectContext* objectCtx) {
 	}
 	
 	objectCtx->spaceStart = objectCtx->status[0].segment =
-		GameState_Alloc(&globalCtx->state, spaceSize, __FILE__, __LINE__);
+		GameState_Alloc(&playState->state, spaceSize, __FILE__, __LINE__);
 	objectCtx->spaceEnd = (void*)((s32)objectCtx->spaceStart + spaceSize);
 	
 	objectCtx->mainKeepIndex = Object_Spawn(objectCtx, OBJECT_GAMEPLAY_KEEP);

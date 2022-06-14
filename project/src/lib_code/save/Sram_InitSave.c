@@ -1,4 +1,6 @@
-#include "Sram.h"
+#define __Z_SRAM_MACRO__
+#include <uLib.h>
+#include "code/z_sram.h"
 
 /*
    z64ram = 0x800A9258
@@ -49,45 +51,45 @@ void Sram_InitSave(FileChooseContext* fileChooseCtx, SramContext* sramCtx) {
 	
 	gSaveContext.checksum = checksum;
 	offset = gSramSlotOffsets[gSaveContext.fileNum];
-	MemCopy(sramCtx->readBuff + offset, &gSaveContext, sizeof(Save));
+	MemCpy(sramCtx->readBuff + offset, &gSaveContext, sizeof(Save));
 	offset = gSramSlotOffsets[gSaveContext.fileNum + 3];
-	MemCopy(sramCtx->readBuff + offset, &gSaveContext, sizeof(Save));
+	MemCpy(sramCtx->readBuff + offset, &gSaveContext, sizeof(Save));
 	
 	SsSram_ReadWrite(OS_K1_TO_PHYSICAL(0xA8000000), sramCtx->readBuff, SRAM_SIZE, OS_WRITE);
 	
 	j = gSramSlotOffsets[gSaveContext.fileNum];
 	
-	MemCopy(
+	MemCpy(
 		&fileChooseCtx->deaths[gSaveContext.fileNum],
 		sramCtx->readBuff + j + DEATHS,
 		sizeof(fileChooseCtx->deaths[0])
 	);
-	MemCopy(
+	MemCpy(
 		&fileChooseCtx->fileNames[gSaveContext.fileNum],
 		sramCtx->readBuff + j + NAME,
 		sizeof(fileChooseCtx->fileNames[0])
 	);
-	MemCopy(
+	MemCpy(
 		&fileChooseCtx->healthCapacities[gSaveContext.fileNum],
 		sramCtx->readBuff + j + HEALTH_CAP,
 		sizeof(fileChooseCtx->healthCapacities[0])
 	);
-	MemCopy(
+	MemCpy(
 		&fileChooseCtx->questItems[gSaveContext.fileNum],
 		sramCtx->readBuff + j + QUEST,
 		sizeof(fileChooseCtx->questItems[0])
 	);
-	MemCopy(
+	MemCpy(
 		&fileChooseCtx->n64ddFlags[gSaveContext.fileNum],
 		sramCtx->readBuff + j + N64DD,
 		sizeof(fileChooseCtx->n64ddFlags[0])
 	);
-	MemCopy(
+	MemCpy(
 		&fileChooseCtx->defense[gSaveContext.fileNum],
 		sramCtx->readBuff + j + DEFENSE,
 		sizeof(fileChooseCtx->defense[0])
 	);
-	MemCopy(
+	MemCpy(
 		&fileChooseCtx->health[gSaveContext.fileNum],
 		sramCtx->readBuff + j + HEALTH,
 		sizeof(fileChooseCtx->health[0])

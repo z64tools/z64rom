@@ -4,7 +4,7 @@ u32 __mib_DebugMenuC;
 
 #ifdef DEV_BUILD
 
-typedef void (* PageFunc)(GlobalContext*);
+typedef void (* PageFunc)(PlayState*);
 
 typedef enum {
 	DEBUGSYS_PAGE_MAIN,
@@ -69,8 +69,8 @@ static Vec3f DebugMenu_TriNorm(Vec3f* v1, Vec3f* v2, Vec3f* v3) {
 	return norm;
 }
 
-static void DebugMenu_DrawQuad3D(GlobalContext* globalCtx, Gfx** gfxP, Vec3f* v1, Vec3f* v2, Vec3f* v3, Vec3f* v4) {
-	Vtx* v = Graph_Alloc(globalCtx->state.gfxCtx, 4 * sizeof(Vtx));
+static void DebugMenu_DrawQuad3D(PlayState* playState, Gfx** gfxP, Vec3f* v1, Vec3f* v2, Vec3f* v3, Vec3f* v4) {
+	Vtx* v = Graph_Alloc(playState->state.gfxCtx, 4 * sizeof(Vtx));
 	Vec3f norm = DebugMenu_TriNorm(v1, v2, v4);
 	
 	v[0] = gdSPDefVtxN(v1->x, v1->y, v1->z, 0, 0, norm.x, norm.y, norm.z, 0xFF);
@@ -82,8 +82,8 @@ static void DebugMenu_DrawQuad3D(GlobalContext* globalCtx, Gfx** gfxP, Vec3f* v1
 	gSP2Triangles((*gfxP)++, 0, 1, 2, 0, 0, 2, 3, 0);
 }
 
-static void DebugMenu_DrawTri3D(GlobalContext* globalCtx, Gfx** gfxP, Vec3f* v1, Vec3f* v2, Vec3f* v3) {
-	Vtx* v = Graph_Alloc(globalCtx->state.gfxCtx, 3 * sizeof(Vtx));
+static void DebugMenu_DrawTri3D(PlayState* playState, Gfx** gfxP, Vec3f* v1, Vec3f* v2, Vec3f* v3) {
+	Vtx* v = Graph_Alloc(playState->state.gfxCtx, 3 * sizeof(Vtx));
 	Vec3f norm = DebugMenu_TriNorm(v1, v2, v3);
 	
 	v[0] = gdSPDefVtxN(v1->x, v1->y, v1->z, 0, 0, norm.x, norm.y, norm.z, 0xFF);
@@ -94,7 +94,7 @@ static void DebugMenu_DrawTri3D(GlobalContext* globalCtx, Gfx** gfxP, Vec3f* v1,
 	gSP1Triangle((*gfxP)++, 0, 1, 2, 0);
 }
 
-static void DebugMenu_DrawCyl(GlobalContext* globalCtx, Gfx** gfxP, Vec3s* pos, s16 radius, s16 height) {
+static void DebugMenu_DrawCyl(PlayState* playState, Gfx** gfxP, Vec3s* pos, s16 radius, s16 height) {
 	static Gfx* pCylGfx = NULL;
 	
 	if (pCylGfx == NULL) {
@@ -186,7 +186,7 @@ static void DebugMenu_DrawCyl(GlobalContext* globalCtx, Gfx** gfxP, Vec3s* pos, 
 	
 	gSPMatrix(
 		(*gfxP)++,
-		Matrix_NewMtx(globalCtx->state.gfxCtx, __FILE__, __LINE__),
+		Matrix_NewMtx(playState->state.gfxCtx, __FILE__, __LINE__),
 		G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_PUSH
 	);
 	gSPDisplayList((*gfxP)++, pCylGfx);
@@ -210,7 +210,7 @@ static Vec3f DebugMenu_IcoSphSubdivideEdge(Vec3f* a, Vec3f* b) {
 	return ret;
 }
 
-static void DebugMenu_DrawSph(GlobalContext* globalCtx, Gfx** gfxP, Vec3s* pos, s16 radius) {
+static void DebugMenu_DrawSph(PlayState* playState, Gfx** gfxP, Vec3s* pos, s16 radius) {
 	static Gfx* pSphGfx = NULL;
 	static Vtx sphVtx[42];
 	static Gfx sphGfx[45];
@@ -363,24 +363,24 @@ static void DebugMenu_DrawSph(GlobalContext* globalCtx, Gfx** gfxP, Vec3s* pos, 
 		gSPEndDisplayList(sphGfxP++);
 	}
 	
-	OPEN_DISPS(globalCtx->state.gfxCtx, __FILE__, __LINE__);
+	OPEN_DISPS(playState->state.gfxCtx, __FILE__, __LINE__);
 	Matrix_Push();
 	Matrix_Translate(pos->x, pos->y, pos->z, MTXMODE_NEW);
 	Matrix_Scale(radius / 128.0f, radius / 128.0f, radius / 128.0f, MTXMODE_APPLY);
 	
 	gSPMatrix(
 		(*gfxP)++,
-		Matrix_NewMtx(gGlobalContext.state.gfxCtx, __FILE__, __LINE__),
+		Matrix_NewMtx(gPlayState.state.gfxCtx, __FILE__, __LINE__),
 		G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_PUSH
 	);
 	gSPDisplayList((*gfxP)++, pSphGfx);
 	gSPPopMatrix((*gfxP)++, G_MTX_MODELVIEW);
 	
 	Matrix_Pop();
-	CLOSE_DISPS(globalCtx->state.gfxCtx, __FILE__, __LINE__);
+	CLOSE_DISPS(playState->state.gfxCtx, __FILE__, __LINE__);
 }
 
-static void DebugMenu_DrawHitboxList(GlobalContext* globalCtx, Gfx** gfxP, Collider** colList, s32 n) {
+static void DebugMenu_DrawHitboxList(PlayState* playState, Gfx** gfxP, Collider** colList, s32 n) {
 	for (s32 i = 0; i < n; i++) {
 		Collider* col = colList[i];
 		
@@ -392,7 +392,7 @@ static void DebugMenu_DrawHitboxList(GlobalContext* globalCtx, Gfx** gfxP, Colli
 					ColliderJntSphElement* colSphElem = &colJntSph->elements[j];
 					
 					DebugMenu_DrawSph(
-						globalCtx,
+						playState,
 						gfxP,
 						&colSphElem->dim.worldSphere.center,
 						colSphElem->dim.worldSphere.radius
@@ -404,7 +404,7 @@ static void DebugMenu_DrawHitboxList(GlobalContext* globalCtx, Gfx** gfxP, Colli
 				ColliderCylinder* colCyl = (ColliderCylinder*)col;
 				
 				DebugMenu_DrawCyl(
-					globalCtx,
+					playState,
 					gfxP,
 					&colCyl->dim.pos,
 					colCyl->dim.radius,
@@ -419,7 +419,7 @@ static void DebugMenu_DrawHitboxList(GlobalContext* globalCtx, Gfx** gfxP, Colli
 					ColliderTrisElement* colTrisElem = &colTris->elements[j];
 					
 					DebugMenu_DrawTri3D(
-						globalCtx,
+						playState,
 						gfxP,
 						&colTrisElem->dim.vtx[0],
 						&colTrisElem->dim.vtx[2],
@@ -432,7 +432,7 @@ static void DebugMenu_DrawHitboxList(GlobalContext* globalCtx, Gfx** gfxP, Colli
 				ColliderQuad* colQuad = (ColliderQuad*)col;
 				
 				DebugMenu_DrawQuad3D(
-					globalCtx,
+					playState,
 					gfxP,
 					&colQuad->dim.quad[0],
 					&colQuad->dim.quad[2],
@@ -441,13 +441,13 @@ static void DebugMenu_DrawHitboxList(GlobalContext* globalCtx, Gfx** gfxP, Colli
 				);
 			}
 			break;
-			case COLSHAPE_INVALID:
+			case COLSHAPE_MAX:
 				break;
 		}
 	}
 }
 
-static void DebugMenu_DrawCollision(GlobalContext* globalCtx, Gfx** gfxP, Gfx** gfxD, CollisionHeader* colHeader) {
+static void DebugMenu_DrawCollision(PlayState* playState, Gfx** gfxP, Gfx** gfxD, CollisionHeader* colHeader) {
 	if (colHeader == NULL)
 		return;
 	
@@ -489,18 +489,18 @@ static void DebugMenu_DrawCollision(GlobalContext* globalCtx, Gfx** gfxP, Gfx** 
 	}
 }
 
-static void DebugMenu_DrawQuad(GlobalContext* globalCtx, Vec2f* pos, Vec2f* scale, Color_RGBA8* color) {
+static void DebugMenu_DrawQuad(PlayState* playState, Vec2f* pos, Vec2f* scale, Color_RGBA8* color) {
 	DebugState* debugSysCtx = &sDebugMenuCtx;
 	
 	Matrix_Translate(pos->x, pos->y, 0, MTXMODE_NEW);
 	Matrix_Scale(scale->x, scale->y, 1.0f, MTXMODE_APPLY);
 	
-	func_800949A8(globalCtx->state.gfxCtx);
+	Gfx_SetupDL_42Opa(playState->state.gfxCtx);
 	gSPClearGeometryMode(OVERLAY_DISP++, G_CULL_BOTH | G_ZBUFFER);
 	gDPSetCombineMode(OVERLAY_DISP++, 0, 0, 0, PRIMITIVE, 0, 0, 0, PRIMITIVE, 0, 0, 0, PRIMITIVE, 0, 0, 0, PRIMITIVE);
 	gDPSetPrimColor(OVERLAY_DISP++, 0, 0, color->r, color->g, color->b, color->a);
 	
-	gSPMatrix(OVERLAY_DISP++, Matrix_NewMtx(globalCtx->state.gfxCtx, __FILE__, __LINE__), G_MTX_MODELVIEW | G_MTX_LOAD);
+	gSPMatrix(OVERLAY_DISP++, Matrix_NewMtx(playState->state.gfxCtx, __FILE__, __LINE__), G_MTX_MODELVIEW | G_MTX_LOAD);
 	gSPVertex(OVERLAY_DISP++, debugSysCtx->vtx, 4, 0);
 	gSP1Quadrangle(OVERLAY_DISP++, 0, 2, 3, 1, 0);
 }
@@ -509,7 +509,7 @@ static void DebugMenu_DrawQuad(GlobalContext* globalCtx, Vec2f* pos, Vec2f* scal
 // # PAGE FUNC                           #
 // # # # # # # # # # # # # # # # # # # # #
 
-static void DebugMenu_CollisionViewUpdate(GlobalContext* globalCtx) {
+static void DebugMenu_CollisionViewUpdate(PlayState* playState) {
 	#define POLY_GFX_BUF_SIZE 0x4000
 	static Gfx sPolyBuffer[POLY_GFX_BUF_SIZE];
 	
@@ -519,7 +519,7 @@ static void DebugMenu_CollisionViewUpdate(GlobalContext* globalCtx) {
 		return;
 	}
 	
-	OPEN_DISPS(globalCtx->state.gfxCtx, __FILE__, __LINE__);
+	OPEN_DISPS(playState->state.gfxCtx, __FILE__, __LINE__);
 	
 	Gfx* dlist = sPolyBuffer;
 	Gfx* pGfx = dlist;
@@ -531,12 +531,12 @@ static void DebugMenu_CollisionViewUpdate(GlobalContext* globalCtx) {
 	gSPSetGeometryMode(pGfx++, G_CULL_BACK);
 	gSPMatrix(pGfx++, &gMtxClear, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 	// Draw Static Collision
-	DebugMenu_DrawCollision(globalCtx, &pGfx, &dGfx, globalCtx->colCtx.colHeader);
+	DebugMenu_DrawCollision(playState, &pGfx, &dGfx, playState->colCtx.colHeader);
 	// Draw Dynapoly Collision
 	for (s32 i = 0; i < BG_ACTOR_MAX; i++) {
-		if (globalCtx->colCtx.dyna.bgActorFlags[i] & 1) {
+		if (playState->colCtx.dyna.bgActorFlags[i] & 1) {
 			MtxF mtx;
-			BgActor* bgActor = &globalCtx->colCtx.dyna.bgActors[i];
+			BgActor* bgActor = &playState->colCtx.dyna.bgActors[i];
 			
 			// Manually compute dyna SRT transformation
 			Matrix_Push();
@@ -555,11 +555,11 @@ static void DebugMenu_CollisionViewUpdate(GlobalContext* globalCtx) {
 			Matrix_Put(&mtx);
 			gSPMatrix(
 				pGfx++,
-				Matrix_NewMtx(globalCtx->state.gfxCtx, __FILE__, __LINE__),
+				Matrix_NewMtx(playState->state.gfxCtx, __FILE__, __LINE__),
 				G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_PUSH
 			);
 			
-			DebugMenu_DrawCollision(globalCtx, &pGfx, &dGfx, bgActor->colHeader);
+			DebugMenu_DrawCollision(playState, &pGfx, &dGfx, bgActor->colHeader);
 			
 			gSPPopMatrix(pGfx++, G_MTX_MODELVIEW);
 			Matrix_Pop();
@@ -576,17 +576,17 @@ static void DebugMenu_CollisionViewUpdate(GlobalContext* globalCtx) {
 	// Add dlist to POLY_OPA
 	gSPDisplayList(POLY_OPA_DISP++, dlist);
 	
-	CLOSE_DISPS(globalCtx->state.gfxCtx, __FILE__, __LINE__);
+	CLOSE_DISPS(playState->state.gfxCtx, __FILE__, __LINE__);
 }
 
-static void DebugMenu_HitboxViewUpdate(GlobalContext* globalCtx) {
+static void DebugMenu_HitboxViewUpdate(PlayState* playState) {
 	DebugState* debugSysCtx = &sDebugMenuCtx;
 	
 	if (!debugSysCtx->hitViewEnabled) {
 		return;
 	}
 	
-	OPEN_DISPS(globalCtx->state.gfxCtx, __FILE__, __LINE__);
+	OPEN_DISPS(playState->state.gfxCtx, __FILE__, __LINE__);
 	
 	// dlist will be on POLY_OPA buffer
 	Gfx* dlist = Graph_GfxPlusOne(POLY_OPA_DISP);
@@ -597,13 +597,13 @@ static void DebugMenu_HitboxViewUpdate(GlobalContext* globalCtx) {
 	gSPMatrix(gfx++, &gMtxClear, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 	// OC
 	gDPSetPrimColor(gfx++, 0, 0, 255, 255, 255, 255);
-	DebugMenu_DrawHitboxList(globalCtx, &gfx, globalCtx->colChkCtx.colOC, globalCtx->colChkCtx.colOCCount);
+	DebugMenu_DrawHitboxList(playState, &gfx, playState->colChkCtx.colOC, playState->colChkCtx.colOCCount);
 	// AC
 	gDPSetPrimColor(gfx++, 0, 0, 0, 0, 255, 255);
-	DebugMenu_DrawHitboxList(globalCtx, &gfx, globalCtx->colChkCtx.colAC, globalCtx->colChkCtx.colACCount);
+	DebugMenu_DrawHitboxList(playState, &gfx, playState->colChkCtx.colAC, playState->colChkCtx.colACCount);
 	// AT
 	gDPSetPrimColor(gfx++, 0, 0, 255, 0, 0, 255);
-	DebugMenu_DrawHitboxList(globalCtx, &gfx, globalCtx->colChkCtx.colAT, globalCtx->colChkCtx.colATCount);
+	DebugMenu_DrawHitboxList(playState, &gfx, playState->colChkCtx.colAT, playState->colChkCtx.colATCount);
 	// End
 	gSPEndDisplayList(gfx++);
 	
@@ -614,10 +614,10 @@ static void DebugMenu_HitboxViewUpdate(GlobalContext* globalCtx) {
 	// Add dlist to POLY_XLU
 	gSPDisplayList(POLY_XLU_DISP++, dlist);
 	
-	CLOSE_DISPS(globalCtx->state.gfxCtx, __FILE__, __LINE__);
+	CLOSE_DISPS(playState->state.gfxCtx, __FILE__, __LINE__);
 }
 
-static void DebugMenu_ObjectMemView(GlobalContext* globalCtx) {
+static void DebugMenu_ObjectMemView(PlayState* playState) {
 	DebugState* debugSysCtx = &sDebugMenuCtx;
 	static u32 selectedMem = 0;
 	u32 selectedColor[] = {
@@ -643,7 +643,7 @@ static void DebugMenu_ObjectMemView(GlobalContext* globalCtx) {
 		0
 	);
 	
-	debugSysCtx->vtx = Gui_AllocQuad(globalCtx, 0, -5, 1, 10, 16, 16);
+	debugSysCtx->vtx = Gui_AllocQuad(playState, 0, -5, 1, 10, 16, 16);
 	
 	Vec2f pos = { -150.0f, 55.0f };
 	Vec2f scale = { 300.0f, 1.10f };
@@ -653,14 +653,14 @@ static void DebugMenu_ObjectMemView(GlobalContext* globalCtx) {
 	pos.x -= 1.0f;
 	scale.y *= 1.2f;
 	color = (Color_RGBA8) { 0x6E, 0x14, 0xFF, 0xFF };
-	DebugMenu_DrawQuad(globalCtx, &pos, &scale, &color);
+	DebugMenu_DrawQuad(playState, &pos, &scale, &color);
 	
 	pos.x = -150.0f;
 	scale = (Vec2f) { 300.0f, 1.10f };
 	color = (Color_RGBA8) { 0x30, 0x30, 0x30, 0xFF };
-	DebugMenu_DrawQuad(globalCtx, &pos, &scale, &color);
+	DebugMenu_DrawQuad(playState, &pos, &scale, &color);
 	
-	ObjectContext* objCtx = &globalCtx->objectCtx;
+	ObjectContext* objCtx = &playState->objectCtx;
 	u32 objMemSize = (u32)objCtx->spaceEnd - (u32)objCtx->spaceStart;
 	
 	Debug_Text(
@@ -690,11 +690,11 @@ static void DebugMenu_ObjectMemView(GlobalContext* globalCtx) {
 		
 		pos.x -= 150.0f;
 		scale.x *= 300.0f;
-		DebugMenu_DrawQuad(globalCtx, &pos, &scale, &color);
+		DebugMenu_DrawQuad(playState, &pos, &scale, &color);
 	}
 }
 
-static void DebugMenu_ZeldaArenaMemView(GlobalContext* globalCtx) {
+static void DebugMenu_ZeldaArenaMemView(PlayState* playState) {
 	DebugState* debugSysCtx = &sDebugMenuCtx;
 	static u32 selectedMem = 0;
 	u32 selectedColor[] = {
@@ -720,7 +720,7 @@ static void DebugMenu_ZeldaArenaMemView(GlobalContext* globalCtx) {
 		0
 	);
 	
-	debugSysCtx->vtx = Gui_AllocQuad(globalCtx, 0, -5, 1, 10, 16, 16);
+	debugSysCtx->vtx = Gui_AllocQuad(playState, 0, -5, 1, 10, 16, 16);
 	
 	Vec2f pos = { -150.0f, 55.0f };
 	Vec2f scale = { 300.0f, 1.10f };
@@ -730,12 +730,12 @@ static void DebugMenu_ZeldaArenaMemView(GlobalContext* globalCtx) {
 	pos.x -= 1.0f;
 	scale.y *= 1.2f;
 	color = (Color_RGBA8) { 0x6E, 0x14, 0xFF, 0xFF };
-	DebugMenu_DrawQuad(globalCtx, &pos, &scale, &color);
+	DebugMenu_DrawQuad(playState, &pos, &scale, &color);
 	
 	pos.x = -150.0f;
 	scale = (Vec2f) { 300.0f, 1.10f };
 	color = (Color_RGBA8) { 0x30, 0x30, 0x30, 0xFF };
-	DebugMenu_DrawQuad(globalCtx, &pos, &scale, &color);
+	DebugMenu_DrawQuad(playState, &pos, &scale, &color);
 	
 	u32 outMaxFree;
 	u32 outFree;
@@ -774,28 +774,28 @@ static void DebugMenu_ZeldaArenaMemView(GlobalContext* globalCtx) {
 		
 		pos.x -= 150.0f;
 		scale.x *= 300.0f;
-		DebugMenu_DrawQuad(globalCtx, &pos, &scale, &color);
+		DebugMenu_DrawQuad(playState, &pos, &scale, &color);
 		i++;
 		
 		arena = arena->next;
 	}
 }
 
-static void DebugMenu_HitboxView(GlobalContext* globalCtx) {
+static void DebugMenu_HitboxView(PlayState* playState) {
 	DebugState* debugSysCtx = &sDebugMenuCtx;
 	
 	debugSysCtx->hitViewEnabled ^= 1;
 	debugSysCtx->page = DEBUGSYS_PAGE_MAIN;
 }
 
-static void DebugMenu_CollisionView(GlobalContext* globalCtx) {
+static void DebugMenu_CollisionView(PlayState* playState) {
 	DebugState* debugSysCtx = &sDebugMenuCtx;
 	
 	debugSysCtx->colViewEnabled ^= 1;
 	debugSysCtx->page = DEBUGSYS_PAGE_MAIN;
 }
 
-static void DebugMenu_CineMode(GlobalContext* globalCtx) {
+static void DebugMenu_CineMode(PlayState* playState) {
 	DebugState* debugSysCtx = &sDebugMenuCtx;
 	
 	debugSysCtx->cineModeEnabled ^= 1;
@@ -886,21 +886,21 @@ static void DebugMenu_Interface_Show(InterfaceContext* interface) {
 	}
 }
 
-static void DebugMenu_MenuUpdate(GlobalContext* globalCtx) {
-	Player* p = GET_PLAYER(globalCtx);
+static void DebugMenu_MenuUpdate(PlayState* playState) {
+	Player* p = GET_PLAYER(playState);
 	DebugState* debugSysCtx = &sDebugMenuCtx;
 	u8 holdR = CHK_ALL(cur, BTN_R);
 	u32 infoMax = ARRAY_COUNT(sDebugPageInfo);
 	
 	sInterfaceForceHide = false;
 	
-	if (globalCtx->pauseCtx.state != 0)
+	if (playState->pauseCtx.state != 0)
 		return;
 	
 	if (debugSysCtx->cineModeEnabled) {
 		ShrinkWindow_SetVal(0x20);
 		
-		DebugMenu_Interface_Hide(&globalCtx->interfaceCtx);
+		DebugMenu_Interface_Hide(&playState->interfaceCtx);
 		sInterfaceForceHide = true;
 	}
 	
@@ -916,7 +916,7 @@ static void DebugMenu_MenuUpdate(GlobalContext* globalCtx) {
 		
 		else {
 			Audio_PlaySys(NA_SE_SY_FSEL_CLOSE);
-			DebugMenu_Interface_Show(&globalCtx->interfaceCtx);
+			DebugMenu_Interface_Show(&playState->interfaceCtx);
 		}
 		
 		return;
@@ -927,7 +927,7 @@ static void DebugMenu_MenuUpdate(GlobalContext* globalCtx) {
 	}
 	
 	if (holdR && CHK_ALL(press, BTN_B)) {
-		DebugMenu_Interface_Show(&globalCtx->interfaceCtx);
+		DebugMenu_Interface_Show(&playState->interfaceCtx);
 		if (debugSysCtx->page == DEBUGSYS_PAGE_MAIN) {
 			debugSysCtx->state.on = 0;
 			p->stateFlags1 &= ~(1 << 29);
@@ -943,14 +943,14 @@ static void DebugMenu_MenuUpdate(GlobalContext* globalCtx) {
 	if (sDebugPageInfo[debugSysCtx->page].playerFreeze == 1) {
 		ShrinkWindow_SetVal(0x20);
 		p->stateFlags1 |= (1 << 29);
-		DebugMenu_Interface_Hide(&globalCtx->interfaceCtx);
+		DebugMenu_Interface_Hide(&playState->interfaceCtx);
 	} else {
 		p->stateFlags1 &= ~(1 << 29);
-		DebugMenu_Interface_Show(&globalCtx->interfaceCtx);
+		DebugMenu_Interface_Show(&playState->interfaceCtx);
 	}
 	
 	if (sDebugPageInfo[debugSysCtx->page].func) {
-		sDebugPageInfo[debugSysCtx->page].func(globalCtx);
+		sDebugPageInfo[debugSysCtx->page].func(playState);
 		
 		return;
 	}
@@ -995,11 +995,11 @@ static void DebugMenu_MenuUpdate(GlobalContext* globalCtx) {
 	}
 }
 
-void DebugMenu_Update(GlobalContext* globalCtx) {
-	DebugMenu_MenuUpdate(globalCtx);
-	if (gSaveContext.gameMode == 0 && globalCtx->pauseCtx.mode == 0) {
-		DebugMenu_CollisionViewUpdate(globalCtx);
-		DebugMenu_HitboxViewUpdate(globalCtx);
+void DebugMenu_Update(PlayState* playState) {
+	DebugMenu_MenuUpdate(playState);
+	if (gSaveContext.gameMode == 0 && playState->pauseCtx.mode == 0) {
+		DebugMenu_CollisionViewUpdate(playState);
+		DebugMenu_HitboxViewUpdate(playState);
 	}
 }
 

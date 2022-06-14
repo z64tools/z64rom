@@ -14,6 +14,7 @@ extern u64 nintendo_rogo_staticTex_0029C0[];
 
 void View_LookAt(View* view, Vec3f* eye, Vec3f* at, Vec3f* up);
 asm ("View_LookAt = 0x800AA358");
+asm("Opening_Init = 0x80803CAC");
 
 // Note: In other rom versions this function also updates unk_1D4, coverAlpha, addAlpha, visibleDuration to calculate
 // the fade-in/fade-out + the duration of the n64 logo animation
@@ -88,7 +89,7 @@ void BootTitle_Draw(TitleContext* this) {
 	func_8002EABC(&v1, &v2, &v3, this->state.gfxCtx);
 	gSPSetLights1(POLY_OPA_DISP++, sTitleLights);
 	BootTitle_SetupView(this, 0, 150.0, 300.0);
-	func_80093D18(this->state.gfxCtx);
+	Gfx_SetupDL_25Opa(this->state.gfxCtx);
 	Matrix_Translate(0.0, -15.0, 0, MTXMODE_NEW);
 	Matrix_Scale(2.0, 2.0, 2.0, MTXMODE_APPLY);
 	Matrix_RotateZYX(0, sTitleRotY, 0, MTXMODE_APPLY);
@@ -97,7 +98,7 @@ void BootTitle_Draw(TitleContext* this) {
 	gSPDisplayList(POLY_OPA_DISP++, gNintendo64LogoDL);
 	
 #if 0
-	func_800944C4(this->state.gfxCtx);
+	Gfx_SetupDL_39Opa(this->state.gfxCtx);
 	gDPPipeSync(POLY_OPA_DISP++);
 	gDPSetCycleType(POLY_OPA_DISP++, G_CYC_2CYCLE);
 	gDPSetRenderMode(POLY_OPA_DISP++, G_RM_XLU_SURF2, G_RM_OPA_CI | CVG_DST_WRAP);

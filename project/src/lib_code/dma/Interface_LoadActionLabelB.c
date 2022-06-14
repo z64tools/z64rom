@@ -11,8 +11,8 @@
 #define DO_ACTION_TEX_SIZE   ((DO_ACTION_TEX_WIDTH * DO_ACTION_TEX_HEIGHT) / 2)         // (sizeof(gCheckDoActionENGTex))
 #endif
 
-void Interface_LoadActionLabelB(GlobalContext* globalCtx, u16 action) {
-	InterfaceContext* interfaceCtx = &globalCtx->interfaceCtx;
+void Interface_LoadActionLabelB(PlayState* playState, u16 action) {
+	InterfaceContext* interfaceCtx = &playState->interfaceCtx;
 	
 #if 0
 	if (gSaveContext.language != LANGUAGE_ENG) {

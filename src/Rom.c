@@ -928,6 +928,8 @@ static void Rom_Build_Object(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	Rom_ItemList(&list, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	for (s32 i = 0; i < list.num; i++) {
+		s32 compress = true;
+		
 		if (list.item[i] == NULL) {
 			entry[i].vromStart = 0;
 			entry[i].vromEnd = 0;
@@ -971,11 +973,10 @@ static void Rom_Build_Object(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				MemFile_Free(&mem);
 			}
 			
-			MemFile_SaveFile(&rom->playerAnim, "player_anim");
-			Sys_Touch(list.item[i]);
+			compress = NOCACHE_COMPRESS;
 		}
 		
-		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, compress);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		SwapBE(entry[i].vromStart);
 		SwapBE(entry[i].vromEnd);

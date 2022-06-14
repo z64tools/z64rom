@@ -617,11 +617,6 @@ s32 Main(s32 argc, char* argv[]) {
 	
 	Calloc(rom, sizeof(struct Rom));
 	
-	char* v = "variable = \n";
-	
-	printf("[%s]\n", Toml_GetVariable(v, "variable"));
-	exit(0);
-	
 	for (s32 i = 1; i < argc; i++) {
 		if (StrEndCase(StrUnq(argv[i]), ".z64")) {
 			if (romCount > 0)

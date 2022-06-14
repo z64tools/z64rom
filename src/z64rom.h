@@ -120,6 +120,7 @@ typedef struct Rom {
 	} ext;
 	MemFile code;
 	MemFile boot;
+	MemFile playerAnim;
 } Rom;
 
 typedef struct N64AudioInfo {
@@ -187,6 +188,22 @@ typedef struct {
 	const char* name;
 } SystemInfo;
 
+typedef struct StructBE {
+	u16    frameCount;
+	u16    __pad;
+	void32 segment;
+} PlayerAnimEntry;
+
+typedef struct StructBE {
+	s16 pos[3];
+	s16 rot[21][3];
+	struct {
+		u16 _null : 8;
+		u16 mouth : 4;
+		u16 eye   : 4;
+	} face;
+} PlayerAnimFrame;
+
 extern Patch gPatch;
 
 extern char* gWaveSample[8];
@@ -200,7 +217,8 @@ extern const char* gSceneName_OoT[110];
 extern const char* gBankName_OoT[41];
 extern const char* gSequenceName_OoT[114];
 extern const char* gSkyboxName_OoT[32];
-extern SystemInfo gSystem_OoT[30];
+extern const SystemInfo gSystem_OoT[30];
+extern const char* gPlayerAnimName[573];
 
 extern s32 gBetaFlag_Actor_OoT[7];
 extern s32 gBetaFlag_Object_OoT[47];

@@ -539,6 +539,31 @@ static void Rom_Dump_Object(Rom* rom, MemFile* data, MemFile* config) {
 		FileSys_Path("rom/object/%s/0x%04X-%s/", gVanilla, i, gObjectName_OoT[i]);
 		
 		Rom_Extract(data, rf, FileSys_File("object.zobj"));
+		
+		if (i != 0x1)
+			continue;
+		
+		SetSegment(1, rf.data);
+		PlayerAnimEntry* entry = SegmentedToVirtual(1, 0x2310);
+		char* anim = SegmentedToVirtual(0, 0x4E5C00);
+		
+		Sys_MakeDir("rom/system/animation/%s/", gVanilla);
+		
+		for (s32 j = 0; entry[j].__pad == 0; j++) {
+			u32 segment = entry[j].segment & 0xFFFFFF;
+			const char* file = gPlayerAnimName[j];
+			
+			if (segment == 0)
+				continue;
+			
+			rf.data = anim + segment;
+			rf.size = sizeof(PlayerAnimFrame) * entry[j].frameCount;
+			
+			if (!file)
+				file = "Anim";
+			
+			Rom_Extract(data, rf, HeapPrint("rom/system/animation/%s/%d-%s.bin", gVanilla, j, file));
+		}
 	}
 }
 
@@ -920,6 +945,35 @@ static void Rom_Build_Object(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		MemFile_Reset(memData);
 		MemFile_LoadFile(memData, FileSys_FindFile(".zobj"));
+		
+		if (i == 1) {
+			ItemList animList;
+			PlayerAnimEntry* animEntry;
+			
+			Rom_ItemList(&animList, "rom/system/animation/", SORT_NUMERICAL, LIST_FILES);
+			SetSegment(1, memData->data);
+			animEntry = SegmentedToVirtual(1, 0x2310);
+			
+			forlist(j, animList) {
+				MemFile mem;
+				
+				if (animList.item[j] == NULL)
+					continue;
+				
+				MemFile_LoadFile(&mem, animList.item[j]);
+				
+				animEntry[j].segment = rom->playerAnim.seekPoint | 0x07000000;
+				animEntry[j].frameCount = mem.dataSize / sizeof(PlayerAnimFrame);
+				
+				MemFile_Append(&rom->playerAnim, &mem);
+				MemFile_Align(&rom->playerAnim, 0x2);
+				
+				MemFile_Free(&mem);
+			}
+			
+			MemFile_SaveFile(&rom->playerAnim, "player_anim");
+			Sys_Touch(list.item[i]);
+		}
 		
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
 		entry[i].vromEnd = Dma_GetVRomEnd();
@@ -1313,31 +1367,36 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		switch (id) {
 			case DMA_ID_BOOT:
+				Patch_File(&rom->boot, list.item[k]);
+				MemFile_Seek(&rom->file, RELOC_BOOT);
+				MemFile_Append(&rom->file, &rom->boot);
+				
+				continue;
+				break;
+				
+			case DMA_ID_CODE:
+				Patch_File(&rom->code, list.item[k]);
+				Dma_WriteEntry(rom, id, &rom->code, NOCACHE_COMPRESS);
+				
+				continue;
+				break;
+				
 			case DMA_ID_LINK_ANIMATION:
+				Dma_WriteEntry(rom, id, &rom->playerAnim, false);
+				continue;
+				break;
+				
 			case DMA_ID_DO_ACTION_STATIC:
 			case DMA_ID_MESSAGE_STATIC:
-			case DMA_ID_CODE:
 			case DMA_ID_TITLE_STATIC:
 			case DMA_ID_PARAMETER_STATIC:
 			case DMA_ID_ELF_MESSAGE_FIELD:
 			case DMA_ID_ELF_MESSAGE_YDAN:
 			case DMA_ID_NINTENDO_ROGO_STATIC:
 				break;
+				
 			default:
 				continue;
-		}
-		
-		if (id == DMA_ID_BOOT) {
-			Patch_File(&rom->boot, list.item[k]);
-			MemFile_Seek(&rom->file, RELOC_BOOT);
-			MemFile_Append(&rom->file, &rom->boot);
-			
-			continue;
-		} else if (id == DMA_ID_CODE) {
-			Patch_File(&rom->code, list.item[k]);
-			Dma_WriteEntry(rom, id, &rom->code, NOCACHE_COMPRESS);
-			
-			continue;
 		}
 		
 		MemFile_Reset(memData);
@@ -1639,6 +1698,8 @@ void Rom_New(Rom* rom, char* romName) {
 		rom->table.state = SegmentedToVirtual(SEG_CODE, rom->offset.table.stateTable - RELOC_CODE);
 		rom->table.kaleido = SegmentedToVirtual(SEG_CODE, rom->offset.table.kaleidoTable - RELOC_CODE);
 		rom->table.restrictionFlags = SegmentedToVirtual(SEG_CODE, rom->offset.table.restrictionFlags - RELOC_CODE);
+		
+		MemFile_Malloc(&rom->playerAnim, MbToBin(16));
 	}
 }
 
@@ -1722,6 +1783,7 @@ void Rom_Free(Rom* rom) {
 	MemFile_Free(&rom->mem.seqFontTbl);
 	MemFile_Free(&rom->code);
 	MemFile_Free(&rom->boot);
+	MemFile_Free(&rom->playerAnim);
 	memset(rom, 0, sizeof(struct Rom));
 }
 

@@ -10,6 +10,8 @@ static const char* sGccKaleidoFlags;
 static const char* sGccStateFlags;
 
 static const char* sLinkerBaseFlags;
+static const char* sLinkerCodeFlags;
+static const char* sLinkerSceneFlags;
 static const char* sLinkerULibFlags;
 static volatile bool sMake = false;
 
@@ -59,6 +61,14 @@ static void Make_Run(char* cmd) {
 		printf_lock("%s", msg);
 	}
 	Free(msg);
+}
+
+static void Make_Thread(Thread* thread, void (*func)(MakeArg*), void* arg) {
+	if (gThreading)
+		ThreadLock_Create(thread, func, arg);
+	
+	else
+		func(arg);
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -372,8 +382,8 @@ free:
 // # MAKE_CODE                           #
 // # # # # # # # # # # # # # # # # # # # #
 
-volatile f32 sTimeGCC, sTimeLD, sTimeZOVL;
-volatile u32 sCountGCC, sCountLD, sCountZOVL;
+volatile f32 sTimeGCC, sTimeLD, sTimeZOVL, sTimeObjDump;
+volatile u32 sCountGCC, sCountLD, sCountZOVL, sCounObjDump;
 
 static s32 Callback_Kaleido(const char* input, MakeCallType type, void* arg, void* arg2) {
 	char* ovl;
@@ -769,7 +779,7 @@ error:
 	return 0;
 }
 
-static ThreadFunc Code_GCC(const char* source, const char* output, const char* flags, BinutilCallback callback) {
+static void Binutil_GCC(const char* source, const char* output, const char* flags, BinutilCallback callback) {
 	char* command;
 	
 	if (callback) {
@@ -821,6 +831,7 @@ build:
 	
 	Time_Start(1);
 	Make_Run(command);
+	printf_lock("%s\n", command);
 	Make_Info("GCC", command);
 	sTimeGCC += Time_Get(1);
 	sCountGCC++;
@@ -832,7 +843,7 @@ build:
 		Free(newFlags);
 }
 
-static ThreadFunc Code_LD(const char* source, const char* output, const char* flags, BinutilCallback callback) {
+static void Binutil_LD(const char* source, const char* output, const char* flags, BinutilCallback callback) {
 	MemFile entry = MemFile_Initialize();
 	char* command;
 	char entryDir[1024] = { 0 };
@@ -866,7 +877,7 @@ build:
 	MemFile_SaveFile(&entry, entryDir);
 	MemFile_Free(&entry);
 	
-	Tools_Command(command, mips64_ld, "-o %s %s -L%s %s", output, source, Path(entryDir), flags);
+	Tools_Command(command, mips64_ld, "-o %s %s -L%s %s %s", output, source, Path(entryDir), sLinkerBaseFlags, flags);
 	Sys_MakeDir(output);
 	
 	Time_Start(1);
@@ -880,7 +891,8 @@ build:
 	Free(command);
 }
 
-static ThreadFunc Code_ObjDump(char* cmd, const char* output) {
+static void Binutil_ObjDump(char* cmd, const char* output) {
+	Time_Start(1);
 	MemFile linker = MemFile_Initialize();
 	u32 lineNum = LineNum(cmd);
 	char* txt = cmd;
@@ -908,13 +920,13 @@ static ThreadFunc Code_ObjDump(char* cmd, const char* output) {
 skip:
 		txt = Line(txt, 1);
 	}
-	
+	sTimeObjDump += Time_Get(1);
 	MemFile_SaveFile(&linker, "include/z_lib_user.ld");
 	MemFile_Free(&linker);
 	Free(cmd);
 }
 
-static ThreadFunc Make_Linker_Thread(MakeArg* arg) {
+static void Make_CodeThread_uLib(MakeArg* arg) {
 	ItemList itemList = ItemList_Initialize();
 	const char* elf = "rom/lib_user/z_lib_user.elf";
 	const char* bin = "rom/lib_user/z_lib_user.bin";
@@ -967,7 +979,7 @@ static ThreadFunc Make_Linker_Thread(MakeArg* arg) {
 		MemFile_SaveFile(&entry, "rom/lib_user/entry.ld");
 		MemFile_Free(&entry);
 		
-		Tools_Command(command, mips64_ld, "-o %s %s %s", elf, inputList, arg->flag);
+		Tools_Command(command, mips64_ld, "-o %s %s -Lrom/lib_user/ %s %s", elf, inputList, sLinkerBaseFlags, arg->flag);
 		Sys_MakeDir(elf);
 		
 		Make_Run(command);
@@ -979,7 +991,7 @@ static ThreadFunc Make_Linker_Thread(MakeArg* arg) {
 	if (false == false /* mips64_ld */) {
 		Tools_Command(command, mips64_objdump, "-x -t %s", elf);
 		Sys_MakeDir(ld);
-		Code_ObjDump(SysExeO(command), ld);
+		Binutil_ObjDump(SysExeO(command), ld);
 	}
 	
 	Free(inputList);
@@ -989,7 +1001,7 @@ static ThreadFunc Make_Linker_Thread(MakeArg* arg) {
 	Make_Info("OBJDUMP", "z_code_lib.ld");
 }
 
-static ThreadFunc Make_Code_Thread_C(MakeArg* arg) {
+static void Make_CodeThread_GCC(MakeArg* arg) {
 	char* output;
 	char* input = arg->itemList->item[arg->i];
 	
@@ -1002,11 +1014,11 @@ static ThreadFunc Make_Code_Thread_C(MakeArg* arg) {
 	StrRep(output, ".c", ".o");
 	StrRep(output, "src/", "rom/");
 	
-	Code_GCC(input, output, arg->flag, arg->callback);
+	Binutil_GCC(input, output, arg->flag, arg->callback);
 	Free(output);
 }
 
-static ThreadFunc Make_Code_Thread_O(MakeArg* arg) {
+static void Make_CodeThread_LD(MakeArg* arg) {
 	char* output = NULL;
 	char* input = arg->itemList->item[arg->i];
 	ItemList* list = NULL;
@@ -1051,7 +1063,7 @@ static ThreadFunc Make_Code_Thread_O(MakeArg* arg) {
 		StrRep(output, "src/", "rom/");
 	}
 	
-	Code_LD(input, output, arg->flag, arg->callback);
+	Binutil_LD(input, output, arg->flag, arg->callback);
 	
 free:
 	Free(output);
@@ -1061,7 +1073,7 @@ free:
 	Free(list);
 }
 
-static ThreadFunc Make_Code_Thread_Single(MakeArg* arg) {
+static ThreadFunc Make_CodeThread_File(MakeArg* arg) {
 	s32 i = 0;
 	Thread* thread;
 	MakeArg* passArg;
@@ -1083,11 +1095,7 @@ static ThreadFunc Make_Code_Thread_Single(MakeArg* arg) {
 			passArg[j].itemList = &itemList;
 			passArg[j].i = i + j;
 			
-			if (gThreading) {
-				ThreadLock_Create(&thread[j], arg->func, &passArg[j]);
-			} else {
-				arg->func(&passArg[j]);
-			}
+			Make_Thread(&thread[j], arg->func, &passArg[j]);
 		}
 		
 		if (gThreading)
@@ -1102,7 +1110,7 @@ static ThreadFunc Make_Code_Thread_Single(MakeArg* arg) {
 	ItemList_Free(&itemList);
 }
 
-static ThreadFunc Make_Code_Thread_Folder(MakeArg* arg) {
+static ThreadFunc Make_CodeThread_Folder(MakeArg* arg) {
 	s32 i = 0;
 	Thread* thread;
 	MakeArg* passArg;
@@ -1124,11 +1132,7 @@ static ThreadFunc Make_Code_Thread_Folder(MakeArg* arg) {
 			passArg[j].itemList = &itemList;
 			passArg[j].i = i + j;
 			
-			if (gThreading) {
-				ThreadLock_Create(&thread[j], arg->func, &passArg[j]);
-			} else {
-				arg->func(&passArg[j]);
-			}
+			Make_Thread(&thread[j], arg->func, &passArg[j]);
 		}
 		
 		if (gThreading)
@@ -1145,78 +1149,82 @@ static ThreadFunc Make_Code_Thread_Folder(MakeArg* arg) {
 }
 
 void Make_Code(void) {
-	const char* pathC[] = {
-		"src/lib_user/",
-		"src/lib_code/",
-		"src/actor/",
-		"src/effect/",
-		"src/system/state/",
-		"src/system/kaleido/",
+	const struct {
+		const char* src;
+		const char* rom;
+		const char* gccFlag;
+		const char* ldFlag;
+		BinutilCallback callback;
+		s32 multiFileProcess;
+	} param[] = {
+		{
+			.src = "src/lib_user/",
+			.rom = "rom/lib_user/",
+			.gccFlag = sGccCodeFlags,
+			.ldFlag = sLinkerULibFlags,
+			.callback = NULL,
+			.multiFileProcess = false,
+		}, {
+			.src = "src/lib_code/",
+			.rom = "rom/lib_code/",
+			.gccFlag = sGccCodeFlags,
+			.ldFlag = sLinkerCodeFlags,
+			.callback = Callback_Code,
+			.multiFileProcess = false,
+		}, {
+			.src = "src/actor/",
+			.rom = "rom/actor/",
+			.gccFlag = sGccActorFlags,
+			.ldFlag = sLinkerCodeFlags,
+			.callback = Callback_Actor,
+			.multiFileProcess = true,
+		}, {
+			.src = "src/effect/",
+			.rom = "rom/effect/",
+			.gccFlag = sGccActorFlags,
+			.ldFlag = sLinkerCodeFlags,
+			.callback = NULL,
+			.multiFileProcess = true,
+		}, {
+			.src = "src/system/state/",
+			.rom = "rom/system/state/",
+			.gccFlag = sGccStateFlags,
+			.ldFlag = sLinkerCodeFlags,
+			.callback = Callback_System,
+			.multiFileProcess = true,
+		}, {
+			.src = "src/system/kaleido/",
+			.rom = "rom/system/kaleido/",
+			.gccFlag = sGccKaleidoFlags,
+			.ldFlag = sLinkerCodeFlags,
+			.callback = Callback_Kaleido,
+			.multiFileProcess = true,
+		}
 	};
-	const char* pathO[] = {
-		"rom/lib_user/",
-		"rom/lib_code/",
-		"rom/actor/",
-		"rom/effect/",
-		"rom/system/state/",
-		"rom/system/kaleido/",
-	};
-	const char* flagObject[] = {
-		sGccCodeFlags,
-		sGccCodeFlags,
-		sGccActorFlags,
-		sGccActorFlags,
-		sGccStateFlags,
-		sGccKaleidoFlags,
-	};
-	const char* flagLinker[] = {
-		sLinkerULibFlags,
-		sLinkerBaseFlags,
-		sLinkerBaseFlags,
-		sLinkerBaseFlags,
-		sLinkerBaseFlags,
-		sLinkerBaseFlags,
-	};
-	BinutilCallback callback[] = {
-		NULL,
-		Callback_Code,
-		Callback_Actor,
-		NULL,
-		Callback_System,
-		Callback_Kaleido
-	};
-	Thread thread[ArrayCount(pathC)];
-	MakeArg args[ArrayCount(pathC)] = { 0 };
+	Thread thread[ArrayCount(param)];
+	MakeArg args[ArrayCount(param)] = { 0 };
 	
 	if (gThreading)
 		ThreadLock_Init();
 	
-	foreach(set, pathC) {
-		args[set].path = pathC[set];
-		args[set].flag = flagObject[set];
-		args[set].func = Make_Code_Thread_C;
-		args[set].callback = callback[set];
+	foreach(set, param) {
+		args[set].path = param[set].src;
+		args[set].flag = param[set].gccFlag;
+		args[set].func = Make_CodeThread_GCC;
+		args[set].callback = param[set].callback;
 		
-		if (gThreading)
-			ThreadLock_Create(&thread[set], Make_Code_Thread_Single, &args[set]);
-		
-		else
-			Make_Code_Thread_Single(&args[set]);
+		Make_Thread(&thread[set], Make_CodeThread_File, &args[set]);
 	}
 	
 	if (gThreading)
 		ThreadLock_Join(&thread[0]);
 	memset(&args[0], 0, sizeof(args[0]));
-	args[0].path = pathO[0];
-	args[0].flag = flagLinker[0];
+	args[0].path = param[0].rom;
+	args[0].flag = param[0].ldFlag;
 	
-	if (gThreading)
-		ThreadLock_Create(&thread[0], Make_Linker_Thread, &args[0]);
+	Make_Thread(&thread[0], Make_CodeThread_uLib, &args[0]);
 	
-	else
-		Make_Linker_Thread(&args[0]);
-	
-	foreach(set, pathC) {
+	foreach(set, param) {
 		if (gThreading)
 			ThreadLock_Join(&thread[set]);
 		
@@ -1224,33 +1232,24 @@ void Make_Code(void) {
 			continue;
 		
 		memset(&args[set], 0, sizeof(args[set]));
-		args[set].path = pathO[set];
-		args[set].func = Make_Code_Thread_O;
-		args[set].callback = callback[set];
-		args[set].flag = flagLinker[set];
+		args[set].path = param[set].rom;
+		args[set].func = Make_CodeThread_LD;
+		args[set].callback = param[set].callback;
+		args[set].flag = param[set].ldFlag;
 		
-		// Process as folders if Actor, System or Effect
-		if (set >= 2) {
-			if (gThreading)
-				ThreadLock_Create(&thread[set], Make_Code_Thread_Folder, &args[set]);
-			
-			else
-				Make_Code_Thread_Folder(&args[set]);
-		} else {
-			if (gThreading)
-				ThreadLock_Create(&thread[set], Make_Code_Thread_Single, &args[set]);
-			
-			else
-				Make_Code_Thread_Single(&args[set]);
-		}
+		if (param[set].multiFileProcess == true)
+			Make_Thread(&thread[set], Make_CodeThread_Folder, &args[set]);
+		
+		else
+			Make_Thread(&thread[set], Make_CodeThread_File, &args[set]);
 	}
 	
-	if (gThreading)
-		foreach(set, pathC)
-		ThreadLock_Join(&thread[set]);
-	
-	if (gThreading)
+	if (gThreading) {
+		foreach(set, param) {
+			ThreadLock_Join(&thread[set]);
+		}
 		ThreadLock_Free();
+	}
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -1258,15 +1257,24 @@ void Make_Code(void) {
 // # # # # # # # # # # # # # # # # # # # #
 
 void Make(Rom* rom, s32 message) {
-	Toml_SetErrorState(true);
 	sGccBaseFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_base_flags")));
 	sGccActorFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_actor_flags")));
 	sGccCodeFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_code_flags")));
 	sGccKaleidoFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_kaleido_flags")));
 	sGccStateFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_state_flags")));
+	
 	sLinkerBaseFlags = qFree(StrDup(Toml_GetStr(&rom->config, "ld_base_flags")));
+	sLinkerCodeFlags = qFree(StrDup(Toml_GetStr(&rom->config, "ld_code_flags")));
+	sLinkerSceneFlags = qFree(StrDup(Toml_GetStr(&rom->config, "ld_scene_flags")));
 	sLinkerULibFlags = qFree(StrDup(Toml_GetStr(&rom->config, "ld_ulib_flags")));
-	Toml_SetErrorState(false);
+	
+	if (Toml_GetErrorState()) {
+		printf("\n");
+		printf_warning("Seems like your z64project is missing some required variables.");
+		printf_warning("Run [z64rom --reconfig] to regenerates gcc and ld flags.");
+		printf_getchar("Press enter to exit.");
+		exit(1);
+	}
 	
 	if (gBuildTarget)
 		sGccBaseFlags = HeapPrint("%s -DDEV_BUILD", sGccBaseFlags);
@@ -1298,6 +1306,7 @@ void Make(Rom* rom, s32 message) {
 		printf_info("Average Build Times:");
 		printf("GCC:  " PRNT_YELW "%.4f" PRNT_RSET "s\n", sTimeGCC / sCountGCC);
 		printf("LD:   " PRNT_YELW "%.4f" PRNT_RSET "s\n", sTimeLD / sCountLD);
+		printf("OD:   " PRNT_YELW "%.4f" PRNT_RSET "s\n", sTimeObjDump);
 		printf("ZOVL: " PRNT_YELW "%.4f" PRNT_RSET "s\n", sTimeZOVL / sCountZOVL);
 	}
 }

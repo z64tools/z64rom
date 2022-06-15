@@ -242,6 +242,252 @@ static void Main_RenameRooms(const char* from, const char* to) {
 	printf_info("%d rooms renamed to *%s.", times, to);
 }
 
+void Main_ReadProject(Rom* rom, char** input) {
+	MemFile* config = &rom->config;
+	char* buildRom;
+	
+	gBaserom = Toml_GetStr(config, "z_baserom");
+	buildRom = Toml_GetStr(config, "z_buildrom");
+	gVanilla = StrDup(Toml_GetStr(config, "z_vanilla")); qFree(gVanilla);
+	
+	if (strlen(buildRom) > 128 - strlen(sRomType[1]))
+		printf_error("z_buildrom name is too long");
+	
+	sprintf(gBuildrom[0], "%s%s", buildRom, sRomType[0]);
+	sprintf(gBuildrom[1], "%s%s", buildRom, sRomType[1]);
+	
+	if (*input) {
+		if (PathIsAbs(*input)) {
+			*input = PathRel(*input);
+		}
+		
+		if (!Sys_Stat(*input))
+			printf_error("Provided rom does not exist... [%s]", PathAbs(*input));
+		
+		foreach(i, sRomType) {
+			if (!strcmp(*input, gBuildrom[i])) {
+				gBuildTarget = i;
+				gCompressFlag = true;
+				gDumpFlag = false;
+			}
+		}
+		
+		if (gCompressFlag == false) {
+			if (!strcmp(gBaserom, "__ROM_NAME__") || !Sys_Stat(gProjectConfig)) {
+				printf_toolinfo(gToolName, "Dumping Rom");
+				gBaserom = Filename(*input);
+				gDumpFlag = true;
+				
+				Toml_ReplaceVariable(config, "z_baserom", gBaserom);
+			} else {
+				printf_toolinfo(gToolName, "");
+				printf_warning("Dump rom [%s] ? " PRNT_DGRY "[y/n]", PathAbs(*input));
+				
+				if (gDumpRom == true || Terminal_YesOrNo() == true) {
+					gBaserom = Filename(*input);
+					gDumpFlag = true;
+					
+					Toml_ReplaceVariable(config, "z_baserom", Filename(*input));
+				}
+				
+				Terminal_ClearLines(2);
+			}
+		}
+	}
+	
+	gBaserom = StrDup(Toml_GetStr(config, "z_baserom")); qFree(gBaserom);
+	
+	if (gDumpFlag && strcmp(*input, gBaserom)) {
+		printf_info("Copying Rom to App Path");
+		if (Sys_Copy(*input, gBaserom))
+			printf_error("Could not copy [%s] to [%s]", PathAbs(*input), PathAbs(gBaserom));
+		
+		Sys_Sleep(0.1);
+		Terminal_ClearLines(2);
+	}
+	
+	if (strcmp(gBaserom, "__ROM_NAME__")) {
+		if (!Sys_Stat(gBaserom))
+			printf_error("Could not locate your baserom [%s]", PathAbs(gBaserom));
+		else
+			*input = (char*)gBaserom;
+	}
+}
+
+static void Main_WriteToml(MemFile* config, const char* romName, const char* build, const char* vanilla, const char* vcBase, const char* vcPath) {
+	Log("Writing [%s]", gProjectConfig);
+	MemFile_Reset(config);
+	MemFile_Malloc(config, MbToBin(2.5));
+	
+	Toml_WriteComment(config, "Project Settings");
+	Toml_WriteStr(config, "z_baserom", romName, QUOTES, NO_COMMENT);
+	
+	Toml_WriteStr(config, "z_buildrom", build, QUOTES, "Name used for the rom that is built by z64rom.");
+	Toml_WriteStr(config, "z_vanilla", vanilla, QUOTES, "Name of the vanilla item folders");
+	
+	Toml_Print(config, "\n");
+	Toml_WriteComment(config, "Wii VC");
+	Toml_WriteStr(config, "vc_basewad", vcBase, QUOTES, NULL);
+	Toml_WriteStr(config, "vc_dolphin", vcPath, QUOTES, "Path to documents folder, not the app folder.");
+	
+	Toml_Print(config, "\n");
+	Toml_WriteComment(config, "Mips64 Flag");
+	
+	Toml_WriteStr(
+		config,
+		"gcc_base_flags",
+		"-c -G 0 -O1 -std=gnu99 -march=vr4300 -mabi=32 -mips3"
+		" "
+		"-mno-explicit-relocs -mno-memcpy -mno-check-zero-division"
+		" "
+		"-fno-common"
+		" "
+		"-Wall -Wno-builtin-declaration-mismatch"
+		" "
+		"-Isrc/lib_user -Iinclude/z64hdr -Iinclude/z64hdr/include",
+		QUOTES,
+		NO_COMMENT
+	);
+	
+	Toml_WriteStr(
+		config,
+		"gcc_actor_flags",
+		"",
+		QUOTES,
+		NO_COMMENT
+	);
+	
+	Toml_WriteStr(
+		config,
+		"gcc_code_flags",
+		"-mno-gpopt -fomit-frame-pointer",
+		QUOTES,
+		NO_COMMENT
+	);
+	
+	Toml_WriteStr(
+		config,
+		"gcc_kaleido_flags",
+		"",
+		QUOTES,
+		NO_COMMENT
+	);
+	
+	Toml_WriteStr(
+		config,
+		"gcc_state_flags",
+		"",
+		QUOTES,
+		NO_COMMENT
+	);
+	
+	Toml_WriteStr(
+		config,
+		"ld_base_flags",
+		"-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/",
+		QUOTES,
+		NO_COMMENT
+	);
+	
+	Toml_WriteStr(
+		config,
+		"ld_code_flags",
+		"-T z64hdr.ld "
+		"-T z_lib_user.ld "
+		"--emit-relocs",
+		QUOTES,
+		NO_COMMENT
+	);
+	
+	Toml_WriteStr(
+		config,
+		"ld_scene_flags",
+		"-T z64hdr_actor.ld "
+		"--emit-relocs",
+		QUOTES,
+		NO_COMMENT
+	);
+	
+	Toml_WriteStr(
+		config,
+		"ld_ulib_flags",
+		"-T ulib_linker.ld "
+		"--emit-relocs",
+		QUOTES,
+		NO_COMMENT
+	);
+}
+
+void Main_WriteProject(Rom* rom, char** input) {
+	MemFile* config = &rom->config;
+	const char* romName;
+	
+	Log("Writing [%s]", gProjectConfig);
+	MemFile_Reset(config);
+	MemFile_Malloc(config, MbToBin(2.5));
+	
+	Toml_WriteComment(config, "Project Settings");
+	if (*input)
+		romName = Filename(*input);
+	else
+		romName = "__ROM_NAME__";
+	
+	Main_WriteToml(&rom->config, romName, "build", gVanilla, "NULL", "NULL");
+}
+
+void Main_ReconfigProject(Rom* rom) {
+	MemFile mainConfig;
+	
+	MemFile_LoadFile_String(&mainConfig, "z64project.toml");
+	
+	Main_WriteToml(
+		&rom->config,
+		Toml_GetStr(&mainConfig, "z_baserom"),
+		Toml_GetStr(&mainConfig, "z_buildrom"),
+		Toml_GetStr(&mainConfig, "z_vanilla"),
+		Toml_GetStr(&mainConfig, "vc_basewad"),
+		Toml_GetStr(&mainConfig, "vc_dolphin")
+	);
+	
+	MemFile_SaveFile_String(&rom->config, "z64project.toml");
+	printf_info("Reconfig OK");
+	exit(0);
+}
+
+void Main_Config(char** input, Rom* rom) {
+	MemFile* config = &rom->config;
+	
+	rom->config = MemFile_Initialize();
+	
+	if (!Sys_Stat(gProjectConfig))
+		Main_WriteProject(rom, input);
+	
+	else {
+		Log("Reading [%s]", gProjectConfig);
+		MemFile_LoadFile_String(config, gProjectConfig);
+	}
+	
+	Main_ReadProject(rom, input);
+	
+	if (gDumpFlag == true) {
+		*input = StrDup(Filename(*input)); qFree(*input);
+	} else {
+		if (gBuildTarget == ROM_RELEASE) {
+			if (Sys_Stat(gBuildrom[ROM_DEV]) > Sys_Stat(gBuildrom[ROM_RELEASE])) {
+				gMakeForce = true;
+				
+				return;
+			}
+		} else {
+			if (Sys_Stat(gBuildrom[ROM_RELEASE]) > Sys_Stat(gBuildrom[ROM_DEV])) {
+				gMakeForce = true;
+				
+				return;
+			}
+		}
+	}
+}
+
 static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	u32 parArg = 0;
 	
@@ -255,6 +501,8 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 			gThreadNum = 128;
 		}
 	}
+	
+	if (Arg("reconfig")) Main_ReconfigProject(rom);
 	
 	if (Arg("reinstall")) {
 		MemFile mem = MemFile_Initialize();
@@ -400,206 +648,6 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		gCompressFlag = true;
 	
 	return 0;
-}
-
-static void Main_ReadProject(Rom* rom, char** input) {
-	MemFile* config = &rom->config;
-	char* buildRom;
-	
-	gBaserom = Toml_GetStr(config, "z_baserom");
-	buildRom = Toml_GetStr(config, "z_buildrom");
-	gVanilla = StrDup(Toml_GetStr(config, "z_vanilla")); qFree(gVanilla);
-	
-	if (strlen(buildRom) > 128 - strlen(sRomType[1]))
-		printf_error("z_buildrom name is too long");
-	
-	sprintf(gBuildrom[0], "%s%s", buildRom, sRomType[0]);
-	sprintf(gBuildrom[1], "%s%s", buildRom, sRomType[1]);
-	
-	if (*input) {
-		if (PathIsAbs(*input)) {
-			*input = PathRel(*input);
-		}
-		
-		if (!Sys_Stat(*input))
-			printf_error("Provided rom does not exist... [%s]", PathAbs(*input));
-		
-		foreach(i, sRomType) {
-			if (!strcmp(*input, gBuildrom[i])) {
-				gBuildTarget = i;
-				gCompressFlag = true;
-				gDumpFlag = false;
-			}
-		}
-		
-		if (gCompressFlag == false) {
-			if (!strcmp(gBaserom, "__ROM_NAME__") || !Sys_Stat(gProjectConfig)) {
-				printf_toolinfo(gToolName, "Dumping Rom");
-				gBaserom = Filename(*input);
-				gDumpFlag = true;
-				
-				Toml_ReplaceVariable(config, "z_baserom", gBaserom);
-			} else {
-				printf_toolinfo(gToolName, "");
-				printf_warning("Dump rom [%s] ? " PRNT_DGRY "[y/n]", PathAbs(*input));
-				
-				if (gDumpRom == true || Terminal_YesOrNo() == true) {
-					gBaserom = Filename(*input);
-					gDumpFlag = true;
-					
-					Toml_ReplaceVariable(config, "z_baserom", Filename(*input));
-				}
-				
-				Terminal_ClearLines(2);
-			}
-		}
-	}
-	
-	gBaserom = StrDup(Toml_GetStr(config, "z_baserom")); qFree(gBaserom);
-	
-	if (gDumpFlag && strcmp(*input, gBaserom)) {
-		printf_info("Copying Rom to App Path");
-		if (Sys_Copy(*input, gBaserom))
-			printf_error("Could not copy [%s] to [%s]", PathAbs(*input), PathAbs(gBaserom));
-		
-		Sys_Sleep(0.1);
-		Terminal_ClearLines(2);
-	}
-	
-	if (strcmp(gBaserom, "__ROM_NAME__")) {
-		if (!Sys_Stat(gBaserom))
-			printf_error("Could not locate your baserom [%s]", PathAbs(gBaserom));
-		else
-			*input = (char*)gBaserom;
-	}
-}
-
-static void Main_WriteProject(Rom* rom, char** input) {
-	MemFile* config = &rom->config;
-	
-	Log("Writing [%s]", gProjectConfig);
-	MemFile_Reset(config);
-	MemFile_Malloc(config, MbToBin(2.5));
-	
-	Toml_WriteComment(config, "Project Settings");
-	if (*input)
-		Toml_WriteStr(config, "z_baserom", Filename(*input), QUOTES, NO_COMMENT);
-	else
-		Toml_WriteStr(config, "z_baserom", "__ROM_NAME__", QUOTES, NO_COMMENT);
-	
-	Toml_WriteStr(config, "z_buildrom", "build", QUOTES, "Name used for the rom that is built by z64rom.");
-	Toml_WriteStr(config, "z_vanilla", gVanilla, QUOTES, "Name of the vanilla item folders");
-	
-	Toml_Print(config, "\n");
-	Toml_WriteComment(config, "Wii VC");
-	Toml_WriteStr(config, "vc_basewad", "NULL", QUOTES, NULL);
-	Toml_WriteStr(config, "vc_dolphin", "NULL", QUOTES, "Path to documents folder, not the app folder.");
-	
-	Toml_Print(config, "\n");
-	Toml_WriteComment(config, "Mips64 Flag");
-	
-	Toml_WriteStr(
-		config,
-		"gcc_base_flags",
-		"-c -G 0 -O1 -std=gnu99 -march=vr4300 -mabi=32 -mips3"
-		" "
-		"-mno-explicit-relocs -mno-memcpy -mno-check-zero-division"
-		" "
-		"-fno-common"
-		" "
-		"-Wall -Wno-builtin-declaration-mismatch"
-		" "
-		"-Isrc/lib_user -Iinclude/z64hdr -Iinclude/z64hdr/include",
-		QUOTES,
-		NO_COMMENT
-	);
-	
-	Toml_WriteStr(
-		config,
-		"gcc_actor_flags",
-		"",
-		QUOTES,
-		NO_COMMENT
-	);
-	
-	Toml_WriteStr(
-		config,
-		"gcc_code_flags",
-		"-mno-gpopt -fomit-frame-pointer",
-		QUOTES,
-		NO_COMMENT
-	);
-	
-	Toml_WriteStr(
-		config,
-		"gcc_kaleido_flags",
-		"",
-		QUOTES,
-		NO_COMMENT
-	);
-	
-	Toml_WriteStr(
-		config,
-		"gcc_state_flags",
-		"",
-		QUOTES,
-		NO_COMMENT
-	);
-	
-	Toml_WriteStr(
-		config,
-		"ld_base_flags",
-		"-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ "
-		"-T z64hdr.ld "
-		"-T z_lib_user.ld "
-		"--emit-relocs",
-		QUOTES,
-		NO_COMMENT
-	);
-	
-	Toml_WriteStr(
-		config,
-		"ld_ulib_flags",
-		"-Lrom/lib_user -Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/ "
-		"-T ulib_linker.ld "
-		"--emit-relocs",
-		QUOTES,
-		NO_COMMENT
-	);
-}
-
-static void Main_Config(char** input, Rom* rom) {
-	MemFile* config = &rom->config;
-	
-	rom->config = MemFile_Initialize();
-	
-	if (!Sys_Stat(gProjectConfig))
-		Main_WriteProject(rom, input);
-	
-	else {
-		Log("Reading [%s]", gProjectConfig);
-		MemFile_LoadFile_String(config, gProjectConfig);
-	}
-	
-	Main_ReadProject(rom, input);
-	
-	if (gDumpFlag == true) {
-		*input = StrDup(Filename(*input)); qFree(*input);
-	} else {
-		if (gBuildTarget == ROM_RELEASE) {
-			if (Sys_Stat(gBuildrom[ROM_DEV]) > Sys_Stat(gBuildrom[ROM_RELEASE])) {
-				gMakeForce = true;
-				
-				return;
-			}
-		} else {
-			if (Sys_Stat(gBuildrom[ROM_RELEASE]) > Sys_Stat(gBuildrom[ROM_DEV])) {
-				gMakeForce = true;
-				
-				return;
-			}
-		}
-	}
 }
 
 s32 Main(s32 argc, char* argv[]) {

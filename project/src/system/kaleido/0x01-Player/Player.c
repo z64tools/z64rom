@@ -3875,11 +3875,11 @@ s16 sReturnEntranceGroupData[] = {
 	/*  2 */ ENTR_SPOT15_2, // Hyrule Castle from Dins Fire Fairy Fountain
 	
 	// ENTR_RETURN_2
-	/*  3 */ ENTR_SPOT01_9,  // Kakariko from Potion Shop
+	/*  3 */ ENTR_SPOT01_9, // Kakariko from Potion Shop
 	/*  4 */ ENTR_MARKET_DAY_5, // Market (child day) from Potion Shop
 	
 	// ENTR_RETURN_SHOP1
-	/*  5 */ ENTR_SPOT01_3,  // Kakariko from Bazaar
+	/*  5 */ ENTR_SPOT01_3, // Kakariko from Bazaar
 	/*  6 */ ENTR_MARKET_DAY_6, // Market (child day) from Bazaar
 	
 	// ENTR_RETURN_4

@@ -14,9 +14,11 @@
 #include "assets/objects/gameplay_keep/gameplay_keep.h"
 #include "assets/objects/object_link_child/object_link_child.h"
 
-s32 __func_80835C58(PlayState* play, Player* this, PlayerFunc674 func, s32 flags, const char* setFunc, const char* srcFunc, u32 line);
-
-#define func_80835C58(play, this, func, flags) __func_80835C58(play, this, func, flags, #func , __FUNCTION__, __LINE__)
+#define func_80835C58(play, this, func, flags) ({ \
+    osLibPrintf("" PRNT_YELW "PLAYER"); \
+    osLibPrintf("From: " PRNT_GRAY "[" PRNT_BLUE "%s" PRNT_GRAY "::" PRNT_YELW "%d" PRNT_GRAY "]", __FUNCTION__, __LINE__); \
+    osLibPrintf("Set:  "PRNT_GRAY "[" PRNT_BLUE #func PRNT_GRAY "]"); \
+    __func_80835C58(play, this, func, flags); })
 
 typedef struct {
    /* 0x00 */ u8 itemId;

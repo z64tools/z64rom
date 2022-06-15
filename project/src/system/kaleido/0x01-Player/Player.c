@@ -2498,7 +2498,7 @@ s32 func_80835C08(Player* this, PlayState* play) {
 	return 1;
 }
 
-s32 __func_80835C58(PlayState* play, Player* this, PlayerFunc674 func, s32 flags, const char* setFunc, const char* srcFunc, u32 line) {
+s32 __func_80835C58(PlayState* play, Player* this, PlayerFunc674 func, s32 flags) {
 	if (func == this->func_674) {
 		return 0;
 	}
@@ -2510,9 +2510,6 @@ s32 __func_80835C58(PlayState* play, Player* this, PlayerFunc674 func, s32 flags
 		func_80832340(play, this);
 	}
 	
-	osLibPrintf("" PRNT_YELW "PLAYER");
-	osLibPrintf("" PRNT_GRAY "[" PRNT_BLUE "%s" PRNT_GRAY "::" PRNT_YELW "%d" PRNT_GRAY "]", srcFunc, line);
-	osLibPrintf("Set Func "PRNT_GRAY "[" PRNT_BLUE "%s" PRNT_GRAY "::" PRNT_YELW "%08X" PRNT_GRAY "]\n", setFunc, func);
 	this->func_674 = func;
 	
 	if ((this->itemActionParam != this->heldItemActionParam) &&
@@ -4595,6 +4592,7 @@ void func_8083AA10(Player* this, PlayState* play) {
 					
 					return;
 				}
+				osLibPrintf("1");
 				
 				if ((D_80853604 == 9) || (D_80853600 <= this->ageProperties->unk_34) || !func_8083A6AC(this, play)) {
 					func_80832284(play, this, &gPlayerAnim_003040);
@@ -13114,37 +13112,34 @@ s32 Player_DebugMode(Player* this, PlayState* play) {
 		f32 speed;
 		
 		if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_R)) {
-			speed = 100.0f;
+			speed = 250.0f;
 		} else {
-			speed = 20.0f;
+			speed = 50.0f;
 		}
 		
 		func_8006375C(3, 2, "DEBUG MODE");
 		
 		if (!CHECK_BTN_ALL(sControlInput->cur.button, BTN_L)) {
 			if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_B)) {
-				this->actor.world.pos.y += speed;
+				this->actor.world.pos.y += speed * 0.45;
 			} else if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_A)) {
-				this->actor.world.pos.y -= speed;
+				this->actor.world.pos.y -= speed * 0.45;
 			}
 			
-			if (CHECK_BTN_ANY(sControlInput->cur.button, BTN_DUP | BTN_DLEFT | BTN_DDOWN | BTN_DRIGHT)) {
+                OSContPad* ctrl = &play->state.input[0].cur;
+                Vec3f zero = {};
+                Vec3f conpos = {
+                    .x = -((f32)ctrl->stick_x / 128),
+                    .z = (f32)ctrl->stick_y / 128,
+                };
 				s16 angle;
-				s16 temp;
+				f32 speedC = Math_Vec3f_DistXZ(&zero, &conpos);
 				
-				angle = temp = Camera_GetInputDirYaw(GET_ACTIVE_CAM(play));
+				angle = Camera_GetInputDirYaw(GET_ACTIVE_CAM(play));
+                angle += Math_Vec3f_Yaw(&zero, &conpos);
 				
-				if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_DDOWN)) {
-					angle = temp + 0x8000;
-				} else if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_DLEFT)) {
-					angle = temp + 0x4000;
-				} else if (CHECK_BTN_ALL(sControlInput->cur.button, BTN_DRIGHT)) {
-					angle = temp - 0x4000;
-				}
-				
-				this->actor.world.pos.x += speed * Math_SinS(angle);
-				this->actor.world.pos.z += speed * Math_CosS(angle);
-			}
+				this->actor.world.pos.x += speed * Math_SinS(angle) * speedC;
+				this->actor.world.pos.z += speed * Math_CosS(angle) * speedC;
 		}
 		
 		func_80832210(this);

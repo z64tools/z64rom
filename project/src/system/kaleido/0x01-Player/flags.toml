@@ -1,1 +1,1 @@
-gcc_flags = "-fno-toplevel-reorder"
+gcc_flags = "-Wno-maybe-uninitialized"

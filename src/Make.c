@@ -831,7 +831,6 @@ build:
 	
 	Time_Start(1);
 	Make_Run(command);
-	printf_lock("%s\n", command);
 	Make_Info("GCC", command);
 	sTimeGCC += Time_Get(1);
 	sCountGCC++;

@@ -339,6 +339,7 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 		
 		forlist(i, vlist) {
 			char* variable;
+			char* temp;
 			s64 addr;
 			u32 isHex = true;
 			
@@ -358,12 +359,13 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 			variable = Toml_GetVariable(toml->str, vlist.item[i]);
 			
 			isPatched = 1;
+			temp = Toml_Variable(toml->str, vlist.item[i]);
 			
-			if (Toml_Variable(toml->str, vlist.item[i])[0] == '\"')
+			if (temp[0] == '\"' || !memcmp(temp, "FILE(", 5))
 				isHex = false;
 			
 			// Comment out already processed variables
-			LineHead(Toml_Variable(toml->str, vlist.item[i]))[0] = '#';
+			LineHead(temp)[0] = '#';
 			
 			if (addr + strlen(variable) >= memDest->dataSize || addr < 0) {
 				printf_warning("\aPatch [0x%08X] from [%s] does not fit into [%s]", addr, toml->info.name, section);
@@ -413,18 +415,17 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 			} else {
 				MemFile_Seek(memDest, addr);
 				
-				if (!strcmp(variable, "FILE(")) {
+				if (!memcmp(variable, "ILE(", 4)) {
 					MemFile bmem;
 					char* bin = StrDup(variable);
 					
-					StrRep(bin, "FILE(", "");
+					StrRep(bin, "ILE(\"", "");
 					StrRep(bin, ")", "");
 					
 					FileSys_Path(Path(toml->info.name));
 					
 					if (!Sys_Stat(FileSys_File(bin))) {
 						printf_warning("Could not locate file [%s] referenced by patch [%s]", FileSys_File(bin), toml->info.name);
-						FileSys_Path(Sys_AppDir());
 						
 						continue;
 					}
@@ -433,8 +434,6 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 					node->end = addr + bmem.dataSize + reloc;
 					MemFile_Append(memDest, &bmem);
 					MemFile_Free(&bmem);
-					
-					FileSys_Path(Sys_AppDir());
 				} else {
 					MemFile_Write(memDest, variable, strlen(variable));
 					node->end = addr + strlen(variable) + reloc;

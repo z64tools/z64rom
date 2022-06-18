@@ -544,7 +544,7 @@ static void Rom_Dump_Object(Rom* rom, MemFile* data, MemFile* config) {
 			continue;
 		
 		SetSegment(1, rf.data);
-		PlayerAnimEntry* entry = SegmentedToVirtual(1, 0x2310);
+		PlayerAnimEntry* entry = (PlayerAnimEntry*)SegmentedToVirtual(1, 0x2310);
 		char* anim = SegmentedToVirtual(0, 0x4E5C00);
 		
 		Sys_MakeDir("rom/system/animation/%s/", gVanilla);
@@ -954,7 +954,7 @@ static void Rom_Build_Object(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			
 			Rom_ItemList(&animList, "rom/system/animation/", SORT_NUMERICAL, LIST_FILES);
 			SetSegment(1, memData->data);
-			animEntry = SegmentedToVirtual(1, 0x2310);
+			animEntry = (PlayerAnimEntry*)SegmentedToVirtual(1, 0x2310);
 			
 			forlist(j, animList) {
 				MemFile mem;
@@ -1402,8 +1402,7 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		MemFile_Reset(memData);
 		MemFile_LoadFile(memData, list.item[k]);
-		
-		s32 p = Patch_File(memData, list.item[k]);
+		Patch_File(memData, list.item[k]);
 		
 		switch (id) {
 			case DMA_ID_TITLE_STATIC:

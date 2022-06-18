@@ -1402,16 +1402,18 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		MemFile_Reset(memData);
 		MemFile_LoadFile(memData, list.item[k]);
-		Patch_File(memData, list.item[k]);
 		
 		switch (id) {
 			case DMA_ID_TITLE_STATIC:
-				compress = true;
+				compress = COMPRESS;
 				break;
 			default:
 				compress = false;
 				break;
 		}
+		
+		if (Patch_File(memData, list.item[k]) && compress)
+			compress = NOCACHE_COMPRESS;
 		
 		start = Dma_WriteEntry(rom, id, memData, compress);
 		end = Dma_GetVRomEnd();

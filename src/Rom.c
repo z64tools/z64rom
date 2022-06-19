@@ -246,31 +246,33 @@ Patch gPatch;
 void Patch_Init() {
 	ItemList list = ItemList_Initialize();
 	
+	ItemList_SetFilter(&list, CONTAIN_END, ".cfg");
 	ItemList_List(&list, "patch/", -1, LIST_FILES | LIST_NO_DOT);
 	Calloc(gPatch.cfg.file, sizeof(struct MemFile) * list.num);
 	
 	for (s32 i = 0; i < list.num; i++) {
-		if (StrEndCase(list.item[i], ".cfg")) {
-			MemFile* mem = &gPatch.cfg.file[gPatch.cfg.num++];
-			char* line;
-			u32 lineCount;
+		MemFile* mem = &gPatch.cfg.file[gPatch.cfg.num++];
+		char* line;
+		u32 lineCount;
+		
+		MemFile_LoadFile_String(mem, list.item[i]);
+		MemFile_Realloc(mem, mem->memSize * 8);
+		Config_ProcessIncludes(mem);
+		Log("Processed");
+		
+		// @macro
+		line = mem->str;
+		lineCount = LineNum(mem->str);
+		for (s32 i = 0; i < lineCount; i++, line = Line(line, 1)) {
+			if (line == NULL)
+				break;
+			if (line[0] != '@')
+				continue;
 			
-			MemFile_LoadFile_String(mem, list.item[i]);
-			MemFile_Realloc(mem, mem->memSize * 4);
+			char* cmd = CopyWord(line, 0);
 			
-			// @macro
-			line = mem->str;
-			lineCount = LineNum(mem->str);
-			for (s32 i = 0; i < lineCount; i++, line = Line(line, 1)) {
-				if (line == NULL)
-					break;
-				if (line[0] != '@')
-					continue;
-				
-				char* cmd = CopyWord(line, 0);
-				
-				StrRep(mem->str, cmd + 1, Config_GetVariable(line, cmd));
-			}
+			StrRep(mem->str, cmd + 1, Config_GetVariable(line, cmd));
+			line[0] = '#';
 		}
 	}
 	

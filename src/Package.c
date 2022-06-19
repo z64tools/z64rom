@@ -4,16 +4,16 @@
 MemFile __actor_object_list;
 MemFile* sDepList = &__actor_object_list;
 
-void Package_Sound(struct zip_t* pkg, char* toml) {
-	char* name = Toml_GetVariable(toml, "name");
-	char* file = Toml_GetVariable(toml, "file");
+void Package_Sound(struct zip_t* pkg, char* cfg) {
+	char* name = Config_GetVariable(cfg, "name");
+	char* file = Config_GetVariable(cfg, "file");
 	ItemList list = ItemList_Initialize();
 	MemFile mem = MemFile_Initialize();
 	void* f;
 	Size size;
 	
 	if (name == NULL || file == NULL) {
-		Log("Package:\n%s", toml);
+		Log("Package:\n%s", cfg);
 		if (name == NULL) Log("No [name] provided");
 		if (file == NULL) Log("No [file] provided");
 		
@@ -29,10 +29,10 @@ void Package_Sound(struct zip_t* pkg, char* toml) {
 		char* file;
 		FileSys_Path(fldr);
 		
-		file = FileSys_FindFile("config.toml");
+		file = FileSys_FindFile("config.cfg");
 		
 		if (file)
-			Sys_Copy(file, HeapPrint("%sconfig.toml", mkfldr));
+			Sys_Copy(file, HeapPrint("%sconfig.cfg", mkfldr));
 	}
 	
 	zip_entry_open(pkg, file);
@@ -49,8 +49,8 @@ void Package_Sound(struct zip_t* pkg, char* toml) {
 	Free(f);
 }
 
-void Package_Actor(struct zip_t* pkg, char* toml) {
-	char* name = Toml_GetVariable(toml, "name");
+void Package_Actor(struct zip_t* pkg, char* cfg) {
+	char* name = Config_GetVariable(cfg, "name");
 	ItemList list = ItemList_Initialize();
 	ItemList actorList = ItemList_Initialize();
 	ItemList objectList = ItemList_Initialize();
@@ -63,10 +63,10 @@ void Package_Actor(struct zip_t* pkg, char* toml) {
 	MemFile mout = MemFile_Initialize();
 	MemFile mtom = MemFile_Initialize();
 	
-	MemFile_LoadMem(&mtom, toml, strlen(toml) + 1);
+	MemFile_LoadMem(&mtom, cfg, strlen(cfg) + 1);
 	
 	MemFile_Malloc(&mout, MbToBin(32));
-	Toml_GetArray(&mtom, &list, "files");
+	Config_GetArray(&mtom, &list, "files");
 	object = ItemList_GetWildItem(&list, ".zobj");
 	
 	printf_info("Import [%s] to ActorID: " PRNT_DGRY "provide values as hex or [free] to get first free index", name);
@@ -116,7 +116,7 @@ void Package_Actor(struct zip_t* pkg, char* toml) {
 		ItemList recList = ItemList_Initialize();
 		
 		sprintf(buf, "0x%04X", Value_Hex(tmp));
-		Toml_GetArray(sDepList, &recList, buf);
+		Config_GetArray(sDepList, &recList, buf);
 		
 		for (s32 i = 0; i < recList.num; i++) {
 			if (i > 0)
@@ -156,11 +156,11 @@ void Package_Actor(struct zip_t* pkg, char* toml) {
 			write = true;
 		}
 		
-		if (StrEndCase(list.item[i], ".zovl") || StrEndCase(list.item[i], ".toml")) {
+		if (StrEndCase(list.item[i], ".zovl") || StrEndCase(list.item[i], ".cfg")) {
 			file = HeapPrint("rom/actor/0x%04X-%s/%s", actorID, name, list.item[i]);
 			Sys_MakeDir("rom/actor/0x%04X-%s/", actorID, name);
 			write = true;
-			if (StrEndCase(list.item[i], ".toml"))
+			if (StrEndCase(list.item[i], ".cfg"))
 				string = true;
 		}
 		
@@ -195,7 +195,7 @@ void Package_Actor(struct zip_t* pkg, char* toml) {
 
 void Package_Load(const char* item) {
 	struct zip_t* pkg;
-	char* toml;
+	char* cfg;
 	Size cfgSize;
 	char* sct;
 	
@@ -203,18 +203,18 @@ void Package_Load(const char* item) {
 	
 	pkg = zip_open(item, 0, 'r');
 	
-	zip_entry_open(pkg, "package.toml");
-	if (zip_entry_read(pkg, (void*)&toml, &cfgSize) < 0) {
+	zip_entry_open(pkg, "package.cfg");
+	if (zip_entry_read(pkg, (void*)&cfg, &cfgSize) < 0) {
 		zip_close(pkg);
 		
 		return;
 	}
 	zip_entry_close(pkg);
 	
-	MemFile_LoadFile_String(sDepList, "tools/actor-object-deb.toml");
+	MemFile_LoadFile_String(sDepList, "tools/actor-object-deb.cfg");
 	
-	s32 lnum = LineNum(toml);
-	char* line = toml;
+	s32 lnum = LineNum(cfg);
+	char* line = cfg;
 	
 	for (s32 i = 0; i< lnum; i++, line = Line(line, 1)) {
 		s32 j = 0;
@@ -237,7 +237,7 @@ void Package_Load(const char* item) {
 		for (;; j++) {
 			if (j >= ArrayCount(str))
 				j = -1;
-			if (!memcmp(toml, str[j], strlen(str[j])))
+			if (!memcmp(cfg, str[j], strlen(str[j])))
 				break;
 		}
 		
@@ -255,6 +255,6 @@ void Package_Load(const char* item) {
 	}
 	
 	MemFile_Free(sDepList);
-	Free(toml);
+	Free(cfg);
 	zip_close(pkg);
 }

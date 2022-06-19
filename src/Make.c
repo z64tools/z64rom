@@ -80,7 +80,7 @@ static void Make_Thread(Thread* thread, void (*func)(MakeArg*), void* arg) {
 static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	ItemList* list;
 	char cmd[512];
-	char* toml;
+	char* cfg;
 	char* seq = NULL;
 	char* midi = NULL;
 	char* mus = NULL;
@@ -90,18 +90,18 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	*list = ItemList_Initialize();
 	
 	if ((midi = Make_Wildcard(targ->path, ".mid"))) {
-		toml = HeapPrint("%sconfig.toml", targ->path);
+		cfg = HeapPrint("%sconfig.cfg", targ->path);
 		seq = HeapPrint("%ssequence.aseq", targ->path);
 		
 		if (Sys_Stat(seq) > Sys_Stat(midi) && !gMakeForce)
 			goto free;
 		
-		if (!Sys_Stat(toml)) {
+		if (!Sys_Stat(cfg)) {
 			ItemList van = ItemList_Initialize();
 			ItemList_List(&van, HeapPrint("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
 			
 			if (Sys_Stat(van.item[index]))
-				Sys_Copy(HeapPrint("%sconfig.toml", van.item[index]), toml);
+				Sys_Copy(HeapPrint("%sconfig.cfg", van.item[index]), cfg);
 			
 			ItemList_Free(&van);
 		}
@@ -114,18 +114,18 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	}
 	
 	if ((mus = Make_Wildcard(targ->path, ".mus"))) {
-		toml = HeapPrint("%sconfig.toml", targ->path);
+		cfg = HeapPrint("%sconfig.cfg", targ->path);
 		seq = HeapPrint("%ssequence.aseq", targ->path);
 		
 		if (Sys_Stat(seq) > Sys_Stat(mus) && !gMakeForce)
 			goto free;
 		
-		if (!Sys_Stat(toml)) {
+		if (!Sys_Stat(cfg)) {
 			ItemList van = ItemList_Initialize();
 			ItemList_List(&van, HeapPrint("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
 			
 			if (Sys_Stat(van.item[index]))
-				Sys_Copy(HeapPrint("%sconfig.toml", van.item[index]), toml);
+				Sys_Copy(HeapPrint("%sconfig.cfg", van.item[index]), cfg);
 			
 			ItemList_Free(&van);
 		}
@@ -194,8 +194,8 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	char* audio = NULL;
 	char* book = NULL;
 	char* table = NULL;
-	char* modTomlName = NULL;
-	char* vanTomlName = NULL;
+	char* modCfgName = NULL;
+	char* vanCfgName = NULL;
 	MemFile ttoml = MemFile_Initialize();
 	bool normalize = false;
 	bool inherit = false;
@@ -211,13 +211,13 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	ItemList_List(list, targ->path, 0, LIST_FILES | LIST_NO_DOT);
 	
 	for (s32 i = 0; i < list->num; i++) {
-		if (StrEnd(list->item[i], ".toml"))
-			modTomlName = list->item[i];
+		if (StrEnd(list->item[i], ".cfg"))
+			modCfgName = list->item[i];
 		
 		if (StrEndCase(list->item[i], ".book.bin"))
 			book = list->item[i];
 		
-		if (StrEndCase(list->item[i], "/design.toml"))
+		if (StrEndCase(list->item[i], "/design.cfg"))
 			table = list->item[i];
 		
 		if (audio == NULL) {
@@ -243,34 +243,34 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	if (audio == NULL)
 		goto free;
 	
-	Malloc(vanTomlName, 0x1024);
-	strcpy(vanTomlName, targ->path);
-	StrRep(vanTomlName, "rom/sound/sample/", HeapPrint("rom/sound/sample/%s/", gVanilla));
-	strcat(vanTomlName, "config.toml");
+	Malloc(vanCfgName, 0x1024);
+	strcpy(vanCfgName, targ->path);
+	StrRep(vanCfgName, "rom/sound/sample/", HeapPrint("rom/sound/sample/%s/", gVanilla));
+	strcat(vanCfgName, "config.cfg");
 	
-	if (modTomlName == NULL) {
+	if (modCfgName == NULL) {
 		MemFile mem;
-		modTomlName = HeapPrint("%sconfig.toml", targ->path);
+		modCfgName = HeapPrint("%sconfig.cfg", targ->path);
 		
-		MemFile_LoadFile_String(&mem, vanTomlName);
+		MemFile_LoadFile_String(&mem, vanCfgName);
 		MemFile_Seek(&mem, MEMFILE_SEEK_END);
-		Toml_WriteFloat(&mem, "tuning", 0.0f, NO_COMMENT);
-		MemFile_SaveFile_String(&mem, modTomlName);
+		Config_WriteFloat(&mem, "tuning", 0.0f, NO_COMMENT);
+		MemFile_SaveFile_String(&mem, modCfgName);
 	}
 	
-	if (!Sys_Stat(modTomlName))
-		printf_error("Could not locate [%s]", modTomlName);
+	if (!Sys_Stat(modCfgName))
+		printf_error("Could not locate [%s]", modCfgName);
 	
-	MemFile_LoadFile_String(&ttoml, modTomlName);
+	MemFile_LoadFile_String(&ttoml, modCfgName);
 	
-	if (!Toml_Variable(ttoml.str, "tuning")) {
-		char* p = Toml_Variable(ttoml.str, "finetune");
+	if (!Config_Variable(ttoml.str, "tuning")) {
+		char* p = Config_Variable(ttoml.str, "finetune");
 		
 		p = Line(p, 1);
 		
 		StrIns(p, "tuning          = 0.0\n");
 		ttoml.dataSize = strlen(ttoml.str);
-		MemFile_SaveFile_String(&ttoml, modTomlName);
+		MemFile_SaveFile_String(&ttoml, modCfgName);
 	}
 	
 	if (!StrStr(ttoml.str, "[z64rom]")) {
@@ -279,19 +279,19 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 		MemFile_Realloc(&ttoml, ttoml.memSize * 4);
 		
 		if (end[-2] != '\n')
-			Toml_Print(&ttoml, "\n");
-		Toml_WriteSection(&ttoml, "z64rom");
-		Toml_WriteStr(&ttoml, "normalize", "true", NO_QUOTES, NO_COMMENT);
-		Toml_WriteStr(&ttoml, "inherit_vanilla", "false", NO_QUOTES, "Get 'basenote' and 'finetune' from vanilla config");
-		MemFile_SaveFile_String(&ttoml, modTomlName);
+			Config_Print(&ttoml, "\n");
+		Config_WriteSection(&ttoml, "z64rom");
+		Config_WriteStr(&ttoml, "normalize", "true", NO_QUOTES, NO_COMMENT);
+		Config_WriteStr(&ttoml, "inherit_vanilla", "false", NO_QUOTES, "Get 'basenote' and 'finetune' from vanilla config");
+		MemFile_SaveFile_String(&ttoml, modCfgName);
 	}
 	
-	Toml_GotoSection("z64rom");
-	normalize = Toml_GetBool(&ttoml, "normalize");
-	inherit = Toml_GetBool(&ttoml, "inherit_vanilla");
-	Toml_GotoSection(NULL);
+	Config_GotoSection("z64rom");
+	normalize = Config_GetBool(&ttoml, "normalize");
+	inherit = Config_GetBool(&ttoml, "inherit_vanilla");
+	Config_GotoSection(NULL);
 	
-	if (vadpcm == NULL || (Sys_Stat(modTomlName) > Sys_Stat(vadpcm)) || (Sys_Stat(audio) > Sys_Stat(vadpcm)) || gMakeForce) {
+	if (vadpcm == NULL || (Sys_Stat(modCfgName) > Sys_Stat(vadpcm)) || (Sys_Stat(audio) > Sys_Stat(vadpcm)) || gMakeForce) {
 		char command[2056];
 		
 		if (vadpcm == NULL)
@@ -309,16 +309,16 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 		if (normalize)
 			catprintf(command, " --m --n");
 		
-		if (inherit && Sys_Stat(vanTomlName)) {
+		if (inherit && Sys_Stat(vanCfgName)) {
 			MemFile mem = MemFile_Initialize();
 			
-			Log("inherit [%s]", vanTomlName);
-			MemFile_LoadFile_String(&mem, vanTomlName);
+			Log("inherit [%s]", vanCfgName);
+			MemFile_LoadFile_String(&mem, vanCfgName);
 			catprintf(
 				command,
 				" --basenote %d --finetune %d",
-				Toml_GetInt(&mem, "basenote"),
-				Toml_GetInt(&mem, "finetune")
+				Config_GetInt(&mem, "basenote"),
+				Config_GetInt(&mem, "finetune")
 			);
 			MemFile_Free(&mem);
 		}
@@ -332,7 +332,7 @@ free:
 	ItemList_Free(list);
 	Free(list);
 	Free(vadpcm);
-	Free(vanTomlName);
+	Free(vanCfgName);
 }
 
 void Make_Sound(void) {
@@ -384,9 +384,9 @@ free:
 // # Callback_Helper                     #
 // # # # # # # # # # # # # # # # # # # # #
 
-static s32 Callback_Dependencies_PreGcc(const char* input, const char* output, const char* toml, MemFile* make, ItemList* dep2) {
-	if (Sys_Stat(toml))
-		MemFile_LoadFile_String(make, toml);
+static s32 Callback_Dependencies_PreGcc(const char* input, const char* output, const char* cfg, MemFile* make, ItemList* dep2) {
+	if (Sys_Stat(cfg))
+		MemFile_LoadFile_String(make, cfg);
 	
 	if (gMakeForce)
 		return true;
@@ -394,18 +394,18 @@ static s32 Callback_Dependencies_PreGcc(const char* input, const char* output, c
 	if (!Sys_Stat(output) || (Sys_Stat(input) > Sys_Stat(output)))
 		return true;
 	
-	if (Sys_Stat(toml)) {
+	if (Sys_Stat(cfg)) {
 		ItemList dep;
 		ItemList listA = ItemList_Initialize();
 		ItemList listB = ItemList_Initialize();
 		
-		if (Toml_Variable(make->str, "dependencies"))
-			Toml_GetArray(make, &listA, "dependencies");
+		if (Config_Variable(make->str, "dependencies"))
+			Config_GetArray(make, &listA, "dependencies");
 		
-		Toml_GotoSection(Basename(input));
-		if (Toml_Variable(make->str, "dependencies"))
-			Toml_GetArray(make, &listB, "dependencies");
-		Toml_GotoSection(NULL);
+		Config_GotoSection(Basename(input));
+		if (Config_Variable(make->str, "dependencies"))
+			Config_GetArray(make, &listB, "dependencies");
+		Config_GotoSection(NULL);
 		
 		ItemList_Combine(&dep, &listA, &listB);
 		ItemList_Free(&listA);
@@ -449,8 +449,8 @@ static s32 Callback_Dependencies_PreLd(const char* input, const char* output) {
 	return ret;
 }
 
-static s32 Callback_Overlay_PreGcc(const char* input, const char* output, const char* toml, MemFile* make) {
-	if (Callback_Dependencies_PreGcc(input, output, toml, make, &sDepList_uLibHeader))
+static s32 Callback_Overlay_PreGcc(const char* input, const char* output, const char* cfg, MemFile* make) {
+	if (Callback_Dependencies_PreGcc(input, output, cfg, make, &sDepList_uLibHeader))
 		return CB_MAKE;
 	
 	return CB_BREAK;
@@ -468,11 +468,11 @@ static s32 Callback_Kaleido(const char* input, MakeCallType type, void* arg, voi
 	char* conf;
 	
 	if (type == PRE_GCC) {
-		char* toml = HeapPrint("%smake.toml", Path(input));
+		char* cfg = HeapPrint("%smake.cfg", Path(input));
 		const char* output = arg;
 		MemFile* make = arg2;
 		
-		return Callback_Overlay_PreGcc(input, output, toml, make);
+		return Callback_Overlay_PreGcc(input, output, cfg, make);
 	}
 	
 	if (type == PRE_LD) {
@@ -490,7 +490,7 @@ static s32 Callback_Kaleido(const char* input, MakeCallType type, void* arg, voi
 		ovl = HeapPrint("%soverlay.zovl", Path(input));
 		StrRep(ovl, "src/", "rom/");
 		
-		conf = HeapPrint("%sconfig.toml", Path(input));
+		conf = HeapPrint("%sconfig.cfg", Path(input));
 		StrRep(conf, "src/", "rom/");
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
@@ -517,11 +517,11 @@ static s32 Callback_Kaleido(const char* input, MakeCallType type, void* arg, voi
 			
 			MemFile_Malloc(&newConf, 0x800);
 			MemFile_Printf(&newConf, "# %s\n", Basename(input));
-			Toml_WriteHex(&newConf, "vram_addr", 0x80800000, NO_COMMENT);
-			Toml_WriteHex(&newConf, "init", init, NO_COMMENT);
-			Toml_WriteHex(&newConf, "dest", dest, NO_COMMENT);
-			Toml_WriteHex(&newConf, "updt", updt, NO_COMMENT);
-			Toml_WriteHex(&newConf, "draw", draw, NO_COMMENT);
+			Config_WriteHex(&newConf, "vram_addr", 0x80800000, NO_COMMENT);
+			Config_WriteHex(&newConf, "init", init, NO_COMMENT);
+			Config_WriteHex(&newConf, "dest", dest, NO_COMMENT);
+			Config_WriteHex(&newConf, "updt", updt, NO_COMMENT);
+			Config_WriteHex(&newConf, "draw", draw, NO_COMMENT);
 			
 			if (MemFile_SaveFile_String(&newConf, conf)) printf_error("Could not save [%s]", conf);
 			
@@ -549,11 +549,11 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 	char* ovl = NULL;
 	
 	if (type == PRE_GCC) {
-		char* toml = HeapPrint("%smake.toml", Path(input));
+		char* cfg = HeapPrint("%smake.cfg", Path(input));
 		const char* output = arg;
 		MemFile* make = arg2;
 		
-		return Callback_Overlay_PreGcc(input, output, toml, make);
+		return Callback_Overlay_PreGcc(input, output, cfg, make);
 	}
 	
 	if (type == PRE_LD) {
@@ -585,7 +585,7 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 		Tools_Command(command, mips64_objdump, "-t %s", input);
 		dump = SysExeO(command);
 		
-		char* config = HeapPrint("%sconfig.toml", Path(input));
+		char* config = HeapPrint("%sconfig.cfg", Path(input));
 		MemFile mem = MemFile_Initialize();
 		char* stateInit = LineHead(StrStr(dump, "__z64_init"));
 		char* stateDestroy = LineHead(StrStr(dump, "__z64_dest"));
@@ -615,11 +615,11 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 	char* conf;
 	
 	if (type == PRE_GCC) {
-		char* toml = HeapPrint("%smake.toml", Path(input));
+		char* cfg = HeapPrint("%smake.cfg", Path(input));
 		const char* output = arg;
 		MemFile* make = arg2;
 		
-		return Callback_Overlay_PreGcc(input, output, toml, make);
+		return Callback_Overlay_PreGcc(input, output, cfg, make);
 	}
 	
 	if (type == PRE_LD) {
@@ -637,7 +637,7 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 		ovl = HeapPrint("%soverlay.zovl", Path(input));
 		StrRep(ovl, "src/", "rom/");
 		
-		conf = HeapPrint("%sconfig.toml", Path(input));
+		conf = HeapPrint("%sconfig.cfg", Path(input));
 		StrRep(conf, "src/", "rom/");
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
@@ -727,11 +727,11 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 
 static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* arg2) {
 	if (type == PRE_GCC) {
-		char* toml = HeapPrint("%smake.toml", Path(input));
+		char* cfg = HeapPrint("%smake.cfg", Path(input));
 		const char* output = arg;
 		MemFile* make = arg2;
 		
-		if (Callback_Dependencies_PreGcc(input, output, toml, make, &sDepList_uLibHeader))
+		if (Callback_Dependencies_PreGcc(input, output, cfg, make, &sDepList_uLibHeader))
 			return CB_MAKE;
 		
 		return CB_BREAK;
@@ -768,13 +768,13 @@ static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* 
 			if (z64next) z64next += strlen("z64next = ");
 			
 			MemFile_Malloc(config, 0x280);
-			Toml_WriteHex(config, "rom", Value_Hex(z64rom), NO_COMMENT);
-			Toml_WriteHex(config, "ram", Value_Hex(z64ram), NO_COMMENT);
-			if (z64next) Toml_WriteHex(config, "next", Value_Hex(z64next), NO_COMMENT);
+			Config_WriteHex(config, "rom", Value_Hex(z64rom), NO_COMMENT);
+			Config_WriteHex(config, "ram", Value_Hex(z64ram), NO_COMMENT);
+			if (z64next) Config_WriteHex(config, "next", Value_Hex(z64next), NO_COMMENT);
 			entryPoint[0] = Value_Hex(z64ram);
 			
 			strcpy(c, input);
-			if (!StrRep(c, ".o", ".toml")) goto error;
+			if (!StrRep(c, ".o", ".cfg")) goto error;
 			
 			MemFile_SaveFile_String(config, c);
 			
@@ -823,9 +823,9 @@ static void Binutil_GCC(const char* source, const char* output, const char* flag
 				printf_error("Unrecognized Callback Return [%d]", r);
 		}
 	} else {
-		char* toml = HeapPrint("%smake.toml", Path(source));
+		char* cfg = HeapPrint("%smake.cfg", Path(source));
 		
-		if (false == Callback_Dependencies_PreGcc(source, output, toml, &make, NULL))
+		if (false == Callback_Dependencies_PreGcc(source, output, cfg, &make, NULL))
 			goto free;
 	}
 	
@@ -839,22 +839,22 @@ build:
 	if (make.data) {
 		char* var;
 		
-		if ((var = Toml_Variable(make.str, "gcc_flags"))) {
-			newFlags = StrDupX(Toml_GetVariable(make.str, "gcc_flags"), 1024 * 2);
+		if ((var = Config_Variable(make.str, "gcc_flags"))) {
+			newFlags = StrDupX(Config_GetVariable(make.str, "gcc_flags"), 1024 * 2);
 		}
 		
-		Toml_GotoSection(basename);
-		if ((var = Toml_Variable(make.str, "gcc_flags"))) {
+		Config_GotoSection(basename);
+		if ((var = Config_Variable(make.str, "gcc_flags"))) {
 			if (!newFlags)
-				newFlags = StrDupX(Toml_GetVariable(make.str, "gcc_flags"), 1024 * 2);
+				newFlags = StrDupX(Config_GetVariable(make.str, "gcc_flags"), 1024 * 2);
 			else
-				catprintf(newFlags, " %s", Toml_GetVariable(make.str, "gcc_flags"));
+				catprintf(newFlags, " %s", Config_GetVariable(make.str, "gcc_flags"));
 		}
 		
 		if (newFlags)
 			flags = newFlags;
 		
-		Toml_GotoSection(NULL);
+		Config_GotoSection(NULL);
 	}
 	
 	Tools_Command(command, mips64_gcc, "%s %s %s -o %s", sGccBaseFlags, flags, source, output);
@@ -1249,7 +1249,7 @@ void Make_Code(void) {
 	Thread thread[ArrayCount(param)];
 	MakeArg args[ArrayCount(param)] = { 0 };
 	
-	ItemList_SetFilter(&sDepList_uLibHeader, FILTER_END, ".toml", FILTER_END, ".c");
+	ItemList_SetFilter(&sDepList_uLibHeader, FILTER_END, ".cfg", FILTER_END, ".c");
 	ItemList_List(&sDepList_uLibHeader, "src/lib_user/", -1, LIST_FILES | LIST_NO_DOT);
 	
 	if (gThreading)
@@ -1303,18 +1303,18 @@ void Make_Code(void) {
 }
 
 void Make(Rom* rom, s32 message) {
-	sGccBaseFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_base_flags")));
-	sGccActorFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_actor_flags")));
-	sGccCodeFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_code_flags")));
-	sGccKaleidoFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_kaleido_flags")));
-	sGccStateFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_state_flags")));
+	sGccBaseFlags = qFree(StrDup(Config_GetStr(&rom->config, "gcc_base_flags")));
+	sGccActorFlags = qFree(StrDup(Config_GetStr(&rom->config, "gcc_actor_flags")));
+	sGccCodeFlags = qFree(StrDup(Config_GetStr(&rom->config, "gcc_code_flags")));
+	sGccKaleidoFlags = qFree(StrDup(Config_GetStr(&rom->config, "gcc_kaleido_flags")));
+	sGccStateFlags = qFree(StrDup(Config_GetStr(&rom->config, "gcc_state_flags")));
 	
-	sLinkerBaseFlags = qFree(StrDup(Toml_GetStr(&rom->config, "ld_base_flags")));
-	sLinkerCodeFlags = qFree(StrDup(Toml_GetStr(&rom->config, "ld_code_flags")));
-	sLinkerSceneFlags = qFree(StrDup(Toml_GetStr(&rom->config, "ld_scene_flags")));
-	sLinkerULibFlags = qFree(StrDup(Toml_GetStr(&rom->config, "ld_ulib_flags")));
+	sLinkerBaseFlags = qFree(StrDup(Config_GetStr(&rom->config, "ld_base_flags")));
+	sLinkerCodeFlags = qFree(StrDup(Config_GetStr(&rom->config, "ld_code_flags")));
+	sLinkerSceneFlags = qFree(StrDup(Config_GetStr(&rom->config, "ld_scene_flags")));
+	sLinkerULibFlags = qFree(StrDup(Config_GetStr(&rom->config, "ld_ulib_flags")));
 	
-	if (Toml_GetErrorState()) {
+	if (Config_GetErrorState()) {
 		printf("\n");
 		printf_warning("Seems like your z64project is missing some required variables.");
 		printf_warning("Run [z64rom --reconfig] to regenerates gcc and ld flags.");

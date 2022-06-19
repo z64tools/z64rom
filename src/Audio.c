@@ -100,9 +100,9 @@ u8 Audio_GetReleaseID(f32 r) {
 // # # # # # # # # # # # # # # # # # # # #
 
 #define __Config_Sample(config, wow, sampletype) \
-	Toml_WriteSection(config, # wow); \
-	Toml_WriteHex(config, "sample", ReadBE(sample->sampleAddr) + rom->offset.segment.smplRom + off, NO_COMMENT); \
-	Toml_WriteFloat(config, "tuning", *f, NO_COMMENT); \
+	Config_WriteSection(config, # wow); \
+	Config_WriteHex(config, "sample", ReadBE(sample->sampleAddr) + rom->offset.segment.smplRom + off, NO_COMMENT); \
+	Config_WriteFloat(config, "tuning", *f, NO_COMMENT); \
 	if (sBankNum < 0) { printf("\a\n"); exit(1); /* "go intentionally bonkers" */ } \
 	sUnsortedSampleTbl[sDumpID].tuning = *f; \
 	sUnsortedSampleTbl[sDumpID].data = sample->data; \
@@ -112,16 +112,16 @@ u8 Audio_GetReleaseID(f32 r) {
 	Assert(sDumpID < 1024 * 5);
 
 #define __Config_Sample_NULL(config, wow) \
-	Toml_WriteSection(config, # wow); \
-	Toml_WriteStr(config, "sample", "NULL", false, NO_COMMENT); \
-	Toml_WriteStr(config, "tuning", "NULL", false, NO_COMMENT);
+	Config_WriteSection(config, # wow); \
+	Config_WriteStr(config, "sample", "NULL", false, NO_COMMENT); \
+	Config_WriteStr(config, "tuning", "NULL", false, NO_COMMENT);
 
 static void Rom_Config_Envelope(MemFile* config, Adsr* env) {
 	ItemList listRate = ItemList_Initialize();
 	ItemList listLevl = ItemList_Initialize();
 	
-	Toml_Print(config, "\n");
-	Toml_WriteComment(config, "Envelope, values between 0.0 - 1.0");
+	Config_Print(config, "\n");
+	Config_WriteComment(config, "Envelope, values between 0.0 - 1.0");
 	ItemList_Alloc(&listRate, 32, 512);
 	ItemList_Alloc(&listLevl, 32, 512);
 	
@@ -131,8 +131,8 @@ static void Rom_Config_Envelope(MemFile* config, Adsr* env) {
 		ItemList_AddItem(&listRate, HeapPrint("%.5f", (f32)ReadBE(env[i].rate) / __INT16_MAX__));
 		ItemList_AddItem(&listLevl, HeapPrint("%.5f", (f32)ReadBE(env[i].level) / __INT16_MAX__));
 	}
-	Toml_WriteArray(config, "env_rate", &listRate, NO_QUOTES, NO_COMMENT);
-	Toml_WriteArray(config, "env_level", &listLevl, NO_QUOTES, NO_COMMENT);
+	Config_WriteArray(config, "env_rate", &listRate, NO_QUOTES, NO_COMMENT);
+	Config_WriteArray(config, "env_level", &listLevl, NO_QUOTES, NO_COMMENT);
 	ItemList_Free(&listRate);
 	ItemList_Free(&listLevl);
 }
@@ -159,13 +159,13 @@ static s32 Rom_Config_Instrument(Rom* rom, MemFile* config, Instrument* instrume
 	}
 	
 	MemFile_Reset(config);
-	Toml_WriteComment(config, "Instrument");
-	Toml_WriteStr(config, "split_lo", Music_NoteWord(instrument->splitLo + 21), true, "Prim Start");
-	Toml_WriteStr(config, "split_hi", Music_NoteWord(instrument->splitHi + 21), true, "Prim End");
+	Config_WriteComment(config, "Instrument");
+	Config_WriteStr(config, "split_lo", Music_NoteWord(instrument->splitLo + 21), true, "Prim Start");
+	Config_WriteStr(config, "split_hi", Music_NoteWord(instrument->splitHi + 21), true, "Prim End");
 	Rom_Config_Envelope(config, env);
-	Toml_Print(config, "%-15s = %.4f\n", "release_rate", Audio_GetReleaseRate(instrument->release));
+	Config_Print(config, "%-15s = %.4f\n", "release_rate", Audio_GetReleaseRate(instrument->release));
 	
-	Toml_Print(config, "\n");
+	Config_Print(config, "\n");
 	if (instrument->lo.sample != 0) {
 		sample = SegmentedToVirtual(0x1, ReadBE(instrument->lo.sample));
 		val = ReadBE(instrument->lo.swap32);
@@ -207,7 +207,7 @@ static s32 Rom_Config_Sfx(Rom* rom, MemFile* config, Sound* sfx, char* name, cha
 	}
 	
 	MemFile_Reset(config);
-	Toml_WriteComment(config, "Sfx");
+	Config_WriteComment(config, "Sfx");
 	if (sfx->sample != 0) {
 		Sample* sample = SegmentedToVirtual(0x1, ReadBE(sfx->sample));
 		val = ReadBE(sfx->swap32);
@@ -241,13 +241,13 @@ static s32 Rom_Config_Drum(Rom* rom, MemFile* config, u32 drumSeg, char* name, c
 	}
 	
 	MemFile_Reset(config);
-	Toml_WriteComment(config, "Drum");
-	Toml_WriteInt(config, "pan", drum->pan, NO_COMMENT);
+	Config_WriteComment(config, "Drum");
+	Config_WriteInt(config, "pan", drum->pan, NO_COMMENT);
 	Rom_Config_Envelope(config, env);
-	Toml_Print(config, "%-15s = %.4f\n", "release_rate", Audio_GetReleaseRate(drum->release));
+	Config_Print(config, "%-15s = %.4f\n", "release_rate", Audio_GetReleaseRate(drum->release));
 	
-	Toml_Print(config, "\n");
-	Toml_WriteComment(config, "Sample");
+	Config_Print(config, "\n");
+	Config_WriteComment(config, "Sample");
 	if (drum->sound.sample != 0) {
 		Sample* sample = SegmentedToVirtual(0x1, ReadBE(drum->sound.sample));
 		val = ReadBE(drum->sound.swap32);
@@ -265,18 +265,18 @@ static void Rom_Config_Sample(Rom* rom, MemFile* config, Sample* sample, char* n
 	AdpcmLoop* loop = SegmentedToVirtual(0x0, sample->loop);
 	
 	MemFile_Reset(config);
-	Toml_WriteComment(config, name);
-	Toml_WriteInt(config, "codec", ReadBE(sample->data) >> (32 - 4), NO_COMMENT);
-	Toml_WriteInt(config, "medium", (ReadBE(sample->data) >> (32 - 6)) & 2, NO_COMMENT);
-	Toml_WriteInt(config, "bitA", (ReadBE(sample->data) >> (32 - 7)) & 1, NO_COMMENT);
-	Toml_WriteInt(config, "bitB", (ReadBE(sample->data) >> (32 - 8)) & 1, NO_COMMENT);
+	Config_WriteComment(config, name);
+	Config_WriteInt(config, "codec", ReadBE(sample->data) >> (32 - 4), NO_COMMENT);
+	Config_WriteInt(config, "medium", (ReadBE(sample->data) >> (32 - 6)) & 2, NO_COMMENT);
+	Config_WriteInt(config, "bitA", (ReadBE(sample->data) >> (32 - 7)) & 1, NO_COMMENT);
+	Config_WriteInt(config, "bitB", (ReadBE(sample->data) >> (32 - 8)) & 1, NO_COMMENT);
 	
-	Toml_Print(config, "\n");
-	Toml_WriteComment(config, "Loop");
-	Toml_WriteInt(config, "loop_start", ReadBE(loop->start), NO_COMMENT);
-	Toml_WriteInt(config, "loop_end", ReadBE(loop->end), NO_COMMENT);
-	Toml_WriteInt(config, "loop_count", ReadBE(loop->count), NO_COMMENT);
-	Toml_WriteInt(config, "tail_end", ReadBE(loop->origSpls), NO_COMMENT);
+	Config_Print(config, "\n");
+	Config_WriteComment(config, "Loop");
+	Config_WriteInt(config, "loop_start", ReadBE(loop->start), NO_COMMENT);
+	Config_WriteInt(config, "loop_end", ReadBE(loop->end), NO_COMMENT);
+	Config_WriteInt(config, "loop_count", ReadBE(loop->count), NO_COMMENT);
+	Config_WriteInt(config, "tail_end", ReadBE(loop->origSpls), NO_COMMENT);
 	
 	MemFile_SaveFile_String(config, out);
 }
@@ -361,7 +361,7 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		if (entry->numInst) {
 			for (s32 j = 0; j < entry->numInst; j++) {
-				char* output = HeapPrint("%sinstrument/%d-Inst.toml", path, j);
+				char* output = HeapPrint("%sinstrument/%d-Inst.cfg", path, j);
 				Sys_MakeDir(Path(output));
 				
 				if (bank->instruments[j] == 0)
@@ -377,7 +377,7 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		if (entry->numSfx) {
 			for (s32 j = 0; j < ReadBE(entry->numSfx); j++) {
-				char* output = HeapPrint("%ssfx/%d-Sfx.toml", path, j);
+				char* output = HeapPrint("%ssfx/%d-Sfx.cfg", path, j);
 				Sys_MakeDir(Path(output));
 				
 				sfx = SegmentedToVirtual(0x1, ReadBE(bank->sfx));
@@ -391,7 +391,7 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		if (entry->numDrum) {
 			for (s32 j = 0; j < entry->numDrum; j++) {
-				char* output = HeapPrint("%sdrum/%d-Drum.toml", path, j);
+				char* output = HeapPrint("%sdrum/%d-Drum.cfg", path, j);
 				u32* wow = SegmentedToVirtual(0x1, ReadBE(bank->drums));
 				
 				Sys_MakeDir(Path(output));
@@ -404,7 +404,7 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		}
 		
 		MemFile_Reset(config);
-		Toml_WriteComment(config, gBankName_OoT[i]);
+		Config_WriteComment(config, gBankName_OoT[i]);
 		
 		MemFile_Printf(config, "# Sample Medium types [");
 		for (s32 e = 0; e < ArrayCount(sMediumType); e++) {
@@ -414,7 +414,7 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		}
 		MemFile_Printf(config, "]\n");
 		
-		Toml_WriteStr(config, "medium_type", sMediumType[entry->medium], true, 0);
+		Config_WriteStr(config, "medium_type", sMediumType[entry->medium], true, 0);
 		
 		MemFile_Printf(config, "# Sequence Player types [");
 		for (s32 e = 0; e < ArrayCount(sSeqPlayerType); e++) {
@@ -424,9 +424,9 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		}
 		MemFile_Printf(config, "]\n");
 		
-		Toml_WriteStr(config, "sequence_player", sSeqPlayerType[entry->seqPlayer], true, 0);
+		Config_WriteStr(config, "sequence_player", sSeqPlayerType[entry->seqPlayer], true, 0);
 		
-		MemFile_SaveFile_String(config, HeapPrint("%sconfig.toml", path));
+		MemFile_SaveFile_String(config, HeapPrint("%sconfig.cfg", path));
 	}
 	
 	SetSegment(0x1, NULL);
@@ -460,7 +460,7 @@ void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 		seqFontTable = SegmentedToVirtual(0x1, ReadBE(segFontOffTable[i]));
 		
 		ItemList_Alloc(&bankList, 8, 256);
-		Toml_WriteComment(config, gSequenceName_OoT[i]);
+		Config_WriteComment(config, gSequenceName_OoT[i]);
 		bankNum = ReadBE(seqFontTable[0]);
 		
 		for (s32 i = 0; i < bankNum; i++) {
@@ -468,12 +468,12 @@ void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			ItemList_AddItem(&bankList, HeapPrint("0x%02X", bankId));
 		}
 		
-		Toml_WriteArray(config, "bank_id", &bankList, false, 0);
+		Config_WriteArray(config, "bank_id", &bankList, false, 0);
 		
 		if (romFile.size != 0) {
 			Rom_Extract(dataFile, romFile, HeapPrint("%s%s.aseq", path, gSequenceName_OoT[i]));
 		} else {
-			Toml_WriteHex(config, "seq_pointer", ReadBE(entry->romAddr), "Sequence ID - Jumps into this sequence");
+			Config_WriteHex(config, "seq_pointer", ReadBE(entry->romAddr), "Sequence ID - Jumps into this sequence");
 		}
 		
 		MemFile_Printf(config, "# Sample Medium types [");
@@ -484,7 +484,7 @@ void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 		}
 		MemFile_Printf(config, "]\n");
 		
-		Toml_WriteStr(config, "medium_type", sMediumType[entry->medium], true, 0);
+		Config_WriteStr(config, "medium_type", sMediumType[entry->medium], true, 0);
 		
 		MemFile_Printf(config, "# Sequence Player types [");
 		for (s32 e = 0; e < ArrayCount(sSeqPlayerType); e++) {
@@ -493,9 +493,9 @@ void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			MemFile_Printf(config, "%s", sSeqPlayerType[e]);
 		}
 		MemFile_Printf(config, "]\n");
-		Toml_WriteStr(config, "sequence_player", sSeqPlayerType[entry->seqPlayer], true, 0);
+		Config_WriteStr(config, "sequence_player", sSeqPlayerType[entry->seqPlayer], true, 0);
 		
-		MemFile_SaveFile_String(config, HeapPrint("%sconfig.toml", path));
+		MemFile_SaveFile_String(config, HeapPrint("%sconfig.cfg", path));
 		
 		ItemList_Free(&bankList);
 	}
@@ -532,7 +532,7 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 	asprintf(&FILE_VAD, "%s%s/sample.vadpcm.bin", arg->path, name);
 	asprintf(&FILE_BOK, "%s%s/sample.book.bin", arg->path, name);
 	asprintf(&FILE_LBK, "%s%s/sample.loopbook.bin", arg->path, name);
-	asprintf(&FILE_CFG, "%s%s/config.toml", arg->path, name);
+	asprintf(&FILE_CFG, "%s%s/config.cfg", arg->path, name);
 	
 	Malloc(memF, sizeof(MemFile));
 	Malloc(memC, sizeof(MemFile));
@@ -592,10 +592,10 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 		instInfo = MemMem(memF->data, memF->dataSize, "inst", 4);
 		
 		if (instInfo) {
-			Toml_Print(memC, "\n ");
-			Toml_WriteComment(memC, "Instrument Info");
-			Toml_WriteInt(memC, "basenote", instInfo[8], NO_COMMENT);
-			Toml_WriteInt(memC, "finetune", instInfo[9], NO_COMMENT);
+			Config_Print(memC, "\n ");
+			Config_WriteComment(memC, "Instrument Info");
+			Config_WriteInt(memC, "basenote", instInfo[8], NO_COMMENT);
+			Config_WriteInt(memC, "finetune", instInfo[9], NO_COMMENT);
 			MemFile_SaveFile_String(memC, FILE_CFG);
 		} else {
 			if (memF->dataSize == 0)
@@ -713,7 +713,7 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		// Rename SFX To their samples
 		if (StrStr(sBankFiles[j], "-Sfx")) {
-			char* tempName = HeapPrint("%s%d-%s.toml", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), replacedName);
+			char* tempName = HeapPrint("%s%d-%s.cfg", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), replacedName);
 			
 			Sys_Rename(sBankFiles[j], tempName);
 		}
@@ -724,11 +724,11 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			char* tempName;
 			char* var;
 			
-			Toml_GotoSection("prim");
-			var = Toml_GetStr(config, "sample");
+			Config_GotoSection("prim");
+			var = Config_GetStr(config, "sample");
 			Log("%s", var);
 			
-			Toml_GotoSection(NULL);
+			Config_GotoSection(NULL);
 			
 			strcpy(instName, var);
 			StrRem(instName, strlen("Inst_"));
@@ -742,7 +742,7 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			if (instName[0] == 0)
 				printf_error("String maniplation failed for instrument");
 			
-			tempName = HeapPrint("%s%d-%s.toml", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), instName);
+			tempName = HeapPrint("%s%d-%s.cfg", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), instName);
 			
 			Sys_Rename(sBankFiles[j], tempName);
 		}
@@ -836,24 +836,24 @@ void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		Dir_Enter(itemList.item[i]); {
 			char* file = Dir_File("sample.vadpcm.bin");
-			char* toml = Dir_File("config.toml");
+			char* cfg = Dir_File("config.cfg");
 			
-			if (toml == NULL)
+			if (cfg == NULL)
 				printf_error("Could not locate sample in [%s]", itemList.item[i]);
 			if (file == NULL)
 				printf_error("Could not locate sample in [%s]", itemList.item[i]);
 			
 			Log("smpl: %s", file);
-			Log("toml: %s", toml);
+			Log("cfg: %s", cfg);
 			
 			if (MemFile_LoadFile(&sample, file))
 				printf_error_align("Failed to load file", "%s", file);
 			
-			if (MemFile_LoadFile_String(config, toml))
-				printf_error_align("Failed to load file", "%s", toml);
+			if (MemFile_LoadFile_String(config, cfg))
+				printf_error_align("Failed to load file", "%s", cfg);
 			
-			if (Toml_Variable(config->str, "tuning"))
-				sSampleTbl[sSampleTblNum].tuninOverride = Toml_GetFloat(config, "tuning");
+			if (Config_Variable(config->str, "tuning"))
+				sSampleTbl[sSampleTblNum].tuninOverride = Config_GetFloat(config, "tuning");
 			
 			sSampleTbl[sSampleTblNum].segment = dataFile->seekPoint;
 			if (dataFile->seekPoint & 0xF)
@@ -943,7 +943,7 @@ static void SoundFont_Instrument_Validate(MemFile* mem, const char* file, Instru
 	
 	if ((!smpl[2] && inst->splitHi < 127) || inst->splitHi > 127) {
 		printf_warning("split_hi fixed for [%s]", file);
-		Toml_ReplaceVariable(mem, "split_hi", Music_NoteWord(127 + 21));
+		Config_ReplaceVariable(mem, "split_hi", Music_NoteWord(127 + 21));
 		
 		mem->dataSize = strlen(mem->str);
 		MemFile_SaveFile_String(mem, file);
@@ -955,8 +955,8 @@ static s32 SoundFont_Instrument_AssignNames(MemFile* mem, char** smplNam, MemFil
 	u32 smplNum = 0;
 	
 	for (s32 soundID = 0; soundID < 3; soundID++) {
-		Toml_GotoSection(sInstSectionNames[soundID]);
-		smplNam[soundID] = Toml_GetStr(mem, "sample");
+		Config_GotoSection(sInstSectionNames[soundID]);
+		smplNam[soundID] = Config_GetStr(mem, "sample");
 		if (smplNam[soundID] == NULL) {
 			continue;
 		} else if (StrMtch(smplNam[soundID], "NULL")) {
@@ -966,7 +966,7 @@ static s32 SoundFont_Instrument_AssignNames(MemFile* mem, char** smplNam, MemFil
 		smplNum++;
 	}
 	
-	Toml_GotoSection(NULL);
+	Config_GotoSection(NULL);
 	
 	if (smplNum == 0) {
 		u32 null = 0xFFFF; // Empty Instrument Entry
@@ -991,10 +991,10 @@ static void SoundFont_Instrument_AssignIndexes(MemFile* mem, char** smplNam, s32
 				inst->sound[soundID].tuning = sSampleTbl[sampleID].tuninOverride;
 				
 				if (inst->sound[soundID].tuning == 0) {
-					Toml_GotoSection(sInstSectionNames[soundID]);
-					inst->sound[soundID].tuning = Toml_GetFloat(mem, "tuning");
+					Config_GotoSection(sInstSectionNames[soundID]);
+					inst->sound[soundID].tuning = Config_GetFloat(mem, "tuning");
 					
-					Toml_GotoSection(NULL);
+					Config_GotoSection(NULL);
 				}
 				
 				SwapBE(inst->sound[soundID].swap32);
@@ -1007,11 +1007,11 @@ static void SoundFont_Instrument_AssignIndexes(MemFile* mem, char** smplNam, s32
 
 static void SoundFont_Read_Instrument(MemFile* mem, Instrument* inst) {
 	inst->loaded = 0;
-	inst->splitLo = Music_NoteIndex(Toml_GetStr(mem, "split_lo")) - 21;
-	inst->splitHi = Music_NoteIndex(Toml_GetStr(mem, "split_hi")) - 21;
+	inst->splitLo = Music_NoteIndex(Config_GetStr(mem, "split_lo")) - 21;
+	inst->splitHi = Music_NoteIndex(Config_GetStr(mem, "split_hi")) - 21;
 	inst->splitLo = ClampMin(inst->splitLo, 0);
 	inst->splitHi = ClampMin(inst->splitHi, 0);
-	inst->release = Audio_GetReleaseID(Toml_GetFloat(mem, "release_rate"));
+	inst->release = Audio_GetReleaseID(Config_GetFloat(mem, "release_rate"));
 }
 
 static void SoundFont_Read_Adsr(MemFile* mem, Adsr* adsr) {
@@ -1019,8 +1019,8 @@ static void SoundFont_Read_Adsr(MemFile* mem, Adsr* adsr) {
 	ItemList listLevl = ItemList_Initialize();
 	s32 i = 0;
 	
-	Toml_GetArray(mem, &listRate, "env_rate");
-	Toml_GetArray(mem, &listLevl, "env_level");
+	Config_GetArray(mem, &listRate, "env_rate");
+	Config_GetArray(mem, &listLevl, "env_level");
 	
 	if (listRate.num != listLevl.num)
 		printf_error("env_rate & env_level array num mismatch in [%s]", mem->info.name);
@@ -1066,20 +1066,20 @@ static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setP
 	
 	FileSys_Path(sSampleTbl[sampleID].dir);
 	MemFile_Reset(dataFile);
-	MemFile_LoadFile(dataFile, FileSys_File("config.toml"));
+	MemFile_LoadFile(dataFile, FileSys_File("config.cfg"));
 	
 	smpl.sampleAddr = ReadBE(sSampleTbl[sampleID].segment);
 	smpl.data = sSampleTbl[sampleID].size;
-	smpl.data |= Toml_GetInt(dataFile, "codec") << (32 - 4);
-	smpl.data |= Toml_GetInt(dataFile, "medium") << (32 - 6);
-	smpl.data |= Toml_GetInt(dataFile, "bitA") << (32 - 7);
-	smpl.data |= Toml_GetInt(dataFile, "bitB") << (32 - 8);
+	smpl.data |= Config_GetInt(dataFile, "codec") << (32 - 4);
+	smpl.data |= Config_GetInt(dataFile, "medium") << (32 - 6);
+	smpl.data |= Config_GetInt(dataFile, "bitA") << (32 - 7);
+	smpl.data |= Config_GetInt(dataFile, "bitB") << (32 - 8);
 	SwapBE(smpl.data);
 	
-	loop[0] = Toml_GetInt(dataFile, "loop_start");
-	loop[1] = Toml_GetInt(dataFile, "loop_end");
-	loop[2] = Toml_GetInt(dataFile, "loop_count");
-	loop[3] = Toml_GetInt(dataFile, "tail_end");
+	loop[0] = Config_GetInt(dataFile, "loop_start");
+	loop[1] = Config_GetInt(dataFile, "loop_end");
+	loop[2] = Config_GetInt(dataFile, "loop_count");
+	loop[3] = Config_GetInt(dataFile, "tail_end");
 	SwapBE(loop[0]);
 	SwapBE(loop[1]);
 	SwapBE(loop[2]);
@@ -1260,18 +1260,18 @@ void Audio_ThreadBuildFont(FontThread* ft) {
 		MemFile_Reset(config);
 		MemFile_LoadFile_String(config, FileSys_File("sfx/%s", listSfx.item[j]));
 		
-		Toml_GotoSection("prim");
-		prim = Toml_GetStr(config, "sample");
+		Config_GotoSection("prim");
+		prim = Config_GetStr(config, "sample");
 		
 		if (!strcmp(prim, "NULL")) {
 			MemFile_Write(&memSfx, &sfx, sizeof(struct Sound));
 			continue;
 		}
 		
-		sfx.tuning = Toml_GetFloat(config, "tuning");
+		sfx.tuning = Config_GetFloat(config, "tuning");
 		idx = SoundFont_SmplID(prim);
 		
-		Toml_GotoSection(NULL);
+		Config_GotoSection(NULL);
 		
 		if (sSampleTbl[idx].tuninOverride > 0)
 			sfx.tuning = sSampleTbl[idx].tuninOverride;
@@ -1301,8 +1301,8 @@ void Audio_ThreadBuildFont(FontThread* ft) {
 		MemFile_Reset(config);
 		MemFile_LoadFile_String(config, FileSys_File("drum/%s", listDrum.item[j]));
 		
-		Toml_GotoSection("prim");
-		prim = Toml_GetStr(config, "sample");
+		Config_GotoSection("prim");
+		prim = Config_GetStr(config, "sample");
 		
 		if (!memcmp(prim, "NULL", 4)) {
 			memDrum.cast.u32[j] = 0;
@@ -1312,13 +1312,13 @@ void Audio_ThreadBuildFont(FontThread* ft) {
 			memDrum.cast.u32[j] = memDrum.seekPoint;
 		}
 		
-		drum.sound.tuning = Toml_GetFloat(config, "tuning");
+		drum.sound.tuning = Config_GetFloat(config, "tuning");
 		
-		Toml_GotoSection(NULL);
+		Config_GotoSection(NULL);
 		
 		drum.loaded = 0;
-		drum.pan = Toml_GetInt(config, "pan");
-		drum.release = Audio_GetReleaseID(Toml_GetFloat(config, "release_rate"));
+		drum.pan = Config_GetInt(config, "pan");
+		drum.release = Audio_GetReleaseID(Config_GetFloat(config, "release_rate"));
 		SwapBE(drum.sound.swap32);
 		
 		SoundFont_Read_Adsr(config, adsr);
@@ -1508,9 +1508,9 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			MemFile_Align(&soundFontMem, 16);
 			
 			MemFile_Reset(config);
-			MemFile_LoadFile_String(config, HeapPrint("%sconfig.toml", itemList.item[i + j]));
-			confMed = Toml_GetStr(config, "medium_type");
-			confSeq = Toml_GetStr(config, "sequence_player");
+			MemFile_LoadFile_String(config, HeapPrint("%sconfig.cfg", itemList.item[i + j]));
+			confMed = Config_GetStr(config, "medium_type");
+			confSeq = Config_GetStr(config, "sequence_player");
 			
 			for (;;) {
 				if (med >= ArrayCount(sMediumType))
@@ -1608,9 +1608,9 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			
 			MemFile_Reset(dataFile);
 			MemFile_Reset(config);
-			MemFile_LoadFile_String(config, Dir_File("config.toml"));
-			confMed = Toml_GetStr(config, "medium_type");
-			confSeq = Toml_GetStr(config, "sequence_player");
+			MemFile_LoadFile_String(config, Dir_File("config.cfg"));
+			confMed = Config_GetStr(config, "medium_type");
+			confSeq = Config_GetStr(config, "sequence_player");
 			
 			for (;; med++) {
 				if (med >= ArrayCount(sMediumType))
@@ -1643,7 +1643,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 				sqEntry.romAddr = addr;
 				sqEntry.size = dataFile->dataSize;
 			} else {
-				sqEntry.romAddr = Toml_GetInt(config, "seq_pointer");
+				sqEntry.romAddr = Config_GetInt(config, "seq_pointer");
 				sqEntry.size = 0;
 			}
 			
@@ -1654,7 +1654,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			u16 offset = memIndexTable.seekPoint;
 			MemFile_Write(&memLookUpTable, &offset, 2);
 			
-			Toml_GetArray(config, &bankList, "bank_id");
+			Config_GetArray(config, &bankList, "bank_id");
 			fontNum = bankList.num;
 			MemFile_Write(&memIndexTable, &fontNum, 1);
 			for (s32 j = 0; j < fontNum; j++) {
@@ -1722,7 +1722,7 @@ void Audio_DeleteUnreferencedSamples(void) {
 			ItemList_List(&list, FileSys_File(bankPath[j]), 0, LIST_FILES);
 			
 			forlist(k, list) {
-				if (!StrEndCase(list.item[k], ".toml"))
+				if (!StrEndCase(list.item[k], ".cfg"))
 					continue;
 				
 				MemFile_LoadFile_String(&mem, list.item[k]);

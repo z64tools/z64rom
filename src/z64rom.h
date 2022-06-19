@@ -161,7 +161,7 @@ typedef struct {
 	struct {
 		MemFile* file;
 		s32 num;
-	} toml;
+	} cfg;
 	struct {
 		MemFile* file;
 		u32* offset;

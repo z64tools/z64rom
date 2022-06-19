@@ -74,7 +74,7 @@ void Yaz_EncodeThread(const char* file) {
 		ItemList_SetFilter(
 			&list,
 			FILTER_END,
-			".toml",
+			".cfg",
 			FILTER_END,
 			".zscene",
 			FILTER_END,

@@ -24,7 +24,7 @@ static RestrictionFlag* Rom_GetRestrictionFlags(Rom* rom, u32 sceneIndex) {
 }
 
 static void Rom_WriteRestrictionFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
-	char* flags = Toml_GetVariable(config->str, "restriction_flags");
+	char* flags = Config_GetVariable(config->str, "restriction_flags");
 	RestrictionFlag* rf = Rom_GetRestrictionFlags(rom, sceneIndex);
 	
 	if (flags == NULL || rf == NULL)
@@ -79,27 +79,27 @@ static void Rom_WriteRestrictionFlags(Rom* rom, MemFile* config, u32 sceneIndex)
 
 static void Rom_Config_Actor(MemFile* config, ActorEntry* actorOvl, const char* name, char* out) {
 	MemFile_Reset(config);
-	Toml_WriteComment(config, name);
-	Toml_WriteHex(config, "vram_addr", ReadBE(actorOvl->vramStart), NO_COMMENT);
-	Toml_WriteHex(config, "init_vars", ReadBE(actorOvl->initInfo), NO_COMMENT);
-	Toml_WriteInt(config, "alloc_type", ReadBE(actorOvl->allocType), NO_COMMENT);
+	Config_WriteComment(config, name);
+	Config_WriteHex(config, "vram_addr", ReadBE(actorOvl->vramStart), NO_COMMENT);
+	Config_WriteHex(config, "init_vars", ReadBE(actorOvl->initInfo), NO_COMMENT);
+	Config_WriteInt(config, "alloc_type", ReadBE(actorOvl->allocType), NO_COMMENT);
 	MemFile_SaveFile_String(config, out);
 }
 
 static void Rom_Config_Effect(MemFile* config, EffectEntry* actorOvl, const char* name, char* out) {
 	MemFile_Reset(config);
-	Toml_WriteComment(config, name);
-	Toml_WriteHex(config, "vram_addr", ReadBE(actorOvl->vramStart), NO_COMMENT);
-	Toml_WriteHex(config, "init_vars", ReadBE(actorOvl->initInfo), NO_COMMENT);
+	Config_WriteComment(config, name);
+	Config_WriteHex(config, "vram_addr", ReadBE(actorOvl->vramStart), NO_COMMENT);
+	Config_WriteHex(config, "init_vars", ReadBE(actorOvl->initInfo), NO_COMMENT);
 	MemFile_SaveFile_String(config, out);
 }
 
 static void Rom_Config_GameState(MemFile* config, GameStateEntry* stateOvl, const char* name, char* out) {
 	MemFile_Reset(config);
-	Toml_WriteComment(config, name);
-	Toml_WriteHex(config, "vram_addr", ReadBE(stateOvl->vramStart), NO_COMMENT);
-	Toml_WriteHex(config, "init_func", ReadBE(stateOvl->init), NO_COMMENT);
-	Toml_WriteHex(config, "dest_func", ReadBE(stateOvl->destroy), NO_COMMENT);
+	Config_WriteComment(config, name);
+	Config_WriteHex(config, "vram_addr", ReadBE(stateOvl->vramStart), NO_COMMENT);
+	Config_WriteHex(config, "init_func", ReadBE(stateOvl->init), NO_COMMENT);
+	Config_WriteHex(config, "dest_func", ReadBE(stateOvl->destroy), NO_COMMENT);
 	MemFile_SaveFile_String(config, out);
 }
 
@@ -113,8 +113,8 @@ static void Rom_Config_Kaleido(Rom* rom, MemFile* config, u32 id, const char* na
 	u32 draw;
 	
 	MemFile_Reset(config);
-	Toml_WriteComment(config, name);
-	Toml_WriteHex(config, "vram_addr", ReadBE(entry->vramStart), NO_COMMENT);
+	Config_WriteComment(config, name);
+	Config_WriteHex(config, "vram_addr", ReadBE(entry->vramStart), NO_COMMENT);
 	
 	if (id == 1) { // PLAYER
 		dataLo = SegmentedToVirtual(0x0, rom->offset.table.player.init.lo);
@@ -133,10 +133,10 @@ static void Rom_Config_Kaleido(Rom* rom, MemFile* config, u32 id, const char* na
 		dataHi = SegmentedToVirtual(0x0, rom->offset.table.player.draw.hi);
 		draw = (ReadBE(dataHi[1]) - ((s16)ReadBE(dataLo[1]) < 0)) << 16 | ReadBE(dataLo[1]);
 		
-		Toml_WriteHex(config, "init", init, NO_COMMENT);
-		Toml_WriteHex(config, "dest", dest, NO_COMMENT);
-		Toml_WriteHex(config, "updt", updt, NO_COMMENT);
-		Toml_WriteHex(config, "draw", draw, NO_COMMENT);
+		Config_WriteHex(config, "init", init, NO_COMMENT);
+		Config_WriteHex(config, "dest", dest, NO_COMMENT);
+		Config_WriteHex(config, "updt", updt, NO_COMMENT);
+		Config_WriteHex(config, "draw", draw, NO_COMMENT);
 	} else { // PAUSE_MENU
 		dataHi = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.init.hi);
 		dataLo = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.init.lo);
@@ -146,8 +146,8 @@ static void Rom_Config_Kaleido(Rom* rom, MemFile* config, u32 id, const char* na
 		dataLo = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.updt.lo);
 		updt = ReadBE(dataHi[1]) << 16 | ReadBE(dataLo[1]);
 		
-		Toml_WriteHex(config, "init", init, NO_COMMENT);
-		Toml_WriteHex(config, "updt", updt, NO_COMMENT);
+		Config_WriteHex(config, "init", init, NO_COMMENT);
+		Config_WriteHex(config, "updt", updt, NO_COMMENT);
 	}
 	
 	MemFile_SaveFile_String(config, out);
@@ -163,12 +163,12 @@ static void Rom_Config_Scene(Rom* rom, MemFile* config, u32 id, const char* name
 	RestrictionFlag* rf = Rom_GetRestrictionFlags(rom, id);
 	
 	MemFile_Reset(config);
-	Toml_WriteComment(config, name);
+	Config_WriteComment(config, name);
 #if 0
-	Toml_WriteInt(config, "unk_a", ReadBE(sceneEntry->unk_10), NO_COMMENT);
-	Toml_WriteInt(config, "unk_b", ReadBE(sceneEntry->unk_12), NO_COMMENT);
+	Config_WriteInt(config, "unk_a", ReadBE(sceneEntry->unk_10), NO_COMMENT);
+	Config_WriteInt(config, "unk_b", ReadBE(sceneEntry->unk_12), NO_COMMENT);
 #endif
-	Toml_WriteInt(config, "scene_func_id", ReadBE(sceneEntry->config), NO_COMMENT);
+	Config_WriteInt(config, "scene_func_id", ReadBE(sceneEntry->config), NO_COMMENT);
 	
 	if (rf) {
 		s32 firstWritten = 0;
@@ -247,11 +247,11 @@ void Patch_Init() {
 	ItemList list = ItemList_Initialize();
 	
 	ItemList_List(&list, "patch/", -1, LIST_FILES | LIST_NO_DOT);
-	Calloc(gPatch.toml.file, sizeof(struct MemFile) * list.num);
+	Calloc(gPatch.cfg.file, sizeof(struct MemFile) * list.num);
 	
 	for (s32 i = 0; i < list.num; i++) {
-		if (StrEndCase(list.item[i], ".toml")) {
-			MemFile* mem = &gPatch.toml.file[gPatch.toml.num++];
+		if (StrEndCase(list.item[i], ".cfg")) {
+			MemFile* mem = &gPatch.cfg.file[gPatch.cfg.num++];
 			char* line;
 			u32 lineCount;
 			
@@ -269,7 +269,7 @@ void Patch_Init() {
 				
 				char* cmd = CopyWord(line, 0);
 				
-				StrRep(mem->str, cmd + 1, Toml_GetVariable(line, cmd));
+				StrRep(mem->str, cmd + 1, Config_GetVariable(line, cmd));
 			}
 		}
 	}
@@ -283,21 +283,21 @@ void Patch_Init() {
 		if (StrEndCase(list.item[i], ".bin")) {
 			u32* offset = &gPatch.bin.offset[gPatch.bin.num];
 			MemFile* mem = &gPatch.bin.file[gPatch.bin.num++];
-			MemFile toml;
+			MemFile cfg;
 			char* tname = HeapMalloc(strlen(list.item[i] + 8));
 			
 			strcpy(tname, list.item[i]);
-			StrRep(tname, ".bin", ".toml");
+			StrRep(tname, ".bin", ".cfg");
 			
 			if (MemFile_LoadFile(mem, list.item[i])) printf_error("Could not open [%s]", list.item[i]);
-			if (MemFile_LoadFile_String(&toml, tname)) printf_error("Could not open [%s]", tname);
-			*offset = Toml_GetInt(&toml, "rom");
+			if (MemFile_LoadFile_String(&cfg, tname)) printf_error("Could not open [%s]", tname);
+			*offset = Config_GetInt(&cfg, "rom");
 			
-			if (Toml_Variable(toml.str, "next") &&
-				Toml_GetInt(&toml, "next") - Toml_GetInt(&toml, "ram") < mem->dataSize)
+			if (Config_Variable(cfg.str, "next") &&
+				Config_GetInt(&cfg, "next") - Config_GetInt(&cfg, "ram") < mem->dataSize)
 				printf_error("Can't fit [%s] between z64ram - z64next!", list.item[i]);
 			
-			MemFile_Free(&toml);
+			MemFile_Free(&cfg);
 		}
 	}
 	
@@ -305,9 +305,9 @@ void Patch_Init() {
 }
 
 void Patch_Free() {
-	for (s32 i = 0; i < gPatch.toml.num; i++)
-		MemFile_Free(&gPatch.toml.file[i]);
-	Free(gPatch.toml.file);
+	for (s32 i = 0; i < gPatch.cfg.num; i++)
+		MemFile_Free(&gPatch.cfg.file[i]);
+	Free(gPatch.cfg.file);
 	
 	for (s32 i = 0; i < gPatch.bin.num; i++)
 		MemFile_Free(&gPatch.bin.file[i]);
@@ -327,15 +327,15 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 		StrRep((char*)section, "//", "/");
 	}
 	
-	for (s32 p = 0; p < gPatch.toml.num; p++) {
-		MemFile* toml = &gPatch.toml.file[p];
+	for (s32 p = 0; p < gPatch.cfg.num; p++) {
+		MemFile* cfg = &gPatch.cfg.file[p];
 		u32 reloc = 0;
 		
-		if (section && !StrStr(toml->str, section))
+		if (section && !StrStr(cfg->str, section))
 			continue;
 		
-		Toml_GotoSection(section);
-		Toml_ListVariables(toml, &vlist, section);
+		Config_GotoSection(section);
+		Config_ListVariables(cfg, &vlist, section);
 		
 		forlist(i, vlist) {
 			char* variable;
@@ -344,10 +344,10 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 			u32 isHex = true;
 			
 			if (!strcmp(vlist.item[i], "reloc_from")) {
-				reloc = Toml_GetInt(toml, vlist.item[i]);
+				reloc = Config_GetInt(cfg, vlist.item[i]);
 				
 				// Comment out already processed variables
-				LineHead(Toml_Variable(toml->str, vlist.item[i]))[0] = '#';
+				LineHead(Config_Variable(cfg->str, vlist.item[i]))[0] = '#';
 				
 				continue;
 			}
@@ -356,10 +356,10 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 				continue;
 			
 			addr = Value_Hex(vlist.item[i]) - reloc;
-			variable = Toml_GetVariable(toml->str, vlist.item[i]);
+			variable = Config_GetVariable(cfg->str, vlist.item[i]);
 			
 			isPatched = 1;
-			temp = Toml_Variable(toml->str, vlist.item[i]);
+			temp = Config_Variable(cfg->str, vlist.item[i]);
 			
 			if (temp[0] == '\"' || !memcmp(temp, "FILE(", 5))
 				isHex = false;
@@ -368,7 +368,7 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 			LineHead(temp)[0] = '#';
 			
 			if (addr + strlen(variable) >= memDest->dataSize || addr < 0) {
-				printf_warning("\aPatch [0x%08X] from [%s] does not fit into [%s]", addr, toml->info.name, section);
+				printf_warning("\aPatch [0x%08X] from [%s] does not fit into [%s]", addr, cfg->info.name, section);
 				continue;
 			}
 			
@@ -376,7 +376,7 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 			
 			Node_Add(nodeHead, node);
 			node->start = addr + reloc;
-			strcpy(node->source, toml->info.name);
+			strcpy(node->source, cfg->info.name);
 			if (section)
 				strcpy(node->section, section);
 			
@@ -422,10 +422,10 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 					StrRep(bin, "ILE(\"", "");
 					StrRep(bin, ")", "");
 					
-					FileSys_Path(Path(toml->info.name));
+					FileSys_Path(Path(cfg->info.name));
 					
 					if (!Sys_Stat(FileSys_File(bin))) {
-						printf_warning("Could not locate file [%s] referenced by patch [%s]", FileSys_File(bin), toml->info.name);
+						printf_warning("Could not locate file [%s] referenced by patch [%s]", FileSys_File(bin), cfg->info.name);
 						
 						continue;
 					}
@@ -442,7 +442,7 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 		}
 	}
 	
-	Toml_GotoSection(NULL);
+	Config_GotoSection(NULL);
 	
 	if (!StrStr(section, "z_code.bin") && !StrStr(section, "z_boot.bin"))
 		return isPatched;
@@ -471,7 +471,7 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 				if (Intersect(node->start, node->end, offset, offset + gPatch.bin.file[p].dataSize))
 					printf_warning(
 						"" PRNT_YELW "WARNING!" PRNT_RSET
-						"\nToml patch from [" PRNT_YELW "%s" PRNT_RSET "] to [" PRNT_REDD "%s" PRNT_GRAY ":" PRNT_REDD "%X" PRNT_RSET "]"
+						"\nCfg patch from [" PRNT_YELW "%s" PRNT_RSET "] to [" PRNT_REDD "%s" PRNT_GRAY ":" PRNT_REDD "%X" PRNT_RSET "]"
 						"\nhas been overwritten by a binary patch [" PRNT_YELW "%s" PRNT_RSET "]",
 						node->source,
 						strlen(node->section) ? node->section : "rom",
@@ -504,7 +504,7 @@ static void Rom_Dump_Actor(Rom* rom, MemFile* data, MemFile* config) {
 		FileSys_Path("rom/actor/%s/0x%04X-%s/", gVanilla, i, gActorName_OoT[i]);
 		
 		if (Rom_Extract(data, rf, FileSys_File("actor.zovl")))
-			Rom_Config_Actor(config, &rom->table.actor[i], gActorName_OoT[i], FileSys_File("config.toml"));
+			Rom_Config_Actor(config, &rom->table.actor[i], gActorName_OoT[i], FileSys_File("config.cfg"));
 	}
 }
 
@@ -521,7 +521,7 @@ static void Rom_Dump_Effect(Rom* rom, MemFile* data, MemFile* config) {
 		FileSys_Path("rom/effect/%s/0x%04X-%s/", gVanilla, i, gEffectName_OoT[i]);
 		
 		if (Rom_Extract(data, rf, FileSys_File("effect.zovl")))
-			Rom_Config_Effect(config, &rom->table.effect[i], gEffectName_OoT[i], FileSys_File("config.toml"));
+			Rom_Config_Effect(config, &rom->table.effect[i], gEffectName_OoT[i], FileSys_File("config.cfg"));
 	}
 }
 
@@ -586,7 +586,7 @@ static void Rom_Dump_Scene(Rom* rom, MemFile* data, MemFile* config) {
 			u32 roomListSeg;
 			u32* vromSeg;
 			
-			Rom_Config_Scene(rom, config, i, gSceneName_OoT[i], FileSys_File("config.toml"));
+			Rom_Config_Scene(rom, config, i, gSceneName_OoT[i], FileSys_File("config.cfg"));
 			SetSegment(0x2, rf.data);
 			seg = data->data;
 			
@@ -650,7 +650,7 @@ static void Rom_Dump_State(Rom* rom, MemFile* data, MemFile* config) {
 		FileSys_Path("rom/system/state/%s/0x%02X-%s/", gVanilla, i, gStateName_OoT[i]);
 		
 		if (Rom_Extract(data, rf, FileSys_File("state.zovl")))
-			Rom_Config_GameState(config, &rom->table.state[i], gStateName_OoT[i], FileSys_File("config.toml"));
+			Rom_Config_GameState(config, &rom->table.state[i], gStateName_OoT[i], FileSys_File("config.cfg"));
 	}
 }
 
@@ -664,7 +664,7 @@ static void Rom_Dump_Kaleido(Rom* rom, MemFile* data, MemFile* config) {
 		rf.data = SegmentedToVirtual(0x0, ReadBE(rom->table.kaleido[i].vromStart));
 		
 		Rom_Extract(data, rf, FileSys_File("overlay.zovl"));
-		Rom_Config_Kaleido(rom, config, i, gKaleidoName_OoT[i], FileSys_File("config.toml"));
+		Rom_Config_Kaleido(rom, config, i, gKaleidoName_OoT[i], FileSys_File("config.cfg"));
 	}
 }
 
@@ -838,12 +838,12 @@ static void Rom_Build_Actor(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_Reset(memData);
 		MemFile_Reset(memCfg);
 		MemFile_LoadFile(memData, FileSys_FindFile(".zovl"));
-		MemFile_LoadFile_String(memCfg, FileSys_File("config.toml"));
+		MemFile_LoadFile_String(memCfg, FileSys_File("config.cfg"));
 		
-		entry[i].allocType = Toml_GetInt(memCfg, "alloc_type");
-		entry[i].initInfo = Toml_GetInt(memCfg, "init_vars");
+		entry[i].allocType = Config_GetInt(memCfg, "alloc_type");
+		entry[i].initInfo = Config_GetInt(memCfg, "init_vars");
 		
-		entry[i].vramStart = Toml_GetInt(memCfg, "vram_addr");
+		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
 		
 		s32 p = Patch_File(memData, memData->info.name);
@@ -899,11 +899,11 @@ static void Rom_Build_Effect(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_Reset(memData);
 		MemFile_Reset(memCfg);
 		MemFile_LoadFile(memData, FileSys_FindFile(".zovl"));
-		MemFile_LoadFile_String(memCfg, FileSys_File("config.toml"));
+		MemFile_LoadFile_String(memCfg, FileSys_File("config.cfg"));
 		
-		entry[i].initInfo = Toml_GetInt(memCfg, "init_vars");
+		entry[i].initInfo = Config_GetInt(memCfg, "init_vars");
 		
-		entry[i].vramStart = Toml_GetInt(memCfg, "vram_addr");
+		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
 		
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
@@ -1022,7 +1022,7 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		MemFile_Reset(memCfg);
 		MemFile_Reset(memData);
-		MemFile_LoadFile_String(memCfg, FileSys_File("config.toml"));
+		MemFile_LoadFile_String(memCfg, FileSys_File("config.cfg"));
 		MemFile_LoadFile(memData, zscene);
 		
 		preDigest = Sys_Sha256(memData->data, memData->dataSize);
@@ -1117,7 +1117,7 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		Free(preDigest);
 		Free(postDigest);
 		
-		entry[i].config = Toml_GetInt(memCfg, "scene_func_id");
+		entry[i].config = Config_GetInt(memCfg, "scene_func_id");
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		SwapBE(entry[i].vromStart);
@@ -1183,13 +1183,13 @@ static void Rom_Build_State(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_Reset(memCfg);
 		MemFile_Reset(memData);
 		
-		MemFile_LoadFile_String(memCfg, FileSys_File("config.toml"));
+		MemFile_LoadFile_String(memCfg, FileSys_File("config.cfg"));
 		MemFile_LoadFile(memData, FileSys_FindFile(".zovl"));
 		
-		entry[i].init = Toml_GetInt(memCfg, "init_func");
-		entry[i].destroy = Toml_GetInt(memCfg, "dest_func");
+		entry[i].init = Config_GetInt(memCfg, "init_func");
+		entry[i].destroy = Config_GetInt(memCfg, "dest_func");
 		
-		entry[i].vramStart = Toml_GetInt(memCfg, "vram_addr");
+		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
 		entry[i].vromEnd = Dma_GetVRomEnd();
@@ -1222,7 +1222,7 @@ static void Rom_Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_Reset(memData);
 		
 		file = FileSys_FindFile(".zovl");
-		MemFile_LoadFile_String(memCfg, FileSys_File("config.toml"));
+		MemFile_LoadFile_String(memCfg, FileSys_File("config.cfg"));
 		MemFile_LoadFile(memData, file);
 		Patch_File(memData, file);
 		
@@ -1257,7 +1257,7 @@ static void Rom_Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			MemFile_Free(&mem);
 		}
 		
-		entry[i].vramStart = Toml_GetInt(memCfg, "vram_addr");
+		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Rom_Ovl_GetBssSize(memData);
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, NOCACHE_COMPRESS);
 		entry[i].vromEnd = Dma_GetVRomEnd();
@@ -1272,38 +1272,38 @@ static void Rom_Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				SegmentedToVirtual(SEG_CODE, romOff->table.player.init.hi - RELOC_CODE),
 				SegmentedToVirtual(SEG_CODE, romOff->table.player.init.lo - RELOC_CODE),
 				MIPS_REG_A0,
-				Toml_GetInt(memCfg, "init")
+				Config_GetInt(memCfg, "init")
 			);
 			Mips64_SplitLoad(
 				SegmentedToVirtual(SEG_CODE, romOff->table.player.dest.hi - RELOC_CODE),
 				SegmentedToVirtual(SEG_CODE, romOff->table.player.dest.lo - RELOC_CODE),
 				MIPS_REG_A0,
-				Toml_GetInt(memCfg, "dest")
+				Config_GetInt(memCfg, "dest")
 			);
 			Mips64_SplitLoad(
 				SegmentedToVirtual(SEG_CODE, romOff->table.player.updt.hi - RELOC_CODE),
 				SegmentedToVirtual(SEG_CODE, romOff->table.player.updt.lo - RELOC_CODE),
 				MIPS_REG_A0,
-				Toml_GetInt(memCfg, "updt")
+				Config_GetInt(memCfg, "updt")
 			);
 			Mips64_SplitLoad(
 				SegmentedToVirtual(SEG_CODE, romOff->table.player.draw.hi - RELOC_CODE),
 				SegmentedToVirtual(SEG_CODE, romOff->table.player.draw.lo - RELOC_CODE),
 				MIPS_REG_A0,
-				Toml_GetInt(memCfg, "draw")
+				Config_GetInt(memCfg, "draw")
 			);
 		} else {       // PAUSE_MENU
 			Mips64_SplitLoad(
 				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.init.hi - RELOC_CODE),
 				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.init.lo - RELOC_CODE),
 				MIPS_REG_A0,
-				Toml_GetInt(memCfg, "init")
+				Config_GetInt(memCfg, "init")
 			);
 			Mips64_SplitLoad(
 				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.updt.hi - RELOC_CODE),
 				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.updt.lo - RELOC_CODE),
 				MIPS_REG_A0,
-				Toml_GetInt(memCfg, "updt")
+				Config_GetInt(memCfg, "updt")
 			);
 		}
 	}

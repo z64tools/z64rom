@@ -15,7 +15,7 @@ You can do 2 different builds, **build-dev** and **build-release**.
 | Build         | How to build                                      | Info                                      |
 | ------------- | ------------------------------------------------- | ----------------------------------------- |
 | build-dev     | Run **z64rom.exe**                                | Debug/Developement, #define **DEV_BUILD** |
-| build-release | Drag'n'drop **z64project.toml** to **z64rom.exe** | Release                                   |
+| build-release | Drag'n'drop **z64project.cfg** to **z64rom.exe** | Release                                   |
 
 ### build-developement
 

@@ -27,7 +27,7 @@ char gBuildrom[2][128] = {
 };
 
 char* gVanilla = ".vanilla";
-const char* gProjectConfig = "z64project.toml";
+const char* gProjectConfig = "z64project.cfg";
 const char* gBaserom = NULL;
 
 const char* sRomType[] = { "-release.z64", "-dev.z64" };
@@ -120,7 +120,7 @@ static void Main_ClearProject(void) {
 	
 	if (Sys_Stat(gProjectConfig)) {
 		MemFile_LoadFile_String(&mem, gProjectConfig);
-		gVanilla = Toml_GetStr(&mem, "z_vanilla");
+		gVanilla = Config_GetStr(&mem, "z_vanilla");
 		MemFile_Free(&mem);
 	}
 	
@@ -163,8 +163,8 @@ static void Main_WiiVC() {
 	if (MemFile_LoadFile_String(&conf, gProjectConfig))
 		printf_error("Could not open [%s]", gProjectConfig);
 	
-	wad = Toml_GetStr(&conf, "vc_basewad");
-	rom = Toml_GetStr(&conf, "z_buildrom");
+	wad = Config_GetStr(&conf, "vc_basewad");
+	rom = Config_GetStr(&conf, "z_buildrom");
 	
 	if (!wad || !strcmp(wad, "NULL"))
 		printf_error("" PRNT_YELW "vc_basewad" PRNT_RSET " not defined in [%s]]", gProjectConfig);
@@ -174,7 +174,7 @@ static void Main_WiiVC() {
 	asprintf(&target, "%s.wad", PathAbs(rom));
 	asprintf(&rom, "%s%s", PathAbs(rom), sRomType[gBuildTarget]);
 	
-	path = Toml_GetStr(&conf, "vc_dolphin");
+	path = Config_GetStr(&conf, "vc_dolphin");
 	if (path && strcmp(path, "NULL")) {
 		if (!StrEnd(path, "/"))
 			path = HeapPrint("%s/", path);
@@ -217,8 +217,8 @@ static void Main_RenameRooms(const char* from, const char* to) {
 	
 	printf_toolinfo(gToolName, "Room Extension Rename");
 	
-	if (!Sys_Stat("z64project.toml"))
-		printf_warning("No project found " PRNT_DGRY "[z64project.toml]");
+	if (!Sys_Stat("z64project.cfg"))
+		printf_warning("No project found " PRNT_DGRY "[z64project.cfg]");
 	
 	ItemList_List(&list, "rom/scene/", -1, LIST_FILES);
 	
@@ -246,9 +246,9 @@ void Main_ReadProject(Rom* rom, char** input) {
 	MemFile* config = &rom->config;
 	char* buildRom;
 	
-	gBaserom = Toml_GetStr(config, "z_baserom");
-	buildRom = Toml_GetStr(config, "z_buildrom");
-	gVanilla = StrDup(Toml_GetStr(config, "z_vanilla")); qFree(gVanilla);
+	gBaserom = Config_GetStr(config, "z_baserom");
+	buildRom = Config_GetStr(config, "z_buildrom");
+	gVanilla = StrDup(Config_GetStr(config, "z_vanilla")); qFree(gVanilla);
 	
 	if (strlen(buildRom) > 128 - strlen(sRomType[1]))
 		printf_error("z_buildrom name is too long");
@@ -278,7 +278,7 @@ void Main_ReadProject(Rom* rom, char** input) {
 				gBaserom = Filename(*input);
 				gDumpFlag = true;
 				
-				Toml_ReplaceVariable(config, "z_baserom", gBaserom);
+				Config_ReplaceVariable(config, "z_baserom", gBaserom);
 			} else {
 				printf_toolinfo(gToolName, "");
 				printf_warning("Dump rom [%s] ? " PRNT_DGRY "[y/n]", PathAbs(*input));
@@ -287,7 +287,7 @@ void Main_ReadProject(Rom* rom, char** input) {
 					gBaserom = Filename(*input);
 					gDumpFlag = true;
 					
-					Toml_ReplaceVariable(config, "z_baserom", Filename(*input));
+					Config_ReplaceVariable(config, "z_baserom", Filename(*input));
 				}
 				
 				Terminal_ClearLines(2);
@@ -295,7 +295,7 @@ void Main_ReadProject(Rom* rom, char** input) {
 		}
 	}
 	
-	gBaserom = StrDup(Toml_GetStr(config, "z_baserom")); qFree(gBaserom);
+	gBaserom = StrDup(Config_GetStr(config, "z_baserom")); qFree(gBaserom);
 	
 	if (gDumpFlag && strcmp(*input, gBaserom)) {
 		printf_info("Copying Rom to App Path");
@@ -314,26 +314,26 @@ void Main_ReadProject(Rom* rom, char** input) {
 	}
 }
 
-static void Main_WriteToml(MemFile* config, const char* romName, const char* build, const char* vanilla, const char* vcBase, const char* vcPath) {
+static void Main_WriteCfg(MemFile* config, const char* romName, const char* build, const char* vanilla, const char* vcBase, const char* vcPath) {
 	Log("Writing [%s]", gProjectConfig);
 	MemFile_Reset(config);
 	MemFile_Malloc(config, MbToBin(2.5));
 	
-	Toml_WriteComment(config, "Project Settings");
-	Toml_WriteStr(config, "z_baserom", romName, QUOTES, NO_COMMENT);
+	Config_WriteComment(config, "Project Settings");
+	Config_WriteStr(config, "z_baserom", romName, QUOTES, NO_COMMENT);
 	
-	Toml_WriteStr(config, "z_buildrom", build, QUOTES, "Name used for the rom that is built by z64rom.");
-	Toml_WriteStr(config, "z_vanilla", vanilla, QUOTES, "Name of the vanilla item folders");
+	Config_WriteStr(config, "z_buildrom", build, QUOTES, "Name used for the rom that is built by z64rom.");
+	Config_WriteStr(config, "z_vanilla", vanilla, QUOTES, "Name of the vanilla item folders");
 	
-	Toml_Print(config, "\n");
-	Toml_WriteComment(config, "Wii VC");
-	Toml_WriteStr(config, "vc_basewad", vcBase, QUOTES, NULL);
-	Toml_WriteStr(config, "vc_dolphin", vcPath, QUOTES, "Path to documents folder, not the app folder.");
+	Config_Print(config, "\n");
+	Config_WriteComment(config, "Wii VC");
+	Config_WriteStr(config, "vc_basewad", vcBase, QUOTES, NULL);
+	Config_WriteStr(config, "vc_dolphin", vcPath, QUOTES, "Path to documents folder, not the app folder.");
 	
-	Toml_Print(config, "\n");
-	Toml_WriteComment(config, "Mips64 Flag");
+	Config_Print(config, "\n");
+	Config_WriteComment(config, "Mips64 Flag");
 	
-	Toml_WriteStr(
+	Config_WriteStr(
 		config,
 		"gcc_base_flags",
 		"-c -G 0 -O1 -std=gnu99 -march=vr4300 -mabi=32 -mips3"
@@ -349,7 +349,7 @@ static void Main_WriteToml(MemFile* config, const char* romName, const char* bui
 		NO_COMMENT
 	);
 	
-	Toml_WriteStr(
+	Config_WriteStr(
 		config,
 		"gcc_actor_flags",
 		"",
@@ -357,7 +357,7 @@ static void Main_WriteToml(MemFile* config, const char* romName, const char* bui
 		NO_COMMENT
 	);
 	
-	Toml_WriteStr(
+	Config_WriteStr(
 		config,
 		"gcc_code_flags",
 		"-mno-gpopt -fomit-frame-pointer",
@@ -365,7 +365,7 @@ static void Main_WriteToml(MemFile* config, const char* romName, const char* bui
 		NO_COMMENT
 	);
 	
-	Toml_WriteStr(
+	Config_WriteStr(
 		config,
 		"gcc_kaleido_flags",
 		"",
@@ -373,7 +373,7 @@ static void Main_WriteToml(MemFile* config, const char* romName, const char* bui
 		NO_COMMENT
 	);
 	
-	Toml_WriteStr(
+	Config_WriteStr(
 		config,
 		"gcc_state_flags",
 		"",
@@ -381,7 +381,7 @@ static void Main_WriteToml(MemFile* config, const char* romName, const char* bui
 		NO_COMMENT
 	);
 	
-	Toml_WriteStr(
+	Config_WriteStr(
 		config,
 		"ld_base_flags",
 		"-Linclude/z64hdr/oot_mq_debug/ -Linclude/z64hdr/common/ -Linclude/",
@@ -389,7 +389,7 @@ static void Main_WriteToml(MemFile* config, const char* romName, const char* bui
 		NO_COMMENT
 	);
 	
-	Toml_WriteStr(
+	Config_WriteStr(
 		config,
 		"ld_code_flags",
 		"-T z64hdr.ld "
@@ -399,7 +399,7 @@ static void Main_WriteToml(MemFile* config, const char* romName, const char* bui
 		NO_COMMENT
 	);
 	
-	Toml_WriteStr(
+	Config_WriteStr(
 		config,
 		"ld_scene_flags",
 		"-T z64hdr_actor.ld "
@@ -408,7 +408,7 @@ static void Main_WriteToml(MemFile* config, const char* romName, const char* bui
 		NO_COMMENT
 	);
 	
-	Toml_WriteStr(
+	Config_WriteStr(
 		config,
 		"ld_ulib_flags",
 		"-T ulib_linker.ld "
@@ -426,30 +426,30 @@ void Main_WriteProject(Rom* rom, char** input) {
 	MemFile_Reset(config);
 	MemFile_Malloc(config, MbToBin(2.5));
 	
-	Toml_WriteComment(config, "Project Settings");
+	Config_WriteComment(config, "Project Settings");
 	if (*input)
 		romName = Filename(*input);
 	else
 		romName = "__ROM_NAME__";
 	
-	Main_WriteToml(&rom->config, romName, "build", gVanilla, "NULL", "NULL");
+	Main_WriteCfg(&rom->config, romName, "build", gVanilla, "NULL", "NULL");
 }
 
 void Main_ReconfigProject(Rom* rom) {
 	MemFile mainConfig;
 	
-	MemFile_LoadFile_String(&mainConfig, "z64project.toml");
+	MemFile_LoadFile_String(&mainConfig, "z64project.cfg");
 	
-	Main_WriteToml(
+	Main_WriteCfg(
 		&rom->config,
-		Toml_GetStr(&mainConfig, "z_baserom"),
-		Toml_GetStr(&mainConfig, "z_buildrom"),
-		Toml_GetStr(&mainConfig, "z_vanilla"),
-		Toml_GetStr(&mainConfig, "vc_basewad"),
-		Toml_GetStr(&mainConfig, "vc_dolphin")
+		Config_GetStr(&mainConfig, "z_baserom"),
+		Config_GetStr(&mainConfig, "z_buildrom"),
+		Config_GetStr(&mainConfig, "z_vanilla"),
+		Config_GetStr(&mainConfig, "vc_basewad"),
+		Config_GetStr(&mainConfig, "vc_dolphin")
 	);
 	
-	MemFile_SaveFile_String(&rom->config, "z64project.toml");
+	MemFile_SaveFile_String(&rom->config, "z64project.cfg");
 	printf_info("Reconfig OK");
 	exit(0);
 }
@@ -858,7 +858,7 @@ s32 Main(s32 argc, char* argv[]) {
 	
 	printf_toolinfo(gToolName, "Nothing provided, nothing happens!");
 	
-	MemFile_SaveFile_String(&rom->config, "z64project.toml");
+	MemFile_SaveFile_String(&rom->config, "z64project.cfg");
 	
 	if (Arg("build-vc")) {
 		if (rom->file.dataSize <= 0x2015000)

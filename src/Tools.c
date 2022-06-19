@@ -208,10 +208,10 @@ static s32 Tools_ValidateTools_Required(void) {
 		"include/sequence.inc",
 		"include/ulib_linker.ld",
 		
-		"tools/actor-object-deb.toml",
+		"tools/actor-object-deb.cfg",
 		"tools/binutils-sha256",
 		"tools/z64hdr-sha256",
-		"tools/z64audio.toml",
+		"tools/z64audio.cfg",
 		"tools/important64.dll",
 		
 #ifdef _WIN32

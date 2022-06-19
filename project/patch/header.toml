@@ -2,7 +2,7 @@
 #   More info about header in https://n64brew.dev/wiki/ROM_Header     #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# z64rom toml patch macros
+# z64rom cfg patch macros
 @zero4            = 0x00000000
 @zero8            = zero4 zero4
 @header_name      = 0x20

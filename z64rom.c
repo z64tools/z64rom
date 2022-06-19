@@ -551,7 +551,12 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		}
 	}
 	
-	if (Arg("vanilla")) gVanilla = argv[parArg];
+	if (Arg("vanilla")) {
+		gVanilla = argv[parArg];
+		
+		if (isalnum(*gVanilla))
+			printf_error("Vanilla folder name should not have alpha-numeric value as the first character!");
+	}
 	if (Arg("target")) gMakeTarget = argv[parArg];
 	if (Arg("info")) gPrintInfo = true;
 	if (Arg("yaz")) gCompressFlag = true;

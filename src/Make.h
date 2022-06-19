@@ -43,7 +43,7 @@ typedef enum {
 
 typedef enum {
 	CB_BREAK = -1,
-	CB_BUILD = 1
+	CB_MAKE = 1
 } MakeCallbackReturn;
 
 typedef s32 (* BinutilCallback)(const char*, MakeCallType, void*, void*);

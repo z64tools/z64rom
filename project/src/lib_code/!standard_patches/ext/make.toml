@@ -1,0 +1,2 @@
+[Actor_InitContext]
+    gcc_flags = "-fno-builtin-bzero"

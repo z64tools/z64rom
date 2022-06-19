@@ -15,6 +15,8 @@ static const char* sLinkerSceneFlags;
 static const char* sLinkerULibFlags;
 static volatile bool sMake = false;
 
+static ItemList sDepList_uLibHeader;
+
 static char* Make_Wildcard(const char* path, const char* fmt, ...) {
 	ItemList list = ItemList_Initialize();
 	char* file = NULL;
@@ -43,7 +45,7 @@ static char* Make_Wildcard(const char* path, const char* fmt, ...) {
 }
 
 static void Make_Info(const char* tool, const char* target) {
-	printf_lock("[M]: %s\n", Filename(target));
+	printf_lock("[M]: %s\n", target);
 	sMake = 1;
 }
 
@@ -72,7 +74,7 @@ static void Make_Thread(Thread* thread, void (*func)(MakeArg*), void* arg) {
 }
 
 // # # # # # # # # # # # # # # # # # # # #
-// # MAKE_SOUND                          #
+// # Make_Sound                          #
 // # # # # # # # # # # # # # # # # # # # #
 
 static ThreadFunc Sequence_Convert(MakeArg* targ) {
@@ -106,7 +108,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		
 		Tools_Command(cmd, seq64, "--in=\"%s\" --out=\"%s\" --abi=Zelda --pref=false --flstudio=true", midi, seq);
 		Make_Run(cmd);
-		Make_Info("seq64", midi);
+		Make_Info("seq64", seq);
 		
 		goto free;
 	}
@@ -130,7 +132,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		
 		Tools_Command(cmd, seqas, "\"%s\" \"%s\"", mus, seq);
 		Make_Run(cmd);
-		Make_Info("seq-assembler", mus);
+		Make_Info("seq-assembler", seq);
 		
 		goto free;
 	}
@@ -379,7 +381,83 @@ free:
 }
 
 // # # # # # # # # # # # # # # # # # # # #
-// # MAKE_CODE                           #
+// # Callback_Helper                     #
+// # # # # # # # # # # # # # # # # # # # #
+
+static s32 Callback_Dependencies_PreGcc(const char* input, const char* output, const char* toml, MemFile* make, ItemList* dep2) {
+	if (Sys_Stat(toml))
+		MemFile_LoadFile_String(make, toml);
+	
+	if (gMakeForce)
+		return true;
+	
+	if (!Sys_Stat(output) || (Sys_Stat(input) > Sys_Stat(output)))
+		return true;
+	
+	if (Sys_Stat(toml)) {
+		ItemList dep;
+		ItemList listA = ItemList_Initialize();
+		ItemList listB = ItemList_Initialize();
+		
+		if (Toml_Variable(make->str, "dependencies"))
+			Toml_GetArray(make, &listA, "dependencies");
+		
+		Toml_GotoSection(Basename(input));
+		if (Toml_Variable(make->str, "dependencies"))
+			Toml_GetArray(make, &listB, "dependencies");
+		Toml_GotoSection(NULL);
+		
+		ItemList_Combine(&dep, &listA, &listB);
+		ItemList_Free(&listA);
+		ItemList_Free(&listB);
+		
+		for (s32 i = 0; i < dep.num; i++) {
+			if (Sys_Stat(HeapPrint("%s%s", Path(input), dep.item[i])) > Sys_Stat(output)) {
+				ItemList_Free(&dep);
+				
+				return true;
+			}
+		}
+		
+		ItemList_Free(&dep);
+	}
+	
+	if (dep2)
+		for (s32 i = 0; i < dep2->num; i++)
+			if (StrEnd(dep2->item[i], ".h"))
+				if (Sys_Stat(dep2->item[i]) > Sys_Stat(output))
+					return true;
+	
+	return false;
+}
+
+static s32 Callback_Dependencies_PreLd(const char* input, const char* output) {
+	ItemList list = ItemList_Initialize();
+	s32 ret = false;
+	
+	ItemList_Separated(&list, input, ' ');
+	Log_ItemList(&list);   // Possibly something wrong?
+	
+	if (!Sys_Stat(output) || (Sys_Stat(output) < ItemList_StatMax(&list)))
+		ret = true;
+	
+	if (Sys_Stat("include/z_lib_user.ld") < ItemList_StatMax(&list))
+		ret = true;
+	
+	ItemList_Free(&list);
+	
+	return ret;
+}
+
+static s32 Callback_Overlay_PreGcc(const char* input, const char* output, const char* toml, MemFile* make) {
+	if (Callback_Dependencies_PreGcc(input, output, toml, make, &sDepList_uLibHeader))
+		return CB_MAKE;
+	
+	return CB_BREAK;
+}
+
+// # # # # # # # # # # # # # # # # # # # #
+// # Callback                            #
 // # # # # # # # # # # # # # # # # # # # #
 
 volatile f32 sTimeGCC, sTimeLD, sTimeZOVL, sTimeObjDump;
@@ -390,40 +468,18 @@ static s32 Callback_Kaleido(const char* input, MakeCallType type, void* arg, voi
 	char* conf;
 	
 	if (type == PRE_GCC) {
-		ovl = HeapPrint("%soverlay.zovl", Path(input));
-		StrRep(ovl, "src/", "rom/");
+		char* toml = HeapPrint("%smake.toml", Path(input));
+		const char* output = arg;
+		MemFile* make = arg2;
 		
-		if ((!Sys_Stat(ovl) && Sys_Stat(input)) || Sys_Stat(input) > Sys_Stat(ovl))
-			return CB_BUILD;
-		
-		return CB_BREAK;
+		return Callback_Overlay_PreGcc(input, output, toml, make);
 	}
 	
 	if (type == PRE_LD) {
-		ItemList list = ItemList_Initialize();
-		s32 ret = CB_BREAK;
+		if (Callback_Dependencies_PreLd(input, arg2))
+			return CB_MAKE;
 		
-		ItemList_Separated(&list, input, ' ');
-		
-		if (!ItemList_StatMin(&list)) {
-			ret = CB_BREAK;
-			goto retval;
-		}
-		
-		if (!Sys_Stat(arg2)) {
-			ret = CB_BUILD;
-			goto retval;
-		}
-		
-		if (Sys_Stat(arg2) < ItemList_StatMax(&list)) {
-			ret = CB_BUILD;
-			goto retval;
-		}
-		
-retval:
-		ItemList_Free(&list);
-		
-		return ret;
+		return CB_BREAK;
 	}
 	
 	if (type == POST_LD) {
@@ -493,40 +549,18 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 	char* ovl = NULL;
 	
 	if (type == PRE_GCC) {
-		ovl = HeapPrint("%soverlay.zovl", Path(input));
-		StrRep(ovl, "src/", "rom/");
+		char* toml = HeapPrint("%smake.toml", Path(input));
+		const char* output = arg;
+		MemFile* make = arg2;
 		
-		if ((!Sys_Stat(ovl) && Sys_Stat(input)) || Sys_Stat(input) > Sys_Stat(ovl))
-			return CB_BUILD;
-		
-		return CB_BREAK;
+		return Callback_Overlay_PreGcc(input, output, toml, make);
 	}
 	
 	if (type == PRE_LD) {
-		ItemList list = ItemList_Initialize();
-		s32 ret = CB_BREAK;
+		if (Callback_Dependencies_PreLd(input, arg2))
+			return CB_MAKE;
 		
-		ItemList_Separated(&list, input, ' ');
-		
-		if (!ItemList_StatMin(&list)) {
-			ret = CB_BREAK;
-			goto retval;
-		}
-		
-		if (!Sys_Stat(arg2)) {
-			ret = CB_BUILD;
-			goto retval;
-		}
-		
-		if (Sys_Stat(arg2) < ItemList_StatMax(&list)) {
-			ret = CB_BUILD;
-			goto retval;
-		}
-		
-retval:
-		ItemList_Free(&list);
-		
-		return ret;
+		return CB_BREAK;
 	}
 	
 	if (type == POST_LD) {
@@ -581,40 +615,18 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 	char* conf;
 	
 	if (type == PRE_GCC) {
-		ovl = HeapPrint("%soverlay.zovl", Path(input));
-		StrRep(ovl, "src/", "rom/");
+		char* toml = HeapPrint("%smake.toml", Path(input));
+		const char* output = arg;
+		MemFile* make = arg2;
 		
-		if ((!Sys_Stat(ovl) && Sys_Stat(input)) || Sys_Stat(input) > Sys_Stat(ovl))
-			return CB_BUILD;
-		
-		return CB_BREAK;
+		return Callback_Overlay_PreGcc(input, output, toml, make);
 	}
 	
 	if (type == PRE_LD) {
-		ItemList list = ItemList_Initialize();
-		s32 ret = CB_BREAK;
+		if (Callback_Dependencies_PreLd(input, arg2))
+			return CB_MAKE;
 		
-		ItemList_Separated(&list, input, ' ');
-		
-		if (!ItemList_StatMin(&list)) {
-			ret = CB_BREAK;
-			goto retval;
-		}
-		
-		if (!Sys_Stat(arg2)) {
-			ret = CB_BUILD;
-			goto retval;
-		}
-		
-		if (Sys_Stat(arg2) < ItemList_StatMax(&list)) {
-			ret = CB_BUILD;
-			goto retval;
-		}
-		
-retval:
-		ItemList_Free(&list);
-		
-		return ret;
+		return CB_BREAK;
 	}
 	
 	if (type == POST_LD) {
@@ -715,55 +727,68 @@ retval:
 
 static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* arg2) {
 	if (type == PRE_GCC) {
-		return 0;
+		char* toml = HeapPrint("%smake.toml", Path(input));
+		const char* output = arg;
+		MemFile* make = arg2;
+		
+		if (Callback_Dependencies_PreGcc(input, output, toml, make, &sDepList_uLibHeader))
+			return CB_MAKE;
+		
+		return CB_BREAK;
 	}
-	if (type == POST_GCC) {
+	
+	if (type == POST_GCC)
 		return 0;
-	}
+	
 	if (type == PRE_LD) {
-		u32* entryPoint = arg;
-		MemFile mem = MemFile_Initialize();
-		MemFile __config = MemFile_Initialize();
-		MemFile* config = &__config;
-		char* c = HeapMalloc(strlen(input) + 0x10);
-		char* z64rom;
-		char* z64ram;
-		char* z64next;
-		
-		strcpy(c, input);
-		if (!StrRep(c, "rom/", "src/")) goto error;
-		if (!StrRep(c, ".o", ".c")) goto error;
-		
-		MemFile_LoadFile_String(&mem, c);
-		z64ram = StrStr(mem.str, "z64ram = ");
-		z64rom = StrStr(mem.str, "z64rom = ");
-		z64next = StrStr(mem.str, "z64next = ");
-		
-		if (z64ram == NULL) printf_error_align("No RAM Address:", "[%s]", Filename(c));
-		if (z64rom == NULL) printf_error_align("No ROM Address:", "[%s]", Filename(c));
-		
-		z64ram += strlen("z64ram = ");
-		z64rom += strlen("z64rom = ");
-		if (z64next) z64next += strlen("z64next = ");
-		
-		MemFile_Malloc(config, 0x280);
-		Toml_WriteHex(config, "rom", Value_Hex(z64rom), NO_COMMENT);
-		Toml_WriteHex(config, "ram", Value_Hex(z64ram), NO_COMMENT);
-		if (z64next) Toml_WriteHex(config, "next", Value_Hex(z64next), NO_COMMENT);
-		entryPoint[0] = Value_Hex(z64ram);
-		
-		strcpy(c, input);
-		if (!StrRep(c, ".o", ".toml")) goto error;
-		
-		MemFile_SaveFile_String(config, c);
-		
-		MemFile_Free(&mem);
-		MemFile_Free(config);
-		
-		return 0;
+		if (Callback_Dependencies_PreLd(input, arg2)) {
+			u32* entryPoint = arg;
+			MemFile mem = MemFile_Initialize();
+			MemFile __config = MemFile_Initialize();
+			MemFile* config = &__config;
+			char* c = HeapMalloc(strlen(input) + 0x10);
+			char* z64rom;
+			char* z64ram;
+			char* z64next;
+			
+			strcpy(c, input);
+			if (!StrRep(c, "rom/", "src/")) goto error;
+			if (!StrRep(c, ".o", ".c")) goto error;
+			
+			MemFile_LoadFile_String(&mem, c);
+			z64ram = StrStr(mem.str, "z64ram = ");
+			z64rom = StrStr(mem.str, "z64rom = ");
+			z64next = StrStr(mem.str, "z64next = ");
+			
+			if (z64ram == NULL) printf_error_align("No RAM Address:", "[%s]", Filename(c));
+			if (z64rom == NULL) printf_error_align("No ROM Address:", "[%s]", Filename(c));
+			
+			z64ram += strlen("z64ram = ");
+			z64rom += strlen("z64rom = ");
+			if (z64next) z64next += strlen("z64next = ");
+			
+			MemFile_Malloc(config, 0x280);
+			Toml_WriteHex(config, "rom", Value_Hex(z64rom), NO_COMMENT);
+			Toml_WriteHex(config, "ram", Value_Hex(z64ram), NO_COMMENT);
+			if (z64next) Toml_WriteHex(config, "next", Value_Hex(z64next), NO_COMMENT);
+			entryPoint[0] = Value_Hex(z64ram);
+			
+			strcpy(c, input);
+			if (!StrRep(c, ".o", ".toml")) goto error;
+			
+			MemFile_SaveFile_String(config, c);
+			
+			MemFile_Free(&mem);
+			MemFile_Free(config);
+			
+			return CB_MAKE;
 error:
-		printf_error_align("StrRep", "[%s] -> [%s]", input, c);
+			printf_error_align("StrRep", "[%s] -> [%s]", input, c);
+		}
+		
+		return CB_BREAK;
 	}
+	
 	if (type == POST_LD) {
 		char* output;
 		char* command = arg;
@@ -779,51 +804,57 @@ error:
 	return 0;
 }
 
+// # # # # # # # # # # # # # # # # # # # #
+// # Binutil                             #
+// # # # # # # # # # # # # # # # # # # # #
+
 static void Binutil_GCC(const char* source, const char* output, const char* flags, BinutilCallback callback) {
 	char* command;
+	MemFile make = MemFile_Initialize();
+	s32 r = 0;
 	
 	if (callback) {
-		switch (callback(source, PRE_GCC, NULL, NULL)) {
+		switch ((r = callback(source, PRE_GCC, (void*)output, &make))) {
 			case CB_BREAK:
-				return;
-			case 0:
-				break;
-			case CB_BUILD:
+				goto free;
+			case CB_MAKE:
 				goto build;
+			default:
+				printf_error("Unrecognized Callback Return [%d]", r);
 		}
+	} else {
+		char* toml = HeapPrint("%smake.toml", Path(source));
+		
+		if (false == Callback_Dependencies_PreGcc(source, output, toml, &make, NULL))
+			goto free;
 	}
-	
-	if (Sys_Stat(output) && Sys_Stat(output) >= Sys_Stat(source) && !gMakeForce)
-		return;
 	
 build:
 	(void)0;
 	char* newFlags = NULL;
-	char* flagFile = HeapPrint("%sflags.toml", Path(source));
+	char* basename = Basename(source);
 	
 	Calloc(command, 2048);
 	
-	if (Sys_Stat(flagFile)) {
-		MemFile mem = MemFile_Initialize();
+	if (make.data) {
 		char* var;
-		char* basename = Basename(source);
 		
-		MemFile_LoadFile_String(&mem, flagFile);
-		
-		if ((var = Toml_Variable(mem.str, "gcc_flags"))) {
-			newFlags = StrDupX(Toml_GetVariable(mem.str, "gcc_flags"), 1024 * 2);
+		if ((var = Toml_Variable(make.str, "gcc_flags"))) {
+			newFlags = StrDupX(Toml_GetVariable(make.str, "gcc_flags"), 1024 * 2);
 		}
-		if ((var = Toml_Variable(mem.str, basename))) {
+		
+		Toml_GotoSection(basename);
+		if ((var = Toml_Variable(make.str, "gcc_flags"))) {
 			if (!newFlags)
-				newFlags = StrDupX(Toml_GetVariable(mem.str, basename), 1024 * 2);
+				newFlags = StrDupX(Toml_GetVariable(make.str, "gcc_flags"), 1024 * 2);
 			else
-				catprintf(newFlags, " %s", Toml_GetVariable(mem.str, basename));
+				catprintf(newFlags, " %s", Toml_GetVariable(make.str, "gcc_flags"));
 		}
 		
 		if (newFlags)
 			flags = newFlags;
 		
-		MemFile_Free(&mem);
+		Toml_GotoSection(NULL);
 	}
 	
 	Tools_Command(command, mips64_gcc, "%s %s %s -o %s", sGccBaseFlags, flags, source, output);
@@ -831,7 +862,7 @@ build:
 	
 	Time_Start(1);
 	Make_Run(command);
-	Make_Info("GCC", command);
+	Make_Info("GCC", output);
 	sTimeGCC += Time_Get(1);
 	sCountGCC++;
 	
@@ -840,6 +871,9 @@ build:
 	Free(command);
 	if (newFlags)
 		Free(newFlags);
+	
+free:
+	MemFile_Free(&make);
 }
 
 static void Binutil_LD(const char* source, const char* output, const char* flags, BinutilCallback callback) {
@@ -847,19 +881,18 @@ static void Binutil_LD(const char* source, const char* output, const char* flags
 	char* command;
 	char entryDir[1024] = { 0 };
 	u32 entryPoint = 0x80800000;
+	s32 r = 0;
 	
 	if (callback) {
-		switch (callback(source, PRE_LD, &entryPoint, (void*)output)) {
+		switch ((r = callback(source, PRE_LD, &entryPoint, (void*)output))) {
 			case CB_BREAK:
 				return;
-			case 0:
-				break;
-			case CB_BUILD:
+			case CB_MAKE:
 				goto build;
+			default:
+				printf_error("Unrecognized Callback Return [%d]", r);
 		}
-	}
-	
-	if (Sys_Stat(output) && Sys_Stat(output) >= Sys_Stat(source))
+	} else if (Sys_Stat(output) && Sys_Stat(output) >= Sys_Stat(source))
 		return;
 	
 build:
@@ -883,7 +916,7 @@ build:
 	Make_Run(command);
 	sTimeLD += Time_Get(1);
 	sCountLD++;
-	Make_Info("LD", source);
+	Make_Info("LD", output);
 	
 	if (callback)
 		callback(output, POST_LD, command, NULL);
@@ -924,6 +957,10 @@ skip:
 	MemFile_Free(&linker);
 	Free(cmd);
 }
+
+// # # # # # # # # # # # # # # # # # # # #
+// # Thread                              #
+// # # # # # # # # # # # # # # # # # # # #
 
 static void Make_CodeThread_uLib(MakeArg* arg) {
 	ItemList itemList = ItemList_Initialize();
@@ -997,7 +1034,7 @@ static void Make_CodeThread_uLib(MakeArg* arg) {
 	Free(command);
 	ItemList_Free(&itemList);
 	
-	Make_Info("OBJDUMP", "z_code_lib.ld");
+	Make_Info("OBJDUMP", "include/z_code_lib.ld");
 }
 
 static void Make_CodeThread_GCC(MakeArg* arg) {
@@ -1007,6 +1044,9 @@ static void Make_CodeThread_GCC(MakeArg* arg) {
 	if (!StrEnd(input, ".c")) {
 		return;
 	}
+	
+	if (StrStr(input, " "))
+		printf_error("Build does not support whitespace characters! [%s]", input);
 	
 	Calloc(output, strlen(input) + 10);
 	strcpy(output, input);
@@ -1038,6 +1078,8 @@ static void Make_CodeThread_LD(MakeArg* arg) {
 				Calloc(ninput, 1024 * 8);
 			}
 			if (StrEndCase(list->item[i], ".o")) {
+				if (StrStr(list->item[i], " "))
+					printf_error("Build does not support whitespace characters! [%s]", list->item[i]);
 				catprintf(ninput, "%s ", list->item[i]);
 				files++;
 			}
@@ -1147,6 +1189,10 @@ static ThreadFunc Make_CodeThread_Folder(MakeArg* arg) {
 	ItemList_Free(&itemList);
 }
 
+// # # # # # # # # # # # # # # # # # # # #
+// # Make                                #
+// # # # # # # # # # # # # # # # # # # # #
+
 void Make_Code(void) {
 	const struct {
 		const char* src;
@@ -1203,6 +1249,9 @@ void Make_Code(void) {
 	Thread thread[ArrayCount(param)];
 	MakeArg args[ArrayCount(param)] = { 0 };
 	
+	ItemList_SetFilter(&sDepList_uLibHeader, FILTER_END, ".toml", FILTER_END, ".c");
+	ItemList_List(&sDepList_uLibHeader, "src/lib_user/", -1, LIST_FILES | LIST_NO_DOT);
+	
 	if (gThreading)
 		ThreadLock_Init();
 	
@@ -1249,11 +1298,9 @@ void Make_Code(void) {
 		}
 		ThreadLock_Free();
 	}
+	
+	ItemList_Free(&sDepList_uLibHeader);
 }
-
-// # # # # # # # # # # # # # # # # # # # #
-// # MAKE                                #
-// # # # # # # # # # # # # # # # # # # # #
 
 void Make(Rom* rom, s32 message) {
 	sGccBaseFlags = qFree(StrDup(Toml_GetStr(&rom->config, "gcc_base_flags")));
@@ -1279,7 +1326,6 @@ void Make(Rom* rom, s32 message) {
 		sGccBaseFlags = HeapPrint("%s -DDEV_BUILD", sGccBaseFlags);
 	
 	setvbuf(stdout, NULL, _IONBF, 0);
-	setvbuf(stderr, NULL, _IONBF, 0);
 	
 	if (gMakeTarget) {
 		if (StrStrCase(gMakeTarget, "audio")) {

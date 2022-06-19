@@ -1,0 +1,2 @@
+gcc_flags  = "-Wno-missing-braces"
+dependencies = [ "asm_macros.h", "uLib_macros.h", "uLib_types.h", "uLib.h" ]

@@ -562,9 +562,11 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		
 		ItemList_List(&list, "rom/", -1, LIST_FILES);
 		forlist(i, list) {
-			if (StrEndCase(list.item[i], ".o") || StrEndCase(list.item[i], ".elf") || StrEndCase(list.item[i], "entry.ld")) {
-				printf_warning("rm " PRNT_BLUE "%s", list.item[i]);
-				Sys_Delete(list.item[i]);
+			if (StrEnd(list.item[i], ".o") || StrEnd(list.item[i], ".elf")) {
+				if (Sys_Stat(Path(list.item[i])) && !StrStr(list.item[i], ".entry")) {
+					printf_warning("rm " PRNT_BLUE "%s", Path(list.item[i]));
+					Sys_Delete_Recursive(Path(list.item[i]));
+				}
 			}
 		}
 		ItemList_Free(&list);

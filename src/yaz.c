@@ -73,18 +73,10 @@ void Yaz_EncodeThread(const char* file) {
 		
 		ItemList_SetFilter(
 			&list,
-			FILTER_END,
-			".cfg",
-			FILTER_END,
-			".zscene",
-			FILTER_END,
-			".bin",
-			FILTER_END,
-			".cfg",
-			FILTER_END,
-			".png",
-			FILTER_START,
-			"."
+			CONTAIN_END,
+			".zmap",
+			CONTAIN_END,
+			".zroom"
 		);
 		ItemList_List(&list, Path(file), 0, LIST_FILES);
 		

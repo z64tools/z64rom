@@ -657,6 +657,30 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	return 0;
 }
 
+static void Temporary_TomlToCfg() {
+	if (!Sys_Stat("z64project.toml"))
+		return;
+	
+	printf_toolinfo(gToolName, "Rename .toml to .cfg");
+	
+	ItemList list;
+	
+	ItemList_SetFilter(&list, CONTAIN_END, ".toml");
+	ItemList_List(&list, "", -1, LIST_FILES);
+	
+	forlist(i, list) {
+		char* rename = StrDup(list.item[i]);
+		
+		StrRep(rename, ".toml", ".cfg");
+		
+		if (Sys_Stat(rename))
+			Sys_Delete(list.item[i]);
+		
+		printf_info("Rename '%s'", rename);
+		Sys_Rename(list.item[i], rename);
+	}
+}
+
 s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
 	Rom* rom;
@@ -667,6 +691,8 @@ s32 Main(s32 argc, char* argv[]) {
 	printf_WinFix();
 	printf_SetPrefix("");
 	Sys_SetWorkDir(Sys_AppDir());
+	
+	Temporary_TomlToCfg();
 	
 	if (Arg("help")) Main_PrintHelp();
 	

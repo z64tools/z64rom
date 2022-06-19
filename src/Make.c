@@ -1249,7 +1249,7 @@ void Make_Code(void) {
 	Thread thread[ArrayCount(param)];
 	MakeArg args[ArrayCount(param)] = { 0 };
 	
-	ItemList_SetFilter(&sDepList_uLibHeader, FILTER_END, ".cfg", FILTER_END, ".c");
+	ItemList_SetFilter(&sDepList_uLibHeader, CONTAIN_END, ".h");
 	ItemList_List(&sDepList_uLibHeader, "src/lib_user/", -1, LIST_FILES | LIST_NO_DOT);
 	
 	if (gThreading)

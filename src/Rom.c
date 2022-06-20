@@ -319,7 +319,6 @@ void Patch_Free() {
 
 s32 Patch_File(MemFile* memDest, const char* section) {
 	PatchNode* nodeHead = NULL;
-	ItemList vlist;
 	u32 isPatched = false;
 	
 	if (section) {
@@ -330,6 +329,7 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 	}
 	
 	for (s32 p = 0; p < gPatch.cfg.num; p++) {
+		ItemList vlist;
 		MemFile* cfg = &gPatch.cfg.file[p];
 		u32 reloc = 0;
 		
@@ -349,7 +349,10 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 				reloc = Config_GetInt(cfg, vlist.item[i]);
 				
 				// Comment out already processed variables
-				LineHead(Config_Variable(cfg->str, vlist.item[i]))[0] = '#';
+				LineHead(
+					Config_Variable(cfg->str, vlist.item[i]),
+					cfg->str
+				)[0] = '#';
 				
 				continue;
 			}
@@ -367,7 +370,7 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 				isHex = false;
 			
 			// Comment out already processed variables
-			LineHead(temp)[0] = '#';
+			LineHead(temp, cfg->str)[0] = '#';
 			
 			if (addr + strlen(variable) >= memDest->dataSize || addr < 0) {
 				printf_warning("\aPatch [0x%08X] from [%s] does not fit into [%s]", addr, cfg->info.name, section);
@@ -442,6 +445,8 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 				}
 			}
 		}
+		
+		ItemList_Free(&vlist);
 	}
 	
 	Config_GotoSection(NULL);
@@ -950,7 +955,7 @@ static void Rom_Build_Object(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_LoadFile(memData, FileSys_FindFile(".zobj"));
 		
 		if (i == 1) {
-			ItemList animList;
+			ItemList animList = ItemList_Initialize();
 			PlayerAnimEntry* animEntry;
 			
 			Rom_ItemList(&animList, "rom/system/animation/", SORT_NUMERICAL, LIST_FILES);
@@ -974,6 +979,7 @@ static void Rom_Build_Object(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				MemFile_Free(&mem);
 			}
 			
+			ItemList_Free(&animList);
 			compress = NOCACHE_COMPRESS;
 		}
 		

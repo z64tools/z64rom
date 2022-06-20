@@ -501,19 +501,19 @@ static s32 Callback_Kaleido(const char* input, MakeCallType type, void* arg, voi
 			
 			if ((str = StrStr(dump, "__z64_init")) == NULL)
 				printf_error("Could not find symbol [__z64_init] from [%s]", input);
-			init = Value_Hex(LineHead(str));
+			init = Value_Hex(LineHead(str, dump));
 			
 			if ((str = StrStr(dump, "__z64_dest")) == NULL)
 				printf_error("Could not find symbol [__z64_dest] from [%s]", input);
-			dest = Value_Hex(LineHead(str));
+			dest = Value_Hex(LineHead(str, dump));
 			
 			if ((str = StrStr(dump, "__z64_updt")) == NULL)
 				printf_error("Could not find symbol [__z64_updt] from [%s]", input);
-			updt = Value_Hex(LineHead(str));
+			updt = Value_Hex(LineHead(str, dump));
 			
 			if ((str = StrStr(dump, "__z64_draw")) == NULL)
 				printf_error("Could not find symbol [__z64_draw] from [%s]", input);
-			draw = Value_Hex(LineHead(str));
+			draw = Value_Hex(LineHead(str, dump));
 			
 			MemFile_Malloc(&newConf, 0x800);
 			MemFile_Printf(&newConf, "# %s\n", Basename(input));
@@ -587,8 +587,8 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 		
 		char* config = HeapPrint("%sconfig.cfg", Path(input));
 		MemFile mem = MemFile_Initialize();
-		char* stateInit = LineHead(StrStr(dump, "__z64_init"));
-		char* stateDestroy = LineHead(StrStr(dump, "__z64_dest"));
+		char* stateInit = LineHead(StrStr(dump, "__z64_init"), dump);
+		char* stateDestroy = LineHead(StrStr(dump, "__z64_dest"), dump);
 		
 		if (stateInit == NULL)
 			printf_error_align("No StateInit", "%s", input);
@@ -693,7 +693,7 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 			if (StrStr(varName, " ")) ((char*)StrStr(varName, " "))[0] = '\0';
 			if (StrStr(varName, "=")) ((char*)StrStr(varName, "="))[0] = '\0';
 			
-			temp = LineHead(StrStrWhole(dump, varName));
+			temp = LineHead(StrStrWhole(dump, varName), dump);
 			
 			MemFile_Printf(&newConf, "# %s\n", Basename(input));
 			MemFile_Printf(&newConf, "alloc_type = 0\n");

@@ -1457,6 +1457,8 @@ void Audio_ThreadBuildFont(FontThread* ft) {
 	MemFile_Free(dataFile);
 	MemFile_Free(config);
 	FileSys_Free();
+	Free(dataFile);
+	Free(config);
 }
 
 void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
@@ -1557,8 +1559,8 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		rom->offset.segment.fontRom = Dma_WriteEntry(rom, DMA_FIND_FREE, &soundFontMem, false);
 	
 	MemFile_Free(&soundFontMem);
-	
 	ItemList_Free(&itemList);
+	Free(sfEntry);
 }
 
 void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {

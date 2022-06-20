@@ -66,7 +66,6 @@ typedef struct {
 		u32 sampleTable;
 		
 		u32 restrictionFlags;
-		u32 segFlagTable;
 		struct {
 			HiLo init;
 			HiLo dest;
@@ -99,7 +98,6 @@ typedef struct Rom {
 		GameStateEntry*  state;
 		
 		RestrictionFlag* restrictionFlags;
-		u8* segFlagTable;
 		struct {
 			u16 dma;
 			u16 obj;
@@ -205,17 +203,6 @@ typedef struct StructBE {
 		u16 eye   : 4;
 	} face;
 } PlayerAnimFrame;
-
-typedef enum {
-	SEQ_FLAG_ENEMY         = (1 << 0),
-	SEQ_FLAG_FANFARE       = (1 << 1),
-	SEQ_FLAG_FANFARE_GANON = (1 << 2),
-	SEQ_FLAG_RESTORE       = (1 << 3),
-	SEQ_FLAG_4             = (1 << 4),
-	SEQ_FLAG_5             = (1 << 5),
-	SEQ_FLAG_6             = (1 << 6),
-	SEQ_FLAG_NO_AMBIENCE   = (1 << 7),
-} SegFlag;
 
 extern Patch gPatch;
 

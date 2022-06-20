@@ -400,11 +400,11 @@ static s32 Callback_Dependencies_PreGcc(const char* input, const char* output, c
 		ItemList listB = ItemList_Initialize();
 		
 		if (Config_Variable(make->str, "dependencies"))
-			Config_GetArray(make, "dependencies", &listA);
+			Config_GetArray(make, &listA, "dependencies");
 		
 		Config_GotoSection(Basename(input));
 		if (Config_Variable(make->str, "dependencies"))
-			Config_GetArray(make, "dependencies", &listB);
+			Config_GetArray(make, &listB, "dependencies");
 		Config_GotoSection(NULL);
 		
 		ItemList_Combine(&dep, &listA, &listB);

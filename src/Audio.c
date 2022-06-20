@@ -434,6 +434,7 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 
 void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	AudioEntryHead* head = SegmentedToVirtual(0x0, rom->offset.table.seqTable);
+	u8* segFlagTable = rom->table.segFlagTable;
 	u8* seqFontTable;
 	u16* segFontOffTable;
 	AudioEntry* entry;
@@ -446,6 +447,7 @@ void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	for (s32 i = 0; i < num; i++) {
 		char* path = HeapPrint("rom/sound/sequence/%s/0x%02X-%s/", gVanilla, i, gSequenceName_OoT[i]);
 		ItemList bankList = ItemList_Initialize();
+		ItemList flagList = ItemList_Initialize();
 		u32 bankNum;
 		u32 bankId;
 		
@@ -495,9 +497,42 @@ void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 		MemFile_Printf(config, "]\n");
 		Config_WriteStr(config, "sequence_player", sSeqPlayerType[entry->seqPlayer], true, 0);
 		
+		ItemList_Alloc(&flagList, 8, 256);
+		forbit(j, 8) {
+			switch (segFlagTable[i] & j) {
+				case SEQ_FLAG_ENEMY:
+					ItemList_AddItem(&flagList, strfy(SEQ_FLAG_ENEMY));
+					break;
+				case SEQ_FLAG_FANFARE:
+					ItemList_AddItem(&flagList, strfy(SEQ_FLAG_FANFARE));
+					break;
+				case SEQ_FLAG_FANFARE_GANON:
+					ItemList_AddItem(&flagList, strfy(SEQ_FLAG_FANFARE_GANON));
+					break;
+				case SEQ_FLAG_RESTORE:
+					ItemList_AddItem(&flagList, strfy(SEQ_FLAG_RESTORE));
+					break;
+				case SEQ_FLAG_4:
+					ItemList_AddItem(&flagList, strfy(SEQ_FLAG_4));
+					break;
+				case SEQ_FLAG_5:
+					ItemList_AddItem(&flagList, strfy(SEQ_FLAG_5));
+					break;
+				case SEQ_FLAG_6:
+					ItemList_AddItem(&flagList, strfy(SEQ_FLAG_6));
+					break;
+				case SEQ_FLAG_NO_AMBIENCE:
+					ItemList_AddItem(&flagList, strfy(SEQ_FLAG_NO_AMBIENCE));
+					break;
+			}
+		}
+		
+		Config_WriteArray(config, "sequence_flags", &flagList, QUOTES, NO_COMMENT);
+		
 		MemFile_SaveFile_String(config, HeapPrint("%sconfig.cfg", path));
 		
 		ItemList_Free(&bankList);
+		ItemList_Free(&flagList);
 	}
 	
 	SetSegment(0x1, NULL);
@@ -1019,8 +1054,8 @@ static void SoundFont_Read_Adsr(MemFile* mem, Adsr* adsr) {
 	ItemList listLevl = ItemList_Initialize();
 	s32 i = 0;
 	
-	Config_GetArray(mem, &listRate, "env_rate");
-	Config_GetArray(mem, &listLevl, "env_level");
+	Config_GetArray(mem, "env_rate", &listRate);
+	Config_GetArray(mem, "env_level", &listLevl);
 	
 	if (listRate.num != listLevl.num)
 		printf_error("env_rate & env_level array num mismatch in [%s]", mem->info.name);
@@ -1568,6 +1603,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile sequenceMem = MemFile_Initialize();
 	AudioEntryHead sqHead = { 0 };
 	AudioEntry sqEntry = { 0 };
+	u8* segFlagTable = rom->table.segFlagTable;
 	
 	MemFile_Malloc(&memIndexTable, 0x800);
 	MemFile_Malloc(&memLookUpTable, 0x800);
@@ -1605,6 +1641,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			char* confSeq;
 			char* fseq;
 			ItemList bankList = ItemList_Initialize();
+			ItemList flagList = ItemList_Initialize();
 			
 			MemFile_Reset(dataFile);
 			MemFile_Reset(config);
@@ -1647,6 +1684,30 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 				sqEntry.size = 0;
 			}
 			
+			if (Config_Variable(config->str, "sequence_flags")) {
+				Config_GetArray(config, "sequence_flags", &flagList);
+				
+				segFlagTable[i] = 0;
+				forlist(j, flagList) {
+					if (!strcmp(flagList.item[j], strfy(SEQ_FLAG_ENEMY)))
+						segFlagTable[i] |= SEQ_FLAG_ENEMY;
+					if (!strcmp(flagList.item[j], strfy(SEQ_FLAG_FANFARE)))
+						segFlagTable[i] |= SEQ_FLAG_FANFARE;
+					if (!strcmp(flagList.item[j], strfy(SEQ_FLAG_FANFARE_GANON)))
+						segFlagTable[i] |= SEQ_FLAG_FANFARE_GANON;
+					if (!strcmp(flagList.item[j], strfy(SEQ_FLAG_RESTORE)))
+						segFlagTable[i] |= SEQ_FLAG_RESTORE;
+					if (!strcmp(flagList.item[j], strfy(SEQ_FLAG_4)))
+						segFlagTable[i] |= SEQ_FLAG_4;
+					if (!strcmp(flagList.item[j], strfy(SEQ_FLAG_5)))
+						segFlagTable[i] |= SEQ_FLAG_5;
+					if (!strcmp(flagList.item[j], strfy(SEQ_FLAG_6)))
+						segFlagTable[i] |= SEQ_FLAG_6;
+					if (!strcmp(flagList.item[j], strfy(SEQ_FLAG_NO_AMBIENCE)))
+						segFlagTable[i] |= SEQ_FLAG_NO_AMBIENCE;
+				}
+			}
+			
 			SwapBE(sqEntry.romAddr);
 			SwapBE(sqEntry.size);
 			MemFile_Write(&rom->mem.seqTbl, &sqEntry, 16);
@@ -1654,7 +1715,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			u16 offset = memIndexTable.seekPoint;
 			MemFile_Write(&memLookUpTable, &offset, 2);
 			
-			Config_GetArray(config, &bankList, "bank_id");
+			Config_GetArray(config, "bank_id", &bankList);
 			fontNum = bankList.num;
 			MemFile_Write(&memIndexTable, &fontNum, 1);
 			for (s32 j = 0; j < fontNum; j++) {
@@ -1663,6 +1724,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			}
 			
 			ItemList_Free(&bankList);
+			ItemList_Free(&itemList);
 			
 			Dir_Leave();
 		}

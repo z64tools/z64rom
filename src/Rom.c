@@ -1600,6 +1600,7 @@ void Rom_New(Rom* rom, char* romName) {
 	rom->offset.table.fontTable = 0xBCC270;
 	rom->offset.table.sampleTable = 0xBCCD90;
 	rom->offset.table.restrictionFlags = 0x00B9CA10;
+	rom->offset.table.segFlagTable = 0xBA77F8;
 	
 	addr = SegmentedToVirtual(0x0, 0xB5A4AE);
 	rom->offset.segment.seqRom = (ReadBE(addr[0]) - (ReadBE(addr[2]) > 0x7FFF)) << 16;
@@ -1650,6 +1651,7 @@ void Rom_New(Rom* rom, char* romName) {
 	rom->table.kaleido = SegmentedToVirtual(0x0, rom->offset.table.kaleidoTable);
 	
 	rom->table.restrictionFlags = SegmentedToVirtual(0x0, rom->offset.table.restrictionFlags);
+	rom->table.segFlagTable = SegmentedToVirtual(0x0, rom->offset.table.segFlagTable);
 	
 	rom->mem.sampleTbl = MemFile_Initialize();
 	rom->mem.fontTbl = MemFile_Initialize();
@@ -1701,6 +1703,7 @@ void Rom_New(Rom* rom, char* romName) {
 		rom->table.state = SegmentedToVirtual(SEG_CODE, rom->offset.table.stateTable - RELOC_CODE);
 		rom->table.kaleido = SegmentedToVirtual(SEG_CODE, rom->offset.table.kaleidoTable - RELOC_CODE);
 		rom->table.restrictionFlags = SegmentedToVirtual(SEG_CODE, rom->offset.table.restrictionFlags - RELOC_CODE);
+		rom->table.segFlagTable = SegmentedToVirtual(SEG_CODE, rom->offset.table.segFlagTable - RELOC_CODE);
 		
 		MemFile_Malloc(&rom->playerAnim, MbToBin(16));
 	}

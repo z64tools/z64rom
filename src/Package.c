@@ -66,7 +66,7 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 	MemFile_LoadMem(&mtom, cfg, strlen(cfg) + 1);
 	
 	MemFile_Malloc(&mout, MbToBin(32));
-	Config_GetArray(&mtom, &list, "files");
+	Config_GetArray(&mtom, "files", &list);
 	object = ItemList_GetWildItem(&list, ".zobj");
 	
 	printf_info("Import [%s] to ActorID: " PRNT_DGRY "provide values as hex or [free] to get first free index", name);
@@ -116,7 +116,7 @@ void Package_Actor(struct zip_t* pkg, char* cfg) {
 		ItemList recList = ItemList_Initialize();
 		
 		sprintf(buf, "0x%04X", Value_Hex(tmp));
-		Config_GetArray(sDepList, &recList, buf);
+		Config_GetArray(sDepList, buf, &recList);
 		
 		for (s32 i = 0; i < recList.num; i++) {
 			if (i > 0)

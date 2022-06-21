@@ -1049,7 +1049,7 @@ static void SoundFont_Write_Adsr(MemFile* mem, Adsr* adsr, void32* setPtr) {
 		MemFile_Align(mem, 16);
 	} else {
 		void* ptr = MemMemAlign(16, mem->data, mem->dataSize, adsr, 16);
-		setPtr[0] = (uPtr)ptr - (uPtr)mem->data;
+		setPtr[0] = (uptr)ptr - (uptr)mem->data;
 	}
 }
 
@@ -1105,7 +1105,7 @@ static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setP
 		MemFile_Align(memLoopBook, 16);
 	} else {
 		void* ptr = MemMemAlign(16, memLoopBook->data, memLoopBook->dataSize, loop, loopSize);
-		smpl.loop = (uPtr)ptr - (uPtr)memLoopBook->data;
+		smpl.loop = (uptr)ptr - (uptr)memLoopBook->data;
 	}
 	
 	MemFile_Reset(dataFile);
@@ -1116,7 +1116,7 @@ static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setP
 		MemFile_Align(memBook, 16);
 	} else {
 		void* ptr = MemMemAlign(16, memBook->data, memBook->dataSize, dataFile->data, dataFile->dataSize);
-		smpl.book = (uPtr)ptr - (uPtr)memBook->data;
+		smpl.book = (uptr)ptr - (uptr)memBook->data;
 	}
 	
 	if (!MemMemAlign(16, memSample->data, memSample->dataSize, &smpl, sizeof(struct Sample))) {
@@ -1125,7 +1125,7 @@ static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setP
 		sampleNum[0]++;
 	} else {
 		void* ptr = MemMemAlign(16, memSample->data, memSample->dataSize, &smpl, sizeof(struct Sample));
-		setPtr[0] = (uPtr)ptr - (uPtr)memSample->data;
+		setPtr[0] = (uptr)ptr - (uptr)memSample->data;
 	}
 	FileSys_Path(restoreDir);
 }

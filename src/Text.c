@@ -250,7 +250,7 @@ void Text_Build(Rom* rom) {
 		
 		while (!(line[len] == '\n' && line[len + 1] == '[' && isdigit(line[len + 2]))) len++;
 		
-		all = HeapMalloc(len + 1);
+		all = xAlloc(len + 1);
 		memcpy(all, line, len);
 		ln = LineNum(all);
 		
@@ -271,7 +271,7 @@ void Text_Build(Rom* rom) {
 			u32 isAns = 0;
 			char setColor[] = { CTRL_COLOR, 0x42 };
 			char unsetColor[] = { CTRL_COLOR, 0x00 };
-			word = HeapMalloc(strlen(tline) * 2);
+			word = xAlloc(strlen(tline) * 2);
 			strcpy(word, tline);
 			
 			if (StrRep(word, "[#] ", "}{<&") || StrRep(word, "[#]", "}{<&"))

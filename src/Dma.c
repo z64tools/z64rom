@@ -112,7 +112,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 			memcpy(gYazBuf, memFile->data, memFile->dataSize);
 			memFile->dataSize = Yaz_Encode(memFile->data, gYazBuf, memFile->dataSize);
 		} else {
-			char* yazFile = HeapMalloc(strlen(memFile->info.name) + 0x80);
+			char* yazFile = xAlloc(strlen(memFile->info.name) + 0x80);
 			
 			strcpy(yazFile, memFile->info.name);
 			StrRep(yazFile, "rom/", "rom/yaz-cache/");
@@ -323,7 +323,7 @@ void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 		return;
 	}
 	
-	slot = HeapMalloc(sizeof(struct Slot));
+	slot = xAlloc(sizeof(struct Slot));
 	slot->romStart = ReadBE(dma->vromStart);
 	slot->romEnd = ReadBE(dma->vromEnd);
 	
@@ -337,14 +337,14 @@ void Dma_FreeEntry(Rom* rom, u32 id, u32 dmaAlign) {
 	if (!gCompressFlag)
 		return;
 	
-	yazt = HeapMalloc(sizeof(struct Slot));
+	yazt = xAlloc(sizeof(struct Slot));
 	yazt->romStart = slot->romStart;
 	yazt->romEnd = slot->romEnd;
 	Node_Add(gSlotYazHead, yazt);
 }
 
 void Dma_FreeSegment(Rom* rom, u32 romStart, u32 romEnd) {
-	Slot* slot = HeapMalloc(sizeof(struct Slot));
+	Slot* slot = xAlloc(sizeof(struct Slot));
 	
 	slot->romStart = romStart;
 	slot->romEnd = romEnd;
@@ -354,7 +354,7 @@ void Dma_FreeSegment(Rom* rom, u32 romStart, u32 romEnd) {
 	if (!gCompressFlag)
 		return;
 	
-	slot = HeapMalloc(sizeof(struct Slot));
+	slot = xAlloc(sizeof(struct Slot));
 	slot->romStart = romStart;
 	slot->romEnd = romEnd;
 	Node_Add(gSlotYazHead, slot);

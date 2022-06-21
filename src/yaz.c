@@ -97,7 +97,7 @@ void Yaz_EncodeThread(const char* file) {
 		
 		return;
 	}
-	char* out = HeapMalloc(strlen(file) + strlen("rom/yaz-cache/") + strlen(".yaz") + 1);
+	char* out = xAlloc(strlen(file) + strlen("rom/yaz-cache/") + strlen(".yaz") + 1);
 	
 	strcpy(out, file);
 	StrRep(out, "rom/", "rom/yaz-cache/");
@@ -106,8 +106,8 @@ void Yaz_EncodeThread(const char* file) {
 	if (Sys_Stat(out) > Sys_Stat(file))
 		return;
 	
-	MemFile_Malloc(&sMemfile, MbToBin(4.0));
-	MemFile_Malloc(&sYazfile, MbToBin(4.0));
+	MemFile_Alloc(&sMemfile, MbToBin(4.0));
+	MemFile_Alloc(&sYazfile, MbToBin(4.0));
 	
 	if (MemFile_LoadFile(&sMemfile, file))
 		printf_error("Could not open [%s]", file);

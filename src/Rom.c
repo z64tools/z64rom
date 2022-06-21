@@ -286,7 +286,7 @@ void Patch_Init() {
 			u32* offset = &gPatch.bin.offset[gPatch.bin.num];
 			MemFile* mem = &gPatch.bin.file[gPatch.bin.num++];
 			MemFile cfg;
-			char* tname = HeapMalloc(strlen(list.item[i] + 8));
+			char* tname = xAlloc(strlen(list.item[i] + 8));
 			
 			strcpy(tname, list.item[i]);
 			StrRep(tname, ".bin", ".cfg");
@@ -377,7 +377,7 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 				continue;
 			}
 			
-			PatchNode* node = HeapMalloc(sizeof(struct PatchNode));
+			PatchNode* node = xAlloc(sizeof(struct PatchNode));
 			
 			Node_Add(nodeHead, node);
 			node->start = addr + reloc;
@@ -404,7 +404,7 @@ s32 Patch_File(MemFile* memDest, const char* section) {
 						continue;
 					}
 					
-					val = Value_Hex(HeapPrint("%c", variable[j]));
+					val = Value_Hex(xFmt("%c", variable[j]));
 					
 					if (wp % 2 == 0) {
 						*dst &= ~0xF0;
@@ -568,7 +568,7 @@ static void Rom_Dump_Object(Rom* rom, MemFile* data, MemFile* config) {
 			if (!file)
 				file = "Anim";
 			
-			Rom_Extract(data, rf, HeapPrint("rom/system/animation/%s/%d-%s.bin", gVanilla, j, file));
+			Rom_Extract(data, rf, xFmt("rom/system/animation/%s/%d-%s.bin", gVanilla, j, file));
 		}
 	}
 }
@@ -614,7 +614,7 @@ static void Rom_Dump_Scene(Rom* rom, MemFile* data, MemFile* config) {
 				roomListSeg = ReadBE(seg[1]) & 0xFFFFFF;
 				
 				for (s32 j = 0; j < roomNum; j++) {
-					char* out = FileSys_File(HeapPrint("room_%d.zroom", j));
+					char* out = FileSys_File(xFmt("room_%d.zroom", j));
 					
 					vromSeg = SegmentedToVirtual(0x2, roomListSeg + 8 * j);
 					Rom_Extract(
@@ -693,7 +693,7 @@ static void Rom_Dump_Static(Rom* rom, MemFile* data, MemFile* config) {
 				rf.size = 0x2B80;
 		}
 		
-		Rom_Extract(data, rf, FileSys_File(HeapPrint("%s.bin", gSystem_OoT[i].name)));
+		Rom_Extract(data, rf, FileSys_File(xFmt("%s.bin", gSystem_OoT[i].name)));
 	}
 }
 
@@ -723,8 +723,8 @@ void Rom_Dump(Rom* rom) {
 	MemFile dataFile = MemFile_Initialize();
 	MemFile config = MemFile_Initialize();
 	
-	MemFile_Malloc(&dataFile, 0x460000); // Slightly larger than audiotable
-	MemFile_Malloc(&config, 0x25000);
+	MemFile_Alloc(&dataFile, 0x460000); // Slightly larger than audiotable
+	MemFile_Alloc(&config, 0x25000);
 	
 	printf_info_align("Dumping Rom", PRNT_REDD "%s", Filename(rom->file.info.name));
 	
@@ -999,7 +999,7 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	SceneEntry* entry = rom->table.scene;
 	u32* titleID;
 	
-	MemFile_Malloc(&memRoom, MbToBin(2));
+	MemFile_Alloc(&memRoom, MbToBin(2));
 	MemFile_Params(&memRoom, MEM_REALLOC, true, MEM_END);
 	Rom_ItemList(&list, "rom/scene/", SORT_NUMERICAL, LIST_FOLDERS);
 	
@@ -1061,8 +1061,8 @@ static void Rom_Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			char* room;
 			
 			MemFile_Reset(&memRoom);
-			room = FileSys_File(HeapPrint("room_%d.zroom", j));
-			if (!Sys_Stat(room)) room = FileSys_File(HeapPrint("room_%d.zmap", j));
+			room = FileSys_File(xFmt("room_%d.zroom", j));
+			if (!Sys_Stat(room)) room = FileSys_File(xFmt("room_%d.zmap", j));
 			if (!Sys_Stat(room)) printf_error("Could not find room_%d", j);
 			MemFile_LoadFile(&memRoom, room);
 			
@@ -1360,7 +1360,7 @@ static void Rom_Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		s32 compress;
 		
 		forlist(j, list) {
-			if (StrEndCase(list.item[j], HeapPrint("%s.bin", gSystem_OoT[i].name))) {
+			if (StrEndCase(list.item[j], xFmt("%s.bin", gSystem_OoT[i].name))) {
 				id = gSystem_OoT[i].id;
 				k = j;
 			}
@@ -1454,8 +1454,8 @@ void Rom_Build(Rom* rom) {
 	
 	Text_Build(rom);
 	
-	MemFile_Malloc(&dataFile, 0x460000);
-	MemFile_Malloc(&config, 0x25000);
+	MemFile_Alloc(&dataFile, 0x460000);
+	MemFile_Alloc(&config, 0x25000);
 	
 	MemFile_Params(&dataFile, MEM_REALLOC, true, MEM_END);
 	MemFile_Params(&config, MEM_REALLOC, true, MEM_END);
@@ -1582,7 +1582,7 @@ void Rom_New(Rom* rom, char* romName) {
 	u16* addr;
 	
 	rom->file = MemFile_Initialize();
-	MemFile_Malloc(&rom->file, MbToBin(128));
+	MemFile_Alloc(&rom->file, MbToBin(128));
 	if (MemFile_LoadFile(&rom->file, romName))
 		printf_error_align("Error Opening", "%s", romName);
 	sBaseromSize = rom->file.dataSize;
@@ -1661,10 +1661,10 @@ void Rom_New(Rom* rom, char* romName) {
 	rom->mem.fontTbl = MemFile_Initialize();
 	rom->mem.seqTbl = MemFile_Initialize();
 	rom->mem.seqFontTbl = MemFile_Initialize();
-	MemFile_Malloc(&rom->mem.sampleTbl, MbToBin(0.1));
-	MemFile_Malloc(&rom->mem.fontTbl, MbToBin(0.1));
-	MemFile_Malloc(&rom->mem.seqTbl, MbToBin(0.1));
-	MemFile_Malloc(&rom->mem.seqFontTbl, MbToBin(0.1));
+	MemFile_Alloc(&rom->mem.sampleTbl, MbToBin(0.1));
+	MemFile_Alloc(&rom->mem.fontTbl, MbToBin(0.1));
+	MemFile_Alloc(&rom->mem.seqTbl, MbToBin(0.1));
+	MemFile_Alloc(&rom->mem.seqFontTbl, MbToBin(0.1));
 	
 	if (!gDumpFlag) {
 		s32 targetId[] = {
@@ -1696,8 +1696,8 @@ void Rom_New(Rom* rom, char* romName) {
 			if (id == -1)
 				printf_error("Could not solve ID for [%s]...", targetFile[k]);
 			
-			file = HeapPrint("rom/system/static/%s.bin", gSystem_OoT[id].name);
-			if (!Sys_Stat(file)) file = HeapPrint("rom/system/static/%s/%s.bin", gVanilla, gSystem_OoT[id].name);
+			file = xFmt("rom/system/static/%s.bin", gSystem_OoT[id].name);
+			if (!Sys_Stat(file)) file = xFmt("rom/system/static/%s/%s.bin", gVanilla, gSystem_OoT[id].name);
 			if (!Sys_Stat(file)) printf_error("Could not find [%s.bin]", gSystem_OoT[id].name);
 			
 			MemFile_LoadFile(targetMem[k], file);
@@ -1708,7 +1708,7 @@ void Rom_New(Rom* rom, char* romName) {
 		rom->table.kaleido = SegmentedToVirtual(SEG_CODE, rom->offset.table.kaleidoTable - RELOC_CODE);
 		rom->table.restrictionFlags = SegmentedToVirtual(SEG_CODE, rom->offset.table.restrictionFlags - RELOC_CODE);
 		
-		MemFile_Malloc(&rom->playerAnim, MbToBin(16));
+		MemFile_Alloc(&rom->playerAnim, MbToBin(16));
 	}
 }
 
@@ -1801,7 +1801,7 @@ void Rom_DeleteUnusedContent(void) {
 	char* item;
 	u32 id;
 	
-	ItemList_List(&list, HeapPrint("rom/actor/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
+	ItemList_List(&list, xFmt("rom/actor/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
 	ItemList_NumericalSort(&list);
 	for (s32 i = 0; i < ArrayCount(gBetaFlag_Actor_OoT); i++) {
 		id = gBetaFlag_Actor_OoT[i];
@@ -1809,14 +1809,14 @@ void Rom_DeleteUnusedContent(void) {
 		if (list.item[id] == NULL || id >= list.num)
 			continue;
 		
-		item = HeapPrint("rom/actor/%s/%s", gVanilla, list.item[id]);
+		item = xFmt("rom/actor/%s/%s", gVanilla, list.item[id]);
 		
 		printf_info("Delete [%s]", item);
 		Sys_Delete_Recursive(item);
 	}
 	ItemList_Free(&list);
 	
-	ItemList_List(&list, HeapPrint("rom/object/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
+	ItemList_List(&list, xFmt("rom/object/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
 	ItemList_NumericalSort(&list);
 	for (s32 i = 0; i < ArrayCount(gBetaFlag_Object_OoT); i++) {
 		id = gBetaFlag_Object_OoT[i];
@@ -1824,14 +1824,14 @@ void Rom_DeleteUnusedContent(void) {
 		if (list.item[id] == NULL || id >= list.num)
 			continue;
 		
-		item = HeapPrint("rom/object/%s/%s", gVanilla, list.item[id]);
+		item = xFmt("rom/object/%s/%s", gVanilla, list.item[id]);
 		
 		printf_info("Delete [%s]", item);
 		Sys_Delete_Recursive(item);
 	}
 	ItemList_Free(&list);
 	
-	ItemList_List(&list, HeapPrint("rom/scene/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
+	ItemList_List(&list, xFmt("rom/scene/%s/", gVanilla), 0, LIST_FOLDERS | LIST_RELATIVE);
 	ItemList_NumericalSort(&list);
 	for (s32 i = 0; i < ArrayCount(gBetaFlag_Scene_OoT); i++) {
 		id = gBetaFlag_Scene_OoT[i];
@@ -1839,7 +1839,7 @@ void Rom_DeleteUnusedContent(void) {
 		if (list.item[id] == NULL || id >= list.num)
 			continue;
 		
-		item = HeapPrint("rom/scene/%s/%s", gVanilla, list.item[id]);
+		item = xFmt("rom/scene/%s/%s", gVanilla, list.item[id]);
 		
 		printf_info("Delete [%s]", item);
 		Sys_Delete_Recursive(item);
@@ -1907,7 +1907,7 @@ void Rom_ItemListDir(ItemList* list, bool isNum, bool isDir) {
 	}
 	
 	*list = (ItemList) { 0 };
-	list->item = HeapMalloc(sizeof(u8*) * (modified.num + vanilla.num));
+	list->item = xAlloc(sizeof(u8*) * (modified.num + vanilla.num));
 	
 	if (isNum) {
 		u32 maxNum = 0;
@@ -1929,9 +1929,9 @@ void Rom_ItemListDir(ItemList* list, bool isNum, bool isDir) {
 		
 		for (s32 i = 0; i < maxNum + 1; i++) {
 			if (i < modified.num && modified.item[i] && Value_Int(modified.item[i]) == i) {
-				list->item[list->num] = HeapStrDup(modified.item[i]);
+				list->item[list->num] = xStrDup(modified.item[i]);
 			} else if (i < vanilla.num && vanilla.item[i] && Value_Int(vanilla.item[i]) == i) {
-				list->item[list->num] = HeapPrint("%s/%s", gVanilla, vanilla.item[i]);
+				list->item[list->num] = xFmt("%s/%s", gVanilla, vanilla.item[i]);
 			} else {
 				list->item[list->num] = NULL;
 			}
@@ -1941,7 +1941,7 @@ void Rom_ItemListDir(ItemList* list, bool isNum, bool isDir) {
 		u32 i = 0;
 		
 		while (i < modified.num) {
-			list->item[list->num] = HeapStrDup(modified.item[i]);
+			list->item[list->num] = xStrDup(modified.item[i]);
 			list->num++;
 			i++;
 		}
@@ -1959,7 +1959,7 @@ void Rom_ItemListDir(ItemList* list, bool isNum, bool isDir) {
 			
 			if (cont) continue;
 			
-			list->item[list->num] = HeapPrint("%s/%s", gVanilla, vanilla.item[i]);
+			list->item[list->num] = xFmt("%s/%s", gVanilla, vanilla.item[i]);
 			list->num++;
 			i++;
 		}
@@ -1997,7 +1997,7 @@ void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlag flags) 
 	ItemList modified = ItemList_Initialize();
 	ItemList result = ItemList_Initialize();
 	
-	ItemList_List(&vanilla, HeapPrint("%s%s/", path, gVanilla), 0, flags | LIST_RELATIVE);
+	ItemList_List(&vanilla, xFmt("%s%s/", path, gVanilla), 0, flags | LIST_RELATIVE);
 	
 	ItemList_SetFilter(&modified, FILTER_WORD, gVanilla);
 	ItemList_List(&modified, path, 0, flags | LIST_NO_DOT | LIST_RELATIVE);
@@ -2008,7 +2008,7 @@ void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlag flags) 
 	}
 	
 	ItemList_Validate(list);
-	list->item = HeapMalloc(sizeof(u8*) * (modified.num + vanilla.num));
+	list->item = xAlloc(sizeof(u8*) * (modified.num + vanilla.num));
 	
 	if (isNum) {
 		u32 maxNum = 0;
@@ -2030,9 +2030,9 @@ void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlag flags) 
 		
 		for (s32 i = 0; i < maxNum + 1; i++) {
 			if (i < modified.num && modified.item[i] && Value_Int(modified.item[i]) == i) {
-				list->item[list->num] = HeapPrint("%s%s", path, modified.item[i]);
+				list->item[list->num] = xFmt("%s%s", path, modified.item[i]);
 			} else if (i < vanilla.num && vanilla.item[i] && Value_Int(vanilla.item[i]) == i) {
-				list->item[list->num] = HeapPrint("%s%s/%s", path, gVanilla, vanilla.item[i]);
+				list->item[list->num] = xFmt("%s%s/%s", path, gVanilla, vanilla.item[i]);
 			} else {
 				list->item[list->num] = NULL;
 			}
@@ -2042,7 +2042,7 @@ void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlag flags) 
 		u32 i = 0;
 		
 		while (i < modified.num) {
-			list->item[list->num] = HeapPrint("%s%s", path, modified.item[i]);
+			list->item[list->num] = xFmt("%s%s", path, modified.item[i]);
 			list->num++;
 			i++;
 		}
@@ -2060,7 +2060,7 @@ void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlag flags) 
 			
 			if (cont) continue;
 			
-			list->item[list->num] = HeapPrint("%s%s/%s", path, gVanilla, vanilla.item[i]);
+			list->item[list->num] = xFmt("%s%s/%s", path, gVanilla, vanilla.item[i]);
 			list->num++;
 			i++;
 		}
@@ -2112,8 +2112,8 @@ void AudioOnly_Dump(Rom* rom) {
 	MemFile dataFile = MemFile_Initialize();
 	MemFile config = MemFile_Initialize();
 	
-	MemFile_Malloc(&dataFile, 0x460000); // Slightly larger than audiotable
-	MemFile_Malloc(&config, 0x25000);
+	MemFile_Alloc(&dataFile, 0x460000); // Slightly larger than audiotable
+	MemFile_Alloc(&config, 0x25000);
 	
 	printf_info_align("Dumping Rom", PRNT_REDD "%s", Filename(rom->file.info.name));
 	
@@ -2129,8 +2129,8 @@ void AudioOnly_Build(Rom* rom) {
 	MemFile dataFile = MemFile_Initialize();
 	MemFile config = MemFile_Initialize();
 	
-	MemFile_Malloc(&dataFile, 0x460000);
-	MemFile_Malloc(&config, 0x25000);
+	MemFile_Alloc(&dataFile, 0x460000);
+	MemFile_Alloc(&config, 0x25000);
 	
 	MemFile_Params(&dataFile, MEM_REALLOC, true, MEM_END);
 	MemFile_Params(&config, MEM_REALLOC, true, MEM_END);

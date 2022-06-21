@@ -17,7 +17,7 @@ void Texel_Dump(
 ) {
 	MemFile texel = MemFile_Initialize();
 	
-	MemFile_Malloc(&texel, romFile->size * 128);
+	MemFile_Alloc(&texel, romFile->size * 128);
 	
 	n64texconv_to_rgba8888(
 		texel.data,

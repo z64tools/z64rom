@@ -37,7 +37,7 @@ static char* Make_Wildcard(const char* path, const char* fmt, ...) {
 	}
 	
 	if (file)
-		file = HeapStrDup(file);
+		file = xStrDup(file);
 	
 	ItemList_Free(&list);
 	
@@ -58,7 +58,7 @@ static void Make_Run(char* cmd) {
 		
 		StrRep(msg, "warning", PRNT_PRPL "warning" PRNT_RSET);
 		StrRep(msg, "error", PRNT_REDD "error" PRNT_RSET);
-		StrRep(msg, word, HeapPrint(PRNT_YELW "%s" PRNT_RSET, word));
+		StrRep(msg, word, xFmt(PRNT_YELW "%s" PRNT_RSET, word));
 		printf_WinFix();
 		printf_lock("%s", msg);
 	}
@@ -90,18 +90,18 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	*list = ItemList_Initialize();
 	
 	if ((midi = Make_Wildcard(targ->path, ".mid"))) {
-		cfg = HeapPrint("%sconfig.cfg", targ->path);
-		seq = HeapPrint("%ssequence.aseq", targ->path);
+		cfg = xFmt("%sconfig.cfg", targ->path);
+		seq = xFmt("%ssequence.aseq", targ->path);
 		
 		if (Sys_Stat(seq) > Sys_Stat(midi) && !gMakeForce)
 			goto free;
 		
 		if (!Sys_Stat(cfg)) {
 			ItemList van = ItemList_Initialize();
-			ItemList_List(&van, HeapPrint("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
+			ItemList_List(&van, xFmt("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
 			
 			if (Sys_Stat(van.item[index]))
-				Sys_Copy(HeapPrint("%sconfig.cfg", van.item[index]), cfg);
+				Sys_Copy(xFmt("%sconfig.cfg", van.item[index]), cfg);
 			
 			ItemList_Free(&van);
 		}
@@ -114,18 +114,18 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	}
 	
 	if ((mus = Make_Wildcard(targ->path, ".mus"))) {
-		cfg = HeapPrint("%sconfig.cfg", targ->path);
-		seq = HeapPrint("%ssequence.aseq", targ->path);
+		cfg = xFmt("%sconfig.cfg", targ->path);
+		seq = xFmt("%ssequence.aseq", targ->path);
 		
 		if (Sys_Stat(seq) > Sys_Stat(mus) && !gMakeForce)
 			goto free;
 		
 		if (!Sys_Stat(cfg)) {
 			ItemList van = ItemList_Initialize();
-			ItemList_List(&van, HeapPrint("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
+			ItemList_List(&van, xFmt("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
 			
 			if (Sys_Stat(van.item[index]))
-				Sys_Copy(HeapPrint("%sconfig.cfg", van.item[index]), cfg);
+				Sys_Copy(xFmt("%sconfig.cfg", van.item[index]), cfg);
 			
 			ItemList_Free(&van);
 		}
@@ -245,12 +245,12 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	
 	Malloc(vanCfgName, 0x1024);
 	strcpy(vanCfgName, targ->path);
-	StrRep(vanCfgName, "rom/sound/sample/", HeapPrint("rom/sound/sample/%s/", gVanilla));
+	StrRep(vanCfgName, "rom/sound/sample/", xFmt("rom/sound/sample/%s/", gVanilla));
 	strcat(vanCfgName, "config.cfg");
 	
 	if (modCfgName == NULL) {
 		MemFile mem;
-		modCfgName = HeapPrint("%sconfig.cfg", targ->path);
+		modCfgName = xFmt("%sconfig.cfg", targ->path);
 		
 		MemFile_LoadFile_String(&mem, vanCfgName);
 		MemFile_Seek(&mem, MEMFILE_SEEK_END);
@@ -295,7 +295,7 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 		char command[2056];
 		
 		if (vadpcm == NULL)
-			vadpcm = HeapPrint("%ssample.bin", targ->path);
+			vadpcm = xFmt("%ssample.bin", targ->path);
 		else
 			StrRep(vadpcm, ".vadpcm", "");
 		
@@ -412,7 +412,7 @@ static s32 Callback_Dependencies_PreGcc(const char* input, const char* output, c
 		ItemList_Free(&listB);
 		
 		for (s32 i = 0; i < dep.num; i++) {
-			if (Sys_Stat(HeapPrint("%s%s", Path(input), dep.item[i])) > Sys_Stat(output)) {
+			if (Sys_Stat(xFmt("%s%s", Path(input), dep.item[i])) > Sys_Stat(output)) {
 				ItemList_Free(&dep);
 				
 				return true;
@@ -468,7 +468,7 @@ static s32 Callback_Kaleido(const char* input, MakeCallType type, void* arg, voi
 	char* conf;
 	
 	if (type == PRE_GCC) {
-		char* cfg = HeapPrint("%smake.cfg", Path(input));
+		char* cfg = xFmt("%smake.cfg", Path(input));
 		const char* output = arg;
 		MemFile* make = arg2;
 		
@@ -487,10 +487,10 @@ static s32 Callback_Kaleido(const char* input, MakeCallType type, void* arg, voi
 		char* info;
 		char* dump;
 		
-		ovl = HeapPrint("%soverlay.zovl", Path(input));
+		ovl = xFmt("%soverlay.zovl", Path(input));
 		StrRep(ovl, "src/", "rom/");
 		
-		conf = HeapPrint("%sconfig.cfg", Path(input));
+		conf = xFmt("%sconfig.cfg", Path(input));
 		StrRep(conf, "src/", "rom/");
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
@@ -515,7 +515,7 @@ static s32 Callback_Kaleido(const char* input, MakeCallType type, void* arg, voi
 				printf_error("Could not find symbol [__z64_draw] from [%s]", input);
 			draw = Value_Hex(LineHead(str, dump));
 			
-			MemFile_Malloc(&newConf, 0x800);
+			MemFile_Alloc(&newConf, 0x800);
 			MemFile_Printf(&newConf, "# %s\n", Basename(input));
 			Config_WriteHex(&newConf, "vram_addr", 0x80800000, NO_COMMENT);
 			Config_WriteHex(&newConf, "init", init, NO_COMMENT);
@@ -549,7 +549,7 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 	char* ovl = NULL;
 	
 	if (type == PRE_GCC) {
-		char* cfg = HeapPrint("%smake.cfg", Path(input));
+		char* cfg = xFmt("%smake.cfg", Path(input));
 		const char* output = arg;
 		MemFile* make = arg2;
 		
@@ -568,7 +568,7 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 		char* info;
 		char* dump;
 		
-		ovl = HeapPrint("%soverlay.zovl", Path(input));
+		ovl = xFmt("%soverlay.zovl", Path(input));
 		StrRep(ovl, "src/", "rom/");
 		
 		info = PathSlot(input, -1);
@@ -585,7 +585,7 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 		Tools_Command(command, mips64_objdump, "-t %s", input);
 		dump = SysExeO(command);
 		
-		char* config = HeapPrint("%sconfig.cfg", Path(input));
+		char* config = xFmt("%sconfig.cfg", Path(input));
 		MemFile mem = MemFile_Initialize();
 		char* stateInit = LineHead(StrStr(dump, "__z64_init"), dump);
 		char* stateDestroy = LineHead(StrStr(dump, "__z64_dest"), dump);
@@ -595,7 +595,7 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 		if (stateDestroy == NULL)
 			printf_error_align("No StateDestroy", "%s", input);
 		
-		MemFile_Malloc(&mem, 0x800);
+		MemFile_Alloc(&mem, 0x800);
 		MemFile_Printf(&mem, "# %s\n\n", Basename(input));
 		MemFile_Printf(&mem, "vram_addr = 0x80800000\n");
 		MemFile_Printf(&mem, "init_func = 0x%.8s\n", stateInit);
@@ -615,7 +615,7 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 	char* conf;
 	
 	if (type == PRE_GCC) {
-		char* cfg = HeapPrint("%smake.cfg", Path(input));
+		char* cfg = xFmt("%smake.cfg", Path(input));
 		const char* output = arg;
 		MemFile* make = arg2;
 		
@@ -634,10 +634,10 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 		char* info;
 		char* dump;
 		
-		ovl = HeapPrint("%soverlay.zovl", Path(input));
+		ovl = xFmt("%soverlay.zovl", Path(input));
 		StrRep(ovl, "src/", "rom/");
 		
-		conf = HeapPrint("%sconfig.cfg", Path(input));
+		conf = xFmt("%sconfig.cfg", Path(input));
 		StrRep(conf, "src/", "rom/");
 		
 		Tools_Command(command, mips64_objdump, "-t %s", input);
@@ -652,9 +652,9 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 			StrRep(sourceFolder, "rom/", "src/");
 			ItemList_List(&list, sourceFolder, -1, LIST_FILES | LIST_NO_DOT);
 			
-			MemFile_Malloc(&srcFile, MbToBin(1.0f));
+			MemFile_Alloc(&srcFile, MbToBin(1.0f));
 			MemFile_Params(&srcFile, MEM_REALLOC, true, MEM_END);
-			MemFile_Malloc(&newConf, MbToBin(1.0f));
+			MemFile_Alloc(&newConf, MbToBin(1.0f));
 			
 			for (s32 i = 0; i < list.num; i++) {
 				if (!StrEndCase(list.item[i], ".c"))
@@ -727,7 +727,7 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 
 static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* arg2) {
 	if (type == PRE_GCC) {
-		char* cfg = HeapPrint("%smake.cfg", Path(input));
+		char* cfg = xFmt("%smake.cfg", Path(input));
 		const char* output = arg;
 		MemFile* make = arg2;
 		
@@ -746,7 +746,7 @@ static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* 
 			MemFile mem = MemFile_Initialize();
 			MemFile __config = MemFile_Initialize();
 			MemFile* config = &__config;
-			char* c = HeapMalloc(strlen(input) + 0x10);
+			char* c = xAlloc(strlen(input) + 0x10);
 			char* z64rom;
 			char* z64ram;
 			char* z64next;
@@ -767,7 +767,7 @@ static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* 
 			z64rom += strlen("z64rom = ");
 			if (z64next) z64next += strlen("z64next = ");
 			
-			MemFile_Malloc(config, 0x280);
+			MemFile_Alloc(config, 0x280);
 			Config_WriteHex(config, "rom", Value_Hex(z64rom), NO_COMMENT);
 			Config_WriteHex(config, "ram", Value_Hex(z64ram), NO_COMMENT);
 			if (z64next) Config_WriteHex(config, "next", Value_Hex(z64next), NO_COMMENT);
@@ -793,7 +793,7 @@ error:
 		char* output;
 		char* command = arg;
 		
-		output = HeapMalloc(strlen(input) + 8);
+		output = xAlloc(strlen(input) + 8);
 		strcpy(output, input);
 		StrRep(output, ".elf", ".bin");
 		
@@ -823,7 +823,7 @@ static void Binutil_GCC(const char* source, const char* output, const char* flag
 				printf_error("Unrecognized Callback Return [%d]", r);
 		}
 	} else {
-		char* cfg = HeapPrint("%smake.cfg", Path(source));
+		char* cfg = xFmt("%smake.cfg", Path(source));
 		
 		if (false == Callback_Dependencies_PreGcc(source, output, cfg, &make, NULL))
 			goto free;
@@ -904,7 +904,7 @@ build:
 	strcat(entryDir, "/entry.ld");
 	Sys_MakeDir(Path(entryDir));
 	
-	MemFile_Malloc(&entry, 0x20);
+	MemFile_Alloc(&entry, 0x20);
 	MemFile_Printf(&entry, "ENTRY_POINT = 0x%08X;\n", entryPoint);
 	MemFile_SaveFile(&entry, entryDir);
 	MemFile_Free(&entry);
@@ -929,7 +929,7 @@ static void Binutil_ObjDump(char* cmd, const char* output) {
 	u32 lineNum = LineNum(cmd);
 	char* txt = cmd;
 	
-	MemFile_Malloc(&linker, MbToBin(1));
+	MemFile_Alloc(&linker, MbToBin(1));
 	
 	for (s32 i = 0; i < lineNum; i++) {
 		char* line = CopyLine(txt, 0);
@@ -1010,7 +1010,7 @@ static void Make_CodeThread_uLib(MakeArg* arg) {
 	if (true != false /* ELF */) {
 		MemFile entry = MemFile_Initialize();
 		
-		MemFile_Malloc(&entry, 0x80);
+		MemFile_Alloc(&entry, 0x80);
 		MemFile_Printf(&entry, "ENTRY_POINT = 0x80700000;\n");
 		MemFile_SaveFile(&entry, "rom/lib_user/entry.ld");
 		MemFile_Free(&entry);
@@ -1065,7 +1065,7 @@ static void Make_CodeThread_LD(MakeArg* arg) {
 	
 	if (Sys_IsDir(input)) {
 		u32 files = 0;
-		if (StrEnd(input, HeapPrint("%s/", gVanilla)))
+		if (StrEnd(input, xFmt("%s/", gVanilla)))
 			return;
 		
 		Malloc(list, sizeof(ItemList));
@@ -1323,7 +1323,7 @@ void Make(Rom* rom, s32 message) {
 	}
 	
 	if (gBuildTarget)
-		sGccBaseFlags = HeapPrint("%s -DDEV_BUILD", sGccBaseFlags);
+		sGccBaseFlags = xFmt("%s -DDEV_BUILD", sGccBaseFlags);
 	
 	setvbuf(stdout, NULL, _IONBF, 0);
 	

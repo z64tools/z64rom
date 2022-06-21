@@ -126,20 +126,20 @@ static void Main_ClearProject(void) {
 	
 	printf_toolinfo(gToolName, "Clearing Project\n");
 	
-	RemoveFolder(HeapPrint("rom/actor/%s/", gVanilla));
-	RemoveFolder(HeapPrint("rom/effect/%s/", gVanilla));
-	RemoveFolder(HeapPrint("rom/object/%s/", gVanilla));
-	RemoveFolder(HeapPrint("rom/scene/%s/", gVanilla));
-	RemoveFolder(HeapPrint("rom/sound/sample/%s/", gVanilla));
-	RemoveFolder(HeapPrint("rom/sound/sequence/%s/", gVanilla));
-	RemoveFolder(HeapPrint("rom/sound/soundfont/%s/", gVanilla));
-	RemoveFolder(HeapPrint("rom/system/kaleido/%s/", gVanilla));
-	RemoveFolder(HeapPrint("rom/system/skybox/%s/", gVanilla));
-	RemoveFolder(HeapPrint("rom/system/state/%s/", gVanilla));
-	RemoveFolder(HeapPrint("rom/system/static/%s/", gVanilla));
+	RemoveFolder(xFmt("rom/actor/%s/", gVanilla));
+	RemoveFolder(xFmt("rom/effect/%s/", gVanilla));
+	RemoveFolder(xFmt("rom/object/%s/", gVanilla));
+	RemoveFolder(xFmt("rom/scene/%s/", gVanilla));
+	RemoveFolder(xFmt("rom/sound/sample/%s/", gVanilla));
+	RemoveFolder(xFmt("rom/sound/sequence/%s/", gVanilla));
+	RemoveFolder(xFmt("rom/sound/soundfont/%s/", gVanilla));
+	RemoveFolder(xFmt("rom/system/kaleido/%s/", gVanilla));
+	RemoveFolder(xFmt("rom/system/skybox/%s/", gVanilla));
+	RemoveFolder(xFmt("rom/system/state/%s/", gVanilla));
+	RemoveFolder(xFmt("rom/system/static/%s/", gVanilla));
 	
-	RemoveFolder(HeapPrint("rom/lib_code/"));
-	RemoveFolder(HeapPrint("rom/lib_user/"));
+	RemoveFolder(xFmt("rom/lib_code/"));
+	RemoveFolder(xFmt("rom/lib_user/"));
 	Sys_Delete(gProjectConfig);
 	
 	gVanilla = StrDup(".vanilla");
@@ -177,14 +177,14 @@ static void Main_WiiVC() {
 	path = Config_GetStr(&conf, "vc_dolphin");
 	if (path && strcmp(path, "NULL")) {
 		if (!StrEnd(path, "/"))
-			path = HeapPrint("%s/", path);
+			path = xFmt("%s/", path);
 		if (Sys_Stat(path)) {
-			Sys_Delete_Recursive(HeapPrint("%sWii/title/00010001/", path));
-			Sys_Delete_Recursive(HeapPrint("%sWii/title/00000001/", path));
+			Sys_Delete_Recursive(xFmt("%sWii/title/00010001/", path));
+			Sys_Delete_Recursive(xFmt("%sWii/title/00000001/", path));
 		}
 	}
 	
-	Sys_SetWorkDir(HeapPrint("%stools/", Sys_AppDir()));
+	Sys_SetWorkDir(xFmt("%stools/", Sys_AppDir()));
 	
 	sprintf(
 		buffer,
@@ -228,7 +228,7 @@ static void Main_RenameRooms(const char* from, const char* to) {
 		if (!StrEndCase(list.item[i], from))
 			continue;
 		
-		tmp = HeapStrDup(list.item[i]);
+		tmp = xStrDup(list.item[i]);
 		StrRep(tmp, from, to);
 		
 		if (Sys_Rename(list.item[i], tmp)) {
@@ -317,7 +317,7 @@ void Main_ReadProject(Rom* rom, char** input) {
 static void Main_WriteCfg(MemFile* config, const char* romName, const char* build, const char* vanilla, const char* vcBase, const char* vcPath) {
 	Log("Writing [%s]", gProjectConfig);
 	MemFile_Reset(config);
-	MemFile_Malloc(config, MbToBin(2.5));
+	MemFile_Alloc(config, MbToBin(2.5));
 	
 	Config_WriteComment(config, "Project Settings");
 	Config_WriteStr(config, "z_baserom", romName, QUOTES, NO_COMMENT);
@@ -424,7 +424,7 @@ void Main_WriteProject(Rom* rom, char** input) {
 	
 	Log("Writing [%s]", gProjectConfig);
 	MemFile_Reset(config);
-	MemFile_Malloc(config, MbToBin(2.5));
+	MemFile_Alloc(config, MbToBin(2.5));
 	
 	Config_WriteComment(config, "Project Settings");
 	if (*input)
@@ -507,7 +507,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	if (Arg("reinstall")) {
 		MemFile mem = MemFile_Initialize();
 		
-		MemFile_Malloc(&mem, 0x10);
+		MemFile_Alloc(&mem, 0x10);
 		MemFile_SaveFile(&mem, "tools/.installing");
 		MemFile_Free(&mem);
 	}
@@ -626,10 +626,10 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 			rom->mem.fontTbl = MemFile_Initialize();
 			rom->mem.seqTbl = MemFile_Initialize();
 			rom->mem.seqFontTbl = MemFile_Initialize();
-			MemFile_Malloc(&rom->mem.sampleTbl, MbToBin(0.1));
-			MemFile_Malloc(&rom->mem.fontTbl, MbToBin(0.1));
-			MemFile_Malloc(&rom->mem.seqTbl, MbToBin(0.1));
-			MemFile_Malloc(&rom->mem.seqFontTbl, MbToBin(0.1));
+			MemFile_Alloc(&rom->mem.sampleTbl, MbToBin(0.1));
+			MemFile_Alloc(&rom->mem.fontTbl, MbToBin(0.1));
+			MemFile_Alloc(&rom->mem.seqTbl, MbToBin(0.1));
+			MemFile_Alloc(&rom->mem.seqFontTbl, MbToBin(0.1));
 			
 			gMakeTarget = "sound";
 			
@@ -745,7 +745,7 @@ s32 Main(s32 argc, char* argv[]) {
 			u32 time = Sys_Date(Sys_Time()).hour;
 			
 			if (!Sys_Stat("tools/.update-check")) {
-				MemFile_Malloc(&umem, 512);
+				MemFile_Alloc(&umem, 512);
 				MemFile_Printf(&umem, "%02d", time);
 				MemFile_SaveFile_String(&umem, "tools/.update-check");
 				doUpdate = true;
@@ -801,7 +801,7 @@ s32 Main(s32 argc, char* argv[]) {
 		printf_toolinfo(gToolName, "");
 		
 		if (gDumpFlag) {
-			char* smpVanFldr = HeapPrint("rom/sound/sample/%s/", gVanilla);
+			char* smpVanFldr = xFmt("rom/sound/sample/%s/", gVanilla);
 			
 			if (gDumpAudio == -1) {
 				s32 soundsDumped = false;

@@ -128,8 +128,8 @@ static void Rom_Config_Envelope(MemFile* config, Adsr* env) {
 	for (s32 i = 0; ; i++) {
 		if (ReadBE(env[i].rate) < 0)
 			break;
-		ItemList_AddItem(&listRate, HeapPrint("%.5f", (f32)ReadBE(env[i].rate) / __INT16_MAX__));
-		ItemList_AddItem(&listLevl, HeapPrint("%.5f", (f32)ReadBE(env[i].level) / __INT16_MAX__));
+		ItemList_AddItem(&listRate, xFmt("%.5f", (f32)ReadBE(env[i].rate) / __INT16_MAX__));
+		ItemList_AddItem(&listLevl, xFmt("%.5f", (f32)ReadBE(env[i].level) / __INT16_MAX__));
 	}
 	Config_WriteArray(config, "env_rate", &listRate, NO_QUOTES, NO_COMMENT);
 	Config_WriteArray(config, "env_level", &listLevl, NO_QUOTES, NO_COMMENT);
@@ -319,7 +319,7 @@ static void Audio_PatchWavFiles(MemFile* dataFile, MemFile* config) {
 	
 	foreach(i, info) {
 		printf_progress("Update Sample", i + 1, ArrayCount(info));
-		char* file = HeapPrint("rom/sound/sample/%s/%s/Sample.wav", gVanilla, info[i].info->name);
+		char* file = xFmt("rom/sound/sample/%s/%s/Sample.wav", gVanilla, info[i].info->name);
 		
 		MemFile_Reset(dataFile);
 		MemFile_LoadFile(dataFile, file);
@@ -346,7 +346,7 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	u32 off = 0;
 	
 	for (s32 i = 0; i < num; i++) {
-		char* path = HeapPrint("rom/sound/soundfont/%s/0x%02X-%s/", gVanilla, i, gBankName_OoT[i]);
+		char* path = xFmt("rom/sound/soundfont/%s/0x%02X-%s/", gVanilla, i, gBankName_OoT[i]);
 		printf_progress("SoundFont", i + 1, num);
 		
 		entry = &head->entries[i];
@@ -361,7 +361,7 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		if (entry->numInst) {
 			for (s32 j = 0; j < entry->numInst; j++) {
-				char* output = HeapPrint("%sinstrument/%d-Inst.cfg", path, j);
+				char* output = xFmt("%sinstrument/%d-Inst.cfg", path, j);
 				Sys_MakeDir(Path(output));
 				
 				if (bank->instruments[j] == 0)
@@ -377,7 +377,7 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		if (entry->numSfx) {
 			for (s32 j = 0; j < ReadBE(entry->numSfx); j++) {
-				char* output = HeapPrint("%ssfx/%d-Sfx.cfg", path, j);
+				char* output = xFmt("%ssfx/%d-Sfx.cfg", path, j);
 				Sys_MakeDir(Path(output));
 				
 				sfx = SegmentedToVirtual(0x1, ReadBE(bank->sfx));
@@ -391,7 +391,7 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		if (entry->numDrum) {
 			for (s32 j = 0; j < entry->numDrum; j++) {
-				char* output = HeapPrint("%sdrum/%d-Drum.cfg", path, j);
+				char* output = xFmt("%sdrum/%d-Drum.cfg", path, j);
 				u32* wow = SegmentedToVirtual(0x1, ReadBE(bank->drums));
 				
 				Sys_MakeDir(Path(output));
@@ -426,7 +426,7 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		Config_WriteStr(config, "sequence_player", sSeqPlayerType[entry->seqPlayer], true, 0);
 		
-		MemFile_SaveFile_String(config, HeapPrint("%sconfig.cfg", path));
+		MemFile_SaveFile_String(config, xFmt("%sconfig.cfg", path));
 	}
 	
 	SetSegment(0x1, NULL);
@@ -444,7 +444,7 @@ void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	MemFile_Reset(config);
 	for (s32 i = 0; i < num; i++) {
-		char* path = HeapPrint("rom/sound/sequence/%s/0x%02X-%s/", gVanilla, i, gSequenceName_OoT[i]);
+		char* path = xFmt("rom/sound/sequence/%s/0x%02X-%s/", gVanilla, i, gSequenceName_OoT[i]);
 		ItemList bankList = ItemList_Initialize();
 		u32 bankNum;
 		u32 bankId;
@@ -465,13 +465,13 @@ void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		for (s32 i = 0; i < bankNum; i++) {
 			bankId = (ReadBE(seqFontTable[i + 1]) & 0xFF);
-			ItemList_AddItem(&bankList, HeapPrint("0x%02X", bankId));
+			ItemList_AddItem(&bankList, xFmt("0x%02X", bankId));
 		}
 		
 		Config_WriteArray(config, "bank_id", &bankList, false, 0);
 		
 		if (romFile.size != 0) {
-			Rom_Extract(dataFile, romFile, HeapPrint("%s%s.aseq", path, gSequenceName_OoT[i]));
+			Rom_Extract(dataFile, romFile, xFmt("%s%s.aseq", path, gSequenceName_OoT[i]));
 		} else {
 			Config_WriteHex(config, "seq_pointer", ReadBE(entry->romAddr), "Sequence ID - Jumps into this sequence");
 		}
@@ -495,7 +495,7 @@ void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 		MemFile_Printf(config, "]\n");
 		Config_WriteStr(config, "sequence_player", sSeqPlayerType[entry->seqPlayer], true, 0);
 		
-		MemFile_SaveFile_String(config, HeapPrint("%sconfig.cfg", path));
+		MemFile_SaveFile_String(config, xFmt("%sconfig.cfg", path));
 		
 		ItemList_Free(&bankList);
 	}
@@ -538,8 +538,8 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 	Malloc(memC, sizeof(MemFile));
 	*memF = MemFile_Initialize();
 	*memC = MemFile_Initialize();
-	MemFile_Malloc(memF, MbToBin(1.0));
-	MemFile_Malloc(memC, MbToBin(1.0));
+	MemFile_Alloc(memF, MbToBin(1.0));
+	MemFile_Alloc(memC, MbToBin(1.0));
 	
 	rf.size = ReadBE(tbl->data) & 0x00FFFFFF;
 	rf.data = SegmentedToVirtual(0x0, tbl->sampleAddr);
@@ -669,7 +669,7 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			arg[j].rom = rom;
 			arg[j].sample = &gSampleInfo[i + j];
 			arg[j].tbl = tbl[i + j];
-			arg[j].path = HeapPrint("rom/sound/sample/%s/", gVanilla);
+			arg[j].path = xFmt("rom/sound/sample/%s/", gVanilla);
 			
 			if (gThreading)
 				ThreadLock_Create(&thread[j], SampleDump_Thread, &arg[j]);
@@ -703,7 +703,7 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			name = gSampleInfo[i].dublicate == NULL ? gSampleInfo[i].name : gSampleInfo[i].dublicate->name;
 			
 			sprintf(buff, "0x%X", sSortedSampleTbl[i]->sampleAddr);
-			if (StrRep(config->data, buff, HeapPrint("\"%s\"", name))) {
+			if (StrRep(config->data, buff, xFmt("\"%s\"", name))) {
 				replacedName = name;
 			}
 		}
@@ -713,7 +713,7 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 		
 		// Rename SFX To their samples
 		if (StrStr(sBankFiles[j], "-Sfx")) {
-			char* tempName = HeapPrint("%s%d-%s.cfg", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), replacedName);
+			char* tempName = xFmt("%s%d-%s.cfg", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), replacedName);
 			
 			Sys_Rename(sBankFiles[j], tempName);
 		}
@@ -742,7 +742,7 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			if (instName[0] == 0)
 				printf_error("String maniplation failed for instrument");
 			
-			tempName = HeapPrint("%s%d-%s.cfg", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), instName);
+			tempName = xFmt("%s%d-%s.cfg", Path(sBankFiles[j]), Value_Int(Basename(sBankFiles[j])), instName);
 			
 			Sys_Rename(sBankFiles[j], tempName);
 		}
@@ -766,7 +766,7 @@ static s32 Audio_LoadFile(MemFile* dataFile, char* file) {
 		if (MemFile_LoadFile(dataFile, smpl))
 			return 1;
 	} else {
-		buf = HeapStrDup(file);
+		buf = xStrDup(file);
 		StrRep(buf, "sample", "*");
 		smpl = FileSys_FindFile(file);
 		
@@ -824,7 +824,7 @@ void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	AudioEntryHead head = { 0 };
 	AudioEntry entry = { 0 };
 	
-	MemFile_Malloc(&sample, MbToBin(0.25));
+	MemFile_Alloc(&sample, MbToBin(0.25));
 	MemFile_Reset(dataFile);
 	Rom_ItemList(&itemList, "rom/sound/sample/", SORT_NO, LIST_FOLDERS);
 	MemFile_Params(dataFile, MEM_ALIGN, 16, MEM_END);
@@ -892,7 +892,7 @@ static void SoundFont_Error_NotFound(const char* sampleName) {
 	MemFile mem = MemFile_Initialize();
 	
 	Log("Dumping [audio_log]");
-	MemFile_Malloc(&mem, 0x90000);
+	MemFile_Alloc(&mem, 0x90000);
 	
 	for (s32 i = 0; i < sSampleTblNum; i++)
 		MemFile_Printf(&mem, "%s\n", sSampleTbl[i].name);
@@ -1054,7 +1054,7 @@ static void SoundFont_Write_Adsr(MemFile* mem, Adsr* adsr, void32* setPtr) {
 }
 
 static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setPtr, MemFile* memSample, MemFile* memBook, MemFile* memLoopBook, u32* sampleNum) {
-	char* restoreDir = HeapStrDup(FileSys_File(""));
+	char* restoreDir = xStrDup(FileSys_File(""));
 	Sample smpl = { 0 };
 	u32 loop[4 + 8];
 	u32 loopSize = 4 * 4;
@@ -1152,16 +1152,16 @@ void Audio_ThreadBuildFont(FontThread* ft) {
 	Calloc(dataFile, sizeof(MemFile));
 	Calloc(config, sizeof(MemFile));
 	
-	MemFile_Malloc(dataFile, MbToBin(0.25));
-	MemFile_Malloc(config, MbToBin(0.25));
+	MemFile_Alloc(dataFile, MbToBin(0.25));
+	MemFile_Alloc(config, MbToBin(0.25));
 	
-	MemFile_Malloc(&memBook, MbToBin(0.25));
-	MemFile_Malloc(&memLoopBook, MbToBin(0.25));
-	MemFile_Malloc(&memInst, MbToBin(0.25));
-	MemFile_Malloc(&memEnv, MbToBin(0.25));
-	MemFile_Malloc(&memSample, MbToBin(0.25));
-	MemFile_Malloc(&memSfx, MbToBin(0.25));
-	MemFile_Malloc(&memDrum, MbToBin(0.25));
+	MemFile_Alloc(&memBook, MbToBin(0.25));
+	MemFile_Alloc(&memLoopBook, MbToBin(0.25));
+	MemFile_Alloc(&memInst, MbToBin(0.25));
+	MemFile_Alloc(&memEnv, MbToBin(0.25));
+	MemFile_Alloc(&memSample, MbToBin(0.25));
+	MemFile_Alloc(&memSfx, MbToBin(0.25));
+	MemFile_Alloc(&memDrum, MbToBin(0.25));
 	
 	ItemList listInst = ItemList_Initialize();
 	ItemList listSfx = ItemList_Initialize();
@@ -1467,7 +1467,7 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 	s32 i = 0;
 	u32 override = 1;
 	
-	MemFile_Malloc(&soundFontMem, MbToBin(2.00));
+	MemFile_Alloc(&soundFontMem, MbToBin(2.00));
 	Rom_ItemList(&itemList, "rom/sound/soundfont/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	sfHead.numEntries = itemList.num;
@@ -1488,7 +1488,7 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 		u32 target = Clamp(itemList.num - i, 0, override);
 		
 		for (s32 j = 0; j < target; j++) {
-			MemFile_Malloc(&thread[j].memBank, MbToBin(0.25));
+			MemFile_Alloc(&thread[j].memBank, MbToBin(0.25));
 			thread[j].itemList = &itemList;
 			thread[j].sfEntry = &sfEntry[i + j];
 			thread[j].i = i + j;
@@ -1508,7 +1508,7 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			MemFile_Align(&soundFontMem, 16);
 			
 			MemFile_Reset(config);
-			MemFile_LoadFile_String(config, HeapPrint("%sconfig.cfg", itemList.item[i + j]));
+			MemFile_LoadFile_String(config, xFmt("%sconfig.cfg", itemList.item[i + j]));
 			confMed = Config_GetStr(config, "medium_type");
 			confSeq = Config_GetStr(config, "sequence_player");
 			
@@ -1569,9 +1569,9 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	AudioEntryHead sqHead = { 0 };
 	AudioEntry sqEntry = { 0 };
 	
-	MemFile_Malloc(&memIndexTable, 0x800);
-	MemFile_Malloc(&memLookUpTable, 0x800);
-	MemFile_Malloc(&sequenceMem, MbToBin(1.0));
+	MemFile_Alloc(&memIndexTable, 0x800);
+	MemFile_Alloc(&memLookUpTable, 0x800);
+	MemFile_Alloc(&sequenceMem, MbToBin(1.0));
 	Rom_ItemList(&itemList, "rom/sound/sequence/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	sqHead.numEntries = itemList.num;
@@ -1702,7 +1702,7 @@ void Audio_DeleteUnreferencedSamples(void) {
 		"sfx/",
 	};
 	
-	MemFile_Malloc(&mem, 0x1024);
+	MemFile_Alloc(&mem, 0x1024);
 	Rom_ItemList(&sampleList, "rom/sound/sample/", SORT_NO, LIST_FOLDERS);
 	Rom_ItemList(&bankList, "rom/sound/soundfont/", SORT_NUMERICAL, LIST_FOLDERS);
 	

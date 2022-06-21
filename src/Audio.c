@@ -826,7 +826,7 @@ void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	
 	MemFile_Malloc(&sample, MbToBin(0.25));
 	MemFile_Reset(dataFile);
-	Rom_ItemListDir(&itemList, SORT_NO, IS_DIR);
+	Rom_ItemList(&itemList, "rom/sound/sample/", SORT_NO, LIST_FOLDERS);
 	MemFile_Params(dataFile, MEM_ALIGN, 16, MEM_END);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
@@ -834,9 +834,9 @@ void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 		MemFile_Reset(config);
 		MemFile_Reset(&sample);
 		
-		Dir_Enter(itemList.item[i]); {
-			char* file = Dir_File("sample.vadpcm.bin");
-			char* cfg = Dir_File("config.cfg");
+		FileSys_Path(itemList.item[i]); {
+			char* file = FileSys_File("sample.vadpcm.bin");
+			char* cfg = FileSys_File("config.cfg");
 			
 			if (cfg == NULL)
 				printf_error("Could not locate sample in [%s]", itemList.item[i]);
@@ -860,13 +860,11 @@ void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 				printf_error("Error: Samplebank alignment failed!");
 			
 			sSampleTbl[sSampleTblNum].size = sample.dataSize;
-			strcpy(sSampleTbl[sSampleTblNum].dir, Dir_File(""));
+			strcpy(sSampleTbl[sSampleTblNum].dir, FileSys_File(""));
 			strcpy(sSampleTbl[sSampleTblNum].name, PathSlot(itemList.item[i], -1));
 			StrRep(sSampleTbl[sSampleTblNum].name, "/", "\0");
 			sSampleTblNum++;
 			MemFile_Append(dataFile, &sample);
-			
-			Dir_Leave();
 		}
 	}
 	
@@ -1574,7 +1572,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile_Malloc(&memIndexTable, 0x800);
 	MemFile_Malloc(&memLookUpTable, 0x800);
 	MemFile_Malloc(&sequenceMem, MbToBin(1.0));
-	Rom_ItemListDir(&itemList, SORT_NUMERICAL, IS_DIR);
+	Rom_ItemList(&itemList, "rom/sound/sequence/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	sqHead.numEntries = itemList.num;
 	SwapBE(sqHead.numEntries);
@@ -1600,7 +1598,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			continue;
 		}
 		
-		Dir_Enter(itemList.item[i]); {
+		FileSys_Path(itemList.item[i]); {
 			u32 med = 0;
 			u32 seq = 0;
 			char* confMed;
@@ -1610,7 +1608,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			
 			MemFile_Reset(dataFile);
 			MemFile_Reset(config);
-			MemFile_LoadFile_String(config, Dir_File("config.cfg"));
+			MemFile_LoadFile_String(config, FileSys_File("config.cfg"));
 			confMed = Config_GetStr(config, "medium_type");
 			confSeq = Config_GetStr(config, "sequence_player");
 			
@@ -1635,7 +1633,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			sqEntry.numDrum = 0;
 			sqEntry.numSfx = 0;
 			
-			fseq = Dir_FindFile(".aseq");
+			fseq = FileSys_FindFile(".aseq");
 			
 			if (fseq) {
 				MemFile_LoadFile(dataFile, fseq);
@@ -1665,8 +1663,6 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			}
 			
 			ItemList_Free(&bankList);
-			
-			Dir_Leave();
 		}
 	}
 	

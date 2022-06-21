@@ -46,7 +46,7 @@ typedef enum {
 	CB_MAKE = 1
 } MakeCallbackReturn;
 
-typedef s32 (* BinutilCallback)(const char*, MakeCallType, void*, void*);
+typedef s32 (* BinutilCallback)(const char*, MakeCallType, const char*, void*);
 
 typedef struct MakeArg {
 	const char* path;

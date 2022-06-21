@@ -2,8 +2,7 @@ CFLAGS          = -Wall -Wno-switch -DEXTLIB=153 -DNDEBUG
 CFLAGS_MAIN     = -Wall -Wno-switch -DNDEBUG
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast
-SOURCE_C        = $(shell find src/* -type f -name '*.c')
-SOURCE_C       += z64rom.c
+SOURCE_C       := $(shell find src/* -type f -name '*.c')
 SOURCE_O_LINUX := $(foreach f,$(SOURCE_C:.c=.o),bin/linux/$f)
 SOURCE_O_WIN32 := $(foreach f,$(SOURCE_C:.c=.o),bin/win32/$f)
 
@@ -29,17 +28,6 @@ HEADER := src/z64rom.h src/Audio.h
 
 include $(C_INCLUDE_PATH)/ExtLib.mk
 
-# Make build directories
-$(shell mkdir -p bin/ $(foreach dir, \
-	$(dir $(RELEASE_EXECUTABLE_WIN32)) \
-	$(dir $(SOURCE_O_WIN32)) \
-	\
-	$(dir $(RELEASE_EXECUTABLE_LINUX)) \
-	$(dir $(SOURCE_O_LINUX)) \
-	, $(dir)))
-$(shell mkdir -p app_win32/tools/)
-$(shell mkdir -p app_linux/tools/)
-
 .PHONY: project-files-linux \
 	    project-files-win32 \
 		default \
@@ -56,6 +44,11 @@ $(shell mkdir -p app_linux/tools/)
 
 default: linux
 all: linux win32
+	
+PROJECT_FILES_L      = $(shell find project/* -type f -not -name '*.txt' -not -name '*.exe' -not -name '*.reg')
+PROJECT_FILES_W      = $(shell find project/* -type f -not -name '*.txt' -not -name 'z64convert' -not -name 'z64audio' -not -name 'novl' -not -name 'seq64_console' -not -name 'seqas')
+PROJECT_FILES_LINUX := $(foreach f,$(PROJECT_FILES_L:project/%=%),app_linux/$f)
+PROJECT_FILES_WIN32 := $(foreach f,$(PROJECT_FILES_W:project/%=%),app_win32/$f)
 
 update-z64audio:
 	@cd tools/z64audio/ && git pull https://github.com/z64tools/z64audio main && cd ../..
@@ -63,35 +56,31 @@ update-z64audio:
 linux: project-files-linux $(RELEASE_EXECUTABLE_LINUX)
 win32: project-files-win32 $(RELEASE_EXECUTABLE_WIN32)
 
+# Make build directories
+$(shell mkdir -p bin/ $(foreach dir, \
+	$(dir $(RELEASE_EXECUTABLE_LINUX)) \
+	$(dir $(PROJECT_FILES_LINUX)) \
+	$(dir $(SOURCE_O_LINUX)) \
+	\
+	$(dir $(RELEASE_EXECUTABLE_WIN32)) \
+	$(dir $(PROJECT_FILES_WIN32)) \
+	$(dir $(SOURCE_O_WIN32)) \
+	, $(dir)))
+$(shell mkdir -p app_linux/tools/)
+$(shell mkdir -p app_win32/tools/)
+
 # # # # # # # # # # # # # # # # # # # #
 # PROJECT                             #
 # # # # # # # # # # # # # # # # # # # #
 
-project-files-linux: $(TOOLS_LINUX)
-	@mkdir -p             app_linux/src/actor
-	@mkdir -p             app_linux/src/object
-	@cp -r project/*      app_linux/
-	@cp -r project/.[^.]* app_linux/
-	@rm -f                app_linux/*/*/*.txt
-	@rm -f                app_linux/*/*.txt
-	@rm -f                app_linux/tools/z64convert.exe
-	@rm -f                app_linux/tools/z64audio.exe
-	@rm -f                app_linux/tools/novl.exe
-	@rm -f                app_linux/tools/seq64_console.exe
-	@rm -f                app_linux/tools/seqas.exe
-project-files-win32: $(TOOLS_WIN32)
-	@mkdir -p             app_win32/src/actor
-	@mkdir -p             app_win32/src/object
-	@cp -r project/*      app_win32/
-	@cp -r project/.[^.]* app_win32/
-	@cp tools/wget.exe    app_win32/tools/
-	@rm -f                app_win32/*/*/*.txt
-	@rm -f                app_win32/*/*.txt
-	@rm -f                app_win32/tools/z64convert
-	@rm -f                app_win32/tools/z64audio
-	@rm -f                app_win32/tools/novl
-	@rm -f                app_win32/tools/seq64_console
-	@rm -f                app_win32/tools/seqas
+project-files-linux: $(TOOLS_LINUX) $(PROJECT_FILES_LINUX)
+project-files-win32: $(TOOLS_WIN32) $(PROJECT_FILES_WIN32)
+
+app_linux/%: project/%
+app_win32/%: project/%
+	@echo "$(PRNT_RSET)[copy $(PRNT_BLUE)$@$(PRNT_RSET)]"
+	@rm -f $@
+	@cp $< $@
 
 # # # # # # # # # # # # # # # # # # # #
 # CLEAN                               #

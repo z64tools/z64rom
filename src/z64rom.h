@@ -50,6 +50,28 @@ typedef struct {
 	};
 } RestrictionFlag;
 
+typedef struct StructBE {
+	u16    frameCount;
+	u16    __pad;
+	void32 segment;
+} PlayerAnimEntry;
+
+typedef struct StructBE {
+	s16 pos[3];
+	s16 rot[21][3];
+	struct {
+		u16 _null : 8;
+		u16 mouth : 4;
+		u16 eye   : 4;
+	} face;
+} PlayerAnimFrame;
+
+typedef struct StructBE {
+	u16    textId;
+	u8     typePos;
+	void32 segment;
+} MessageTableEntry;
+
 typedef struct {
 	struct {
 		u32 dmaTable;
@@ -64,6 +86,9 @@ typedef struct {
 		u32 seqTable;
 		u32 fontTable;
 		u32 sampleTable;
+		
+		u32 nesEntryTable;
+		u32 staffEntryTable;
 		
 		u32 restrictionFlags;
 		struct {
@@ -96,6 +121,9 @@ typedef struct Rom {
 		ObjectEntry*     object;
 		KaleidoEntry*    kaleido;
 		GameStateEntry*  state;
+		
+		MessageTableEntry* nesMsg;
+		MessageTableEntry* staffMsg;
 		
 		RestrictionFlag* restrictionFlags;
 		struct {
@@ -188,22 +216,6 @@ typedef struct {
 	const char* name;
 } SystemInfo;
 
-typedef struct StructBE {
-	u16    frameCount;
-	u16    __pad;
-	void32 segment;
-} PlayerAnimEntry;
-
-typedef struct StructBE {
-	s16 pos[3];
-	s16 rot[21][3];
-	struct {
-		u16 _null : 8;
-		u16 mouth : 4;
-		u16 eye   : 4;
-	} face;
-} PlayerAnimFrame;
-
 extern Patch gPatch;
 
 extern char* gWaveSample[8];
@@ -217,7 +229,7 @@ extern const char* gSceneName_OoT[110];
 extern const char* gBankName_OoT[41];
 extern const char* gSequenceName_OoT[114];
 extern const char* gSkyboxName_OoT[32];
-extern const SystemInfo gSystem_OoT[30];
+extern const SystemInfo gSystem_OoT[28];
 extern const char* gPlayerAnimName[573];
 
 extern s32 gBetaFlag_Actor_OoT[7];

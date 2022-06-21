@@ -463,20 +463,19 @@ static s32 Callback_Overlay_PreGcc(const char* input, const char* output, const 
 volatile f32 sTimeGCC, sTimeLD, sTimeZOVL, sTimeObjDump;
 volatile u32 sCountGCC, sCountLD, sCountZOVL, sCounObjDump;
 
-static s32 Callback_Kaleido(const char* input, MakeCallType type, void* arg, void* arg2) {
+static s32 Callback_Kaleido(const char* input, MakeCallType type, const char* output, void* arg) {
 	char* ovl;
 	char* conf;
 	
 	if (type == PRE_GCC) {
 		char* cfg = xFmt("%smake.cfg", Path(input));
-		const char* output = arg;
-		MemFile* make = arg2;
+		MemFile* make = arg;
 		
 		return Callback_Overlay_PreGcc(input, output, cfg, make);
 	}
 	
 	if (type == PRE_LD) {
-		if (Callback_Dependencies_PreLd(input, arg2))
+		if (Callback_Dependencies_PreLd(input, output))
 			return CB_MAKE;
 		
 		return CB_BREAK;
@@ -545,19 +544,18 @@ static s32 Callback_Kaleido(const char* input, MakeCallType type, void* arg, voi
 	return 0;
 }
 
-static s32 Callback_System(const char* input, MakeCallType type, void* arg, void* arg2) {
+static s32 Callback_System(const char* input, MakeCallType type, const char* output, void* arg) {
 	char* ovl = NULL;
 	
 	if (type == PRE_GCC) {
 		char* cfg = xFmt("%smake.cfg", Path(input));
-		const char* output = arg;
-		MemFile* make = arg2;
+		MemFile* make = arg;
 		
 		return Callback_Overlay_PreGcc(input, output, cfg, make);
 	}
 	
 	if (type == PRE_LD) {
-		if (Callback_Dependencies_PreLd(input, arg2))
+		if (Callback_Dependencies_PreLd(input, output))
 			return CB_MAKE;
 		
 		return CB_BREAK;
@@ -610,20 +608,19 @@ static s32 Callback_System(const char* input, MakeCallType type, void* arg, void
 	return 0;
 }
 
-static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void* arg2) {
+static s32 Callback_Actor(const char* input, MakeCallType type, const char* output, void* arg) {
 	char* ovl;
 	char* conf;
 	
 	if (type == PRE_GCC) {
 		char* cfg = xFmt("%smake.cfg", Path(input));
-		const char* output = arg;
-		MemFile* make = arg2;
+		MemFile* make = arg;
 		
 		return Callback_Overlay_PreGcc(input, output, cfg, make);
 	}
 	
 	if (type == PRE_LD) {
-		if (Callback_Dependencies_PreLd(input, arg2))
+		if (Callback_Dependencies_PreLd(input, output))
 			return CB_MAKE;
 		
 		return CB_BREAK;
@@ -725,11 +722,10 @@ static s32 Callback_Actor(const char* input, MakeCallType type, void* arg, void*
 	return 0;
 }
 
-static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* arg2) {
+static s32 Callback_Code(const char* input, MakeCallType type, const char* output, void* arg) {
 	if (type == PRE_GCC) {
 		char* cfg = xFmt("%smake.cfg", Path(input));
-		const char* output = arg;
-		MemFile* make = arg2;
+		MemFile* make = arg;
 		
 		if (Callback_Dependencies_PreGcc(input, output, cfg, make, &sDepList_uLibHeader))
 			return CB_MAKE;
@@ -741,7 +737,7 @@ static s32 Callback_Code(const char* input, MakeCallType type, void* arg, void* 
 		return 0;
 	
 	if (type == PRE_LD) {
-		if (Callback_Dependencies_PreLd(input, arg2)) {
+		if (Callback_Dependencies_PreLd(input, output)) {
 			u32* entryPoint = arg;
 			MemFile mem = MemFile_Initialize();
 			MemFile __config = MemFile_Initialize();
@@ -790,14 +786,14 @@ error:
 	}
 	
 	if (type == POST_LD) {
-		char* output;
+		char* bin;
 		char* command = arg;
 		
-		output = xAlloc(strlen(input) + 8);
-		strcpy(output, input);
-		StrRep(output, ".elf", ".bin");
+		bin = xAlloc(strlen(input) + 8);
+		strcpy(bin, input);
+		StrRep(bin, ".elf", ".bin");
 		
-		Tools_Command(command, mips64_objcopy, "-R .MIPS.abiflags -O binary %s %s", input, output);
+		Tools_Command(command, mips64_objcopy, "-R .MIPS.abiflags -O binary %s %s", input, bin);
 		Make_Run(command);
 	}
 	
@@ -814,7 +810,7 @@ static void Binutil_GCC(const char* source, const char* output, const char* flag
 	s32 r = 0;
 	
 	if (callback) {
-		switch ((r = callback(source, PRE_GCC, (void*)output, &make))) {
+		switch ((r = callback(source, PRE_GCC, output, &make))) {
 			case CB_BREAK:
 				goto free;
 			case CB_MAKE:
@@ -867,7 +863,7 @@ build:
 	sCountGCC++;
 	
 	if (callback)
-		callback(output, POST_GCC, command, NULL);
+		callback(output, POST_GCC, output, command);
 	Free(command);
 	if (newFlags)
 		Free(newFlags);
@@ -884,7 +880,7 @@ static void Binutil_LD(const char* source, const char* output, const char* flags
 	s32 r = 0;
 	
 	if (callback) {
-		switch ((r = callback(source, PRE_LD, &entryPoint, (void*)output))) {
+		switch ((r = callback(source, PRE_LD, (void*)output, &entryPoint))) {
 			case CB_BREAK:
 				return;
 			case CB_MAKE:
@@ -919,7 +915,7 @@ build:
 	Make_Info("LD", output);
 	
 	if (callback)
-		callback(output, POST_LD, command, NULL);
+		callback(output, POST_LD, output, command);
 	Free(command);
 }
 

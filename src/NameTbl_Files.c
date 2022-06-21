@@ -1224,8 +1224,6 @@ const SystemInfo gSystem_OoT[] = {
 	{ 19, "message_texture_static" },
 	{ 20, "nes_font_static" },
 	{ 21, "message_data_static_NES" },
-	{ 22, "message_data_static_GER" },
-	{ 23, "message_data_static_FRA" },
 	{ 24, "message_data_static_staff" },
 	{ 25, "map_grand_static" },
 	{ 26, "map_i_static" },

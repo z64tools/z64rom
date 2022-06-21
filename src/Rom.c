@@ -316,7 +316,7 @@ static void Config_WriteScene(Rom* rom, MemFile* config, u32 id, const char* nam
 // # PATCH                               #
 // # # # # # # # # # # # # # # # # # # # #
 
-static Patch gPatch;
+Patch gPatch;
 
 static void Patch_Init() {
 	ItemList list = ItemList_Initialize();
@@ -752,28 +752,6 @@ static void Dump_Kaleido(Rom* rom, MemFile* data, MemFile* config) {
 	}
 }
 
-static void Dump_Static(Rom* rom, MemFile* data, MemFile* config) {
-	RomFile rf;
-	
-	foreach(i, gSystem_OoT) {
-		u32 id = gSystem_OoT[i].id;
-		
-		FileSys_Path("rom/system/static/%s/", gVanilla);
-		
-		rf.romStart = ReadBE(rom->table.dma[id].vromStart);
-		rf.romEnd = ReadBE(rom->table.dma[id].vromEnd);
-		rf.size = rf.romEnd - rf.romStart;
-		rf.data = SegmentedToVirtual(0x0, rf.romStart);
-		
-		switch (id) {
-			case DMA_ID_DO_ACTION_STATIC:
-				rf.size = 0x2B80;
-		}
-		
-		Rom_Extract(data, rf, FileSys_File(xFmt("%s.bin", gSystem_OoT[i].name)));
-	}
-}
-
 static void Dump_Skybox(Rom* rom, MemFile* data, MemFile* config) {
 	RomFile rf;
 	
@@ -793,6 +771,51 @@ static void Dump_Skybox(Rom* rom, MemFile* data, MemFile* config) {
 		rf.size = rf.romEnd - rf.romStart;
 		rf.data = SegmentedToVirtual(0x0, rf.romStart);
 		Rom_Extract(data, rf, FileSys_File("skybox.pal"));
+	}
+}
+
+static void Dump_Static(Rom* rom, MemFile* data, MemFile* config) {
+	RomFile rf;
+	
+	foreach(i, gSystem_OoT) {
+		u32 id = gSystem_OoT[i].id;
+		MessageTableEntry* tbl = NULL;
+		
+		printf_progress("Static", i + 1, ArrayCount(gSystem_OoT));
+		FileSys_Path("rom/system/static/%s/", gVanilla);
+		
+		rf.romStart = ReadBE(rom->table.dma[id].vromStart);
+		rf.romEnd = ReadBE(rom->table.dma[id].vromEnd);
+		rf.size = rf.romEnd - rf.romStart;
+		rf.data = SegmentedToVirtual(0x0, rf.romStart);
+		
+		switch (id) {
+			case DMA_ID_DO_ACTION_STATIC:
+				rf.size = 0x2B80;
+				break;
+			case DMA_ID_MESSAGE_DATA_STATIC_NES:
+				tbl = rom->table.nesMsg;
+				break;
+			case DMA_ID_MESSAGE_DATA_STATIC_STAFF:
+				tbl = rom->table.staffMsg;
+				break;
+		}
+		
+		if (tbl) {
+			RomFile tblRf = { 0 };
+			
+			tblRf.data = tbl;
+			
+			for (s32 i = 0;; i++) {
+				tblRf.size += sizeof(MessageTableEntry);
+				if (tbl[i].textId == 0xFFFF)
+					break;
+			}
+			
+			Rom_Extract(data, tblRf, FileSys_File(xFmt("%s.tbl", gSystem_OoT[i].name)));
+		}
+		
+		Rom_Extract(data, rf, FileSys_File(xFmt("%s.bin", gSystem_OoT[i].name)));
 	}
 }
 
@@ -1362,7 +1385,9 @@ static void Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				break;
 				
 			case DMA_ID_CODE:
+			
 				Patch_File(&rom->code, list.item[k]);
+				
 				Dma_WriteEntry(rom, id, &rom->code, NOCACHE_COMPRESS);
 				
 				continue;
@@ -1380,6 +1405,23 @@ static void Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			case DMA_ID_ELF_MESSAGE_FIELD:
 			case DMA_ID_ELF_MESSAGE_YDAN:
 			case DMA_ID_NINTENDO_ROGO_STATIC:
+				break;
+				
+			case DMA_ID_MESSAGE_DATA_STATIC_NES:
+			case DMA_ID_MESSAGE_DATA_STATIC_STAFF:
+				MemFile mem = MemFile_Initialize();
+				char* table = xStrDup(list.item[k]);
+				StrRep(table, ".bin", ".tbl");
+				MemFile_LoadFile(&mem, table);
+				
+				if (StrStr(Basename(table), "NES"))
+					memcpy(rom->table.nesMsg, mem.data, mem.dataSize);
+				
+				else
+					memcpy(rom->table.staffMsg, mem.data, mem.dataSize);
+				
+				MemFile_Free(&mem);
+				
 				break;
 				
 			default:
@@ -1454,6 +1496,10 @@ void Rom_New(Rom* rom, char* romName) {
 	rom->offset.table.seqTable = 0xBCC6A0;
 	rom->offset.table.fontTable = 0xBCC270;
 	rom->offset.table.sampleTable = 0xBCCD90;
+	
+	rom->offset.table.nesEntryTable = 0xBC24C0;
+	rom->offset.table.staffEntryTable = 0xBCA908;
+	
 	rom->offset.table.restrictionFlags = 0x00B9CA10;
 	
 	addr = SegmentedToVirtual(0x0, 0xB5A4AE);
@@ -1503,6 +1549,9 @@ void Rom_New(Rom* rom, char* romName) {
 	rom->table.state = SegmentedToVirtual(0x0, rom->offset.table.stateTable);
 	rom->table.scene = SegmentedToVirtual(0x0, rom->offset.table.sceneTable);
 	rom->table.kaleido = SegmentedToVirtual(0x0, rom->offset.table.kaleidoTable);
+	
+	rom->table.nesMsg = SegmentedToVirtual(0x0, rom->offset.table.nesEntryTable);
+	rom->table.staffMsg = SegmentedToVirtual(0x0, rom->offset.table.staffEntryTable);
 	
 	rom->table.restrictionFlags = SegmentedToVirtual(0x0, rom->offset.table.restrictionFlags);
 	
@@ -1555,6 +1604,8 @@ void Rom_New(Rom* rom, char* romName) {
 		
 		rom->table.state = SegmentedToVirtual(SEG_CODE, rom->offset.table.stateTable - RELOC_CODE);
 		rom->table.kaleido = SegmentedToVirtual(SEG_CODE, rom->offset.table.kaleidoTable - RELOC_CODE);
+		rom->table.nesMsg = SegmentedToVirtual(SEG_CODE, rom->offset.table.nesEntryTable - RELOC_CODE);
+		rom->table.staffMsg = SegmentedToVirtual(SEG_CODE, rom->offset.table.staffEntryTable - RELOC_CODE);
 		rom->table.restrictionFlags = SegmentedToVirtual(SEG_CODE, rom->offset.table.restrictionFlags - RELOC_CODE);
 		
 		MemFile_Alloc(&rom->playerAnim, MbToBin(16));
@@ -1632,8 +1683,10 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeEntry(rom, DMA_ID_DO_ACTION_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_DO_ACTION_STATIC, false);
 	Dma_FreeEntry(rom, DMA_ID_MESSAGE_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_MESSAGE_STATIC, false);
 	
+	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_NES, 0x1000);
 	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_GER, 0x1000);
 	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_FRA, 0x1000);
+	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_STAFF, 0x1000);
 	
 	Dma_FreeEntry(rom, DMA_ID_CODE, 0x10); Dma_WriteFlag(DMA_ID_CODE, false);
 	Dma_FreeEntry(rom, DMA_ID_NINTENDO_ROGO_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_NINTENDO_ROGO_STATIC, false);

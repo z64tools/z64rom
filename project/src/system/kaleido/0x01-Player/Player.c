@@ -13126,20 +13126,35 @@ s32 Player_DebugMode(Player* this, PlayState* play) {
 				this->actor.world.pos.y -= speed * 0.45;
 			}
 			
-                OSContPad* ctrl = &play->state.input[0].cur;
-                Vec3f zero = {};
-                Vec3f conpos = {
-                    .x = -((f32)ctrl->stick_x / 128),
-                    .z = (f32)ctrl->stick_y / 128,
-                };
-				s16 angle;
-				f32 speedC = Math_Vec3f_DistXZ(&zero, &conpos);
-				
-				angle = Camera_GetInputDirYaw(GET_ACTIVE_CAM(play));
-                angle += Math_Vec3f_Yaw(&zero, &conpos);
-				
-				this->actor.world.pos.x += speed * Math_SinS(angle) * speedC;
-				this->actor.world.pos.z += speed * Math_CosS(angle) * speedC;
+			OSContPad* ctrl = &play->state.input[0].cur;
+			Vec3f zero = {};
+			Vec3f conpos = {
+				.x = -((f32)ctrl->stick_x / 128),
+				.z = (f32)ctrl->stick_y / 128,
+			};
+			s16 angle;
+			f32 speedC = Math_Vec3f_DistXZ(&zero, &conpos);
+			
+			if (speedC <= 0.1f)
+				speedC = 0.0f;
+			
+			angle = Camera_GetInputDirYaw(GET_ACTIVE_CAM(play));
+			if (CHK_ANY(cur, BTN_DUP | BTN_DDOWN | BTN_DLEFT | BTN_DRIGHT)) {
+				if (CHK_ANY(cur, BTN_DUP))
+					conpos.z = 1.0f;
+				if (CHK_ANY(cur, BTN_DDOWN))
+					conpos.z = -1.0f;
+				if (CHK_ANY(cur, BTN_DLEFT))
+					conpos.x = 1.0f;
+				if (CHK_ANY(cur, BTN_DRIGHT))
+					conpos.x = -1.0f;
+				speedC = 1.0f;
+			}
+			
+			angle += Math_Vec3f_Yaw(&zero, &conpos);
+			
+			this->actor.world.pos.x += speed * Math_SinS(angle) * speedC;
+			this->actor.world.pos.z += speed * Math_CosS(angle) * speedC;
 		}
 		
 		func_80832210(this);

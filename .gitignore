@@ -3,7 +3,6 @@ compile_flags.txt
 rom/*
 *.z64
 *.sh
-!z64rom.c
 prvFileList
 *.lnk
 *.wav
@@ -26,3 +25,4 @@ project/tools/elf2ld
 *.o
 .*/
 project/tools/seqas
+!project/tools/wget.exe

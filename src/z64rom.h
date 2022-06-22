@@ -98,8 +98,8 @@ typedef struct {
 			HiLo draw;
 		} player;
 		struct {
-			HiLo init;
 			HiLo updt;
+			HiLo draw;
 		} pauseMenu;
 	} table;
 	struct {

@@ -213,12 +213,12 @@ static void Config_WriteKaleido(Rom* rom, MemFile* config, u32 id, const char* n
 		Config_WriteHex(config, "updt", updt, NO_COMMENT);
 		Config_WriteHex(config, "draw", draw, NO_COMMENT);
 	} else { // PAUSE_MENU
-		dataHi = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.init.hi);
-		dataLo = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.init.lo);
-		init = ReadBE(dataHi[1]) << 16 | ReadBE(dataLo[1]);
-		
 		dataHi = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.updt.hi);
 		dataLo = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.updt.lo);
+		init = ReadBE(dataHi[1]) << 16 | ReadBE(dataLo[1]);
+		
+		dataHi = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.draw.hi);
+		dataLo = SegmentedToVirtual(0x0, rom->offset.table.pauseMenu.draw.lo);
 		updt = ReadBE(dataHi[1]) << 16 | ReadBE(dataLo[1]);
 		
 		Config_WriteHex(config, "init", init, NO_COMMENT);
@@ -1236,37 +1236,6 @@ static void Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_LoadFile(memData, file);
 		Patch_File(memData, file);
 		
-		if (i == 1 && Sys_Stat("include/z_lib_user.ld")) {
-			SetSegment(6, memData->data);
-			MemFile mem;
-			u16* cVal[] = {
-				(u16*)SegmentedToVirtual(6, 0x8c74),
-				(u16*)SegmentedToVirtual(6, 0x8c78),
-			};
-			u16 oVal[] = {
-				cVal[0][1],
-				cVal[1][1]
-			};
-			char* val;
-			
-			MemFile_LoadFile_String(&mem, "include/z_lib_user.ld");
-			val = StrStr(mem.str, "__ext_gObjectTable");
-			val = StrStr(val, "0x");
-			if (val == NULL) printf_error("Could not locate \"__ext_gObjectTable\"");
-			
-			Mips64_SplitLoad(
-				SegmentedToVirtual(6, 0x8c74),
-				SegmentedToVirtual(6, 0x8c78),
-				MIPS_REG_T8,
-				Value_Hex(val)
-			);
-			
-			if (oVal[0] != cVal[0][1] || oVal[0] != cVal[1][1])
-				Sys_Touch(file);
-			
-			MemFile_Free(&mem);
-		}
-		
 		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Overlay_GetBssSize(memData);
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, NOCACHE_COMPRESS);
@@ -1304,16 +1273,16 @@ static void Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			);
 		} else {       // PAUSE_MENU
 			Mips64_SplitLoad(
-				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.init.hi - RELOC_CODE),
-				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.init.lo - RELOC_CODE),
-				MIPS_REG_A0,
-				Config_GetInt(memCfg, "init")
-			);
-			Mips64_SplitLoad(
 				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.updt.hi - RELOC_CODE),
 				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.updt.lo - RELOC_CODE),
 				MIPS_REG_A0,
 				Config_GetInt(memCfg, "updt")
+			);
+			Mips64_SplitLoad(
+				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.draw.hi - RELOC_CODE),
+				SegmentedToVirtual(SEG_CODE, romOff->table.pauseMenu.draw.lo - RELOC_CODE),
+				MIPS_REG_A0,
+				Config_GetInt(memCfg, "draw")
 			);
 		}
 	}
@@ -1405,6 +1374,20 @@ static void Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			case DMA_ID_ELF_MESSAGE_FIELD:
 			case DMA_ID_ELF_MESSAGE_YDAN:
 			case DMA_ID_NINTENDO_ROGO_STATIC:
+			case DMA_ID_MAP_NAME_STATIC:
+			case DMA_ID_ITEM_NAME_STATIC:
+			case DMA_ID_ICON_ITEM_GAMEOVER_STATIC:
+			case DMA_ID_ICON_ITEM_DUNGEON_STATIC:
+			case DMA_ID_ICON_ITEM_FIELD_STATIC:
+			case DMA_ID_ICON_ITEM_24_STATIC:
+			case DMA_ID_ICON_ITEM_STATIC:
+			case DMA_ID_MAP_GRAND_STATIC:
+			case DMA_ID_MAP_I_STATIC:
+			case DMA_ID_MAP_48X85_STATIC:
+			case DMA_ID_NES_FONT_STATIC:
+			case DMA_ID_ICON_ITEM_NES_STATIC:
+			case DMA_ID_MESSAGE_TEXTURE_STATIC:
+			case DMA_ID_Z_SELECT_STATIC:
 				break;
 				
 			case DMA_ID_MESSAGE_DATA_STATIC_NES:
@@ -1535,10 +1518,10 @@ void Rom_New(Rom* rom, char* romName) {
 		0x00B28930, 0x00B2893C
 	};
 	
-	rom->offset.table.pauseMenu.init = (HiLo) {
+	rom->offset.table.pauseMenu.updt = (HiLo) {
 		0x00B33208, 0x00B3320C
 	};
-	rom->offset.table.pauseMenu.updt = (HiLo) {
+	rom->offset.table.pauseMenu.draw = (HiLo) {
 		0x00B33218, 0x00B33220
 	};
 	
@@ -1656,6 +1639,13 @@ void Rom_Build(Rom* rom) {
 	MemFile dataFile = MemFile_Initialize();
 	MemFile config = MemFile_Initialize();
 	
+	#define Dma_FreeEntry(...) { \
+			if (NARGS(__VA_ARGS__) == 3) \
+			Dma_FreeEntry(VA1(__VA_ARGS__), VA2(__VA_ARGS__), VA3(__VA_ARGS__)); \
+			else \
+			{ Dma_FreeEntry(VA1(__VA_ARGS__), VA2(__VA_ARGS__), VA3(__VA_ARGS__)); Dma_WriteFlag(VA2(__VA_ARGS__), false); } } \
+
+	
 	Patch_Init();
 	
 	Text_Build(rom);
@@ -1671,29 +1661,43 @@ void Rom_Build(Rom* rom) {
 	
 	ExtensionTable_Init(rom);
 	
-	Dma_FreeEntry(rom, DMA_ID_UNUSED_3, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_3, false);
-	Dma_FreeEntry(rom, DMA_ID_UNUSED_4, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_4, false);
-	Dma_FreeEntry(rom, DMA_ID_UNUSED_5, 0x10); Dma_WriteFlag(DMA_ID_UNUSED_5, false);
+	Dma_FreeEntry(rom, DMA_ID_UNUSED_3, 0x10, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_UNUSED_4, 0x10, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_UNUSED_5, 0x10, ReserveSlot);
 	
-	Dma_FreeEntry(rom, DMA_ID_LINK_ANIMATION, 0x1000); Dma_WriteFlag(DMA_ID_LINK_ANIMATION, false);
+	Dma_FreeEntry(rom, DMA_ID_LINK_ANIMATION, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_24_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_FIELD_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_DUNGEON_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_GAMEOVER_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_NES_STATIC, 0x1000, ReserveSlot);
 	
 	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_GER_STATIC, 0x1000);
 	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_FRA_STATIC, 0x1000);
 	
-	Dma_FreeEntry(rom, DMA_ID_DO_ACTION_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_DO_ACTION_STATIC, false);
-	Dma_FreeEntry(rom, DMA_ID_MESSAGE_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_MESSAGE_STATIC, false);
+	Dma_FreeEntry(rom, DMA_ID_ITEM_NAME_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_MAP_NAME_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_DO_ACTION_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_MESSAGE_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_MESSAGE_TEXTURE_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_NES_FONT_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_NES, 0x1000, ReserveSlot);
 	
-	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_NES, 0x1000);
 	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_GER, 0x1000);
 	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_FRA, 0x1000);
-	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_STAFF, 0x1000);
 	
-	Dma_FreeEntry(rom, DMA_ID_CODE, 0x10); Dma_WriteFlag(DMA_ID_CODE, false);
-	Dma_FreeEntry(rom, DMA_ID_NINTENDO_ROGO_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_NINTENDO_ROGO_STATIC, false);
-	Dma_FreeEntry(rom, DMA_ID_TITLE_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_TITLE_STATIC, false);
-	Dma_FreeEntry(rom, DMA_ID_PARAMETER_STATIC, 0x1000); Dma_WriteFlag(DMA_ID_PARAMETER_STATIC, false);
-	Dma_FreeEntry(rom, DMA_ID_ELF_MESSAGE_FIELD, 0x1000); Dma_WriteFlag(DMA_ID_ELF_MESSAGE_FIELD, false);
-	Dma_FreeEntry(rom, DMA_ID_ELF_MESSAGE_YDAN, 0x1000); Dma_WriteFlag(DMA_ID_ELF_MESSAGE_YDAN, false);
+	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_STAFF, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_MAP_GRAND_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_MAP_I_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_MAP_48X85_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_CODE, 0x10, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_Z_SELECT_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_NINTENDO_ROGO_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_TITLE_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_PARAMETER_STATIC, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_ELF_MESSAGE_FIELD, 0x1000, ReserveSlot);
+	Dma_FreeEntry(rom, DMA_ID_ELF_MESSAGE_YDAN, 0x1000, ReserveSlot);
 	
 	Dma_FreeGroup(rom, DMA_ACTOR);
 	Dma_FreeGroup(rom, DMA_STATE);
@@ -1705,6 +1709,7 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeGroup(rom, DMA_SKYBOX_TEXEL);
 	Dma_FreeGroup(rom, DMA_UNUSED);
 	
+#undef Dma_FreeEntry
 	Dma_CombineSlots();
 	
 	if (gPrintInfo) {

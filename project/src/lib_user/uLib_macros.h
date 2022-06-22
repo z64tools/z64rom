@@ -1,6 +1,10 @@
 #ifndef __ULIB_MACROS_H__
 #define __ULIB_MACROS_H__
 
+#ifdef gDPSetTileCustom
+#undef gDPSetTileCustom
+#endif
+
 #define CHK_ALL(AB, combo)      (~((gPlayState.state.input[0].AB.button) | ~(combo)) == 0)
 #define CHK_ANY(AB, combo)      (((gPlayState.state.input[0].AB.button) & (combo)) != 0)
 #define AVAL(base, type, value) ((type*)((u8*)base + value))
@@ -32,8 +36,53 @@
 
 #else
 
-#define Assert(cond)  if (!(cond)) { osLibPrintf("" PRNT_REDD "ASSERT"); osLibPrintf("[%s::%d]", __FUNCTION__, __LINE__); osLibPrintf("[%s]", #cond);__assert(#cond, __FUNCTION__, __LINE__);}
+#define Assert(cond)  if (!(cond)) { osLibPrintf("" PRNT_REDD "ASSERT"); osLibPrintf("[%s::%d]", __FUNCTION__, __LINE__); osLibPrintf("[%s]", #cond); __assert(#cond, __FUNCTION__, __LINE__); }
 #define osInfo(title) "" PRNT_GRAY "[" PRNT_REDD "%s" PRNT_GRAY "::" PRNT_YELW "%d" PRNT_GRAY "]" PRNT_RSET ": " PRNT_REDD title, __FUNCTION__, __LINE__
+
+#define gDPSetTileCustom(pkt, fmt, siz, width, height, pal, cms, cmt, masks, maskt, shifts, shiftt) \
+	do { \
+		gDPPipeSync(pkt); \
+		gDPTileSync(pkt); \
+		gDPSetTile( \
+			pkt, \
+			fmt, \
+			siz, \
+			(((width) * siz) + 7) >> 3, \
+			0, \
+			G_TX_LOADTILE, \
+			0, \
+			cmt, \
+			maskt, \
+			shiftt, \
+			cms, \
+			masks, \
+			shifts \
+		); \
+		gDPTileSync(pkt); \
+		gDPSetTile( \
+			pkt, \
+			fmt, \
+			siz, \
+			(((width) * siz) + 7) >> 3, \
+			0, \
+			G_TX_RENDERTILE, \
+			pal, \
+			cmt, \
+			maskt, \
+			shiftt, \
+			cms, \
+			masks, \
+			shifts \
+		); \
+		gDPSetTileSize( \
+			pkt, \
+			G_TX_RENDERTILE, \
+			0, \
+			0, \
+			((width) - 1) << 2, \
+				((height) - 1) << 2 \
+		); \
+	} while (0)
 
 #endif
 

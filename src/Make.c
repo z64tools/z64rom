@@ -434,15 +434,24 @@ static s32 Callback_Dependencies_PreGcc(const char* input, const char* output, c
 static s32 Callback_Dependencies_PreLd(const char* input, const char* output) {
 	ItemList list = ItemList_Initialize();
 	s32 ret = false;
+	Time max;
 	
 	ItemList_Separated(&list, input, ' ');
 	Log_ItemList(&list);   // Possibly something wrong?
+	max = ItemList_StatMax(&list);
 	
-	if (!Sys_Stat(output) || (Sys_Stat(output) < ItemList_StatMax(&list)))
+	if (!Sys_Stat(output) || max > (Sys_Stat(output)))
 		ret = true;
 	
-	if (Sys_Stat("include/z_lib_user.ld") < ItemList_StatMax(&list))
+	else if (Sys_Stat("include/z_lib_user.ld") > Sys_Stat(output)) {
+		Date date = Sys_Date(max);
+		
+		printf_lock("MAX: %d %02d.%02d\n", date.day, date.hour, date.minute);
+		date = Sys_Date(Sys_Stat("include/z_lib_user.ld"));
+		printf_lock("LNK: %d %02d.%02d\n", date.day, date.hour, date.minute);
+		
 		ret = true;
+	}
 	
 	ItemList_Free(&list);
 	
@@ -968,24 +977,14 @@ static void Make_CodeThread_uLib(MakeArg* arg) {
 	u32 inputStrLen = 0;
 	u32 breaker = true;
 	
+	ItemList_SetFilter(&itemList, CONTAIN_END, ".o");
 	ItemList_List(&itemList, arg->path, -1, LIST_FILES | LIST_NO_DOT);
 	
-	if (!Sys_Stat(bin))
+	if (!Sys_Stat(bin) || !Sys_Stat(ld))
 		breaker = false;
 	
-	if (!Sys_Stat(ld))
+	if (ItemList_StatMax(&itemList) > Sys_Stat(bin))
 		breaker = false;
-	
-	for (s32 i = 0; i < itemList.num; i++) {
-		if (!StrEnd(itemList.item[i], ".o"))
-			continue;
-		
-		if (breaker)
-			if (Sys_Stat(bin) < Sys_Stat(itemList.item[i]))
-				breaker = false;
-		
-		inputStrLen += strlen(itemList.item[i]) + 4;
-	}
 	
 	if (breaker) {
 		ItemList_Free(&itemList);
@@ -993,12 +992,13 @@ static void Make_CodeThread_uLib(MakeArg* arg) {
 		return;
 	}
 	
+	for (s32 i = 0; i < itemList.num; i++)
+		inputStrLen += strlen(itemList.item[i]) + 4;
+	
 	Calloc(command, 2048);
 	Calloc(inputList, inputStrLen);
 	
 	for (s32 i = 0; i < itemList.num; i++) {
-		if (!StrEnd(itemList.item[i], ".o"))
-			continue;
 		strcat(inputList, itemList.item[i]);
 		strcat(inputList, " ");
 	}

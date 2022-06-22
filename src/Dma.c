@@ -426,7 +426,7 @@ void Dma_FreeGroup(Rom* rom, DmaBank type) {
 				gDma.highest = i;
 			}
 			
-			Dma_FreeSegment(rom, 0x35CE000, 0x4000000);
+			Dma_FreeSegment(rom, 0x35CF000, 0x4000000);
 			break;
 	}
 }
@@ -436,48 +436,74 @@ void Dma_FreeGroup(Rom* rom, DmaBank type) {
 // # # # # # # # # # # # # # # # # # # # #
 
 void Dma_CombineSlots(void) {
-	Slot* slot = gSlotHead;
-	Slot* comp;
+	Slot* slot;
+	u32 run = true;
 	
-	while (slot != NULL) {
-		comp = gSlotHead;
-		while (comp != NULL) {
-			Slot* next = comp->next;
-			if (comp != slot) {
-				if (Dma_Intersect(slot, comp)) {
-					slot->romStart = Min(slot->romStart, comp->romStart);
-					slot->romEnd = Max(slot->romEnd, comp->romEnd);
-					Node_Remove(gSlotHead, comp);
-					comp = gSlotHead;
-					continue;
-				}
+	// Sort
+	while (run) {
+		slot = gSlotHead;
+		run = false;
+		
+		while (slot) {
+			Slot* next = slot->next;
+			// Swap With Next
+			if (next && next->romStart < slot->romStart) {
+				Swap(slot->romStart, next->romStart);
+				Swap(slot->romEnd, next->romEnd);
+				
+				run = true;
 			}
 			
-			comp = next;
+			slot = next;
+		}
+	}
+	
+	slot = gSlotHead;
+	while (slot) {
+		Slot* next = slot->next;
+		
+		if (next && slot->romEnd == next->romStart) {
+			slot->romEnd = next->romEnd;
+			Node_Remove(gSlotHead, next);
+			continue;
 		}
 		
 		slot = slot->next;
 	}
 	
 	if (gCompressFlag) {
-		Slot* slot = gSlotYazHead;
-		Slot* comp;
+		Slot* slot;
+		u32 run = true;
 		
-		while (slot != NULL) {
-			comp = gSlotYazHead;
-			while (comp != NULL) {
-				Slot* next = comp->next;
-				if (comp != slot) {
-					if (Dma_Intersect(slot, comp)) {
-						slot->romStart = Min(slot->romStart, comp->romStart);
-						slot->romEnd = Max(slot->romEnd, comp->romEnd);
-						Node_Remove(gSlotYazHead, comp);
-						comp = gSlotYazHead;
-						continue;
-					}
+		// Sort
+		while (run) {
+			slot = gSlotYazHead;
+			run = false;
+			
+			while (slot) {
+				Slot* next = slot->next;
+				// Swap With Next
+				if (next && next->romStart < slot->romStart) {
+					Swap(slot->romStart, next->romStart);
+					Swap(slot->romEnd, next->romEnd);
+					
+					run = true;
 				}
 				
-				comp = next;
+				slot = next;
+			}
+		}
+		
+		slot = gSlotYazHead;
+		while (slot) {
+			Slot* next = slot->next;
+			
+			if (next && slot->romEnd == next->romStart) {
+				slot->romEnd = next->romEnd;
+				Node_Remove(gSlotYazHead, next);
+				
+				slot = gSlotYazHead;
+				continue;
 			}
 			
 			slot = slot->next;

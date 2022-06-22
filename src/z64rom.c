@@ -3,7 +3,7 @@
 #include "Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.9.9";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "0.9.10";
 
 s32 gDumpRom = -1;
 s32 gDumpAudio = -1;
@@ -88,6 +88,30 @@ const char* sHelp[][2] = {
 	{ "scene [id]",                    "" },
 	{ NULL,                            NULL },
 };
+
+static void Main_Clean(void) {
+	ItemList list = ItemList_Initialize();
+	
+	ItemList_List(&list, "rom/", -1, LIST_FILES);
+	forlist(i, list) {
+		if (StrEnd(list.item[i], ".o") || StrEnd(list.item[i], ".elf")) {
+			if (Sys_Stat(Path(list.item[i])) && !StrStr(list.item[i], ".entry")) {
+				printf_warning("rm " PRNT_BLUE "%s", Path(list.item[i]));
+				Sys_Delete_Recursive(Path(list.item[i]));
+			}
+		}
+	}
+	ItemList_Free(&list);
+	
+	ItemList_List(&list, "rom/", -1, LIST_FOLDERS);
+	forlist(i, list) {
+		if (StrEndCase(list.item[i], ".entry/")) {
+			printf_warning("rm " PRNT_YELW "%s", list.item[i]);
+			Sys_Delete_Recursive(list.item[i]);
+		}
+	}
+	ItemList_Free(&list);
+}
 
 static void Main_PrintHelp(void) {
 	printf_toolinfo(gToolName, "Help");
@@ -474,12 +498,14 @@ void Main_Config(char** input, Rom* rom) {
 	} else {
 		if (gBuildTarget == ROM_RELEASE) {
 			if (Sys_Stat(gBuildrom[ROM_DEV]) > Sys_Stat(gBuildrom[ROM_RELEASE])) {
+				Main_Clean();
 				gMakeForce = true;
 				
 				return;
 			}
 		} else {
 			if (Sys_Stat(gBuildrom[ROM_RELEASE]) > Sys_Stat(gBuildrom[ROM_DEV])) {
+				Main_Clean();
 				gMakeForce = true;
 				
 				return;
@@ -563,27 +589,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	if (Arg("release")) gBuildTarget = ROM_RELEASE;
 	if (Arg("force")) gMakeForce = true;
 	if (Arg("clean")) {
-		ItemList list = ItemList_Initialize();
-		
-		ItemList_List(&list, "rom/", -1, LIST_FILES);
-		forlist(i, list) {
-			if (StrEnd(list.item[i], ".o") || StrEnd(list.item[i], ".elf")) {
-				if (Sys_Stat(Path(list.item[i])) && !StrStr(list.item[i], ".entry")) {
-					printf_warning("rm " PRNT_BLUE "%s", Path(list.item[i]));
-					Sys_Delete_Recursive(Path(list.item[i]));
-				}
-			}
-		}
-		ItemList_Free(&list);
-		
-		ItemList_List(&list, "rom/", -1, LIST_FOLDERS);
-		forlist(i, list) {
-			if (StrEndCase(list.item[i], ".entry/")) {
-				printf_warning("rm " PRNT_YELW "%s", list.item[i]);
-				Sys_Delete_Recursive(list.item[i]);
-			}
-		}
-		ItemList_Free(&list);
+		Main_Clean();
 		
 		return 1;
 	}

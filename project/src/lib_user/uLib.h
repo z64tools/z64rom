@@ -12,7 +12,7 @@
 #define EXT_DMA_MAX    3800
 #define EXT_ACTOR_MAX  1000
 #define EXT_OBJECT_MAX 1000
-#define EXT_SCENE_MAX  300
+#define EXT_SCENE_MAX  256
 #define EXT_EFFECT_MAX 64
 
 extern DmaEntry __ext_gDmaDataTable[EXT_DMA_MAX];

@@ -15,16 +15,18 @@ Asm_SymbolAlias("__z64_dest", Select_Destroy);
 asm ("Select_LoadTitle = 0x80800B90");
 asm ("Title_Init = 0x80800878");
 
-#define YELLOW 0
-#define BLUE   1
+#define COMMENT 0
+#define SETTER  1
+
+f32 fmodf(f32, f32);
 
 void Select_SetupColor(GfxPrint* printer, u32 id) {
 	switch (id) {
-		case YELLOW:
-			GfxPrint_SetColor(printer, 255, 255, 255, 255);
+		case COMMENT:
+			GfxPrint_SetColor(printer, 75, 75, 75, 255);
 			break;
-		case BLUE:
-			GfxPrint_SetColor(printer, 55, 125, 255, 255);
+		case SETTER:
+			GfxPrint_SetColor(printer, 255, 255, 255, 255);
 			break;
 	}
 }
@@ -85,10 +87,8 @@ void Select_UpdateMenu(SelectContext* this) {
 			}
 		}
 		
-		if (CHECK_BTN_ALL(input->press.button, BTN_Z)) {
-			if (gSaveContext.cutsceneIndex == 0x8000) {
-				gSaveContext.cutsceneIndex = 0;
-			} else if (gSaveContext.cutsceneIndex == 0) {
+		if (CHECK_BTN_ALL(input->press.button, BTN_R)) {
+			if (gSaveContext.cutsceneIndex <= 0x8000) {
 				gSaveContext.cutsceneIndex = 0xFFF0;
 			} else if (gSaveContext.cutsceneIndex == 0xFFF0) {
 				gSaveContext.cutsceneIndex = 0xFFF1;
@@ -113,13 +113,11 @@ void Select_UpdateMenu(SelectContext* this) {
 			} else if (gSaveContext.cutsceneIndex == 0xFFFA) {
 				gSaveContext.cutsceneIndex = 0x8000;
 			}
-		} else if (CHECK_BTN_ALL(input->press.button, BTN_R)) {
-			if (gSaveContext.cutsceneIndex == 0x8000) {
+		} else if (CHECK_BTN_ALL(input->press.button, BTN_Z)) {
+			if (gSaveContext.cutsceneIndex <= 0x8000) {
 				gSaveContext.cutsceneIndex = 0xFFFA;
-			} else if (gSaveContext.cutsceneIndex == 0) {
-				gSaveContext.cutsceneIndex = 0x8000;
 			} else if (gSaveContext.cutsceneIndex == 0xFFF0) {
-				gSaveContext.cutsceneIndex = 0;
+				gSaveContext.cutsceneIndex = 0x8000;
 			} else if (gSaveContext.cutsceneIndex == 0xFFF1) {
 				gSaveContext.cutsceneIndex = 0xFFF0;
 			} else if (gSaveContext.cutsceneIndex == 0xFFF2) {
@@ -146,14 +144,6 @@ void Select_UpdateMenu(SelectContext* this) {
 		gSaveContext.nightFlag = 0;
 		if (gSaveContext.cutsceneIndex == 0) {
 			gSaveContext.nightFlag = 1;
-		}
-		
-		// user can change "opt", but it doesn't do anything
-		if (CHECK_BTN_ALL(input->press.button, BTN_CUP)) {
-			this->opt--;
-		}
-		if (CHECK_BTN_ALL(input->press.button, BTN_CDOWN)) {
-			this->opt++;
 		}
 		
 		if (CHECK_BTN_ALL(input->press.button, BTN_DUP)) {
@@ -313,7 +303,7 @@ void Select_PrintMenu(SelectContext* this, GfxPrint* printer) {
 	char* name;
 	
 	GfxPrint_SetColor(printer, 175, 125, 255, 255);
-	GfxPrint_SetPos(printer, 12, 2);
+	GfxPrint_SetPos(printer, 10, 2);
 	GfxPrint_Printf(printer, "Z64ROM Level Select");
 	
 	for (i = 0; i < 20; i++) {
@@ -334,7 +324,7 @@ void Select_PrintMenu(SelectContext* this, GfxPrint* printer) {
 		}
 		
 		Color_ToRGB(&rgb, &color);
-		GfxPrint_SetPos(printer, 9, i + 4);
+		GfxPrint_SetPos(printer, 1, i + 4);
 		GfxPrint_SetColor(printer, rgb.r, rgb.g, rgb.b, 255);
 		
 		name = this->scenes[scene].name;
@@ -342,13 +332,8 @@ void Select_PrintMenu(SelectContext* this, GfxPrint* printer) {
 			name = "**Null**";
 		}
 		
-		GfxPrint_Printf(printer, "%3d: %s", scene, name);
+		GfxPrint_Printf(printer, "%-3d %s", scene, name);
 	}
-	;
-	
-	GfxPrint_SetColor(printer, 155, 55, 150, 255);
-	GfxPrint_SetPos(printer, 20, 26);
-	GfxPrint_Printf(printer, "OPT=%d", this->opt);
 }
 
 static const char* sLoadingMessages[] = {
@@ -381,75 +366,93 @@ static const char* sAgeLabels[] = {
 };
 
 void Select_PrintAgeSetting(SelectContext* this, GfxPrint* printer, s32 age) {
-	GfxPrint_SetPos(printer, 4, 26);
-	GfxPrint_SetColor(printer, 255, 255, 255, 255);
-	GfxPrint_Printf(printer, "Age: %s", sAgeLabels[age]);
+	GfxPrint_SetPos(printer, 2, 26);
+	Select_SetupColor(printer, SETTER);
+	GfxPrint_Printf(printer, "Age (B):     %s", sAgeLabels[age]);
 }
 
 void Select_PrintCutsceneSetting(SelectContext* this, GfxPrint* printer, u16 csIndex) {
+	static s8 timeH = 12;
+	static s8 timeM = 0;
+	char timeBuffer[64];
 	char* label;
 	
-	GfxPrint_SetPos(printer, 4, 25);
+	GfxPrint_SetPos(printer, 2, 25);
+	Select_SetupColor(printer, SETTER);
 	
 	switch (csIndex) {
-		case 0:
-			Select_SetupColor(printer, YELLOW);
-			label = " 0.00am";
-			gSaveContext.dayTime = CLOCK_TIME(0, 0);
-			break;
-		case 0x8000:
-			Select_SetupColor(printer, YELLOW);
-			gSaveContext.dayTime = CLOCK_TIME(12, 0); label = "12.00am";
+		case 0x0000 ... 0x8000:
+			if (CHK_ANY(press, BTN_CUP))
+				timeH++;
+			if (CHK_ANY(press, BTN_CDOWN))
+				timeH--;
+			if (CHK_ANY(press, BTN_CRIGHT))
+				timeM += 10;
+			if (CHK_ANY(press, BTN_CLEFT))
+				timeM -= 10;
+			
+			if (timeM < 0) {
+				timeH--;
+				timeM = 50;
+			} else if (timeM >= 60) {
+				timeH++;
+				timeM = 0;
+			}
+			
+			if (timeH < 0) {
+				timeH = 23;
+			} else if (timeH >= 24) {
+				timeH = 0;
+			}
+			
+			gSaveContext.dayTime = CLOCK_TIME(timeH, timeM + 0.5f);
+			label = timeBuffer;
+			sprintf(timeBuffer, "%02d.%02d%s", timeH % 12, timeM, timeH >= 12 ? "pm" : "am");
 			break;
 		case 0xFFF0:
-			Select_SetupColor(printer, BLUE);
-			gSaveContext.dayTime = CLOCK_TIME(12, 0); label = "Cutscene 0";
+			gSaveContext.dayTime = CLOCK_TIME(12, 0);
+			label = "Cutscene 0";
 			break;
 		case 0xFFF1:
-			Select_SetupColor(printer, BLUE);
 			label = "Cutscene 1";
 			break;
 		case 0xFFF2:
-			Select_SetupColor(printer, BLUE);
 			label = "Cutscene 2";
 			break;
 		case 0xFFF3:
-			Select_SetupColor(printer, BLUE);
 			label = "Cutscene 3";
 			break;
 		case 0xFFF4:
-			Select_SetupColor(printer, BLUE);
 			label = "Cutscene 4";
 			break;
 		case 0xFFF5:
-			Select_SetupColor(printer, BLUE);
 			label = "Cutscene 5";
 			break;
 		case 0xFFF6:
-			Select_SetupColor(printer, BLUE);
 			label = "Cutscene 6";
 			break;
 		case 0xFFF7:
-			Select_SetupColor(printer, BLUE);
 			label = "Cutscene 7";
 			break;
 		case 0xFFF8:
-			Select_SetupColor(printer, BLUE);
 			label = "Cutscene 8";
 			break;
 		case 0xFFF9:
-			Select_SetupColor(printer, BLUE);
 			label = "Cutscene 9";
 			break;
 		case 0xFFFA:
-			Select_SetupColor(printer, BLUE);
 			label = "Cutscene 10";
 			break;
 	}
-	;
 	
 	gSaveContext.skyboxTime = gSaveContext.dayTime;
-	GfxPrint_Printf(printer, "Setup: %s", label);
+	GfxPrint_Printf(printer, "Setup (Z/R): %s", label);
+	
+	if (csIndex == 0x8000) {
+		GfxPrint_SetPos(printer, 22, 25);
+		Select_SetupColor(printer, COMMENT);
+		GfxPrint_Printf(printer, "(C, hour/minute)", label);
+	}
 }
 
 void Select_DrawMenu(SelectContext* this) {

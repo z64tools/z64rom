@@ -8,13 +8,11 @@ static const char* sGccActorFlags;
 static const char* sGccCodeFlags;
 static const char* sGccKaleidoFlags;
 static const char* sGccStateFlags;
-
 static const char* sLinkerBaseFlags;
 static const char* sLinkerCodeFlags;
 static const char* sLinkerSceneFlags;
 static const char* sLinkerULibFlags;
 static volatile bool sMake = false;
-
 static ItemList sDepList_uLibHeader;
 
 static char* Make_Wildcard(const char* path, const char* fmt, ...) {
@@ -280,7 +278,7 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 		
 		if (end[-2] != '\n')
 			Config_Print(&ttoml, "\n");
-		Config_WriteSection(&ttoml, "z64rom");
+		Config_WriteSection(&ttoml, "z64rom", NO_COMMENT);
 		Config_WriteStr(&ttoml, "normalize", "true", NO_QUOTES, NO_COMMENT);
 		Config_WriteStr(&ttoml, "inherit_vanilla", "false", NO_QUOTES, "Get 'basenote' and 'finetune' from vanilla config");
 		MemFile_SaveFile_String(&ttoml, modCfgName);
@@ -400,11 +398,11 @@ static s32 Callback_Dependencies_PreGcc(const char* input, const char* output, c
 		ItemList listB = ItemList_Initialize();
 		
 		if (Config_Variable(make->str, "dependencies"))
-			Config_GetArray(make, &listA, "dependencies");
+			Config_GetArray(make, "dependencies", &listA);
 		
 		Config_GotoSection(Basename(input));
 		if (Config_Variable(make->str, "dependencies"))
-			Config_GetArray(make, &listB, "dependencies");
+			Config_GetArray(make, "dependencies", &listB);
 		Config_GotoSection(NULL);
 		
 		ItemList_Combine(&dep, &listA, &listB);

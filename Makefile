@@ -47,6 +47,8 @@ all: linux win32
 	
 PROJECT_FILES_L      = $(shell find project/* -type f -not -name '*.txt' -not -name '*.exe' -not -name '*.reg')
 PROJECT_FILES_W      = $(shell find project/* -type f -not -name '*.txt' -not -iname 'z64convert' -not -iname 'z64audio' -not -iname 'novl' -not -iname 'seq64_console' -not -iname 'seqas')
+PROJECT_FILES_L     += $(TOOLS_LINUX)
+PROJECT_FILES_W     += $(TOOLS_WIN32)
 PROJECT_FILES_LINUX := $(foreach f,$(PROJECT_FILES_L:project/%=%),app_linux/$f)
 PROJECT_FILES_WIN32 := $(foreach f,$(PROJECT_FILES_W:project/%=%),app_win32/$f)
 
@@ -73,11 +75,11 @@ $(shell mkdir -p app_win32/tools/)
 # PROJECT                             #
 # # # # # # # # # # # # # # # # # # # #
 
-project-files-linux: $(TOOLS_LINUX) $(PROJECT_FILES_LINUX)
-project-files-win32: $(TOOLS_WIN32) $(PROJECT_FILES_WIN32)
+project-files-linux: $(PROJECT_FILES_LINUX)
+project-files-win32: $(PROJECT_FILES_WIN32)
 
-app_linux/%: project/%
-app_win32/%: project/%
+app_linux/%: project/% $(TOOLS_LINUX)
+app_win32/%: project/% $(TOOLS_WIN32)
 	@echo "$(PRNT_RSET)[copy $(PRNT_BLUE)$@$(PRNT_RSET)]"
 	@rm -f $@
 	@cp $< $@

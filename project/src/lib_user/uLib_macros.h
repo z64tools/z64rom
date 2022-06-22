@@ -39,6 +39,8 @@
 #define Assert(cond)  if (!(cond)) { osLibPrintf("" PRNT_REDD "ASSERT"); osLibPrintf("[%s::%d]", __FUNCTION__, __LINE__); osLibPrintf("[%s]", #cond); __assert(#cond, __FUNCTION__, __LINE__); }
 #define osInfo(title) "" PRNT_GRAY "[" PRNT_REDD "%s" PRNT_GRAY "::" PRNT_YELW "%d" PRNT_GRAY "]" PRNT_RSET ": " PRNT_REDD title, __FUNCTION__, __LINE__
 
+#endif
+
 #define gDPSetTileCustom(pkt, fmt, siz, width, height, pal, cms, cmt, masks, maskt, shifts, shiftt) \
 	do { \
 		gDPPipeSync(pkt); \
@@ -83,7 +85,5 @@
 				((height) - 1) << 2 \
 		); \
 	} while (0)
-
-#endif
 
 #endif

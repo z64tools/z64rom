@@ -72,6 +72,20 @@ typedef struct StructBE {
 	void32 segment;
 } MessageTableEntry;
 
+typedef struct StructBE {
+	s8 scene;
+	s8 spawn;
+	union {
+		struct StructBE {
+			u16 continueBgm : 1;
+			u16 titleCard   : 1;
+			u16 fadeIn      : 7;
+			u16 fadeOut     : 7;
+		};
+		u16 field;
+	};
+} EntranceInfo;
+
 typedef struct {
 	struct {
 		u32 dmaTable;
@@ -90,6 +104,7 @@ typedef struct {
 		u32 nesEntryTable;
 		u32 staffEntryTable;
 		
+		u32 entranceTable;
 		u32 restrictionFlags;
 		struct {
 			HiLo init;
@@ -114,18 +129,19 @@ typedef struct Rom {
 	MemFile   config;
 	RomOffset offset;
 	struct {
-		DmaEntry*        dma;
-		ActorEntry*      actor;
-		SceneEntry*      scene;
-		EffectEntry*     effect;
-		ObjectEntry*     object;
-		KaleidoEntry*    kaleido;
-		GameStateEntry*  state;
+		DmaEntry*          dma;
+		ActorEntry*        actor;
+		SceneEntry*        scene;
+		EffectEntry*       effect;
+		ObjectEntry*       object;
+		KaleidoEntry*      kaleido;
+		GameStateEntry*    state;
 		
 		MessageTableEntry* nesMsg;
 		MessageTableEntry* staffMsg;
 		
-		RestrictionFlag* restrictionFlags;
+		EntranceInfo*      entrance;
+		RestrictionFlag*   restrictionFlags;
 		struct {
 			u16 dma;
 			u16 obj;
@@ -135,6 +151,7 @@ typedef struct Rom {
 			u16 scene;
 			u16 kaleido;
 			u16 skybox;
+			u16 entrance;
 		} num;
 	} table;
 	struct {

@@ -575,6 +575,112 @@ static s32 Patch_File(MemFile* memDest, const char* section) {
 
 static Size sBaseromSize;
 
+typedef enum {
+	/*  0 */ TRANS_TYPE_WIPE,
+	/*  1 */ TRANS_TYPE_TRIFORCE,
+	/*  2 */ TRANS_TYPE_FADE_BLACK,
+	/*  3 */ TRANS_TYPE_FADE_WHITE,
+	/*  4 */ TRANS_TYPE_FADE_BLACK_FAST,
+	/*  5 */ TRANS_TYPE_FADE_WHITE_FAST,
+	/*  6 */ TRANS_TYPE_FADE_BLACK_SLOW,
+	/*  7 */ TRANS_TYPE_FADE_WHITE_SLOW,
+	/*  8 */ TRANS_TYPE_WIPE_FAST,
+	/*  9 */ TRANS_TYPE_FILL_WHITE2,
+	/* 10 */ TRANS_TYPE_FILL_WHITE,
+	/* 11 */ TRANS_TYPE_INSTANT,
+	/* 12 */ TRANS_TYPE_FILL_BROWN,
+	/* 13 */ TRANS_TYPE_FADE_WHITE_CS_DELAYED,
+	/* 14 */ TRANS_TYPE_SANDSTORM_PERSIST,
+	/* 15 */ TRANS_TYPE_SANDSTORM_END,
+	/* 16 */ TRANS_TYPE_CS_BLACK_FILL,
+	/* 17 */ TRANS_TYPE_FADE_WHITE_INSTANT,
+	/* 18 */ TRANS_TYPE_FADE_GREEN,
+	/* 19 */ TRANS_TYPE_FADE_BLUE,
+	
+	TRANS_TYPE_CIRCLE = 0x20,
+	TRANS_TYPE_WARP   = 0x2C,
+	
+	TRANS_TYPE_MAX    = 56,
+} TransitionType;
+
+const char* sTransName[] = {
+	/*  0 */ "Wipe",
+	/*  1 */ "Triforce",
+	/*  2 */ "FadeBlack",
+	/*  3 */ "FadeWhite",
+	/*  4 */ "FadeBlackFast",
+	/*  5 */ "FadeWhiteFast",
+	/*  6 */ "FadeBlackSlow",
+	/*  7 */ "FadeWhiteSlow",
+	/*  8 */ "WipeFast",
+	/*  9 */ "FillWhite2",
+	/* 10 */ "FillWhite",
+	/* 11 */ "Instant",
+	/* 12 */ "FillBrown",
+	/* 13 */ "FadeWhiteCsDelayed",
+	/* 14 */ "Sandstorm",
+	/* 15 */ "SandstormEnd",
+	/* 16 */ "FillBlack",
+	/* 17 */ "FadeWhiteInstant",
+	/* 18 */ "FadeGreen",
+	/* 19 */ "FadeBlue",
+	/* 20 */ "",
+	/* 21 */ "",
+	/* 22 */ "",
+	/* 23 */ "",
+	/* 24 */ "",
+	/* 25 */ "",
+	/* 26 */ "",
+	/* 27 */ "",
+	/* 28 */ "",
+	/* 29 */ "",
+	/* 30 */ "",
+	/* 31 */ "",
+	/* 32 */ "Circle",
+	/* 33 */ "",
+	/* 34 */ "",
+	/* 35 */ "",
+	/* 36 */ "",
+	/* 37 */ "",
+	/* 38 */ "",
+	/* 39 */ "",
+	/* 40 */ "",
+	/* 41 */ "",
+	/* 42 */ "",
+	/* 43 */ "",
+	/* 44 */ "Warp",
+};
+
+static const char* Transition_GetName(TransitionType type) {
+	if (type >= TRANS_TYPE_MAX)
+		printf_error("WOT?! %d", type);
+	
+	if (type >= TRANS_TYPE_CIRCLE)
+		type = TRANS_TYPE_CIRCLE;
+	
+	if (strlen(sTransName[type]) == 0)
+		printf_error("ID [%d] not valid?", type);
+	
+	return sTransName[type];
+}
+
+static TransitionType Transition_GetType(const char* str) {
+	TransitionType i = 0;
+	
+	for (;; i++) {
+		if (!strcmp(str, sTransName[i])) {
+			return i;
+		}
+		
+		if (i >= TRANS_TYPE_MAX)
+			printf_error("'%s' is not actual transition type...", str);
+	}
+	
+	printf_error("Could not solve id for transition type [%s]", str);
+	
+	return 0;
+}
+
 static void Dump_Actor(Rom* rom, MemFile* data, MemFile* config) {
 	RomFile rf;
 	
@@ -793,6 +899,9 @@ static void Dump_Static(Rom* rom, MemFile* data, MemFile* config) {
 			case DMA_ID_DO_ACTION_STATIC:
 				rf.size = 0x2B80;
 				break;
+			case DMA_ID_ITEM_NAME_STATIC:
+				rf.size = 0x1EC00;
+				break;
 			case DMA_ID_MESSAGE_DATA_STATIC_NES:
 				tbl = rom->table.nesMsg;
 				break;
@@ -817,6 +926,43 @@ static void Dump_Static(Rom* rom, MemFile* data, MemFile* config) {
 		
 		Rom_Extract(data, rf, FileSys_File(xFmt("%s.bin", gSystem_OoT[i].name)));
 	}
+}
+
+static void Dump_EntranceTable(Rom* rom, MemFile* memData, MemFile* memCfg) {
+	EntranceInfo* ent = rom->table.entrance;
+	
+	MemFile_Reset(memData);
+	
+	MemFile_Printf(memData, "# Transition Types:\n");
+	foreach(i, sTransName) {
+		if (strlen(sTransName[i]))
+			MemFile_Printf(memData, "\t# %s\n", sTransName[i]);
+	}
+	MemFile_Printf(memData, "\n");
+	
+	MemFile_Printf(memData, "# Array Items: [ scene_id, spawn_id, continue_bgm, title_card, fade_in, fade_out ]\n\n");
+	
+	for (s32 i = 0; i < rom->table.num.entrance; i++, ent++) {
+		ItemList list = ItemList_Initialize();
+		
+		if (i == 0 || (ent->scene != ent[-1].scene || ent->spawn != ent[-1].spawn))
+			MemFile_Printf(memData, "# %s \n", gSceneName_OoT[ent->scene]);
+		
+		ItemList_Alloc(&list, 6, 0x80);
+		ItemList_AddItem(&list, xFmt("0x%02X", ent->scene));
+		ItemList_AddItem(&list, xFmt("0x%02X", ent->spawn));
+		ItemList_AddItem(&list, xFmt("%s", ent->continueBgm ? "true" : "false"));
+		ItemList_AddItem(&list, xFmt("%s", ent->titleCard ? "true" : "false"));
+		ItemList_AddItem(&list, xFmt("\"%s\"", Transition_GetName(ent->fadeIn)));
+		ItemList_AddItem(&list, xFmt("\"%s\"", Transition_GetName(ent->fadeOut)));
+		
+		Config_WriteArray(memData, xFmt("0x%04X", i), &list, NO_QUOTES, NO_COMMENT);
+		
+		ItemList_Free(&list);
+	}
+	
+	MemFile_SaveFile_String(memData, "rom/system/entrance_table.cfg");
+	MemFile_SaveFile_String(memData, "rom/system/backup.entrance_table.cfg");
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -1367,29 +1513,6 @@ static void Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				continue;
 				break;
 				
-			case DMA_ID_DO_ACTION_STATIC:
-			case DMA_ID_MESSAGE_STATIC:
-			case DMA_ID_TITLE_STATIC:
-			case DMA_ID_PARAMETER_STATIC:
-			case DMA_ID_ELF_MESSAGE_FIELD:
-			case DMA_ID_ELF_MESSAGE_YDAN:
-			case DMA_ID_NINTENDO_ROGO_STATIC:
-			case DMA_ID_MAP_NAME_STATIC:
-			case DMA_ID_ITEM_NAME_STATIC:
-			case DMA_ID_ICON_ITEM_GAMEOVER_STATIC:
-			case DMA_ID_ICON_ITEM_DUNGEON_STATIC:
-			case DMA_ID_ICON_ITEM_FIELD_STATIC:
-			case DMA_ID_ICON_ITEM_24_STATIC:
-			case DMA_ID_ICON_ITEM_STATIC:
-			case DMA_ID_MAP_GRAND_STATIC:
-			case DMA_ID_MAP_I_STATIC:
-			case DMA_ID_MAP_48X85_STATIC:
-			case DMA_ID_NES_FONT_STATIC:
-			case DMA_ID_ICON_ITEM_NES_STATIC:
-			case DMA_ID_MESSAGE_TEXTURE_STATIC:
-			case DMA_ID_Z_SELECT_STATIC:
-				break;
-				
 			case DMA_ID_MESSAGE_DATA_STATIC_NES:
 			case DMA_ID_MESSAGE_DATA_STATIC_STAFF:
 				MemFile mem = MemFile_Initialize();
@@ -1406,16 +1529,17 @@ static void Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				MemFile_Free(&mem);
 				
 				break;
-				
-			default:
-				continue;
 		}
 		
 		MemFile_Reset(memData);
 		MemFile_LoadFile(memData, list.item[k]);
 		
 		switch (id) {
+			case DMA_ID_Z_SELECT_STATIC:
+			case DMA_ID_NINTENDO_ROGO_STATIC:
 			case DMA_ID_TITLE_STATIC:
+			case DMA_ID_ELF_MESSAGE_FIELD:
+			case DMA_ID_ELF_MESSAGE_YDAN:
 				compress = COMPRESS;
 				break;
 			default:
@@ -1446,6 +1570,31 @@ static void Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	}
 	
 	ItemList_Free(&list);
+}
+
+static void Build_EntranceTable(Rom* rom, MemFile* memData, MemFile* memCfg) {
+	EntranceInfo* ent = rom->table.entrance;
+	
+	MemFile_Reset(memData);
+	MemFile_LoadFile_String(memData, "rom/system/entrance_table.cfg");
+	
+	for (s32 i = 0; i < rom->table.num.entrance; i++, ent++) {
+		ItemList list = ItemList_Initialize();
+		
+		Config_GetArray(memData, xFmt("0x%04X", i), &list);
+		
+		if (list.num != 6)
+			printf_error("Entry 0x%04X does not have 6 items", i);
+		
+		ent->scene = Value_Hex(list.item[0]);
+		ent->spawn = Value_Hex(list.item[1]);
+		ent->continueBgm = Value_Bool(list.item[2]);
+		ent->titleCard = Value_Bool(list.item[3]);
+		ent->fadeIn = Transition_GetType(list.item[4]);
+		ent->fadeOut = Transition_GetType(list.item[5]);
+		
+		ItemList_Free(&list);
+	}
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -1483,6 +1632,7 @@ void Rom_New(Rom* rom, char* romName) {
 	rom->offset.table.nesEntryTable = 0xBC24C0;
 	rom->offset.table.staffEntryTable = 0xBCA908;
 	
+	rom->offset.table.entranceTable = 0xB9F360;
 	rom->offset.table.restrictionFlags = 0x00B9CA10;
 	
 	addr = SegmentedToVirtual(0x0, 0xB5A4AE);
@@ -1504,6 +1654,7 @@ void Rom_New(Rom* rom, char* romName) {
 	rom->table.num.state = 6;
 	rom->table.num.scene = 110;
 	rom->table.num.kaleido = 2;
+	rom->table.num.entrance = 1556;
 	
 	rom->offset.table.player.init = (HiLo) {
 		0x00B288F8, 0x00B28900
@@ -1536,6 +1687,7 @@ void Rom_New(Rom* rom, char* romName) {
 	rom->table.nesMsg = SegmentedToVirtual(0x0, rom->offset.table.nesEntryTable);
 	rom->table.staffMsg = SegmentedToVirtual(0x0, rom->offset.table.staffEntryTable);
 	
+	rom->table.entrance = SegmentedToVirtual(0x0, rom->offset.table.entranceTable);
 	rom->table.restrictionFlags = SegmentedToVirtual(0x0, rom->offset.table.restrictionFlags);
 	
 	rom->mem.sampleTbl = MemFile_Initialize();
@@ -1589,6 +1741,7 @@ void Rom_New(Rom* rom, char* romName) {
 		rom->table.kaleido = SegmentedToVirtual(SEG_CODE, rom->offset.table.kaleidoTable - RELOC_CODE);
 		rom->table.nesMsg = SegmentedToVirtual(SEG_CODE, rom->offset.table.nesEntryTable - RELOC_CODE);
 		rom->table.staffMsg = SegmentedToVirtual(SEG_CODE, rom->offset.table.staffEntryTable - RELOC_CODE);
+		rom->table.entrance = SegmentedToVirtual(SEG_CODE, rom->offset.table.entranceTable - RELOC_CODE);
 		rom->table.restrictionFlags = SegmentedToVirtual(SEG_CODE, rom->offset.table.restrictionFlags - RELOC_CODE);
 		
 		MemFile_Alloc(&rom->playerAnim, MbToBin(16));
@@ -1626,7 +1779,7 @@ void Rom_Dump(Rom* rom) {
 	Dump_Kaleido(rom, &dataFile, &config);
 	Dump_Static(rom, &dataFile, &config);
 	Dump_Skybox(rom, &dataFile, &config);
-	Text_Dump(rom);
+	Dump_EntranceTable(rom, &dataFile, &config);
 	Audio_DumpSoundFont(rom, &dataFile, &config);
 	Audio_DumpSequence(rom, &dataFile, &config);
 	Audio_DumpSampleTable(rom, &dataFile, &config);
@@ -1664,7 +1817,6 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_3, 0x10, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_4, 0x10, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_UNUSED_5, 0x10, ReserveSlot);
-	
 	Dma_FreeEntry(rom, DMA_ID_LINK_ANIMATION, 0x1000, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_STATIC, 0x1000, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_24_STATIC, 0x1000, ReserveSlot);
@@ -1672,10 +1824,8 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_DUNGEON_STATIC, 0x1000, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_GAMEOVER_STATIC, 0x1000, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_NES_STATIC, 0x1000, ReserveSlot);
-	
 	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_GER_STATIC, 0x1000);
 	Dma_FreeEntry(rom, DMA_ID_ICON_ITEM_FRA_STATIC, 0x1000);
-	
 	Dma_FreeEntry(rom, DMA_ID_ITEM_NAME_STATIC, 0x1000, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_MAP_NAME_STATIC, 0x1000, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_DO_ACTION_STATIC, 0x1000, ReserveSlot);
@@ -1683,10 +1833,8 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeEntry(rom, DMA_ID_MESSAGE_TEXTURE_STATIC, 0x1000, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_NES_FONT_STATIC, 0x1000, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_NES, 0x1000, ReserveSlot);
-	
 	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_GER, 0x1000);
 	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_FRA, 0x1000);
-	
 	Dma_FreeEntry(rom, DMA_ID_MESSAGE_DATA_STATIC_STAFF, 0x1000, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_MAP_GRAND_STATIC, 0x1000, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_MAP_I_STATIC, 0x1000, ReserveSlot);
@@ -1698,7 +1846,6 @@ void Rom_Build(Rom* rom) {
 	Dma_FreeEntry(rom, DMA_ID_PARAMETER_STATIC, 0x1000, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_ELF_MESSAGE_FIELD, 0x1000, ReserveSlot);
 	Dma_FreeEntry(rom, DMA_ID_ELF_MESSAGE_YDAN, 0x1000, ReserveSlot);
-	
 	Dma_FreeGroup(rom, DMA_ACTOR);
 	Dma_FreeGroup(rom, DMA_STATE);
 	Dma_FreeGroup(rom, DMA_KALEIDO);
@@ -1714,8 +1861,6 @@ void Rom_Build(Rom* rom) {
 	
 	if (gPrintInfo) {
 		Dma_PrintfSlots(rom, "Marked Free", gSlotHead);
-		if (gCompressFlag)
-			Dma_PrintfSlots(rom, "Yaz Slot", gSlotYazHead);
 	}
 	
 	ExtensionTable_Alloc(rom);
@@ -1730,6 +1875,9 @@ void Rom_Build(Rom* rom) {
 	Build_Effect(rom, &dataFile, &config);
 	Build_Object(rom, &dataFile, &config);
 	Build_Scene(rom, &dataFile, &config);
+	
+	Build_EntranceTable(rom, &dataFile, &config);
+	
 	Build_State(rom, &dataFile, &config);
 	Build_Kaleido(rom, &dataFile, &config);
 	Build_Skybox(rom, &dataFile, &config);

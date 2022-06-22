@@ -100,7 +100,7 @@ u8 Audio_GetReleaseID(f32 r) {
 // # # # # # # # # # # # # # # # # # # # #
 
 #define __Config_Sample(config, wow, sampletype) \
-	Config_WriteSection(config, # wow); \
+	Config_WriteSection(config, # wow, NO_COMMENT); \
 	Config_WriteHex(config, "sample", ReadBE(sample->sampleAddr) + rom->offset.segment.smplRom + off, NO_COMMENT); \
 	Config_WriteFloat(config, "tuning", *f, NO_COMMENT); \
 	if (sBankNum < 0) { printf("\a\n"); exit(1); /* "go intentionally bonkers" */ } \
@@ -112,7 +112,7 @@ u8 Audio_GetReleaseID(f32 r) {
 	Assert(sDumpID < 1024 * 5);
 
 #define __Config_Sample_NULL(config, wow) \
-	Config_WriteSection(config, # wow); \
+	Config_WriteSection(config, # wow, NO_COMMENT); \
 	Config_WriteStr(config, "sample", "NULL", false, NO_COMMENT); \
 	Config_WriteStr(config, "tuning", "NULL", false, NO_COMMENT);
 
@@ -1017,8 +1017,8 @@ static void SoundFont_Read_Adsr(MemFile* mem, Adsr* adsr) {
 	ItemList listLevl = ItemList_Initialize();
 	s32 i = 0;
 	
-	Config_GetArray(mem, &listRate, "env_rate");
-	Config_GetArray(mem, &listLevl, "env_level");
+	Config_GetArray(mem, "env_rate", &listRate);
+	Config_GetArray(mem, "env_level", &listLevl);
 	
 	if (listRate.num != listLevl.num)
 		printf_error("env_rate & env_level array num mismatch in [%s]", mem->info.name);
@@ -1654,7 +1654,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			u16 offset = memIndexTable.seekPoint;
 			MemFile_Write(&memLookUpTable, &offset, 2);
 			
-			Config_GetArray(config, &bankList, "bank_id");
+			Config_GetArray(config, "bank_id", &bankList);
 			fontNum = bankList.num;
 			MemFile_Write(&memIndexTable, &fontNum, 1);
 			for (s32 j = 0; j < fontNum; j++) {

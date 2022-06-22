@@ -68,16 +68,9 @@ static u32 Slot_Size(Slot* slot) {
 	return slot->romEnd - slot->romStart;
 }
 
-static s32 Dma_Intersect(Slot* a, Slot* b) {
-	if (a->romStart == b->romEnd || a->romStart == b->romEnd)
-		return 1;
-	
-	return ((Max(a->romStart, b->romStart) < Min(a->romEnd, b->romEnd)));
-}
-
 static Slot* Slot_GetFree(Slot* slot, Size size) {
 	while (slot != NULL) {
-		if (Slot_Size(slot) > size + 0x10)
+		if (Slot_Size(slot) > size + 16)
 			break;
 		slot = slot->next;
 	}
@@ -142,11 +135,11 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 		if (gCompressFlag)
 			yazt->romStart += Align(memFile->dataSize, 16);
 		
-		if (Slot_Size(slot) <= 0x10)
+		if (Slot_Size(slot) <= 16)
 			Node_Remove(gSlotHead, slot);
 		
 		if (gCompressFlag)
-			if (Slot_Size(yazt) <= 0x10)
+			if (Slot_Size(yazt) <= 16)
 				Node_Remove(gSlotYazHead, yazt);
 		
 		return start;
@@ -235,11 +228,11 @@ u32 Dma_AllocEntry(Rom* rom, s32 id, Size size) {
 		if (gCompressFlag)
 			yazt->romStart = start + size;
 		
-		if (Slot_Size(slot) <= 0x10)
+		if (Slot_Size(slot) <= 16)
 			Node_Remove(gSlotHead, slot);
 		
 		if (gCompressFlag)
-			if (Slot_Size(yazt) <= 0x10)
+			if (Slot_Size(yazt) <= 16)
 				Node_Remove(gSlotYazHead, yazt);
 		
 		return start;
@@ -367,10 +360,11 @@ void Dma_FreeGroup(Rom* rom, DmaBank type) {
 				// Actor Entries
 				Dma_FreeEntry(rom, i, 0x10);
 			}
-			for (s32 i = 235; i <= 497; i++) {
+			for (s32 i = 235; i <= 496; i++) {
 				// Actor Entries
 				Dma_FreeEntry(rom, i, 0x10);
 			}
+			Dma_FreeEntry(rom, 497, 0x1000);
 			break;
 		case DMA_STATE:
 			for (s32 i = 29; i <= 32; i++) {
@@ -426,7 +420,7 @@ void Dma_FreeGroup(Rom* rom, DmaBank type) {
 				gDma.highest = i;
 			}
 			
-			Dma_FreeSegment(rom, 0x35CF000, 0x4000000);
+			Dma_FreeSegment(rom, 0x35CF000, rom->file.dataSize);
 			break;
 	}
 }

@@ -3931,7 +3931,21 @@ s32 func_80839034(PlayState* play, Player* this, CollisionPoly* poly, u32 bgId) 
 				Play_TriggerVoidOut(play);
 				Scene_SetTransitionForNextEntrance(play);
 			} else {
-				play->nextEntranceIndex = play->setupExitList[exitIndex - 1];
+				// z64rom
+				s16* setupList = play->setupExitList;
+				
+				for (s32 i = 0; i < exitIndex - 1; i++) {
+					if ((*setupList & 0xF000) == 0xF000)
+						setupList += 2;
+					
+					else
+						setupList++;
+				}
+				if ((*setupList & 0xF000) == 0xF000)
+					MemCpy(&play->nextEntranceIndex, setupList, sizeof(s32));
+				
+				else
+					MemCpy(&play->nextEntranceIndex, setupList, sizeof(s16));
 				
 				if (play->nextEntranceIndex == ENTR_RETURN_GROTTO) {
 					gSaveContext.respawnFlag = 2;

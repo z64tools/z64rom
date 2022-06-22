@@ -346,7 +346,7 @@ static void Patch_Init() {
 			
 			char* cmd = CopyWord(line, 0);
 			
-			StrRep(mem->str, cmd + 1, Config_GetVariable(line, cmd));
+			StrRepWhole(mem->str, cmd + 1, Config_GetVariable(line, cmd));
 			line[0] = '#';
 		}
 	}

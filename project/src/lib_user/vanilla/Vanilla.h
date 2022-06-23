@@ -19,3 +19,5 @@ void NewPlay_Init(PlayState* playState);
 void NewPlay_Draw(PlayState* playState);
 void NewPlay_Update(PlayState* playState);
 void NewPlay_Main(PlayState* playState);
+
+void NewRoom_Draw(PlayState* globalCtx, Room* room, u32 flags);

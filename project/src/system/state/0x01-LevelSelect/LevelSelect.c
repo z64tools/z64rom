@@ -361,8 +361,8 @@ void Select_PrintLoadingMessage(SelectContext* this, GfxPrint* printer) {
 }
 
 static const char* sAgeLabels[] = {
-	"Young",               // "17(young)"
-	"Child",               // "5(very young)"
+	"Adult",
+	"Child",
 };
 
 void Select_PrintAgeSetting(SelectContext* this, GfxPrint* printer, s32 age) {

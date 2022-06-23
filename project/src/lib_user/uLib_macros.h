@@ -36,7 +36,7 @@
 
 #else
 
-#define Assert(cond)  if (!(cond)) { osLibPrintf("" PRNT_REDD "ASSERT"); osLibPrintf("[%s::%d]", __FUNCTION__, __LINE__); osLibPrintf("[%s]", #cond); __assert(#cond, __FUNCTION__, __LINE__); }
+#define Assert(cond)  if (!(cond)) { char buffer[82]; sprintf(buffer, "%s\nline: %d", __FILE__, __LINE__); Fault_AddHungupAndCrashImpl("Assert("#cond ");", buffer); }
 #define osInfo(title) "" PRNT_GRAY "[" PRNT_REDD "%s" PRNT_GRAY "::" PRNT_YELW "%d" PRNT_GRAY "]" PRNT_RSET ": " PRNT_REDD title, __FUNCTION__, __LINE__
 
 #endif

@@ -441,15 +441,8 @@ static s32 Callback_Dependencies_PreLd(const char* input, const char* output) {
 	if (!Sys_Stat(output) || max > (Sys_Stat(output)))
 		ret = true;
 	
-	else if (Sys_Stat("include/z_lib_user.ld") > Sys_Stat(output)) {
-		Date date = Sys_Date(max);
-		
-		printf_lock("MAX: %d %02d.%02d\n", date.day, date.hour, date.minute);
-		date = Sys_Date(Sys_Stat("include/z_lib_user.ld"));
-		printf_lock("LNK: %d %02d.%02d\n", date.day, date.hour, date.minute);
-		
+	else if (Sys_Stat("include/z_lib_user.ld") > Sys_Stat(output))
 		ret = true;
-	}
 	
 	ItemList_Free(&list);
 	
@@ -758,6 +751,11 @@ static s32 Callback_Code(const char* input, MakeCallType type, const char* outpu
 			if (!StrRep(c, "rom/", "src/")) goto error;
 			if (!StrRep(c, ".o", ".c")) goto error;
 			
+			if (!Sys_Stat(c))
+				StrRep(c, ".c", ".s");
+			if (!Sys_Stat(c))
+				goto error;
+			
 			MemFile_LoadFile_String(&mem, c);
 			z64ram = StrStr(mem.str, "z64ram = ");
 			z64rom = StrStr(mem.str, "z64rom = ");
@@ -874,6 +872,51 @@ build:
 	Free(command);
 	if (newFlags)
 		Free(newFlags);
+	
+free:
+	MemFile_Free(&make);
+}
+
+static void Binutil_GCC_Assembly(const char* source, const char* output, BinutilCallback callback) {
+	char* command;
+	MemFile make = MemFile_Initialize();
+	s32 r = 0;
+	
+	if (callback) {
+		switch ((r = callback(source, PRE_GCC, output, &make))) {
+			case CB_BREAK:
+				goto free;
+			case CB_MAKE:
+				goto build;
+			default:
+				printf_error("Unrecognized Callback Return [%d]", r);
+		}
+	} else {
+		char* cfg = xFmt("%smake.cfg", Path(source));
+		
+		if (false == Callback_Dependencies_PreGcc(source, output, cfg, &make, NULL))
+			goto free;
+	}
+	
+build:
+	(void)0;
+	char* basename = Basename(source);
+	
+	Calloc(command, 2048);
+	
+	Tools_Command(command, mips64_gcc, "-c -x assembler-with-cpp -Wa,--no-pad-sections %s -o %s %s %s", source, output, sLinkerBaseFlags, sLinkerCodeFlags);
+	StrRep(command, "--emit-relocs", "");
+	Sys_MakeDir(output);
+	
+	Time_Start(1);
+	Make_Run(command);
+	Make_Info("ASM", output);
+	sTimeGCC += Time_Get(1);
+	sCountGCC++;
+	
+	if (callback)
+		callback(output, POST_GCC, output, command);
+	Free(command);
 	
 free:
 	MemFile_Free(&make);
@@ -1035,20 +1078,25 @@ static void Make_CodeThread_GCC(MakeArg* arg) {
 	char* output;
 	char* input = arg->itemList->item[arg->i];
 	
-	if (!StrEnd(input, ".c")) {
-		return;
-	}
-	
 	if (StrStr(input, " "))
 		printf_error("Build does not support whitespace characters! [%s]", input);
 	
-	Calloc(output, strlen(input) + 10);
-	strcpy(output, input);
-	StrRep(output, ".c", ".o");
-	StrRep(output, "src/", "rom/");
-	
-	Binutil_GCC(input, output, arg->flag, arg->callback);
-	Free(output);
+	if (StrEnd(input, ".c")) {
+		output = StrDupX(input, strlen(input) + 10);
+		strcpy(output, input);
+		StrRep(output, ".c", ".o");
+		StrRep(output, "src/", "rom/");
+		
+		Binutil_GCC(input, output, arg->flag, arg->callback);
+		Free(output);
+	} else if (StrEnd(input, ".s")) {
+		output = StrDupX(input, strlen(input) + 10);
+		StrRep(output, ".s", ".o");
+		StrRep(output, "src/", "rom/");
+		
+		Binutil_GCC_Assembly(input, output, arg->callback);
+		Free(output);
+	}
 }
 
 static void Make_CodeThread_LD(MakeArg* arg) {
@@ -1120,6 +1168,7 @@ static ThreadFunc Make_CodeThread_File(MakeArg* arg) {
 	if (!Sys_Stat(arg->path))
 		return;
 	
+	ItemList_SetFilter(&itemList, CONTAIN_END, ".c", CONTAIN_END, ".s", CONTAIN_END, ".h", CONTAIN_END, ".o", CONTAIN_END, ".elf");
 	ItemList_List(&itemList, arg->path, -1, LIST_FILES | LIST_NO_DOT);
 	
 	while (i < itemList.num) {
@@ -1157,6 +1206,7 @@ static ThreadFunc Make_CodeThread_Folder(MakeArg* arg) {
 	if (!Sys_Stat(arg->path))
 		return;
 	
+	ItemList_SetFilter(&itemList, CONTAIN_END, ".c", CONTAIN_END, ".h", CONTAIN_END, ".o", CONTAIN_END, ".elf");
 	ItemList_List(&itemList, arg->path, 0, LIST_FOLDERS | LIST_NO_DOT);
 	
 	while (i < itemList.num) {

@@ -252,7 +252,6 @@ void NewPlay_Init(PlayState* playState) {
 
 void NewPlay_Draw(PlayState* playState) {
 	GraphicsContext* gfxCtx = playState->state.gfxCtx;
-	Lights* sp228;
 	Vec3f sp21C;
 	
 	POLY_OPA_DISP = Play_SetFog(playState, POLY_OPA_DISP);
@@ -389,12 +388,6 @@ void NewPlay_Draw(PlayState* playState) {
 				Environment_DrawLightning(playState, 0);
 			}
 			
-			if ((HREG(80) != 10) || (HREG(90) & 8)) {
-				sp228 = LightContext_NewLights(&playState->lightCtx, gfxCtx);
-				Lights_BindAll(sp228, playState->lightCtx.listHead, NULL);
-				Lights_Draw(sp228, gfxCtx);
-			}
-			
 			if ((HREG(80) != 10) || (HREG(84) != 0)) {
 				if (VREG(94) == 0) {
 					if (HREG(80) != 10) {
@@ -403,8 +396,8 @@ void NewPlay_Draw(PlayState* playState) {
 						sp80 = HREG(84);
 					}
 					Scene_Draw(playState);
-					Room_Draw(playState, &playState->roomCtx.curRoom, sp80 & 3);
-					Room_Draw(playState, &playState->roomCtx.prevRoom, sp80 & 3);
+					NewRoom_Draw(playState, &playState->roomCtx.curRoom, sp80 & 3);
+					NewRoom_Draw(playState, &playState->roomCtx.prevRoom, sp80 & 3);
 				}
 			}
 			

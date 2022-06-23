@@ -4,11 +4,7 @@ u32 __mib_DebugC;
 
 #ifdef DEV_BUILD
 
-void Debug_Text(u32 rgba, s32 x, s32 y, char* fmt, ...) {
-	#define RED32(RGBA0)   (u8)((RGBA0) >> 24)
-	#define GREEN32(RGBA0) (u8)((RGBA0) >> 16)
-	#define BLUE32(RGBA0)  (u8)((RGBA0) >> 8)
-	#define ALPHA32(RGBA0) (u8)((RGBA0))
+void Debug_Text(u8 r, u8 g, u8 b, s32 x, s32 y, char* fmt, ...) {
 	va_list args;
 	GfxPrint debTex;
 	Gfx* polyOpa = POLY_OPA_DISP;
@@ -18,7 +14,7 @@ void Debug_Text(u32 rgba, s32 x, s32 y, char* fmt, ...) {
 	gSPDisplayList(OVERLAY_DISP++, gfx);
 	GfxPrint_Init(&debTex);
 	GfxPrint_Open(&debTex, gfx);
-	GfxPrint_SetColor(&debTex, RED32(rgba), GREEN32(rgba), BLUE32(rgba), ALPHA32(rgba));
+	GfxPrint_SetColor(&debTex, r, g, b, 255);
 	GfxPrint_SetPos(&debTex, x, y);
 	GfxPrint_VPrintf(&debTex, fmt, args);
 	gfx = GfxPrint_Close(&debTex);
@@ -29,11 +25,6 @@ void Debug_Text(u32 rgba, s32 x, s32 y, char* fmt, ...) {
 	POLY_OPA_DISP = gfx;
 	
 	va_end(args);
-	
-#undef RED32
-#undef GREEN32
-#undef BLUE32
-#undef ALPHA32
 }
 
 void Debug_DmaLog(DmaRequest* req) {

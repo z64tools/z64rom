@@ -38,6 +38,8 @@ asm ("gPlayState = 0x80212020 - 0x38000;");
 void uLib_Update(GameState* gameState);
 void* memset(void* m, int v, unsigned int s);
 
+#define U32_RGB(x) (u8)(x >> 24), (u8)(x >> 16), (u8)(x >> 8)
+
 #ifndef osLibPrintf
 void osLibPrintf(const char* fmt, ...);
 #endif

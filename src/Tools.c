@@ -364,8 +364,10 @@ void Tools_Install_z64hdr(s32 isUpdate) {
 	char command[512];
 	ItemList itemList = ItemList_Initialize();
 	
-	if (isUpdate == true)  // Add updating here
-		return;
+	if (isUpdate == true) {
+		Sys_Delete_Recursive("include/z64hdr");
+		Sys_Delete("include/z64hdr.zip");
+	}
 	
 	Sys_MakeDir("include/");
 	printf_info("" PRNT_BLUE "z64hdr " PRNT_RSET "is a collection of files allowing to interact");
@@ -395,8 +397,6 @@ redo:
 		}
 	}
 	
-	// if (Tools_BinutilsSHA256(ZIP_Z64HDR, "tools/z64hdr-sha256"))
-	// 	goto redo;
 	Terminal_ClearLines(1);
 	
 	if (zip_extract(ZIP_Z64HDR, "include/", Tools_ZipExtractCallback, 0)) printf_error_align("zip_extract", "Failed");

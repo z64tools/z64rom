@@ -51,6 +51,9 @@ static Gfx sPolyGfxInit[] = {
 // #                                     #
 // # # # # # # # # # # # # # # # # # # # #
 
+#define DEBUG_GFX_BUFFER_SIZE 0x4000
+static Gfx sPolyBuffer[DEBUG_GFX_BUFFER_SIZE];
+
 static Vec3f DebugMenu_TriNorm(Vec3f* v1, Vec3f* v2, Vec3f* v3) {
 	Vec3f norm;
 	
@@ -447,35 +450,101 @@ static void DebugMenu_DrawHitboxList(PlayState* playState, Gfx** gfxP, Collider*
 	}
 }
 
+static void DebugMenu_CollisionHangUp(Gfx** cur, Gfx** head, const char* message) {
+	if (*cur > *head)
+		Fault_AddHungupAndCrashImpl(message, "Gfx Buffer ran out of space!");
+}
+
 static void DebugMenu_DrawCollision(PlayState* playState, Gfx** gfxP, Gfx** gfxD, CollisionHeader* colHeader) {
+	static s32 prevTyid = -1;
+	static s32 restoreAlpha;
+	Camera* cam = GET_ACTIVE_CAM(playState);
+	
 	if (colHeader == NULL)
 		return;
 	
 	for (s32 i = 0; i < colHeader->numPolygons; i++) {
 		CollisionPoly* colPoly = &colHeader->polyList[i];
 		PolygonTypes* type = (PolygonTypes*)&colHeader->surfaceTypeList[colPoly->type];
+		s32 tyid = -1;
+		Vec3s vPos[3];
+		Vec3f medPos;
+		f32 dist;
+		
+		for (s32 j = 0; j < 3; j++) {
+			vPos[j].x = colHeader->vtxList[colPoly->vtxData[j] & 0x1FFF].x;
+			vPos[j].y = colHeader->vtxList[colPoly->vtxData[j] & 0x1FFF].y;
+			vPos[j].z = colHeader->vtxList[colPoly->vtxData[j] & 0x1FFF].z;
+		}
+		
+		medPos.x = (vPos[0].x + vPos[1].x + vPos[1].x) * 0.33333333;
+		medPos.y = (vPos[0].y + vPos[1].y + vPos[1].y) * 0.33333333;
+		medPos.z = (vPos[0].z + vPos[1].z + vPos[1].z) * 0.33333333;
+		
+		dist = Math_Vec3f_DistXYZ(&cam->eye, &medPos);
+		
+		if (dist > 2000.0f)
+			continue;
 		
 		if (type->hookshot == 1)
-			gDPSetPrimColor((*gfxP)++, 0, 0, 128, 128, 255, 255);
+			tyid = 0;
 		else if (type->wallParams > SURFACE_WALL_NO_LEDGE_GRAB)
-			gDPSetPrimColor((*gfxP)++, 0, 0, 192, 0, 192, 255);
+			tyid = 1;
 		else if (type->floorParams == SURFACE_FLOOR_VOID)
-			gDPSetPrimColor((*gfxP)++, 0, 0, 255, 0, 0, 255);
+			tyid = 2;
 		else if (type->exit != 0 || type->floorParams == SURFACE_FLOOR_VOID_SMALL)
-			gDPSetPrimColor((*gfxP)++, 0, 0, 0, 255, 0, 255);
+			tyid = 3;
 		else if (type->behaviour != 0 || type->wallDamage)
-			gDPSetPrimColor((*gfxP)++, 0, 0, 192, 255, 192, 255);
+			tyid = 4;
 		else if (type->slope == 1)
-			gDPSetPrimColor((*gfxP)++, 0, 0, 255, 255, 128, 255);
+			tyid = 5;
 		else
-			gDPSetPrimColor((*gfxP)++, 0, 0, 255, 255, 255, 255);
+			tyid = 6;
+		
+		if (tyid != prevTyid) {
+			switch (tyid) {
+				case 0:
+					gDPSetPrimColor((*gfxP)++, 0, 0, 128, 128, 255, 255);
+					break;
+				case 1:
+					gDPSetPrimColor((*gfxP)++, 0, 0, 192, 0, 192, 255);
+					break;
+				case 2:
+					gDPSetPrimColor((*gfxP)++, 0, 0, 255, 0, 0, 255);
+					break;
+				case 3:
+					gDPSetPrimColor((*gfxP)++, 0, 0, 0, 255, 0, 255);
+					break;
+				case 4:
+					gDPSetPrimColor((*gfxP)++, 0, 0, 192, 255, 192, 255);
+					break;
+				case 5:
+					gDPSetPrimColor((*gfxP)++, 0, 0, 255, 255, 128, 255);
+					break;
+				case 6:
+					gDPSetPrimColor((*gfxP)++, 0, 0, 255, 255, 255, 255);
+					break;
+			}
+			prevTyid = tyid;
+		}
 		
 		Vtx vtx[3];
+		if (dist > 1000.0f) {
+			f32 mul = 1.0f - (dist - 1000.0f) * 0.001;
+			gDPSetEnvColor((*gfxP)++, 192, 0, 192, 125 * CLAMP_MAX(mul, 1.0f));
+			restoreAlpha = 0;
+		} else {
+			if (restoreAlpha == 0) {
+				restoreAlpha = 1;
+				gDPSetEnvColor((*gfxP)++, 192, 0, 192, 125);
+			}
+		}
+		
 		for (s32 j = 0; j < 3; j++) {
 			vtx[j] = gdSPDefVtxN(
-				colHeader->vtxList[colPoly->vtxData[j] & 0x1FFF].x,
-				colHeader->vtxList[colPoly->vtxData[j] & 0x1FFF].y,
-				colHeader->vtxList[colPoly->vtxData[j] & 0x1FFF].z,
+				vPos[j].x,
+				vPos[j].y,
+				vPos[j].z,
 				0,
 				0,
 				colPoly->normal.x / 0x100,
@@ -484,8 +553,10 @@ static void DebugMenu_DrawCollision(PlayState* playState, Gfx** gfxP, Gfx** gfxD
 				0xFF
 			);
 		}
+		
 		gSPVertex((*gfxP)++, gDisplayListData(gfxD, vtx), 3, 0);
 		gSP1Triangle((*gfxP)++, 0, 1, 2, 0);
+		DebugMenu_CollisionHangUp(gfxP, gfxD, "Scene Collision");
 	}
 }
 
@@ -496,7 +567,7 @@ static void DebugMenu_DrawQuad(PlayState* playState, Vec2f* pos, Vec2f* scale, C
 	Matrix_Scale(scale->x, scale->y, 1.0f, MTXMODE_APPLY);
 	
 	Gfx_SetupDL_42Opa(playState->state.gfxCtx);
-	gSPClearGeometryMode(OVERLAY_DISP++, G_CULL_BOTH | G_ZBUFFER);
+	gSPClearGeometryMode(OVERLAY_DISP++, G_CULL_BOTH);
 	gDPSetCombineMode(OVERLAY_DISP++, 0, 0, 0, PRIMITIVE, 0, 0, 0, PRIMITIVE, 0, 0, 0, PRIMITIVE, 0, 0, 0, PRIMITIVE);
 	gDPSetPrimColor(OVERLAY_DISP++, 0, 0, color->r, color->g, color->b, color->a);
 	
@@ -510,9 +581,6 @@ static void DebugMenu_DrawQuad(PlayState* playState, Vec2f* pos, Vec2f* scale, C
 // # # # # # # # # # # # # # # # # # # # #
 
 static void DebugMenu_CollisionViewUpdate(PlayState* playState) {
-	#define POLY_GFX_BUF_SIZE 0x4000
-	static Gfx sPolyBuffer[POLY_GFX_BUF_SIZE];
-	
 	DebugState* debugSysCtx = &sDebugMenuCtx;
 	
 	if (!debugSysCtx->colViewEnabled) {
@@ -523,8 +591,7 @@ static void DebugMenu_CollisionViewUpdate(PlayState* playState) {
 	
 	Gfx* dlist = sPolyBuffer;
 	Gfx* pGfx = dlist;
-	Gfx* dGfx = dlist + POLY_GFX_BUF_SIZE;
-#undef POLY_GFX_BUF_SIZE
+	Gfx* dGfx = dlist + DEBUG_GFX_BUFFER_SIZE;
 	
 	// Setup
 	gSPDisplayList(pGfx++, sPolyGfxInit);
@@ -563,15 +630,14 @@ static void DebugMenu_CollisionViewUpdate(PlayState* playState) {
 			
 			gSPPopMatrix(pGfx++, G_MTX_MODELVIEW);
 			Matrix_Pop();
+			
+			DebugMenu_CollisionHangUp(&pGfx, &dGfx, "BgActor Collision");
 		}
 	}
 	// End
 	gSPEndDisplayList(pGfx++);
 	
-	if (pGfx > dGfx) {
-		osLibPrintf("[DebugMenu] Collision View Gfx out of space!");
-		Fault_AddHungupAndCrash("[DebugMenu] Collision View Gfx out of space! : " __FILE__, __LINE__);
-	}
+	Debug_Text(U32_RGB(0xFFFFFFFF), 1, 1, "%3.2f%c", 100 - ((f32)(dGfx - pGfx) / DEBUG_GFX_BUFFER_SIZE) * 100, '%');
 	
 	// Add dlist to POLY_OPA
 	gSPDisplayList(POLY_OPA_DISP++, dlist);
@@ -636,7 +702,7 @@ static void DebugMenu_ObjectMemView(PlayState* playState) {
 	};
 	
 	Debug_Text(
-		0x146EFFFF,
+		U32_RGB(0x146EFFFF),
 		1,
 		5,
 		"Object Memory View",
@@ -664,7 +730,7 @@ static void DebugMenu_ObjectMemView(PlayState* playState) {
 	u32 objMemSize = (u32)objCtx->spaceEnd - (u32)objCtx->spaceStart;
 	
 	Debug_Text(
-		selectedColor[selectedMem == 0],
+		U32_RGB(selectedColor[selectedMem == 0]),
 		1,
 		6,
 		"Size: %0.2f / %0.2fMB",
@@ -713,7 +779,7 @@ static void DebugMenu_ZeldaArenaMemView(PlayState* playState) {
 	};
 	
 	Debug_Text(
-		0x146EFFFF,
+		U32_RGB(0x146EFFFF),
 		1,
 		5,
 		"ZeldaArena Memory View",
@@ -744,7 +810,7 @@ static void DebugMenu_ZeldaArenaMemView(PlayState* playState) {
 	ZeldaArena_GetSizes(&outMaxFree, &outFree, &outAlloc);
 	
 	Debug_Text(
-		selectedColor[selectedMem == 0],
+		U32_RGB(selectedColor[selectedMem == 0]),
 		1,
 		6,
 		"Size: %0.2f / %0.2fMB",
@@ -975,8 +1041,8 @@ static void DebugMenu_MenuUpdate(PlayState* playState) {
 		Audio_PlaySys(NA_SE_IT_SWORD_IMPACT);
 	}
 	
-	Debug_Text(0x146EFFFF, 1, 5, "Debug Menu");
-	Debug_Text(0x404040FF, 1, 5, "               (HoldR, A + DPAD)");
+	Debug_Text(U32_RGB(0x146EFFFF), 1, 5, "Debug Menu");
+	Debug_Text(U32_RGB(0x404040FF), 1, 5, "               (HoldR, A + DPAD)");
 	
 	for (s32 i = 1; i < infoMax; i++) {
 		u32 color = 0xede1beFF;
@@ -986,7 +1052,7 @@ static void DebugMenu_MenuUpdate(PlayState* playState) {
 		}
 		
 		Debug_Text(
-			color,
+			U32_RGB(color),
 			1,
 			5 + i,
 			"%s",
@@ -996,11 +1062,11 @@ static void DebugMenu_MenuUpdate(PlayState* playState) {
 }
 
 void DebugMenu_Update(PlayState* playState) {
-	DebugMenu_MenuUpdate(playState);
 	if (gSaveContext.gameMode == 0 && playState->pauseCtx.mode == 0) {
 		DebugMenu_CollisionViewUpdate(playState);
 		DebugMenu_HitboxViewUpdate(playState);
 	}
+	DebugMenu_MenuUpdate(playState);
 }
 
 s32 DebugMenu_CineCamera(Camera* camera, Normal1* norm1, Player* player) {

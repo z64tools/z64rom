@@ -79,6 +79,9 @@ project-files-linux: $(PROJECT_FILES_LINUX)
 project-files-win32: $(PROJECT_FILES_WIN32)
 
 app_linux/%: project/% $(TOOLS_LINUX)
+	@echo "$(PRNT_RSET)[copy $(PRNT_BLUE)$@$(PRNT_RSET)]"
+	@rm -f $@
+	@cp $< $@
 app_win32/%: project/% $(TOOLS_WIN32)
 	@echo "$(PRNT_RSET)[copy $(PRNT_BLUE)$@$(PRNT_RSET)]"
 	@rm -f $@

@@ -1489,6 +1489,8 @@ static void Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			printf_warning("Missing [%s]", gSystem_OoT[i].name);
 			continue;
 		}
+		MemFile mem;
+		char* table;
 		
 		switch (id) {
 			case DMA_ID_BOOT:
@@ -1515,8 +1517,8 @@ static void Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				
 			case DMA_ID_MESSAGE_DATA_STATIC_NES:
 			case DMA_ID_MESSAGE_DATA_STATIC_STAFF:
-				MemFile mem = MemFile_Initialize();
-				char* table = xStrDup(list.item[k]);
+				mem = MemFile_Initialize();
+				table = xStrDup(list.item[k]);
 				StrRep(table, ".bin", ".tbl");
 				MemFile_LoadFile(&mem, table);
 				

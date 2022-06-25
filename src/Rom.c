@@ -1061,7 +1061,8 @@ static void Build_Effect(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Overlay_GetBssSize(memData);
 		
-		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
+		s32 p = Patch_File(memData, memData->info.name);
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, p ? NOCACHE_COMPRESS : COMPRESS);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		
 		SwapBE(entry[i].initInfo);

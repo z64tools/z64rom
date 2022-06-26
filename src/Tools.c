@@ -474,7 +474,7 @@ void Tools_CheckUpdates() {
 	return;
 	
 error:
-	printf_warning("Could not retrieve update information");
+	printf_warning("" PRNT_GRAY "Failed to retrieve update information from z64rom repo API :(\n");
 	Free(updateApi);
 }
 

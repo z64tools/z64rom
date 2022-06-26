@@ -260,6 +260,7 @@ extern s32 gDumpAudio;
 extern s32 gAutoInstall;
 extern const char* gFile_z64hdr;
 extern const char* gFile_mips64;
+extern const char* gWorkDir;
 
 extern u32 gCompressFlag;
 extern s32 gPrintInfo;
@@ -277,5 +278,7 @@ extern const char* gProjectConfig;
 extern const char* gBaserom;
 
 void fix_crc(unsigned char* rom);
+
+void RomTool_Migrate(const char* type, const char* path);
 
 #endif

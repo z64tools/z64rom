@@ -10,6 +10,7 @@ s32 gDumpAudio = -1;
 s32 gAutoInstall = -1;
 const char* gFile_z64hdr;
 const char* gFile_mips64;
+const char* gWorkDir;
 
 u32 gCompressFlag = false;
 s32 gPrintInfo;
@@ -448,7 +449,7 @@ void Main_WriteProject(Rom* rom, char** input) {
 	
 	Log("Writing [%s]", gProjectConfig);
 	MemFile_Reset(config);
-	MemFile_Alloc(config, MbToBin(2.5));
+	MemFile_Alloc(&rom->config, MbToBin(4.0));
 	
 	Config_WriteComment(config, "Project Settings");
 	if (*input)
@@ -489,6 +490,7 @@ void Main_Config(char** input, Rom* rom) {
 	else {
 		Log("Reading [%s]", gProjectConfig);
 		MemFile_LoadFile_String(config, gProjectConfig);
+		MemFile_Realloc(config, config->dataSize * 8);
 	}
 	
 	Main_ReadProject(rom, input);
@@ -687,6 +689,8 @@ static void Temporary_TomlToCfg() {
 	}
 }
 
+s8 num[] = { 5, 7, 4, 6, 3, 1, 3, 2 };
+
 s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
 	Rom* rom;
@@ -696,7 +700,12 @@ s32 Main(s32 argc, char* argv[]) {
 	Log_Init();
 	printf_WinFix();
 	printf_SetPrefix("");
+	gWorkDir = StrDup(Sys_WorkDir()); qFree(gWorkDir);
 	Sys_SetWorkDir(Sys_AppDir());
+	
+	RomTool_Migrate("zzromtool", ".zzrtl/");
+	
+	return 0;
 	
 	Temporary_TomlToCfg();
 	
@@ -792,6 +801,7 @@ s32 Main(s32 argc, char* argv[]) {
 					gDumpFlag = true;
 					
 					StrRep(rom->config.str, "__ROM_NAME__", input);
+					rom->config.dataSize = strlen(rom->config.str);
 				}
 				
 				printf("\n");
@@ -890,7 +900,8 @@ s32 Main(s32 argc, char* argv[]) {
 	
 	printf_toolinfo(gToolName, "Nothing provided, nothing happens!");
 	
-	MemFile_SaveFile_String(&rom->config, "z64project.cfg");
+	if (input)
+		MemFile_SaveFile_String(&rom->config, "z64project.cfg");
 	
 	if (Arg("build-vc")) {
 		if (rom->file.dataSize <= 0x2015000)

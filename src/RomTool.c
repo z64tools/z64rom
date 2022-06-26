@@ -37,11 +37,11 @@ static void Migrate_Actor(ItemList* list, const char* folName, const char* path)
 		MemFile_LoadFile(&mem, ovl);
 		
 		deadbeef = mem.str;
-		while (deadbeef && deadbeef < mem.str + mem.dataSize) {
+		while (deadbeef && deadbeef < mem.str + mem.size) {
 			if (!memcmp(deadbeef + 10, "\xBE\xEF", 2))
 				break;
 			deadbeef++;
-			deadbeef = MemMem(deadbeef, mem.dataSize - (u32)(deadbeef - mem.str), "\xDE\xAD", 2);
+			deadbeef = MemMem(deadbeef, mem.size - (u32)(deadbeef - mem.str), "\xDE\xAD", 2);
 		}
 		
 		if (deadbeef == NULL)
@@ -100,7 +100,7 @@ static void Migrate_Effect(ItemList* list, const char* folName, const char* path
 			continue;
 		
 		MemFile_LoadFile(&mem, ovl);
-		u16* id = (void*)(tuna = MemMem(mem.data, mem.dataSize, "tuna", 4));
+		u16* id = (void*)(tuna = MemMem(mem.data, mem.size, "tuna", 4));
 		
 		*id = i;
 		SwapBE(*id);

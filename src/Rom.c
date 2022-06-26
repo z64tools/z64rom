@@ -4,8 +4,8 @@ static u32 Overlay_GetBssSize(MemFile* dataFile) {
 	u32* bssSize;
 	
 	SetSegment(0x1, dataFile->data);
-	bssSize = SegmentedToVirtual(0x1, dataFile->dataSize - 4);
-	bssSize = SegmentedToVirtual(0x1, dataFile->dataSize - ReadBE(bssSize[0]));
+	bssSize = SegmentedToVirtual(0x1, dataFile->size - 4);
+	bssSize = SegmentedToVirtual(0x1, dataFile->size - ReadBE(bssSize[0]));
 	
 	return ReadBE(bssSize[3]);
 }
@@ -371,7 +371,7 @@ static void Patch_Init() {
 			*offset = Config_GetInt(&cfg, "rom");
 			
 			if (Config_Variable(cfg.str, "next") &&
-				Config_GetInt(&cfg, "next") - Config_GetInt(&cfg, "ram") < mem->dataSize)
+				Config_GetInt(&cfg, "next") - Config_GetInt(&cfg, "ram") < mem->size)
 				printf_error("Can't fit [%s] between z64ram - z64next!", list.item[i]);
 			
 			MemFile_Free(&cfg);
@@ -447,7 +447,7 @@ static s32 Patch_File(MemFile* memDest, const char* section) {
 			// Comment out already processed variables
 			LineHead(temp, cfg->str)[0] = '#';
 			
-			if (addr + strlen(variable) >= memDest->dataSize || addr < 0) {
+			if (addr + strlen(variable) >= memDest->size || addr < 0) {
 				printf_warning("\aPatch [0x%08X] from [%s] does not fit into [%s]", addr, cfg->info.name, section);
 				continue;
 			}
@@ -511,7 +511,7 @@ static s32 Patch_File(MemFile* memDest, const char* section) {
 					}
 					
 					MemFile_LoadFile(&bmem, FileSys_File(bin));
-					node->end = addr + bmem.dataSize + reloc;
+					node->end = addr + bmem.size + reloc;
 					MemFile_Append(memDest, &bmem);
 					MemFile_Free(&bmem);
 				} else {
@@ -550,7 +550,7 @@ static s32 Patch_File(MemFile* memDest, const char* section) {
 			isPatched = 1;
 			
 			while (node) {
-				if (Intersect(node->start, node->end, offset, offset + gPatch.bin.file[p].dataSize))
+				if (Intersect(node->start, node->end, offset, offset + gPatch.bin.file[p].size))
 					printf_warning(
 						"" PRNT_YELW "WARNING!" PRNT_RSET
 						"\nCfg patch from [" PRNT_YELW "%s" PRNT_RSET "] to [" PRNT_REDD "%s" PRNT_GRAY ":" PRNT_REDD "%X" PRNT_RSET "]"
@@ -999,7 +999,7 @@ static void Build_Actor(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		entry[i].initInfo = Config_GetInt(memCfg, "init_vars");
 		
 		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
-		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Overlay_GetBssSize(memData);
+		entry[i].vramEnd = entry[i].vramStart + memData->size + Overlay_GetBssSize(memData);
 		
 		s32 p = Patch_File(memData, memData->info.name);
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, p ? NOCACHE_COMPRESS : COMPRESS);
@@ -1059,7 +1059,7 @@ static void Build_Effect(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		entry[i].initInfo = Config_GetInt(memCfg, "init_vars");
 		
 		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
-		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Overlay_GetBssSize(memData);
+		entry[i].vramEnd = entry[i].vramStart + memData->size + Overlay_GetBssSize(memData);
 		
 		s32 p = Patch_File(memData, memData->info.name);
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, p ? NOCACHE_COMPRESS : COMPRESS);
@@ -1120,7 +1120,7 @@ static void Build_Object(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				MemFile_LoadFile(&mem, animList.item[j]);
 				
 				animEntry[j].segment = rom->playerAnim.seekPoint | 0x07000000;
-				animEntry[j].frameCount = mem.dataSize / sizeof(PlayerAnimFrame);
+				animEntry[j].frameCount = mem.size / sizeof(PlayerAnimFrame);
 				
 				MemFile_Append(&rom->playerAnim, &mem);
 				MemFile_Align(&rom->playerAnim, 0x2);
@@ -1182,7 +1182,7 @@ static void Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_LoadFile_String(memCfg, FileSys_File("config.cfg"));
 		MemFile_LoadFile(memData, zscene);
 		
-		preDigest = Sys_Sha256(memData->data, memData->dataSize);
+		preDigest = Sys_Sha256(memData->data, memData->size);
 		
 		SetSegment(0x1, memData->data);
 		seg = SegmentedToVirtual(0x1, 0);
@@ -1266,9 +1266,9 @@ static void Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			}
 		}
 		
-		postDigest = Sys_Sha256(memData->data, memData->dataSize);
+		postDigest = Sys_Sha256(memData->data, memData->size);
 		
-		if (memcmp(preDigest, postDigest, memData->dataSize))
+		if (memcmp(preDigest, postDigest, memData->size))
 			MemFile_SaveFile(memData, zscene);
 		
 		Free(preDigest);
@@ -1347,7 +1347,7 @@ static void Build_State(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		entry[i].destroy = Config_GetInt(memCfg, "dest_func");
 		
 		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
-		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Overlay_GetBssSize(memData);
+		entry[i].vramEnd = entry[i].vramStart + memData->size + Overlay_GetBssSize(memData);
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		
@@ -1384,7 +1384,7 @@ static void Build_Kaleido(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		Patch_File(memData, file);
 		
 		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
-		entry[i].vramEnd = entry[i].vramStart + memData->dataSize + Overlay_GetBssSize(memData);
+		entry[i].vramEnd = entry[i].vramStart + memData->size + Overlay_GetBssSize(memData);
 		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, NOCACHE_COMPRESS);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		
@@ -1524,10 +1524,10 @@ static void Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				MemFile_LoadFile(&mem, table);
 				
 				if (StrStr(Basename(table), "NES"))
-					memcpy(rom->table.nesMsg, mem.data, mem.dataSize);
+					memcpy(rom->table.nesMsg, mem.data, mem.size);
 				
 				else
-					memcpy(rom->table.staffMsg, mem.data, mem.dataSize);
+					memcpy(rom->table.staffMsg, mem.data, mem.size);
 				
 				MemFile_Free(&mem);
 				
@@ -1611,7 +1611,7 @@ void Rom_New(Rom* rom, char* romName) {
 	MemFile_Alloc(&rom->file, MbToBin(128));
 	if (MemFile_LoadFile(&rom->file, romName))
 		printf_error_align("Error Opening", "%s", romName);
-	sBaseromSize = rom->file.dataSize;
+	sBaseromSize = rom->file.size;
 	SetSegment(0x0, rom->file.data);
 	
 	if (strcmp(SegmentedToVirtual(0, 0xBCF8F0), "NOT MARIO CLUB VERSION")) {
@@ -1893,7 +1893,7 @@ void Rom_Build(Rom* rom) {
 	if (Sys_Stat("rom/lib_user/z_lib_user.bin")) {
 		MemFile_Reset(&dataFile);
 		MemFile_LoadFile(&dataFile, "rom/lib_user/z_lib_user.bin");
-		if (dataFile.dataSize > 0xB5000)
+		if (dataFile.size > 0xB5000)
 			printf_error("z_lib_user.bin is bigger than %.2f MB. This wont fit into the RAM!", BinToMb(0xB5000));
 		Dma_WriteEntry(rom, DMA_ID_UNUSED_3, &dataFile, true);
 	}
@@ -1911,7 +1911,7 @@ void Rom_Build(Rom* rom) {
 	MemFile_SaveFile(&rom->file, gBuildrom[gBuildTarget]);
 	
 	if (gCompressFlag)
-		printf_info_align("Compression", "[%.1f%c]", ((f32)rom->file.dataSize / sBaseromSize) * 100.0, '%');
+		printf_info_align("Compression", "[%.1f%c]", ((f32)rom->file.size / sBaseromSize) * 100.0, '%');
 	
 	MemFile_Free(&dataFile);
 	MemFile_Free(&config);
@@ -2144,7 +2144,7 @@ s32 Rom_Extract(MemFile* mem, RomFile rom, char* name) {
 	if (rom.size == 0)
 		return 0;
 	MemFile_Reset(mem);
-	mem->dataSize = rom.size;
+	mem->size = rom.size;
 	MemFile_Realloc(mem, rom.size);
 	MemFile_Write(mem, rom.data, rom.size);
 	MemFile_SaveFile(mem, name);

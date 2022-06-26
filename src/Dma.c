@@ -94,7 +94,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 	DmaEntry* dma = &rom->table.dma[id];
 	Slot* slot = NULL;
 	Slot* yazt = NULL;
-	u32 size = memFile->dataSize;
+	u32 size = memFile->size;
 	u32 start;
 	
 	if (compress && gCompressFlag) {
@@ -102,8 +102,8 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 			Calloc(gYazBuf, MbToBin(32));
 		
 		if (compress == NOCACHE_COMPRESS) {
-			memcpy(gYazBuf, memFile->data, memFile->dataSize);
-			memFile->dataSize = Yaz_Encode(memFile->data, gYazBuf, memFile->dataSize);
+			memcpy(gYazBuf, memFile->data, memFile->size);
+			memFile->size = Yaz_Encode(memFile->data, gYazBuf, memFile->size);
 		} else {
 			char* yazFile = xAlloc(strlen(memFile->info.name) + 0x80);
 			
@@ -115,8 +115,8 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 				MemFile_LoadFile(memFile, yazFile);
 			} else {
 				Sys_MakeDir(Path(yazFile));
-				memcpy(gYazBuf, memFile->data, memFile->dataSize);
-				memFile->dataSize = Yaz_Encode(memFile->data, gYazBuf, memFile->dataSize);
+				memcpy(gYazBuf, memFile->data, memFile->size);
+				memFile->size = Yaz_Encode(memFile->data, gYazBuf, memFile->size);
 				MemFile_SaveFile(memFile, yazFile);
 			}
 		}
@@ -124,7 +124,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 	
 	slot = Slot_GetFree(gSlotHead, size);
 	if (gCompressFlag)
-		yazt = Slot_GetFree(gSlotYazHead, memFile->dataSize);
+		yazt = Slot_GetFree(gSlotYazHead, memFile->size);
 	
 	if (id < -1) {
 		start = rom->file.seekPoint = slot->romStart;
@@ -133,7 +133,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 		
 		slot->romStart += Align(size, 16);
 		if (gCompressFlag)
-			yazt->romStart += Align(memFile->dataSize, 16);
+			yazt->romStart += Align(memFile->size, 16);
 		
 		if (Slot_Size(slot) <= 16)
 			Node_Remove(gSlotHead, slot);
@@ -171,7 +171,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 		dma->vromEnd = dma->vromStart + size;
 		
 		dma->romStart = yazt->romStart;
-		dma->romEnd = (yazt->romStart + Align(memFile->dataSize, 16)) * compress;
+		dma->romEnd = (yazt->romStart + Align(memFile->size, 16)) * compress;
 		sVromEnd = dma->vromEnd;
 		
 		SwapBE(dma->romStart);
@@ -180,7 +180,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 		SwapBE(dma->vromStart);
 		
 		slot->romStart += Align(size, 16);
-		yazt->romStart += Align(memFile->dataSize, 16);
+		yazt->romStart += Align(memFile->size, 16);
 		
 		gEntries--;
 		
@@ -193,7 +193,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 		MemFile_Align(&rom->file, 16);
 		
 		dma->vromStart = start;
-		dma->vromEnd = start + memFile->dataSize;
+		dma->vromEnd = start + memFile->size;
 		dma->romStart = start;
 		dma->romEnd = 0;
 		
@@ -203,7 +203,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 		SwapBE(dma->vromStart);
 		slot->romStart = rom->file.seekPoint;
 		
-		sVromEnd = start + memFile->dataSize;
+		sVromEnd = start + memFile->size;
 		
 		gEntries--;
 		
@@ -283,8 +283,8 @@ void Dma_UpdateRomSize(Rom* rom) {
 	while (slot->next)
 		slot = slot->next;
 	
-	rom->file.dataSize = slot->romStart;
-	rom->file.dataSize = Align(rom->file.dataSize, 0x1000);
+	rom->file.size = slot->romStart;
+	rom->file.size = Align(rom->file.size, 0x1000);
 }
 
 u32 Dma_GetVRomEnd(void) {
@@ -420,7 +420,7 @@ void Dma_FreeGroup(Rom* rom, DmaBank type) {
 				gDma.highest = i;
 			}
 			
-			Dma_FreeSegment(rom, 0x35CF000, rom->file.dataSize);
+			Dma_FreeSegment(rom, 0x35CF000, rom->file.size);
 			break;
 	}
 }
@@ -519,7 +519,7 @@ void Dma_PrintfSlots(Rom* rom, const char* message, Slot* head) {
 	printf("\n");
 	printf_warning("Slots: %s", message);
 	printf("" PRNT_DGRY "[" PRNT_YELW ">" PRNT_DGRY "]: [ " PRNT_GRAY);
-	for (f32 i = 0; i < rom->file.dataSize; i += MbToBin(1.00)) {
+	for (f32 i = 0; i < rom->file.size; i += MbToBin(1.00)) {
 		u32 val = MbToBin(10.00);
 		if (((u32)i % val) < 100) {
 			printf("|");
@@ -536,7 +536,7 @@ void Dma_PrintfSlots(Rom* rom, const char* message, Slot* head) {
 	while (slot != NULL) {
 		s32 begn = 0;
 		
-		for (; i < rom->file.dataSize; i += MbToBin(1.00)) {
+		for (; i < rom->file.size; i += MbToBin(1.00)) {
 			if (i >= slot->romStart && (i <= slot->romEnd || begn == 0)) {
 				printf("" "%s" "=", color[c % ArrayCount(color)]);
 				begn = 1;

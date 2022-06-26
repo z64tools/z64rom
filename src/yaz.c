@@ -112,7 +112,7 @@ void Yaz_EncodeThread(const char* file) {
 	if (MemFile_LoadFile(&sMemfile, file))
 		printf_error("Could not open [%s]", file);
 	
-	sYazfile.dataSize = Yaz_Encode(sYazfile.data, sMemfile.data, sMemfile.dataSize);
+	sYazfile.size = Yaz_Encode(sYazfile.data, sMemfile.data, sMemfile.size);
 	
 	Sys_MakeDir(Path(out));
 	if (MemFile_SaveFile(&sYazfile, out))

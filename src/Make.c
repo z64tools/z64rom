@@ -267,7 +267,7 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 		p = Line(p, 1);
 		
 		StrIns(p, "tuning          = 0.0\n");
-		ttoml.dataSize = strlen(ttoml.str);
+		ttoml.size = strlen(ttoml.str);
 		MemFile_SaveFile_String(&ttoml, modCfgName);
 	}
 	

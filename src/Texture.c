@@ -46,13 +46,13 @@ void Texel_Import(
 	MemFile_Reset(mem);
 	MemFile_LoadFile(mem, filename);
 	
-	png = stbi_load_from_memory(mem->data, mem->dataSize, &x, &y, &c, 0);
+	png = stbi_load_from_memory(mem->data, mem->size, &x, &y, &c, 0);
 	
 	if (x != w || y != h) {
 		printf_error("Image [%s] resolution [%d/%d] does not match expected [%d/%d]", filename, x, y, w, h);
 	}
 	
-	err = n64texconv_to_n64(mem->data, png, NULL, 0, (s32)fmt, (s32)bs, w, h, &mem->dataSize);
+	err = n64texconv_to_n64(mem->data, png, NULL, 0, (s32)fmt, (s32)bs, w, h, &mem->size);
 	if (err) printf_error("n64texconv: [%s]", err);
 	Free(png);
 }

@@ -147,7 +147,7 @@ void Text_Dump(Rom* rom) {
 	
 	while (StrRep(mem.str, "  ", " ")) (void)0;
 	
-	mem.dataSize = strlen(mem.str);
+	mem.size = strlen(mem.str);
 	MemFile_SaveFile_String(&mem, mem.info.name);
 }
 

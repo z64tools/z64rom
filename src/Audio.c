@@ -323,8 +323,8 @@ static void Audio_PatchWavFiles(MemFile* dataFile, MemFile* config) {
 		
 		MemFile_Reset(dataFile);
 		MemFile_LoadFile(dataFile, file);
-		instInfo = MemMem(dataFile->data, dataFile->dataSize, "inst", 4);
-		smplInfo = MemMem(dataFile->data, dataFile->dataSize, "smpl", 4);
+		instInfo = MemMem(dataFile->data, dataFile->size, "inst", 4);
+		smplInfo = MemMem(dataFile->data, dataFile->size, "smpl", 4);
 		
 		/* basenote */ instInfo[8] = info[i].basenote;
 		/* finetune */ instInfo[9] = info[i].finetune;
@@ -589,7 +589,7 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 		if (MemFile_LoadFile(memF, FILE_WAV))
 			printf_warning_align("Sample not found", "%s", FILE_WAV);
 		
-		instInfo = MemMem(memF->data, memF->dataSize, "inst", 4);
+		instInfo = MemMem(memF->data, memF->size, "inst", 4);
 		
 		if (instInfo) {
 			Config_Print(memC, "\n ");
@@ -598,7 +598,7 @@ static void SampleDump_Thread(SampleDumpArg* arg) {
 			Config_WriteInt(memC, "finetune", instInfo[9], NO_COMMENT);
 			MemFile_SaveFile_String(memC, FILE_CFG);
 		} else {
-			if (memF->dataSize == 0)
+			if (memF->size == 0)
 				printf_warning_align("Audio", "Empty File [%s]", FILE_WAV);
 		}
 		
@@ -708,7 +708,7 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			}
 		}
 		
-		config->dataSize = strlen(config->data);
+		config->size = strlen(config->data);
 		MemFile_SaveFile_String(config, sBankFiles[j]);
 		
 		// Rename SFX To their samples
@@ -859,7 +859,7 @@ void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 			if (dataFile->seekPoint & 0xF)
 				printf_error("Error: Samplebank alignment failed!");
 			
-			sSampleTbl[sSampleTblNum].size = sample.dataSize;
+			sSampleTbl[sSampleTblNum].size = sample.size;
 			strcpy(sSampleTbl[sSampleTblNum].dir, FileSys_File(""));
 			strcpy(sSampleTbl[sSampleTblNum].name, PathSlot(itemList.item[i], -1));
 			StrRep(sSampleTbl[sSampleTblNum].name, "/", "\0");
@@ -871,7 +871,7 @@ void Audio_BuildSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 	head.numEntries = 1;
 	SwapBE(head.numEntries);
 	entry.romAddr = 0;
-	entry.size = ReadBE(dataFile->dataSize);
+	entry.size = ReadBE(dataFile->size);
 	entry.medium = 2;
 	entry.seqPlayer = 4;
 	MemFile_Write(&rom->mem.sampleTbl, &head, 16);
@@ -943,7 +943,7 @@ static void SoundFont_Instrument_Validate(MemFile* mem, const char* file, Instru
 		printf_warning("split_hi fixed for [%s]", file);
 		Config_ReplaceVariable(mem, "split_hi", Music_NoteWord(127 + 21));
 		
-		mem->dataSize = strlen(mem->str);
+		mem->size = strlen(mem->str);
 		MemFile_SaveFile_String(mem, file);
 		inst->splitHi = 127;
 	}
@@ -1043,12 +1043,12 @@ static void SoundFont_Read_Adsr(MemFile* mem, Adsr* adsr) {
 }
 
 static void SoundFont_Write_Adsr(MemFile* mem, Adsr* adsr, void32* setPtr) {
-	if (!MemMemAlign(16, mem->data, mem->dataSize, adsr, 16)) {
+	if (!MemMemAlign(16, mem->data, mem->size, adsr, 16)) {
 		setPtr[0] = mem->seekPoint;
 		MemFile_Write(mem, adsr, 16);
 		MemFile_Align(mem, 16);
 	} else {
-		void* ptr = MemMemAlign(16, mem->data, mem->dataSize, adsr, 16);
+		void* ptr = MemMemAlign(16, mem->data, mem->size, adsr, 16);
 		setPtr[0] = (uptr)ptr - (uptr)mem->data;
 	}
 }
@@ -1099,32 +1099,32 @@ static void SoundFont_Write_Sample(MemFile* dataFile, s32 sampleID, void32* setP
 		}
 	}
 	
-	if (!MemMemAlign(16, memLoopBook->data, memLoopBook->dataSize, loop, loopSize)) {
+	if (!MemMemAlign(16, memLoopBook->data, memLoopBook->size, loop, loopSize)) {
 		smpl.loop = memLoopBook->seekPoint;
 		MemFile_Write(memLoopBook, loop, loopSize);
 		MemFile_Align(memLoopBook, 16);
 	} else {
-		void* ptr = MemMemAlign(16, memLoopBook->data, memLoopBook->dataSize, loop, loopSize);
+		void* ptr = MemMemAlign(16, memLoopBook->data, memLoopBook->size, loop, loopSize);
 		smpl.loop = (uptr)ptr - (uptr)memLoopBook->data;
 	}
 	
 	MemFile_Reset(dataFile);
 	Audio_LoadFile(dataFile, "sample.book.bin");
-	if (!MemMemAlign(16, memBook->data, memBook->dataSize, dataFile->data, dataFile->dataSize)) {
+	if (!MemMemAlign(16, memBook->data, memBook->size, dataFile->data, dataFile->size)) {
 		smpl.book = memBook->seekPoint;
 		MemFile_Append(memBook, dataFile);
 		MemFile_Align(memBook, 16);
 	} else {
-		void* ptr = MemMemAlign(16, memBook->data, memBook->dataSize, dataFile->data, dataFile->dataSize);
+		void* ptr = MemMemAlign(16, memBook->data, memBook->size, dataFile->data, dataFile->size);
 		smpl.book = (uptr)ptr - (uptr)memBook->data;
 	}
 	
-	if (!MemMemAlign(16, memSample->data, memSample->dataSize, &smpl, sizeof(struct Sample))) {
+	if (!MemMemAlign(16, memSample->data, memSample->size, &smpl, sizeof(struct Sample))) {
 		setPtr[0] = memSample->seekPoint;
 		MemFile_Write(memSample, &smpl, sizeof(struct Sample));
 		sampleNum[0]++;
 	} else {
-		void* ptr = MemMemAlign(16, memSample->data, memSample->dataSize, &smpl, sizeof(struct Sample));
+		void* ptr = MemMemAlign(16, memSample->data, memSample->size, &smpl, sizeof(struct Sample));
 		setPtr[0] = (uptr)ptr - (uptr)memSample->data;
 	}
 	FileSys_Path(restoreDir);
@@ -1528,7 +1528,7 @@ void Audio_BuildSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 			}
 			
 			sfEntry[i + j].romAddr = romAddr;
-			sfEntry[i + j].size = thread[j].memBank.dataSize;
+			sfEntry[i + j].size = thread[j].memBank.size;
 			sfEntry[i + j].medium = med;
 			sfEntry[i + j].seqPlayer = seq;
 			sfEntry[i + j].audioTable1 = 0;
@@ -1641,7 +1641,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 				MemFile_Append(&sequenceMem, dataFile);
 				MemFile_Align(&sequenceMem, 16);
 				sqEntry.romAddr = addr;
-				sqEntry.size = dataFile->dataSize;
+				sqEntry.size = dataFile->size;
 			} else {
 				sqEntry.romAddr = Config_GetInt(config, "seq_pointer");
 				sqEntry.size = 0;

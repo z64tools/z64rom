@@ -490,7 +490,7 @@ void Main_Config(char** input, Rom* rom) {
 	else {
 		Log("Reading [%s]", gProjectConfig);
 		MemFile_LoadFile_String(config, gProjectConfig);
-		MemFile_Realloc(config, config->dataSize * 8);
+		MemFile_Realloc(config, config->size * 8);
 	}
 	
 	Main_ReadProject(rom, input);
@@ -689,8 +689,6 @@ static void Temporary_TomlToCfg() {
 	}
 }
 
-s8 num[] = { 5, 7, 4, 6, 3, 1, 3, 2 };
-
 s32 Main(s32 argc, char* argv[]) {
 	char* input = NULL;
 	Rom* rom;
@@ -702,10 +700,6 @@ s32 Main(s32 argc, char* argv[]) {
 	printf_SetPrefix("");
 	gWorkDir = StrDup(Sys_WorkDir()); qFree(gWorkDir);
 	Sys_SetWorkDir(Sys_AppDir());
-	
-	RomTool_Migrate("zzromtool", ".zzrtl/");
-	
-	return 0;
 	
 	Temporary_TomlToCfg();
 	
@@ -801,7 +795,7 @@ s32 Main(s32 argc, char* argv[]) {
 					gDumpFlag = true;
 					
 					StrRep(rom->config.str, "__ROM_NAME__", input);
-					rom->config.dataSize = strlen(rom->config.str);
+					rom->config.size = strlen(rom->config.str);
 				}
 				
 				printf("\n");
@@ -904,7 +898,7 @@ s32 Main(s32 argc, char* argv[]) {
 		MemFile_SaveFile_String(&rom->config, "z64project.cfg");
 	
 	if (Arg("build-vc")) {
-		if (rom->file.dataSize <= 0x2015000)
+		if (rom->file.size <= 0x2015000)
 			Main_WiiVC();
 		else
 			printf_warning("Compressed rom is too big to be injected to a wad. Consider running z64rom with --no-beta to remove unused beta content.");

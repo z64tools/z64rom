@@ -132,7 +132,7 @@ static s32 Tools_BinutilsSHA256(const char* zip, const char* shaFile) {
 	if (MemFile_LoadFile_String(&code, shaFile)) printf_error("Could not open [%s]", shaFile);
 	if (MemFile_LoadFile(&arcmem, zip)) printf_error("Could not open [%s]", zip);
 	
-	hash = Sys_Sha256(arcmem.data, arcmem.dataSize);
+	hash = Sys_Sha256(arcmem.data, arcmem.size);
 	
 #ifdef _WIN32
 	comp = StrStr(code.str, "win32 = ");
@@ -503,7 +503,7 @@ s32 Tools_Init(void) {
 			if (Terminal_YesOrNo())
 				Sound_Xm_Play(
 					dll.data,
-					dll.dataSize
+					dll.size
 				);
 			Terminal_ClearLines(2);
 			SleepF(0.2);

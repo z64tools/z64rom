@@ -19,7 +19,7 @@ void Font_LoadOrderedFont(Font* font) {
 		
 		DmaMgr_SendRequest1(
 			writeLocation,
-			gDmaDataTable[21].vromStart + loadOffset,
+			gDmaDataTable[20].vromStart + loadOffset,
 			FONT_CHAR_TEX_SIZE,
 			"",
 			0

@@ -20,6 +20,7 @@ extern ActorOverlay __ext_gActorOverlayTable[EXT_ACTOR_MAX];
 extern RomFile __ext_gObjectTable[EXT_OBJECT_MAX];
 extern SceneTableEntry __ext_gSceneTable[EXT_SCENE_MAX];
 extern EffectSsOverlay __ext_gEffectSsOverlayTable[EXT_EFFECT_MAX];
+extern u8 gFontOrdering[];
 
 #ifndef __NO_EXT_MACROS__
 #define gDmaDataTable         __ext_gDmaDataTable

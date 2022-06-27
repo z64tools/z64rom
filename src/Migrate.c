@@ -131,7 +131,6 @@ static void Migrate_Object(ItemList* list, const char* folName, const char* path
 	ItemList_NumericalSort(list);
 	
 	forlist(i, *list) {
-		MemFile mem = MemFile_Initialize();
 		char* zobj;
 		char* new;
 		
@@ -157,8 +156,6 @@ static void Migrate_Scene(ItemList* list, const char* folName, const char* path)
 	
 	forlist(i, *list) {
 		ItemList files = ItemList_Initialize();
-		char* zobj;
-		char* new;
 		s32 j = 0;
 		MemFile cfg = MemFile_Initialize();
 		u32 roomNum = 0;
@@ -245,7 +242,6 @@ static void Migrate_System(ItemList* list, const char* folName, const char* path
 	ItemList_NumericalSort(list);
 	
 	forlist(i, *list) {
-		MemFile mem = MemFile_Initialize();
 		char* mig;
 		char* new = NULL;
 		

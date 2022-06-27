@@ -884,7 +884,6 @@ static void Binutil_GCC_Assembly(const char* source, const char* output, Binutil
 	
 build:
 	(void)0;
-	char* basename = Basename(source);
 	
 	Calloc(command, 2048);
 	

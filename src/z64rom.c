@@ -140,12 +140,6 @@ static void RemoveFolder(const char* item) {
 	Sys_Delete_Recursive(item);
 }
 
-static void Main_ClearProject(void) {
-	MemFile mem;
-	
-	RemoveFolder("rom/");
-}
-
 static void Main_ClearDump(void) {
 	MemFile mem;
 	
@@ -547,16 +541,12 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	}
 	
 	if (Arg("clear-dump") || Arg("clear-cache") || Arg("clear-all")) {
-		if (Arg("clear-dump") || Arg("clear-all")) {
+		if (Arg("clear-dump") || Arg("clear-all"))
 			Main_ClearDump();
-		}
-		if (Arg("clear-project") || Arg("clear-all")) {
-			Main_ClearProject();
-		}
-		
-		if (Arg("clear-cache") || Arg("clear-all")) {
+		if (Arg("clear-project") || Arg("clear-all"))
+			RemoveFolder("rom/");
+		if (Arg("clear-cache") || Arg("clear-all"))
 			Main_ClearCache();
-		}
 		
 		Terminal_ClearLines(2);
 	}

@@ -26,51 +26,43 @@ static RestrictionFlag* Restriction_GetFlags(Rom* rom, u32 sceneIndex) {
 static void Restriction_WriteFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
 	char* flags = Config_GetVariable(config->str, "restriction_flags");
 	RestrictionFlag* rf = Restriction_GetFlags(rom, sceneIndex);
+	ItemList rlist = ItemList_Initialize();
 	
 	if (flags == NULL || rf == NULL)
 		return;
 	
 	memset(rf, 0, sizeof(RestrictionFlag));
 	rf[0].sceneIndex = sceneIndex;
+	Config_GetArray(config, "restriction_flags", &rlist);
 	
-	if (StrStr(flags, "BOTTLES")) {
-		rf->bottles = 3;
-	}
-	if (StrStr(flags, "A_BUTTON")) {
-		rf->aButton = 3;
-	}
-	if (StrStr(flags, "B_BUTTON")) {
-		rf->bButton = 3;
+	for (s32 i = 0; i < rlist.num; i++) {
+		if (!strcmp(rlist.item[i], "BOTTLES"))
+			rf->bottles = 3;
+		if (!strcmp(rlist.item[i], "A_BUTTON"))
+			rf->aButton = 3;
+		if (!strcmp(rlist.item[i], "B_BUTTON"))
+			rf->bButton = 3;
+		if (!strcmp(rlist.item[i], "WARP_SONG"))
+			rf->warpSong = 3;
+		if (!strcmp(rlist.item[i], "OCARINA"))
+			rf->ocarina = 3;
+		if (!strcmp(rlist.item[i], "HOOKSHOT"))
+			rf->hookshot = 3;
+		if (!strcmp(rlist.item[i], "TRADE_ITEM"))
+			rf->tradeItem = 3;
+		if (!strcmp(rlist.item[i], "ALL"))
+			rf->all = 3;
+		if (!strcmp(rlist.item[i], "DINS_FIRE"))
+			rf->din = 1;
+		if (!strcmp(rlist.item[i], "NAYRUS_LOVE"))
+			rf->nayry = 1;
+		if (!strcmp(rlist.item[i], "FARORES_WIND"))
+			rf->farore = 3;
+		if (!strcmp(rlist.item[i], "SUN_SONG"))
+			rf->sunSong = 3;
 	}
 	
-	if (StrStr(flags, "WARP_SONG")) {
-		rf->warpSong = 3;
-	}
-	if (StrStr(flags, "OCARINA")) {
-		rf->ocarina = 3;
-	}
-	if (StrStr(flags, "HOOKSHOT")) {
-		rf->hookshot = 3;
-	}
-	if (StrStr(flags, "TRADE_ITEM")) {
-		rf->tradeItem = 3;
-	}
-	
-	if (StrStr(flags, "ALL")) {
-		rf->all = 3;
-	}
-	if (StrStr(flags, "DINS_FIRE")) {
-		rf->din = 1;
-	}
-	if (StrStr(flags, "NAYRUS_LOVE")) {
-		rf->nayry = 1;
-	}
-	if (StrStr(flags, "FARORES_WIND")) {
-		rf->farore = 3;
-	}
-	if (StrStr(flags, "SUN_SONG")) {
-		rf->sunSong = 3;
-	}
+	ItemList_Free(&rlist);
 }
 
 static void ExtensionTable_Init(Rom* rom) {
@@ -228,88 +220,62 @@ static void Config_WriteKaleido(Rom* rom, MemFile* config, u32 id, const char* n
 	MemFile_SaveFile_String(config, out);
 }
 
-static void Config_WriteScene(Rom* rom, MemFile* config, u32 id, const char* name, char* out) {
-	#define FIWI \
-		if (firstWritten > 0) { \
-			MemFile_Printf(config, " | "); \
-		} firstWritten++;
-	
+static void Config_WriteScene(Rom* rom, MemFile* config, u32 id, u32 roomNum, const char* name, char* out) {
 	SceneEntry* sceneEntry = &rom->table.scene[id];
 	RestrictionFlag* rf = Restriction_GetFlags(rom, id);
+	ItemList rooms = ItemList_Initialize();
+	ItemList rflags = ItemList_Initialize();
 	
 	MemFile_Reset(config);
 	Config_WriteComment(config, name);
-#if 0
-	Config_WriteInt(config, "unk_a", ReadBE(sceneEntry->unk_10), NO_COMMENT);
-	Config_WriteInt(config, "unk_b", ReadBE(sceneEntry->unk_12), NO_COMMENT);
-#endif
 	Config_WriteInt(config, "scene_func_id", ReadBE(sceneEntry->config), NO_COMMENT);
+	
+	ItemList_Alloc(&rooms, roomNum, 0x10000);
+	ItemList_Alloc(&rflags, 64, 0x10000);
 	
 	if (rf) {
 		s32 firstWritten = 0;
 		MemFile_Printf(config, "# [ BOTTLES / A_BUTTON / B_BUTTON / WARP_SONG / OCARINA / HOOKSHOT ]\n");
 		MemFile_Printf(config, "# [ TRADE_ITEM / ALL / DINS_FIRE / NAYRUS_LOVE / FARORES_WIND / SUN_SONG ]\n");
-		MemFile_Printf(config, "%-15s = \"", "restriction_flags");
 		
-		if (rf->bottles) {
-			MemFile_Printf(config, "BOTTLES", "restriction_flags");
-		}
-		if (rf->aButton) {
-			FIWI;
-			MemFile_Printf(config, "A_BUTTON", "restriction_flags");
-		}
-		if (rf->bButton) {
-			FIWI;
-			MemFile_Printf(config, "B_BUTTON", "restriction_flags");
-		}
+		if (rf->bottles)
+			ItemList_AddItem(&rflags, "BOTTLES");
+		if (rf->aButton)
+			ItemList_AddItem(&rflags, "A_BUTTON");
+		if (rf->bButton)
+			ItemList_AddItem(&rflags, "B_BUTTON");
 		
-		if (rf->warpSong) {
-			FIWI;
-			MemFile_Printf(config, "WARP_SONG", "restriction_flags");
-		}
-		if (rf->ocarina) {
-			FIWI;
-			MemFile_Printf(config, "OCARINA", "restriction_flags");
-		}
-		if (rf->hookshot) {
-			FIWI;
-			MemFile_Printf(config, "HOOKSHOT", "restriction_flags");
-		}
-		if (rf->tradeItem) {
-			FIWI;
-			MemFile_Printf(config, "TRADE_ITEM", "restriction_flags");
-		}
+		if (rf->warpSong)
+			ItemList_AddItem(&rflags, "WARP_SONG");
+		if (rf->ocarina)
+			ItemList_AddItem(&rflags, "OCARINA");
+		if (rf->hookshot)
+			ItemList_AddItem(&rflags, "HOOKSHOT");
+		if (rf->tradeItem)
+			ItemList_AddItem(&rflags, "TRADE_ITEM");
 		
-		if (rf->all) {
-			FIWI;
-			MemFile_Printf(config, "ALL", "restriction_flags");
-		}
-		if (rf->din) {
-			FIWI;
-			MemFile_Printf(config, "DINS_FIRE", "restriction_flags");
-		}
-		if (rf->nayry) {
-			FIWI;
-			MemFile_Printf(config, "NAYRUS_LOVE", "restriction_flags");
-		}
-		if (rf->farore) {
-			FIWI;
-			MemFile_Printf(config, "FARORES_WIND", "restriction_flags");
-		}
-		if (rf->sunSong) {
-			FIWI;
-			MemFile_Printf(config, "SUN_SONG", "restriction_flags");
-		}
-		
-		if (firstWritten == 0) {
-			MemFile_Printf(config, "nothing\"\n");
-		} else {
-			MemFile_Printf(config, "\"\n");
-		}
+		if (rf->all)
+			ItemList_AddItem(&rflags, "ALL");
+		if (rf->din)
+			ItemList_AddItem(&rflags, "DINS_FIRE");
+		if (rf->nayry)
+			ItemList_AddItem(&rflags, "NAYRUS_LOVE");
+		if (rf->farore)
+			ItemList_AddItem(&rflags, "FARORES_WIND");
+		if (rf->sunSong)
+			ItemList_AddItem(&rflags, "SUN_SONG");
 	}
 	
+	for (s32 i = 0; i < roomNum; i++)
+		ItemList_AddItem(&rooms, xFmt("room_%d.zroom", i));
+	
+	Config_WriteArray(config, "restriction_flags", &rflags, NO_QUOTES, NO_COMMENT);
+	Config_WriteArray(config, "rooms", &rooms, QUOTES, NO_COMMENT);
+	
 	MemFile_SaveFile_String(config, out);
-#undef FIWI
+	
+	ItemList_Free(&rooms);
+	ItemList_Free(&rflags);
 }
 
 // # # # # # # # # # # # # # # # # # # # #
@@ -772,11 +738,10 @@ static void Dump_Scene(Rom* rom, MemFile* data, MemFile* config) {
 		
 		if (Rom_Extract(data, rf, FileSys_File("scene.zscene"))) {
 			u32* seg;
-			u32 roomNum;
+			u32 roomNum = 0;
 			u32 roomListSeg;
 			u32* vromSeg;
 			
-			Config_WriteScene(rom, config, i, gSceneName_OoT[i], FileSys_File("config.cfg"));
 			SetSegment(0x2, rf.data);
 			seg = data->data;
 			
@@ -807,6 +772,8 @@ static void Dump_Scene(Rom* rom, MemFile* data, MemFile* config) {
 					);
 				}
 			}
+			
+			Config_WriteScene(rom, config, i, roomNum, gSceneName_OoT[i], FileSys_File("config.cfg"));
 		}
 		
 		png.romStart = ReadBE(scene->titleVromStart);
@@ -1141,25 +1108,194 @@ static void Build_Object(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	ItemList_Free(&list);
 }
 
-static void Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
+typedef enum {
+	HEADER_MAIN = 0,
+	HEADER_MAX  = 9,
+} RoomHeader;
+
+static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	MemFile memRoom = MemFile_Initialize();
+	u32* seg;
+	u32 roomNum;
+	u32 roomListSeg;
+	u32 max = 1;
+	
+	ItemList** list;
+	u32** segmentStart;
+	u32** segmentEnd;
+	
+	Calloc(list, sizeof(void*) * HEADER_MAX);
+	Calloc(segmentStart, sizeof(void*) * HEADER_MAX);
+	Calloc(segmentEnd, sizeof(void*) * HEADER_MAX);
+	
+	MemFile_Alloc(&memRoom, MbToBin(1));
+	MemFile_Params(&memRoom, MEM_REALLOC, true, MEM_END);
+	
+	SetSegment(0x1, memData->data);
+	seg = SegmentedToVirtual(0x1, 0);
+	
+	for (;;) {
+		if ((seg[0] & 0xFF) == 0x04) {
+			break;
+		}
+		if ((seg[0] & 0xFF) == 0x14) {
+			printf_warning_align("Scene", "Failed finding room list");
+			seg = 0;
+			break;
+		}
+		seg++;
+	}
+	
+	roomNum = (seg[0] & 0xFF00) >> 8;
+	
+	// Allocate lists and segments for all existing headers from config
+	Calloc(list[HEADER_MAIN], sizeof(ItemList));
+	Calloc(segmentStart[HEADER_MAIN], sizeof(u32) * roomNum);
+	Calloc(segmentEnd[HEADER_MAIN], sizeof(u32) * roomNum);
+	Config_GetArray(memCfg, "rooms", list[HEADER_MAIN]);
+	
+	if (list[HEADER_MAIN]->num == 0)
+		printf_error("No rooms provided in '%s'", memCfg->info.name);
+	
+	for (s32 header = 1; header < HEADER_MAX; header++) {
+		Config_GotoSection(xFmt("header%d", header + 1));
+		
+		if (Config_Variable(memCfg->str, "rooms")) {
+			Calloc(list[header], sizeof(ItemList));
+			Config_GetArray(memCfg, "rooms", list[header]);
+			
+			Calloc(segmentStart[header], sizeof(u32) * roomNum);
+			Calloc(segmentEnd[header], sizeof(u32) * roomNum);
+			max = header + 1;
+		}
+		
+		Config_GotoSection(NULL);
+	}
+	Log("Lists and Segments allocated");
+	
+	for (s32 header = 0; header < max; header++) {
+		ItemList* this = list[header];
+		
+		if (this == NULL)
+			continue;
+		
+		for (s32 room = 0; room < roomNum; room++) {
+			char* file;
+			
+			if (!strcmp(this->item[room], "*")) {
+				segmentStart[header][room] = segmentStart[HEADER_MAIN][room];
+				segmentEnd[header][room] = segmentEnd[HEADER_MAIN][room];
+				
+				continue;
+			}
+			
+			if (header > 0) {
+				printf_info("Extra Header! %d room %d", header, room);
+			}
+			
+			MemFile_Reset(&memRoom);
+			
+			if (!Sys_Stat(file = FileSys_File(this->item[room])))
+				printf_error("Could not find room '%s'", file);
+			
+			Log("Load file '%s'", file);
+			MemFile_LoadFile(&memRoom, file);
+			
+			segmentStart[header][room] = ReadBE(Dma_WriteEntry(rom, DMA_FIND_FREE, &memRoom, true));
+			segmentEnd[header][room] = ReadBE(Dma_GetVRomEnd());
+		}
+	}
+	Log("Rooms loaded!");
+	
+	u32* vromSeg;
+	
+	roomListSeg = ReadBE(seg[1]) & 0xFFFFFF;
+	vromSeg = SegmentedToVirtual(0x1, roomListSeg);
+	
+	// Main Header Rooms
+	for (s32 j = 0; j < roomNum; j++) {
+		u32 id = j * 2;
+		
+		vromSeg[id + 0] = segmentStart[HEADER_MAIN][j];
+		vromSeg[id + 1] = segmentEnd[HEADER_MAIN][j];
+	}
+	Log("Main Header Assembled! [%s]", memData->info.name);
+	
+	u32* hdr = SegmentedToVirtual(0x1, 0);
+	
+	for (;; hdr++) {
+		if ((*hdr & 0xFF) == 0x18) {
+			u32 num;
+			u32* room;
+			room = hdr = SegmentedToVirtual(0x1, ReadBE(hdr[1]) & 0x00FFFFFF);
+			
+			for (s32 r = 0;; r++) {
+				if ((hdr[r] & 0xFF) != 0x2 && hdr[r] != 0)
+					break;
+				
+				room = SegmentedToVirtual(0x1, ReadBE(hdr[r]) & 0xFFFFFF);
+				
+				for (;; room++) {
+					if ((room[0] & 0xFF) == 0x04) {
+						u32 seg;
+						num = (room[0] & 0xFF00) >> 8;
+						seg = ReadBE(room[1]) & 0xFFFFFF;
+						room = SegmentedToVirtual(0x1, seg);
+						
+						for (s32 j = 0; j < num; j++) {
+							u32 id = j * 2;
+							
+							if (r < max && segmentStart[r]) {
+								room[id + 0] = segmentStart[r][j];
+								room[id + 1] = segmentEnd[r][j];
+							} else {
+								room[id + 0] = segmentStart[HEADER_MAIN][j];
+								room[id + 1] = segmentEnd[HEADER_MAIN][j];
+							}
+						}
+						
+						break;
+					}
+					
+					if ((room[0] & 0xFF) == 0x14) {
+						break;
+					}
+				}
+			}
+			
+			break;
+		}
+		
+		if ((*hdr & 0xFF) == 0x14) {
+			break;
+		}
+	}
+	Log("Other Headers Assembled!");
+	
+	MemFile_Free(&memRoom);
+	for (s32 i = 0; i < HEADER_MAX; i++) {
+		if (list[i])
+			ItemList_Free(list[i]);
+		Free(segmentStart[i]);
+		Free(segmentEnd[i]);
+	}
+	Free(segmentStart);
+	Free(segmentEnd);
+	Free(list);
+}
+
+static void Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	ItemList list = ItemList_Initialize();
 	ItemList titleList = ItemList_Initialize();
 	SceneEntry* entry = rom->table.scene;
 	u32* titleID;
 	
-	MemFile_Alloc(&memRoom, MbToBin(2));
-	MemFile_Params(&memRoom, MEM_REALLOC, true, MEM_END);
 	Rom_ItemList(&list, "rom/scene/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	ItemList_Alloc(&titleList, list.num, list.writePoint * 4);
 	Calloc(titleID, sizeof(u32) * list.num);
 	
 	for (s32 i = 0; i < list.num; i++) {
-		u32* seg;
-		u32* vromSeg;
-		u32 roomNum;
-		u32 roomListSeg;
 		u8* preDigest;
 		u8* postDigest;
 		char* zscene;
@@ -1175,7 +1311,13 @@ static void Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		FileSys_Path(list.item[i]);
 		
-		zscene = FileSys_FindFile(".zscene");
+		zscene = FileSys_File("scene.zscene");
+		
+		if (!Sys_Stat(zscene)) {
+			zscene = FileSys_FindFile(".zscene");
+			if (!Sys_Stat(zscene))
+				printf_error("Could not locate '*.zscene' from '%s'", FileSys_File(""));
+		}
 		
 		MemFile_Reset(memCfg);
 		MemFile_Reset(memData);
@@ -1184,87 +1326,8 @@ static void Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		preDigest = Sys_Sha256(memData->data, memData->size);
 		
-		SetSegment(0x1, memData->data);
-		seg = SegmentedToVirtual(0x1, 0);
-		
 		Restriction_WriteFlags(rom, memCfg, i);
-		
-		for (;;) {
-			if ((seg[0] & 0xFF) == 0x04) {
-				break;
-			}
-			if ((seg[0] & 0xFF) == 0x14) {
-				printf_warning_align("Scene", "Failed finding room list");
-				seg = 0;
-				break;
-			}
-			seg++;
-		}
-		
-		roomNum = (seg[0] & 0xFF00) >> 8;
-		roomListSeg = ReadBE(seg[1]) & 0xFFFFFF;
-		vromSeg = SegmentedToVirtual(0x1, roomListSeg);
-		
-		for (s32 j = 0; j < roomNum; j++) {
-			u32 id = j * 2;
-			char* room;
-			
-			MemFile_Reset(&memRoom);
-			room = FileSys_File(xFmt("room_%d.zroom", j));
-			if (!Sys_Stat(room)) room = FileSys_File(xFmt("room_%d.zmap", j));
-			if (!Sys_Stat(room)) printf_error("Could not find room_%d", j);
-			MemFile_LoadFile(&memRoom, room);
-			
-			vromSeg[id + 0] = Dma_WriteEntry(rom, DMA_FIND_FREE, &memRoom, true);
-			vromSeg[id + 1] = Dma_GetVRomEnd();
-			SwapBE(vromSeg[id + 0]);
-			SwapBE(vromSeg[id + 1]);
-		}
-		
-		u32* hdr = SegmentedToVirtual(0x1, 0);
-		for (;; hdr++) {
-			if ((hdr[0] & 0xFF) == 0x18) {
-				break;
-			}
-			if ((hdr[0] & 0xFF) == 0x14) {
-				hdr = NULL;
-				break;
-			}
-		}
-		
-		if (hdr) {
-			u32 num;
-			u32* room;
-			room = hdr = SegmentedToVirtual(0x1, ReadBE(hdr[1]) & 0x00FFFFFF);
-			for (s32 r = 0;; r++) {
-				if ((hdr[r] & 0xFF) != 0x2 && hdr[r] != 0)
-					break;
-				room = SegmentedToVirtual(0x1, ReadBE(hdr[r]) & 0xFFFFFF);
-				for (;; room++) {
-					if ((room[0] & 0xFF) == 0x04) {
-						break;
-					}
-					if ((room[0] & 0xFF) == 0x14) {
-						room = NULL;
-						break;
-					}
-				}
-				
-				if (room) {
-					u32 seg;
-					num = (room[0] & 0xFF00) >> 8;
-					seg = ReadBE(room[1]) & 0xFFFFFF;
-					room = SegmentedToVirtual(0x1, seg);
-					
-					for (s32 j = 0; j < num; j++) {
-						u32 id = j * 2;
-						
-						room[id + 0] = vromSeg[id + 0];
-						room[id + 1] = vromSeg[id + 1];
-					}
-				}
-			}
-		}
+		Build_Rooms(rom, memData, memCfg);
 		
 		postDigest = Sys_Sha256(memData->data, memData->size);
 		
@@ -1317,7 +1380,6 @@ static void Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		}
 	}
 	
-	MemFile_Free(&memRoom);
 	ItemList_Free(&list);
 	ItemList_Free(&titleList);
 	Free(titleID);

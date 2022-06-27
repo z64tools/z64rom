@@ -93,6 +93,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		
 		StrRep(cfg, "src/", "rom/");
 		StrRep(seq, "src/", "rom/");
+		Sys_MakeDir(Path(seq));
 		
 		if (Sys_Stat(seq) > Sys_Stat(midi) && !gMakeForce)
 			goto free;
@@ -121,6 +122,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		
 		StrRep(cfg, "src/", "rom/");
 		StrRep(seq, "src/", "rom/");
+		Sys_MakeDir(Path(seq));
 		
 		if (Sys_Stat(seq) > Sys_Stat(mus) && !gMakeForce)
 			goto free;
@@ -136,7 +138,6 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		}
 		
 		Tools_Command(cmd, seqas, "\"%s\" \"%s\"", mus, seq);
-		Sys_MakeDir(Path(seq));
 		Make_Run(cmd);
 		Make_Info("seq-assembler", seq);
 		
@@ -153,6 +154,9 @@ void Make_Sequence(void) {
 	MakeArg* targ;
 	Thread* thread;
 	s32 i = 0;
+	
+	if (!Sys_Stat("src/sound/sequence/"))
+		return;
 	
 	Calloc(targ, sizeof(MakeArg) * gThreadNum);
 	Calloc(thread, sizeof(Thread) * gThreadNum);
@@ -322,6 +326,9 @@ void Make_Sound(void) {
 	MakeArg* targ;
 	Thread* thread;
 	s32 i = 0;
+	
+	if (!Sys_Stat("src/sound/sample/"))
+		return;
 	
 	Calloc(targ, sizeof(MakeArg) * gThreadNum);
 	Calloc(thread, sizeof(Thread) * gThreadNum);

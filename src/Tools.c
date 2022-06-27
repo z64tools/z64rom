@@ -453,7 +453,7 @@ void Tools_CheckUpdates() {
 	memset(buffer, 0, sz + 1);
 	memcpy(buffer, tag, sz);
 	
-	sscanf(buffer, "z64rom_%d.%d.%d", &vnum[0], &vnum[1], &vnum[2]);
+	sscanf(buffer, "%d.%d.%d", &vnum[0], &vnum[1], &vnum[2]);
 	sscanf(gToolName, "" PRNT_BLUE "z64rom " PRNT_GRAY "%d.%d.%d", &cnum[0], &cnum[1], &cnum[2]);
 	
 	for (s32 i = 0; i < 3; i++)

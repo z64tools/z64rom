@@ -246,7 +246,7 @@ extern const char* gSceneName_OoT[110];
 extern const char* gBankName_OoT[41];
 extern const char* gSequenceName_OoT[114];
 extern const char* gSkyboxName_OoT[32];
-extern const SystemInfo gSystem_OoT[28];
+extern const SystemInfo gSystem_OoT[26];
 extern const char* gPlayerAnimName[573];
 
 extern s32 gBetaFlag_Actor_OoT[7];
@@ -278,7 +278,8 @@ extern const char* gProjectConfig;
 extern const char* gBaserom;
 
 void fix_crc(unsigned char* rom);
-
-void RomTool_Migrate(const char* type, const char* path);
+const char* Transition_GetName(s32 type);
+s32 Transition_GetType(const char* str);
+void Migrate(const char* type, const char* path);
 
 #endif

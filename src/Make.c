@@ -91,6 +91,9 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		cfg = xFmt("%sconfig.cfg", targ->path);
 		seq = xFmt("%ssequence.aseq", targ->path);
 		
+		StrRep(cfg, "src/", "rom/");
+		StrRep(seq, "src/", "rom/");
+		
 		if (Sys_Stat(seq) > Sys_Stat(midi) && !gMakeForce)
 			goto free;
 		
@@ -105,6 +108,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		}
 		
 		Tools_Command(cmd, seq64, "--in=\"%s\" --out=\"%s\" --abi=Zelda --pref=false --flstudio=true", midi, seq);
+		Sys_MakeDir(Path(seq));
 		Make_Run(cmd);
 		Make_Info("seq64", seq);
 		
@@ -114,6 +118,9 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	if ((mus = Make_Wildcard(targ->path, ".mus"))) {
 		cfg = xFmt("%sconfig.cfg", targ->path);
 		seq = xFmt("%ssequence.aseq", targ->path);
+		
+		StrRep(cfg, "src/", "rom/");
+		StrRep(seq, "src/", "rom/");
 		
 		if (Sys_Stat(seq) > Sys_Stat(mus) && !gMakeForce)
 			goto free;
@@ -129,6 +136,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		}
 		
 		Tools_Command(cmd, seqas, "\"%s\" \"%s\"", mus, seq);
+		Sys_MakeDir(Path(seq));
 		Make_Run(cmd);
 		Make_Info("seq-assembler", seq);
 		
@@ -149,7 +157,7 @@ void Make_Sequence(void) {
 	Calloc(targ, sizeof(MakeArg) * gThreadNum);
 	Calloc(thread, sizeof(Thread) * gThreadNum);
 	
-	ItemList_List(&list, "rom/sound/sequence/", 0, LIST_FOLDERS | LIST_NO_DOT);
+	ItemList_List(&list, "src/sound/sequence/", 0, LIST_FOLDERS | LIST_NO_DOT);
 	
 	if (list.num == 0)
 		goto free;
@@ -187,7 +195,6 @@ free:
 }
 
 static ThreadFunc Sound_Convert(MakeArg* targ) {
-	ItemList* list;
 	char* vadpcm = NULL;
 	char* audio = NULL;
 	char* book = NULL;
@@ -197,69 +204,48 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	MemFile ttoml = MemFile_Initialize();
 	bool normalize = false;
 	bool inherit = false;
-	const char* fmt[] = {
-		".wav",
-		".aiff",
-		".mp3"
-	};
 	
-	Calloc(list, sizeof(ItemList));
-	*list = ItemList_Initialize();
+	FileSys_Path(targ->path);
 	
-	ItemList_List(list, targ->path, 0, LIST_FILES | LIST_NO_DOT);
+	char* wav = FileSys_FindFile("*.wav");
+	char* aiff = FileSys_FindFile("*.aiff");
+	char* mp3 = FileSys_FindFile("*.mp3");
 	
-	for (s32 i = 0; i < list->num; i++) {
-		if (StrEnd(list->item[i], ".cfg"))
-			modCfgName = list->item[i];
-		
-		if (StrEndCase(list->item[i], ".book.bin"))
-			book = list->item[i];
-		
-		if (StrEndCase(list->item[i], "/design.cfg"))
-			table = list->item[i];
-		
-		if (audio == NULL) {
-			for (s32 j = 0; j < ArrayCount(fmt); j++) {
-				if (StrEndCase(list->item[i], fmt[j])) {
-					audio = list->item[i];
-					break;
-				}
-			}
-		} else {
-			for (s32 j = 0; j < ArrayCount(fmt); j++) {
-				if (StrEndCase(list->item[i], fmt[j]))
-					if (Sys_Stat(audio) < Sys_Stat(list->item[i]))
-						audio = list->item[i];
-			}
-		}
-		
-		if (vadpcm == NULL)
-			if (StrEndCase(list->item[i], ".vadpcm.bin"))
-				vadpcm = strdup(list->item[i]);
-	}
+	// Get newest audio file
+	if (Sys_Stat(wav) > (Sys_Stat(aiff)))
+		audio = wav;
+	else
+		audio = aiff;
+	if (Sys_Stat(audio) < Sys_Stat(mp3))
+		audio = mp3;
 	
 	if (audio == NULL)
 		goto free;
 	
-	Malloc(vanCfgName, 0x1024);
-	strcpy(vanCfgName, targ->path);
-	StrRep(vanCfgName, "rom/sound/sample/", xFmt("rom/sound/sample/%s/", gVanilla));
-	strcat(vanCfgName, "config.cfg");
+	FileSys_Path(xRep(targ->path, "src/", "rom/"));
+	Sys_MakeDir(FileSys_File(""));
 	
-	if (modCfgName == NULL) {
+	vadpcm = FileSys_FindFile("*.vadpcm.bin");
+	book = FileSys_FindFile("*.book.bin");
+	modCfgName = FileSys_File("config.cfg");
+	
+	Malloc(vanCfgName, 0x1024);
+	strcpy(vanCfgName, FileSys_File("config.cfg"));
+	StrRep(vanCfgName, "rom/sound/sample/", xFmt("rom/sound/sample/%s/", gVanilla));
+	
+	if (!Sys_Stat(modCfgName)) {
 		MemFile mem;
-		modCfgName = xFmt("%sconfig.cfg", targ->path);
 		
 		MemFile_LoadFile_String(&mem, vanCfgName);
 		MemFile_Seek(&mem, MEMFILE_SEEK_END);
 		Config_WriteFloat(&mem, "tuning", 0.0f, NO_COMMENT);
 		MemFile_SaveFile_String(&mem, modCfgName);
+		
+		MemFile_Free(&mem);
 	}
 	
-	if (!Sys_Stat(modCfgName))
+	if (MemFile_LoadFile_String(&ttoml, modCfgName))
 		printf_error("Could not locate [%s]", modCfgName);
-	
-	MemFile_LoadFile_String(&ttoml, modCfgName);
 	
 	if (!Config_Variable(ttoml.str, "tuning")) {
 		char* p = Config_Variable(ttoml.str, "finetune");
@@ -293,7 +279,7 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 		char command[2056];
 		
 		if (vadpcm == NULL)
-			vadpcm = xFmt("%ssample.bin", targ->path);
+			vadpcm = xFmt("%ssample.bin", xRep(targ->path, "src/", "rom/"));
 		else
 			StrRep(vadpcm, ".vadpcm", "");
 		
@@ -327,8 +313,6 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	
 free:
 	MemFile_Free(&ttoml);
-	ItemList_Free(list);
-	Free(list);
 	Free(vadpcm);
 	Free(vanCfgName);
 }
@@ -342,7 +326,7 @@ void Make_Sound(void) {
 	Calloc(targ, sizeof(MakeArg) * gThreadNum);
 	Calloc(thread, sizeof(Thread) * gThreadNum);
 	
-	ItemList_List(&list, "rom/sound/sample/", 0, LIST_FOLDERS | LIST_NO_DOT);
+	ItemList_List(&list, "src/sound/sample/", 0, LIST_FOLDERS | LIST_NO_DOT);
 	
 	if (list.num == 0)
 		goto free;

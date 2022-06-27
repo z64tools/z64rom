@@ -234,7 +234,6 @@ static void Config_WriteScene(Rom* rom, MemFile* config, u32 id, u32 roomNum, co
 	ItemList_Alloc(&rflags, 64, 0x10000);
 	
 	if (rf) {
-		s32 firstWritten = 0;
 		MemFile_Printf(config, "# [ BOTTLES / A_BUTTON / B_BUTTON / WARP_SONG / OCARINA / HOOKSHOT ]\n");
 		MemFile_Printf(config, "# [ TRADE_ITEM / ALL / DINS_FIRE / NAYRUS_LOVE / FARORES_WIND / SUN_SONG ]\n");
 		
@@ -617,7 +616,7 @@ const char* sTransName[] = {
 	/* 44 */ "Warp",
 };
 
-static const char* Transition_GetName(TransitionType type) {
+const char* Transition_GetName(s32 type) {
 	if (type >= TRANS_TYPE_MAX)
 		printf_error("WOT?! %d", type);
 	
@@ -630,7 +629,7 @@ static const char* Transition_GetName(TransitionType type) {
 	return sTransName[type];
 }
 
-static TransitionType Transition_GetType(const char* str) {
+s32 Transition_GetType(const char* str) {
 	TransitionType i = 0;
 	
 	for (;; i++) {

@@ -1215,8 +1215,6 @@ const SystemInfo gSystem_OoT[] = {
 	{ 10, "icon_item_dungeon_static" },
 	{ 11, "icon_item_gameover_static" },
 	{ 12, "icon_item_NES_static" },
-	{ 13, "icon_item_GER_static" },
-	{ 14, "icon_item_FRA_static" },
 	{ 15, "item_name_static" },
 	{ 16, "map_name_static" },
 	{ 17, "do_action_static" },

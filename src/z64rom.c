@@ -143,6 +143,12 @@ static void RemoveFolder(const char* item) {
 static void Main_ClearProject(void) {
 	MemFile mem;
 	
+	RemoveFolder("rom/");
+}
+
+static void Main_ClearDump(void) {
+	MemFile mem;
+	
 	if (Sys_Stat(gProjectConfig)) {
 		MemFile_LoadFile_String(&mem, gProjectConfig);
 		gVanilla = Config_GetStr(&mem, "z_vanilla");
@@ -540,7 +546,10 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		MemFile_Free(&mem);
 	}
 	
-	if (Arg("clear-project") || Arg("clear-cache") || Arg("clear-all")) {
+	if (Arg("clear-dump") || Arg("clear-cache") || Arg("clear-all")) {
+		if (Arg("clear-dump") || Arg("clear-all")) {
+			Main_ClearDump();
+		}
 		if (Arg("clear-project") || Arg("clear-all")) {
 			Main_ClearProject();
 		}
@@ -702,6 +711,16 @@ s32 Main(s32 argc, char* argv[]) {
 	Sys_SetWorkDir(Sys_AppDir());
 	
 	Temporary_TomlToCfg();
+	
+	if (Arg("migrate")) {
+		char* mode = argv[parArg];
+		if (argc > parArg + 1)
+			Migrate(mode, argv[parArg + 1]);
+		else
+			printf_error("Usage: --migrate project-format path");
+		
+		return 0;
+	}
 	
 	if (Arg("help")) Main_PrintHelp();
 	

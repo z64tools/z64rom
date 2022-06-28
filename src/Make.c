@@ -72,6 +72,152 @@ static void Make_Thread(Thread* thread, void (*func)(MakeArg*), void* arg) {
 }
 
 // # # # # # # # # # # # # # # # # # # # #
+// # Make_Object                         #
+// # # # # # # # # # # # # # # # # # # # #
+
+s32 sObjectCompile;
+
+static ThreadFunc Object_Convert(MakeArg* arg) {
+	char* cmd;
+	char* in;
+	char* out;
+	char* cfg;
+	char* header;
+	char* linker;
+	MemFile mem = MemFile_Initialize();
+	
+	FileSys_Path(arg->path);
+	
+	in = FileSys_FindFile("*.objex");
+	cfg = FileSys_File("config.cfg");
+	
+	if (in == NULL)
+		return;
+	
+	if (!Sys_Stat(cfg))
+		printf_error("No 'config.cfg' in '%s'", arg->path);
+	
+	out = xRep(xRep(in, ".objex", ".zobj"), "src/", "rom/");
+	
+	if (Sys_Stat(out) > Sys_Stat(in) && Sys_Stat(out) > Sys_Stat(in))
+		return;
+	
+	header = xFmt("src/lib_user/object/%s.ld", xRep(PathSlot(in, -1), "/", ""));
+	linker = xRep(xRep(header, "src/lib_user/", "include/"), ".ld", ".h");
+	
+	Sys_MakeDir(Path(header));
+	Sys_MakeDir(Path(linker));
+	Sys_MakeDir(Path(out));
+	
+	MemFile_LoadFile_String(&mem, cfg);
+	
+	if (!Config_Variable(mem.str, "segment"))
+		printf_error("No 'segment' in '%s'", arg->path);
+	if (!Config_Variable(mem.str, "scale"))
+		printf_error("No 'scale' in '%s'", arg->path);
+	
+	sObjectCompile = true;
+	Malloc(cmd, 1024);
+	Tools_Command(
+		cmd,
+		z64convert,
+		"--silent "
+		"--in %s "
+		"--out %s "
+		"--address 0x%08X "
+		"--scale %ff "
+		"--header %s "
+		"--linker %s",
+		in,
+		out,
+		(Config_GetInt(&mem, "segment") << 24),
+		Config_GetFloat(&mem, "scale"),
+		header,
+		linker
+	);
+	Make_Run(cmd);
+	Make_Info("z64convert", out);
+	
+	MemFile_Free(&mem);
+	Free(cmd);
+}
+
+void Make_Object(void) {
+	ItemList list = ItemList_Initialize();
+	MakeArg* targ;
+	Thread* thread;
+	s32 i = 0;
+	
+	if (!Sys_Stat("src/object/"))
+		return;
+	
+	Calloc(targ, sizeof(MakeArg) * gThreadNum);
+	Calloc(thread, sizeof(Thread) * gThreadNum);
+	
+	ItemList_List(&list, "src/object/", 0, LIST_FOLDERS | LIST_NO_DOT);
+	
+	if (list.num == 0)
+		goto free;
+	
+	if (gThreading)
+		ThreadLock_Init();
+	
+	while (i < list.num) {
+		u32 target = Clamp(list.num - i, 0, gThreadNum);
+		
+		for (s32 j = 0; j < target; j++) {
+			targ[j].path = list.item[i + j];
+			
+			if (gThreading) {
+				ThreadLock_Create(&thread[j], Object_Convert, &targ[j]);
+			} else {
+				Object_Convert(&targ[j]);
+			}
+		}
+		
+		if (gThreading)
+			for (s32 j = 0; j < target; j++)
+				ThreadLock_Join(&thread[j]);
+		
+		i += gThreadNum;
+	}
+	
+	if (gThreading)
+		ThreadLock_Free();
+	
+	if (sObjectCompile) {
+		MemFile mem = MemFile_Initialize();
+		MemFile mout = MemFile_Initialize();
+		ItemList ldFiles = ItemList_Initialize();
+		
+		MemFile_Alloc(&mem, MbToBin(2));
+		MemFile_Alloc(&mout, MbToBin(2));
+		MemFile_Params(&mem, MEM_REALLOC, true, MEM_END);
+		MemFile_Params(&mout, MEM_REALLOC, true, MEM_END);
+		
+		ItemList_List(&ldFiles, "include/object/", 0, LIST_FILES | LIST_NO_DOT);
+		
+		for (s32 j = 0; j < ldFiles.num; j++) {
+			MemFile_LoadFile_String(&mem, ldFiles.item[j]);
+			MemFile_Append(&mout, &mem);
+			MemFile_Printf(&mout, "\n");
+		}
+		
+		MemFile_SaveFile_String(&mout, "include/z_object_user.ld");
+		
+		ItemList_Free(&ldFiles);
+		MemFile_Free(&mout);
+		MemFile_Free(&mem);
+	}
+	
+free:
+	
+	Free(targ);
+	Free(thread);
+	ItemList_Free(&list);
+}
+
+// # # # # # # # # # # # # # # # # # # # #
 // # Make_Sound                          #
 // # # # # # # # # # # # # # # # # # # # #
 
@@ -433,6 +579,9 @@ static s32 Callback_Dependencies_PreLd(const char* input, const char* output) {
 		ret = true;
 	
 	else if (Sys_Stat("include/z_lib_user.ld") > Sys_Stat(output))
+		ret = true;
+	
+	else if (Sys_Stat("include/z_object_user.ld") > Sys_Stat(output))
 		ret = true;
 	
 	ItemList_Free(&list);
@@ -1362,6 +1511,9 @@ void Make(Rom* rom, s32 message) {
 	setvbuf(stdout, NULL, _IONBF, 0);
 	
 	if (gMakeTarget) {
+		if (StrStrCase(gMakeTarget, "object")) {
+			Make_Object();
+		}
 		if (StrStrCase(gMakeTarget, "audio")) {
 			Make_Sound();
 			Make_Sequence();
@@ -1369,6 +1521,7 @@ void Make(Rom* rom, s32 message) {
 		if (StrStrCase(gMakeTarget, "code"))
 			Make_Code();
 	} else {
+		Make_Object();
 		Make_Sequence();
 		Make_Sound();
 		Make_Code();

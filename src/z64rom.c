@@ -419,6 +419,7 @@ static void Main_WriteCfg(MemFile* config, const char* romName, const char* buil
 		"ld_code_flags",
 		"-T z64hdr.ld "
 		"-T z_lib_user.ld "
+		"-T z_object_user.ld "
 		"--emit-relocs",
 		QUOTES,
 		NO_COMMENT
@@ -437,6 +438,7 @@ static void Main_WriteCfg(MemFile* config, const char* romName, const char* buil
 		config,
 		"ld_ulib_flags",
 		"-T ulib_linker.ld "
+		"-T z_object_user.ld "
 		"--emit-relocs",
 		QUOTES,
 		NO_COMMENT
@@ -543,8 +545,10 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	if (Arg("clear-dump") || Arg("clear-cache") || Arg("clear-all")) {
 		if (Arg("clear-dump") || Arg("clear-all"))
 			Main_ClearDump();
-		if (Arg("clear-project") || Arg("clear-all"))
+		if (Arg("clear-project") || Arg("clear-all")) {
 			RemoveFolder("rom/");
+			RemoveFolder("include/object/");
+		}
 		if (Arg("clear-cache") || Arg("clear-all"))
 			Main_ClearCache();
 		

@@ -1151,7 +1151,36 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	Calloc(list[HEADER_MAIN], sizeof(ItemList));
 	Calloc(segmentStart[HEADER_MAIN], sizeof(u32) * roomNum);
 	Calloc(segmentEnd[HEADER_MAIN], sizeof(u32) * roomNum);
+	
+	if (!Config_Variable(memCfg->str, "rooms")) {
+		printf_warning("Scene config '%s' is missing 'rooms' variable...", memCfg->info.name);
+		printf_warning("z64rom can generate this but do not trust it to do perfect job on this.");
+		printf_warning("Want to generate new one automatically? " PRNT_GRAY "[y/n]");
+		
+		if (Terminal_YesOrNo()) {
+			ItemList flist = ItemList_Initialize();
+			
+			ItemList_SetFilter(&flist, CONTAIN_END, ".zroom", CONTAIN_END, ".zmap");
+			ItemList_List(&flist, Path(memCfg->info.name), 0, LIST_FILES | LIST_NO_DOT | LIST_RELATIVE);
+			
+			MemFile_Seek(memCfg, MEMFILE_SEEK_END);
+			MemFile_Printf(memCfg, "\n");
+			Config_WriteArray(memCfg, "rooms", &flist, QUOTES, NO_COMMENT);
+			
+			MemFile_SaveFile(memCfg, memCfg->info.name);
+			
+			ItemList_Free(&flist);
+		} else {
+			printf_nl();
+			printf_warning("Exiting. Go fix that config!");
+			exit(1);
+		}
+	}
+	
 	Config_GetArray(memCfg, "rooms", list[HEADER_MAIN]);
+	
+	if (roomNum != list[HEADER_MAIN]->num)
+		printf_warning("Room number mismatch in '%s'. This might cause issues...", memCfg->info.name);
 	
 	if (list[HEADER_MAIN]->num == 0)
 		printf_error("No rooms provided in '%s'", memCfg->info.name);

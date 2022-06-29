@@ -7,6 +7,7 @@ typedef enum {
 	mips64_objcopy,
 	z64audio,
 	z64convert,
+	z64playas,
 	seq64,
 	seqas,
 	nOVL,

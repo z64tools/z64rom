@@ -8,3 +8,6 @@
 	path = tools/z64convert
 	url = https://github.com/turpaan64/z64convert.git
 	branch = document-print
+[submodule "tools/z64playas"]
+	path = tools/z64playas
+	url = https://github.com/z64tools/z64playas.git

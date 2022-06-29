@@ -85,6 +85,7 @@ static ThreadFunc Object_Convert(MakeArg* arg) {
 	char* header;
 	char* linker;
 	MemFile mem = MemFile_Initialize();
+	bool isPlayas = false;
 	
 	FileSys_Path(arg->path);
 	
@@ -99,7 +100,7 @@ static ThreadFunc Object_Convert(MakeArg* arg) {
 	
 	out = xRep(xRep(in, ".objex", ".zobj"), "src/", "rom/");
 	
-	if (Sys_Stat(out) > Sys_Stat(in) && Sys_Stat(out) > Sys_Stat(in))
+	if (Sys_Stat(out) > Sys_Stat(in) && Sys_Stat(out) > Sys_Stat(in) && Sys_Stat(out) > (Sys_Stat(cfg)))
 		return;
 	
 	header = xFmt("src/lib_user/object/%s.ld", xRep(PathSlot(in, -1), "/", ""));
@@ -135,8 +136,45 @@ static ThreadFunc Object_Convert(MakeArg* arg) {
 		header,
 		linker
 	);
-	Make_Run(cmd);
+	
+	if (StrStr(mem.str, "[playas]")) {
+		isPlayas = true;
+		catprintf(cmd, " --playas");
+	}
+	
 	Make_Info("z64convert", out);
+	Make_Run(cmd);
+	
+	if (isPlayas) {
+		Config_GotoSection("playas");
+		char* header = Config_GetStr(&mem, "header");
+		char* patch = Config_GetStr(&mem, "patch");
+		char* script = Config_GetStr(&mem, "script");
+		char* bank = Config_GetStr(&mem, "bank");
+		
+		Tools_Command(
+			cmd,
+			z64playas,
+			"--no-wait "
+			"--silence "
+			"--i %s "
+			"--o %s "
+			"--b %s "
+			"--s %s "
+			"--p %s "
+			"--h %s "
+			,
+			out,
+			out,
+			FileSys_File(bank),
+			FileSys_File(script),
+			FileSys_File(patch),
+			FileSys_File(header)
+		);
+		
+		Make_Info("z64playas", out);
+		Make_Run(cmd);
+	}
 	
 	MemFile_Free(&mem);
 	Free(cmd);

@@ -9,7 +9,7 @@ SOURCE_O_WIN32 := $(foreach f,$(SOURCE_C:.c=.o),bin/win32/$f)
 RELEASE_EXECUTABLE_LINUX := app_linux/z64rom
 RELEASE_EXECUTABLE_WIN32 := app_win32/z64rom.exe
 
-TOOLS_WIN32    := project/tools/novl.exe project/tools/z64audio.exe project/tools/z64convert.exe project/tools/seqas.exe
+TOOLS_WIN32    := project/tools/novl.exe project/tools/z64playas.exe project/tools/z64audio.exe project/tools/z64convert.exe project/tools/seqas.exe
 TOOLS_LINUX    := $(foreach f,$(TOOLS_WIN32:.exe=),$f)
 
 SOURCE_nOVL_C            := $(shell find tools/nOVL/src/* -type f -name '*.c')
@@ -122,6 +122,15 @@ project/tools/z64audio: tools/z64audio/z64audio.c
 project/tools/z64audio.exe: tools/z64audio/z64audio.c
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@$(MAKE) -C tools/z64audio win32 -j --no-print-directory --silent
+	@cp $(<:.c=.exe) $@
+
+project/tools/z64playas: tools/z64playas/app_linux/z64playas
+	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
+	@$(MAKE) -C tools/z64playas linux -j --no-print-directory --silent
+	@cp $(<:.c=) $@
+project/tools/z64playas.exe: tools/z64playas/app_win32/z64playas.exe
+	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
+	@$(MAKE) -C tools/z64playas win32 -j --no-print-directory --silent
 	@cp $(<:.c=.exe) $@
 	
 project/tools/z64convert: tools/z64convert/src/z64convert.c

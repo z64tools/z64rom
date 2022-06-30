@@ -979,19 +979,6 @@ static void Build_Actor(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		SwapBE(entry[i].vromEnd);
 		
 		entry[i].loadedRamAddr = 0;
-		
-		if (gBuildTarget == ROM_DEV && entry[i].name) {
-			u32 romAddr = ReadBE(entry[i].name) - 0x7F588E60;
-			void* target;
-			char buf[64];
-			u32 id;
-			
-			Log("Filename Offset [%08X]", romAddr);
-			
-			target = SegmentedToVirtual(SEG_CODE, romAddr - RELOC_CODE);
-			sscanf(PathSlot(list.item[i], -1), "0x%04X-%s/", &id, buf);
-			strncpy(target, buf, strlen(target));
-		}
 	}
 	
 	ItemList_Free(&list);
@@ -1153,37 +1140,42 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	Calloc(segmentEnd[HEADER_MAIN], sizeof(u32) * roomNum);
 	
 	if (!Config_Variable(memCfg->str, "rooms")) {
-		printf_warning("Scene config '%s' is missing 'rooms' variable...", memCfg->info.name);
-		printf_warning("z64rom can generate this but do not trust it to do perfect job on this.");
-		printf_warning("Want to generate new one automatically? " PRNT_GRAY "[y/n]");
+		ItemList flist = ItemList_Initialize();
+		ItemList nlist = ItemList_Initialize();
 		
-		if (Terminal_YesOrNo()) {
-			ItemList flist = ItemList_Initialize();
-			
-			ItemList_SetFilter(&flist, CONTAIN_END, ".zroom", CONTAIN_END, ".zmap");
-			ItemList_List(&flist, Path(memCfg->info.name), 0, LIST_FILES | LIST_NO_DOT | LIST_RELATIVE);
-			
-			MemFile_Seek(memCfg, MEMFILE_SEEK_END);
-			MemFile_Printf(memCfg, "\n");
-			Config_WriteArray(memCfg, "rooms", &flist, QUOTES, NO_COMMENT);
-			
-			MemFile_SaveFile(memCfg, memCfg->info.name);
-			
-			ItemList_Free(&flist);
-		} else {
-			printf_nl();
-			printf_warning("Exiting. Go fix that config!");
-			exit(1);
+		ItemList_SetFilter(&flist, CONTAIN_END, ".zroom", CONTAIN_END, ".zmap");
+		ItemList_List(&flist, Path(memCfg->info.name), 0, LIST_FILES | LIST_NO_DOT | LIST_RELATIVE);
+		ItemList_Alloc(&nlist, flist.num, flist.writePoint * 2);
+		
+		MemFile_Seek(memCfg, MEMFILE_SEEK_END);
+		MemFile_Printf(memCfg, "\n");
+		Config_WriteArray(memCfg, "rooms", &flist, QUOTES, NO_COMMENT);
+		
+		//crustify
+		forlist(t, nlist) {
+			ItemList_AddItem(
+				&nlist,
+				xFmt(
+					"room_%d.%s", t,
+					StrEnd(flist.item[0], ".zroom") ? "zroom" : "zmap"
+				)
+			);
 		}
+		//uncrustify
+		
+		MemFile_SaveFile(memCfg, memCfg->info.name);
+		
+		ItemList_Free(&flist);
+		ItemList_Free(&nlist);
 	}
 	
 	Config_GetArray(memCfg, "rooms", list[HEADER_MAIN]);
 	
 	if (roomNum != list[HEADER_MAIN]->num)
-		printf_warning("Room number mismatch in '%s'. This might cause issues...", memCfg->info.name);
+		printf_warning("Room number mismatch for scene " PRNT_GRAY "[" PRNT_REDD "%s" PRNT_GRAY "]", PathSlot(memCfg->info.name, -1));
 	
 	if (list[HEADER_MAIN]->num == 0)
-		printf_error("No rooms provided in '%s'", memCfg->info.name);
+		printf_error("No rooms provided in [%s]", memCfg->info.name);
 	
 	for (s32 header = 1; header < HEADER_MAX; header++) {
 		Config_GotoSection(xFmt("header%d", header + 1));
@@ -1233,7 +1225,7 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			segmentEnd[header][room] = ReadBE(Dma_GetVRomEnd());
 		}
 	}
-	Log("Rooms loaded!");
+	Log("Rooms loaded! [%d]", roomNum);
 	
 	u32* vromSeg;
 	
@@ -1257,11 +1249,14 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			u32* room;
 			room = hdr = SegmentedToVirtual(0x1, ReadBE(hdr[1]) & 0x00FFFFFF);
 			
+			Log("Header %08X", VirtualToSegmented(0x1, hdr));
+			
 			for (s32 r = 0;; r++) {
-				if ((hdr[r] & 0xFF) != 0x2 && hdr[r] != 0)
+				if ((hdr[r] & 0xFF) != 0x2 || hdr[r] != 0)
 					break;
 				
 				room = SegmentedToVirtual(0x1, ReadBE(hdr[r]) & 0xFFFFFF);
+				Log("Room %08X", VirtualToSegmented(0x1, room));
 				
 				for (;; room++) {
 					if ((room[0] & 0xFF) == 0x04) {
@@ -1295,6 +1290,7 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		}
 		
 		if ((*hdr & 0xFF) == 0x14) {
+			Log("Break");
 			break;
 		}
 	}
@@ -1328,8 +1324,14 @@ static void Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		u8* postDigest;
 		char* zscene;
 		
+		if (0) {
+empty:
+			entry[i] = (SceneEntry) { 0 };
+			continue;
+		}
+		
 		if (list.item[i] == NULL)
-			printf_error("Empty scene %d", i);
+			goto empty;
 		
 		if (i >= rom->table.num.scene) {
 			printf_warning("Illegal action! Can't have more than " PRNT_REDD "0x%X" PRNT_RSET " scenes!", rom->table.num.scene);
@@ -1344,7 +1346,7 @@ static void Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		if (!Sys_Stat(zscene)) {
 			zscene = FileSys_FindFile(".zscene");
 			if (!Sys_Stat(zscene))
-				printf_error("Could not locate '*.zscene' from '%s'", FileSys_File(""));
+				goto empty;
 		}
 		
 		MemFile_Reset(memCfg);

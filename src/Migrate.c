@@ -29,10 +29,10 @@ static void Migrate_Actor(ItemList* list, const char* folName, const char* path)
 			continue;
 		}
 		
-		FileSys_Path("rom/actor/0x%04X-%s/", i, gActorName_OoT[i]);
+		FileSys_Path("rom/actor/0x%04X-%s/", i, xRep(list->item[i], "/", ""));
 		new = FileSys_File("actor.zovl");
 		cfg = FileSys_File("config.cfg");
-		Sys_MakeDir(Path(new), gActorName_OoT[i]);
+		Sys_MakeDir(Path(new), xRep(list->item[i], "/", ""));
 		
 		if (!Sys_Stat(txt))
 			printf_error("Where is the conf.txt? [%s]", ovl);
@@ -78,6 +78,7 @@ static void Migrate_Actor(ItemList* list, const char* folName, const char* path)
 	}
 	ItemList_Free(list);
 }
+
 static void Migrate_Effect(ItemList* list, const char* folName, const char* path) {
 	ItemList_List(list, xFmt("%s%s/", path, folName), 0, LIST_FOLDERS | LIST_RELATIVE);
 	ItemList_NumericalSort(list);
@@ -86,6 +87,7 @@ static void Migrate_Effect(ItemList* list, const char* folName, const char* path
 		MemFile mem = MemFile_Initialize();
 		char* ovl;
 		char* new;
+		char* txt;
 		char* cfg;
 		char* tuna;
 		u32 vramAddr;
@@ -95,18 +97,21 @@ static void Migrate_Effect(ItemList* list, const char* folName, const char* path
 		
 		FileSys_Path("%s%s/%s", path, folName, list->item[i]);
 		ovl = FileSys_File("particle.zovl");
+		txt = FileSys_File("conf.txt");
 		
 		if (!Sys_Stat(ovl))
 			continue;
 		
-		FileSys_Path("rom/effect/0x%04X-%s/", i, gEffectName_OoT[i]);
+		FileSys_Path("rom/effect/0x%04X-%s/", i, xRep(list->item[i], "/", ""));
 		new = FileSys_File("effect.zovl");
 		cfg = FileSys_File("config.cfg");
-		Sys_MakeDir(Path(new), gEffectName_OoT[i]);
+		Sys_MakeDir(Path(new), xRep(list->item[i], "/", ""));
 		
 		if (!Sys_Stat(ovl))
 			continue;
 		
+		MemFile_LoadFile_String(&mem, txt);
+		vramAddr = Value_Hex(Word(StrStr(mem.str, "VRAM"), 1));
 		MemFile_LoadFile(&mem, ovl);
 		u16* id = (void*)(tuna = MemMem(mem.data, mem.size, "tuna", 4));
 		
@@ -114,7 +119,6 @@ static void Migrate_Effect(ItemList* list, const char* folName, const char* path
 		SwapBE(*id);
 		MemFile_SaveFile(&mem, new);
 		
-		vramAddr = Value_Hex(Word(StrStr(mem.str, "VRAM"), 1));
 		offset = vramAddr + (tuna - mem.str);
 		
 		MemFile_Reset(&mem);
@@ -126,6 +130,7 @@ static void Migrate_Effect(ItemList* list, const char* folName, const char* path
 	}
 	ItemList_Free(list);
 }
+
 static void Migrate_Object(ItemList* list, const char* folName, const char* path) {
 	ItemList_List(list, xFmt("%s%s/", path, folName), 0, LIST_FOLDERS | LIST_RELATIVE);
 	ItemList_NumericalSort(list);
@@ -136,20 +141,24 @@ static void Migrate_Object(ItemList* list, const char* folName, const char* path
 		
 		printf_progress("Object", i + 1, list->num);
 		
+		if (i == 0x14 || i == 0x15)
+			continue;
+		
 		FileSys_Path("%s%s/%s", path, folName, list->item[i]);
 		zobj = FileSys_File("zobj.zobj");
 		
 		if (!Sys_Stat(zobj))
 			continue;
 		
-		FileSys_Path("rom/object/0x%04X-%s/", i, gObjectName_OoT[i]);
+		FileSys_Path("rom/object/0x%04X-%s/", i, xRep(list->item[i], "/", ""));
 		new = FileSys_File("object.zobj");
-		Sys_MakeDir(Path(new), gObjectName_OoT[i]);
+		Sys_MakeDir(Path(new), xRep(list->item[i], "/", ""));
 		
 		Sys_Copy(zobj, new);
 	}
 	ItemList_Free(list);
 }
+
 static void Migrate_Scene(ItemList* list, const char* folName, const char* path) {
 	ItemList_List(list, xFmt("%s%s/", path, folName), 0, LIST_FOLDERS | LIST_RELATIVE);
 	ItemList_NumericalSort(list);
@@ -196,7 +205,7 @@ static void Migrate_Scene(ItemList* list, const char* folName, const char* path)
 				char* output;
 				
 				input = FileSys_File(files.item[j]);
-				FileSys_Path("rom/scene/0x%02X-%s/", i, gSceneName_OoT[i]);
+				FileSys_Path("rom/scene/0x%02X-%s/", i, xRep(list->item[i], "/", ""));
 				
 				output = FileSys_File(files.item[j]);
 				FileSys_Path("%s%s/%s", path, folName, list->item[i]);
@@ -206,8 +215,9 @@ static void Migrate_Scene(ItemList* list, const char* folName, const char* path)
 			}
 		}
 		
-		FileSys_Path("rom/scene/0x%02X-%s/", i, gSceneName_OoT[i]);
+		FileSys_Path("rom/scene/0x%02X-%s/", i, xRep(list->item[i], "/", ""));
 		
+		Sys_MakeDir(FileSys_File(""));
 		Config_WriteArray(&cfg, "rooms", &rooms, QUOTES, NO_COMMENT);
 		MemFile_SaveFile_String(&cfg, FileSys_File("config.cfg"));
 		
@@ -217,6 +227,7 @@ static void Migrate_Scene(ItemList* list, const char* folName, const char* path)
 	
 	ItemList_Free(list);
 }
+
 static void Migrate_System(ItemList* list, const char* folName, const char* path) {
 	const char* map[][2] = {
 		{ "do_action_static",          map[0][0] },
@@ -263,6 +274,7 @@ static void Migrate_System(ItemList* list, const char* folName, const char* path
 	}
 	ItemList_Free(list);
 }
+
 static void Migrate_EntranceTable(const char* table, const char* path) {
 	MemFile mem = MemFile_Initialize();
 	MemFile mou = MemFile_Initialize();
@@ -310,6 +322,7 @@ static void Migrate_RomToolLite(const char* path) {
 	Migrate_Object(&list, "object", path);
 	Migrate_Scene(&list, "scene", path);
 	Migrate_EntranceTable("scene/route.txt", path);
+	Migrate_EntranceTable("route.txt", path);
 	
 	ItemList_Free(&list);
 }

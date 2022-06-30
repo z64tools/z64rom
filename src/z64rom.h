@@ -281,5 +281,6 @@ void fix_crc(unsigned char* rom);
 const char* Transition_GetName(s32 type);
 s32 Transition_GetType(const char* str);
 void Migrate(const char* type, const char* path);
+void Sym(const char* symbol);
 
 #endif

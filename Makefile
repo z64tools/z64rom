@@ -124,14 +124,14 @@ project/tools/z64audio.exe: tools/z64audio/z64audio.c
 	@$(MAKE) -C tools/z64audio win32 -j --no-print-directory --silent
 	@cp $(<:.c=.exe) $@
 
-project/tools/z64playas: tools/z64playas/app_linux/z64playas
+project/tools/z64playas:
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@$(MAKE) -C tools/z64playas linux -j --no-print-directory --silent
-	@cp $(<:.c=) $@
-project/tools/z64playas.exe: tools/z64playas/app_win32/z64playas.exe
+	@cp tools/z64playas/app_linux/z64playas $@
+project/tools/z64playas.exe:
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"
 	@$(MAKE) -C tools/z64playas win32 -j --no-print-directory --silent
-	@cp $(<:.c=.exe) $@
+	@cp tools/z64playas/app_win32/z64playas.exe $@
 	
 project/tools/z64convert: tools/z64convert/src/z64convert.c
 	@echo "$(PRNT_RSET)[$(PRNT_PRPL)$(notdir $@)$(PRNT_RSET)]"

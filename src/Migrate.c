@@ -321,8 +321,16 @@ static void Migrate_RomToolLite(const char* path) {
 	Migrate_Effect(&list, "particle", path);
 	Migrate_Object(&list, "object", path);
 	Migrate_Scene(&list, "scene", path);
-	Migrate_EntranceTable("scene/route.txt", path);
-	Migrate_EntranceTable("route.txt", path);
+	if (Sys_Stat(xFmt("%sscene/route.txt", path)))
+		Migrate_EntranceTable("scene/route.txt", path);
+	else
+		Migrate_EntranceTable("route.txt", path);
+	
+	if (Sys_Stat(xFmt("%smessages/", path))) {
+		FileSys_Path("%smessages/", path);
+		Sys_Copy(FileSys_File("MessageTbl.tbl"), "rom/system/static/message_data_static_NES.tbl");
+		Sys_Copy(FileSys_File("StringData.bin"), "rom/system/static/message_data_static_NES.bin");
+	}
 	
 	ItemList_Free(&list);
 }

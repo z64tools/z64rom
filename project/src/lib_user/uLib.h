@@ -1,6 +1,16 @@
 #ifndef __ULIB_H__
 #define __ULIB_H__
 
+// # # # # # # # # # # # # # # # # # # # #
+// # User Library Patches                #
+// # # # # # # # # # # # # # # # # # # # #
+
+#define ChildLink_HylianShieldAdjust false
+
+// # # # # # # # # # # # # # # # # # # # #
+// # UserLibrary                         #
+// # # # # # # # # # # # # # # # # # # # #
+
 #include <oot_mq_debug/z64hdr.h>
 
 #include <library/Library.h>

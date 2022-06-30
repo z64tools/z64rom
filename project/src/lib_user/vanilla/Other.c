@@ -187,3 +187,9 @@ s32 Actor_TalkCondition(Actor* actor, PlayState* playState, f32 xDist, f32 yDist
 	
 	return true;
 }
+
+#if ChildLink_HylianShieldAdjust == false
+s32 Vanilla_HylianShieldCondition(Player* this) {
+	return gSaveContext.linkAge && (this->currentShield == PLAYER_SHIELD_HYLIAN);
+}
+#endif

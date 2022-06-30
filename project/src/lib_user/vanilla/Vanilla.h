@@ -7,6 +7,8 @@ void* uObject_MagicFunc(ObjectContext* objectCtx, s32 bankIndex, s16 objectId);
 s32 uObject_Spawn(ObjectContext* objectCtx, s16 objectId);
 void uObject_UpdateBank(ObjectContext* objectCtx);
 
+s32 Vanilla_HylianShieldCondition(Player* this);
+
 u32 PlayerLib_InitSkelanime(PlayState* playState, u8* segment, SkelAnime* skelAnime);
 
 s32 Actor_TalkCondition(Actor* actor, PlayState* playState, f32 arg2, f32 arg3, u32 exchangeItemId);

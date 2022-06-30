@@ -1096,49 +1096,110 @@ static void Build_Object(Rom* rom, MemFile* memData, MemFile* memCfg) {
 
 typedef enum {
 	HEADER_MAIN = 0,
-	HEADER_MAX  = 9,
 } RoomHeader;
+
+void* Scene_SegmentedToVirtual(void32 ptr) {
+	return SegmentedToVirtual(0x2, ptr & 0xFFFFFF);
+}
+
+void* Scene_GetCmd(u32* ptr, u32 cmd) {
+	while ((ReadBE(*ptr) & 0xFF000000) != (cmd << 24)) {
+		ptr++; ptr++;
+		
+		if ((ReadBE(*ptr) & 0xFF000000) == 0x14000000)
+			return NULL;
+	}
+	
+	return ptr;
+}
+
+void* Scene_GetHeader(s32 setupIndex) {
+	u32* ptr = Scene_SegmentedToVirtual(0);
+	
+	if (setupIndex == -1)
+		return ptr;
+	
+	if ((ptr = Scene_GetCmd(ptr, 0x18)) == NULL) return NULL;
+	ptr = Scene_SegmentedToVirtual(ReadBE(ptr[1]));
+	
+	for (s32 i = 0;; i++, ptr++) {
+		if ((ReadBE(*ptr) & 0xFF000000) != 0x02000000 && *ptr != 0)
+			return NULL;
+		
+		if (i == setupIndex)
+			return Scene_SegmentedToVirtual(ReadBE(*ptr));
+	}
+	
+	return NULL;
+}
+
+void* Scene_GetRoomList(s32 setupIndex) {
+	u32* ptr = Scene_GetHeader(setupIndex);
+	
+	if (ptr == NULL) return NULL;
+	if ((ptr = Scene_GetCmd(ptr, 0x04)) == NULL) return NULL;
+	
+	return ptr;
+}
 
 static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	MemFile memRoom = MemFile_Initialize();
-	u32* seg;
 	u32 roomNum;
-	u32 roomListSeg;
-	u32 max = 1;
+	u32 hdrNum = 1;
+	u32* seg;
 	
 	ItemList** list;
 	u32** segmentStart;
 	u32** segmentEnd;
 	
-	Calloc(list, sizeof(void*) * HEADER_MAX);
-	Calloc(segmentStart, sizeof(void*) * HEADER_MAX);
-	Calloc(segmentEnd, sizeof(void*) * HEADER_MAX);
+	SetSegment(0x2, memData->data);
+	if ((seg = Scene_GetRoomList(-1)) == NULL)
+		printf_error("Could not find SceneHeader! [%s]", PathSlot(memData->info.name, -1));
+	
+	// 0x04XX0000
+	roomNum = ((u8*)seg)[1];
+	
+	// If command does not exist, there's not more headers
+	if (Scene_GetCmd(memData->data, 0x18)) {
+		for (;; hdrNum++)
+			if (Scene_GetHeader(hdrNum) == NULL)
+				break;
+	}
 	
 	MemFile_Alloc(&memRoom, MbToBin(1));
 	MemFile_Params(&memRoom, MEM_REALLOC, true, MEM_END);
 	
-	SetSegment(0x1, memData->data);
-	seg = SegmentedToVirtual(0x1, 0);
+	Calloc(list, sizeof(void*) * hdrNum);
+	Calloc(segmentStart, sizeof(void*) * hdrNum);
+	Calloc(segmentEnd, sizeof(void*) * hdrNum);
 	
-	for (;;) {
-		if ((seg[0] & 0xFF) == 0x04) {
-			break;
+	// Allocate lists
+	for (s32 header = 0; header < hdrNum; header++) {
+		switch (header) {
+			case 0:
+				Calloc(list[HEADER_MAIN], sizeof(ItemList));
+				Calloc(segmentStart[HEADER_MAIN], sizeof(u32) * roomNum);
+				Calloc(segmentEnd[HEADER_MAIN], sizeof(u32) * roomNum);
+				break;
+				
+			default:
+				Config_GotoSection(xFmt("header%d", header + 1));
+				
+				// Allocate only if the section exists in config
+				if (Config_Variable(memCfg->str, "rooms")) {
+					Calloc(list[header], sizeof(ItemList));
+					Config_GetArray(memCfg, "rooms", list[header]);
+					
+					Calloc(segmentStart[header], sizeof(u32) * roomNum);
+					Calloc(segmentEnd[header], sizeof(u32) * roomNum);
+				}
+				
+				Config_GotoSection(NULL);
+				break;
 		}
-		if ((seg[0] & 0xFF) == 0x14) {
-			printf_warning_align("Scene", "Failed finding room list");
-			seg = 0;
-			break;
-		}
-		seg++;
 	}
 	
-	roomNum = (seg[0] & 0xFF00) >> 8;
-	
-	// Allocate lists and segments for all existing headers from config
-	Calloc(list[HEADER_MAIN], sizeof(ItemList));
-	Calloc(segmentStart[HEADER_MAIN], sizeof(u32) * roomNum);
-	Calloc(segmentEnd[HEADER_MAIN], sizeof(u32) * roomNum);
-	
+	// Generate rooms array if one isn't provided in config.cfg
 	if (!Config_Variable(memCfg->str, "rooms")) {
 		ItemList flist = ItemList_Initialize();
 		ItemList nlist = ItemList_Initialize();
@@ -1170,30 +1231,11 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	}
 	
 	Config_GetArray(memCfg, "rooms", list[HEADER_MAIN]);
+	if (list[HEADER_MAIN]->num == 0) printf_error("No rooms provided in [%s]", memCfg->info.name);
+	if (roomNum != list[HEADER_MAIN]->num) printf_warning("Room number mismatch for scene " PRNT_GRAY "[" PRNT_REDD "%s" PRNT_GRAY "]", PathSlot(memCfg->info.name, -1));
 	
-	if (roomNum != list[HEADER_MAIN]->num)
-		printf_warning("Room number mismatch for scene " PRNT_GRAY "[" PRNT_REDD "%s" PRNT_GRAY "]", PathSlot(memCfg->info.name, -1));
-	
-	if (list[HEADER_MAIN]->num == 0)
-		printf_error("No rooms provided in [%s]", memCfg->info.name);
-	
-	for (s32 header = 1; header < HEADER_MAX; header++) {
-		Config_GotoSection(xFmt("header%d", header + 1));
-		
-		if (Config_Variable(memCfg->str, "rooms")) {
-			Calloc(list[header], sizeof(ItemList));
-			Config_GetArray(memCfg, "rooms", list[header]);
-			
-			Calloc(segmentStart[header], sizeof(u32) * roomNum);
-			Calloc(segmentEnd[header], sizeof(u32) * roomNum);
-			max = header + 1;
-		}
-		
-		Config_GotoSection(NULL);
-	}
-	Log("Lists and Segments allocated");
-	
-	for (s32 header = 0; header < max; header++) {
+	Log("Load Rooms");
+	for (s32 header = 0; header < hdrNum; header++) {
 		ItemList* this = list[header];
 		
 		if (this == NULL)
@@ -1210,7 +1252,7 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			}
 			
 			if (header > 0) {
-				printf_info("Extra Header! %d room %d", header, room);
+				Log("Extra Header! %d room %d", header, room);
 			}
 			
 			MemFile_Reset(&memRoom);
@@ -1225,84 +1267,36 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			segmentEnd[header][room] = ReadBE(Dma_GetVRomEnd());
 		}
 	}
-	Log("Rooms loaded! [%d]", roomNum);
 	
-	u32* vromSeg;
-	
-	roomListSeg = ReadBE(seg[1]) & 0xFFFFFF;
-	vromSeg = SegmentedToVirtual(0x1, roomListSeg);
-	
-	// Main Header Rooms
-	for (s32 j = 0; j < roomNum; j++) {
-		u32 id = j * 2;
+	Log("Update Room DmaSegments");
+	for (s32 header = 0; header < hdrNum; header++) {
+		u32 nextSegment;
+		s32 xHdr = hdrNum == 1 ? -1 : header;
 		
-		vromSeg[id + 0] = segmentStart[HEADER_MAIN][j];
-		vromSeg[id + 1] = segmentEnd[HEADER_MAIN][j];
-	}
-	Log("Main Header Assembled! [%s]", memData->info.name);
-	
-	u32* hdr = SegmentedToVirtual(0x1, 0);
-	
-	for (;; hdr++) {
-		if ((*hdr & 0xFF) == 0x18) {
-			u32 num;
-			u32* room;
-			room = hdr = SegmentedToVirtual(0x1, ReadBE(hdr[1]) & 0x00FFFFFF);
+		seg = Scene_GetRoomList(xHdr);
+		seg = Scene_SegmentedToVirtual(ReadBE(seg[1]));
+		Log("Segment %08X", VirtualToSegmented(0x2, seg));
+		
+		for (s32 i = 0; i < roomNum; i++) {
+			u32 ii = i * 2;
 			
-			Log("Header %08X", VirtualToSegmented(0x1, hdr));
-			
-			for (s32 r = 0;; r++) {
-				if ((hdr[r] & 0xFF) != 0x2 || hdr[r] != 0)
-					break;
-				
-				room = SegmentedToVirtual(0x1, ReadBE(hdr[r]) & 0xFFFFFF);
-				Log("Room %08X", VirtualToSegmented(0x1, room));
-				
-				for (;; room++) {
-					if ((room[0] & 0xFF) == 0x04) {
-						u32 seg;
-						num = (room[0] & 0xFF00) >> 8;
-						seg = ReadBE(room[1]) & 0xFFFFFF;
-						room = SegmentedToVirtual(0x1, seg);
-						
-						for (s32 j = 0; j < num; j++) {
-							u32 id = j * 2;
-							
-							if (r < max && segmentStart[r]) {
-								room[id + 0] = segmentStart[r][j];
-								room[id + 1] = segmentEnd[r][j];
-							} else {
-								room[id + 0] = segmentStart[HEADER_MAIN][j];
-								room[id + 1] = segmentEnd[HEADER_MAIN][j];
-							}
-						}
-						
-						break;
-					}
-					
-					if ((room[0] & 0xFF) == 0x14) {
-						break;
-					}
-				}
+			if (segmentStart[header] == NULL) {
+				seg[ii + 0] = segmentStart[HEADER_MAIN][i];
+				seg[ii + 1] = segmentEnd[HEADER_MAIN][i];
+				continue;
 			}
 			
-			break;
-		}
-		
-		if ((*hdr & 0xFF) == 0x14) {
-			Log("Break");
-			break;
+			seg[ii + 0] = segmentStart[header][i];
+			seg[ii + 1] = segmentEnd[header][i];
 		}
 	}
-	Log("Other Headers Assembled!");
 	
-	MemFile_Free(&memRoom);
-	for (s32 i = 0; i < HEADER_MAX; i++) {
-		if (list[i])
-			ItemList_Free(list[i]);
+	for (s32 i = 0; i < hdrNum; i++) {
+		if (list[i]) ItemList_Free(list[i]);
 		Free(segmentStart[i]);
 		Free(segmentEnd[i]);
 	}
+	MemFile_Free(&memRoom);
 	Free(segmentStart);
 	Free(segmentEnd);
 	Free(list);

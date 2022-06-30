@@ -19,11 +19,11 @@ static char* Make_Wildcard(const char* path, const char* fmt, ...) {
 	ItemList list = ItemList_Initialize();
 	char* file = NULL;
 	Time stat = 0;
-	char buf[64];
+	char* buf;
 	va_list va;
 	
 	va_start(va, fmt);
-	vsprintf(buf, fmt, va);
+	vasprintf(&buf, fmt, va);
 	va_end(va);
 	
 	ItemList_List(&list, path, 0, LIST_FILES | LIST_NO_DOT);
@@ -34,6 +34,7 @@ static char* Make_Wildcard(const char* path, const char* fmt, ...) {
 		}
 	}
 	
+	Free(buf);
 	if (file)
 		file = xStrDup(file);
 	

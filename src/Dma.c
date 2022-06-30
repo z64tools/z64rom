@@ -168,7 +168,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 		
 		start = slot->romStart;
 		dma->vromStart = slot->romStart;
-		dma->vromEnd = dma->vromStart + size;
+		dma->vromEnd = Align(dma->vromStart + size, 16);
 		
 		dma->romStart = yazt->romStart;
 		dma->romEnd = (yazt->romStart + Align(memFile->size, 16)) * compress;
@@ -193,7 +193,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 		MemFile_Align(&rom->file, 16);
 		
 		dma->vromStart = start;
-		dma->vromEnd = start + memFile->size;
+		dma->vromEnd = Align(start + memFile->size, 16);
 		dma->romStart = start;
 		dma->romEnd = 0;
 		
@@ -203,7 +203,7 @@ u32 Dma_WriteEntry(Rom* rom, s32 id, MemFile* memFile, s32 compress) {
 		SwapBE(dma->vromStart);
 		slot->romStart = rom->file.seekPoint;
 		
-		sVromEnd = start + memFile->size;
+		sVromEnd = Align(start + memFile->size, 16);
 		
 		gEntries--;
 		

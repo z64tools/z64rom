@@ -66,6 +66,7 @@ void Debug_DmaLog(DmaRequest* req) {
 		req->size,
 		id
 	);
+	osLibPrintf("ram:  " PRNT_PRPL "%08X", req->dramAddr);
 }
 
 #endif

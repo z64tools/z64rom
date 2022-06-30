@@ -1270,12 +1270,18 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	
 	Log("Update Room DmaSegments");
 	for (s32 header = 0; header < hdrNum; header++) {
+		Log("Header %d", header);
 		u32 nextSegment;
 		s32 xHdr = hdrNum == 1 ? -1 : header;
 		
 		seg = Scene_GetRoomList(xHdr);
 		seg = Scene_SegmentedToVirtual(ReadBE(seg[1]));
 		Log("Segment %08X", VirtualToSegmented(0x2, seg));
+		
+		if (memData->size < (VirtualToSegmented(0x2, seg) & 0xFFFFFF)) {
+			Log("Invalid Segment, breaking!");
+			break;
+		}
 		
 		for (s32 i = 0; i < roomNum; i++) {
 			u32 ii = i * 2;

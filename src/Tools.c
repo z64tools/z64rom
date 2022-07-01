@@ -1,6 +1,6 @@
 #include "z64rom.h"
 #include "Tools.h"
-#include <zip.h>
+#include <ExtZip.h>
 
 #ifdef _WIN32
 const char* ZIP_BINUTIL = "tools/mips64-binutils-win32.zip";
@@ -165,22 +165,8 @@ static s32 Tools_BinutilsSHA256(const char* zip, const char* shaFile) {
 	return 0;
 }
 
-static s32 Tools_ZipExtractCallback(const char* name, void* arg) {
-	const char* filename = name;
-	s32 i = strlen(filename);
-	
-redo:
-	for (; i > 0; i--)
-		if (filename[i - 1] == '/')
-			break;
-	filename = &filename[i];
-	
-	if (strlen(filename) <= 1) {
-		i--;
-		goto redo;
-	}
-	
-	printf_prog_align("Extracting", filename, PRNT_REDD);
+static s32 Tools_ZipExtractCallback(const char* name, f32 prcnt) {
+	printf_progressFst("Extracting", (u32)prcnt, 100);
 	
 	return 0;
 }
@@ -301,6 +287,8 @@ const char* Tools_Get(ToolIndex id) {
 
 void Tools_Install_mips64(void) {
 	char command[512];
+	ZipFile zip;
+	const char* zipError = NULL;
 	
 	if (Sys_Stat("tools/.failsafe")) {
 		Sys_Delete_Recursive("tools/mips64-binutils/");
@@ -348,8 +336,24 @@ redo:
 	Terminal_ClearLines(2);
 	
 	Sys_Touch("tools/.failsafe");
-	if (zip_extract(ZIP_BINUTIL, "tools/mips64-binutils/", Tools_ZipExtractCallback, 0)) printf_error_align("zip_extract", "Failed");
-	Terminal_ClearLines(1);
+	
+	if (!ZipFile_Load(&zip, ZIP_BINUTIL, ZIP_READ))
+		printf_error("Could not load zip-file \"%s\"", ZIP_BINUTIL);
+	
+	switch (ZipFile_Extract(&zip, "tools/mips64-binutils/", Tools_ZipExtractCallback)) {
+		case ZIP_ERROR_OPEN_ENTRY:
+			if (!zipError) zipError = "Entry Open";
+		case ZIP_ERROR_RW_ENTRY:
+			if (!zipError) zipError = "Entry Read";
+		case ZIP_ERROR_CLOSE:
+			if (!zipError) zipError = "Entry Close";
+			
+			printf_error("ZipFile:" PRNT_REDD "%s: " PRNT_RSET "\"%s\"", zipError, zip.filename);
+			break;
+			
+		default:
+			ZipFile_Free(&zip);
+	}
 	
 #ifndef _WIN32
 	SysExe("chmod -R u+x tools/mips64-binutils/*");
@@ -365,6 +369,8 @@ void Tools_Install_z64hdr(s32 isUpdate) {
 	const char* extract = "include/z64hdr-main-dev/";
 	char command[512];
 	ItemList itemList = ItemList_Initialize();
+	ZipFile zip;
+	const char* zipError = NULL;
 	
 	if (isUpdate == true) {
 		Sys_Delete_Recursive("include/z64hdr");
@@ -401,8 +407,25 @@ redo:
 	
 	Terminal_ClearLines(1);
 	
-	if (zip_extract(ZIP_Z64HDR, "include/", Tools_ZipExtractCallback, 0)) printf_error_align("zip_extract", "Failed");
-	Terminal_ClearLines(1);
+	if (!ZipFile_Load(&zip, ZIP_Z64HDR, ZIP_READ))
+		printf_error("Could not load zip-file \"%s\"", ZIP_Z64HDR);
+	
+	switch (ZipFile_Extract(&zip, "include/", Tools_ZipExtractCallback)) {
+		case ZIP_ERROR_OPEN_ENTRY:
+			if (!zipError) zipError = "Entry Open";
+		case ZIP_ERROR_RW_ENTRY:
+			if (!zipError) zipError = "Entry Read";
+		case ZIP_ERROR_CLOSE:
+			if (!zipError) zipError = "Entry Close";
+			
+			printf_error("ZipFile:" PRNT_REDD "%s: " PRNT_RSET "\"%s\"", zipError, zip.filename);
+			break;
+			
+		default:
+			ZipFile_Free(&zip);
+	}
+	
+	Terminal_ClearLines(2);
 	
 	ItemList_List(&itemList, extract, -1, LIST_FILES);
 	
@@ -411,6 +434,8 @@ redo:
 		char* input = itemList.item[i];
 		char* output = strdup(input);
 		
+		printf_progressFst("Move", i + 1, itemList.num);
+		
 		StrRep(output, extract + strlen("include/"), "z64hdr/");
 		Sys_MakeDir(Path(output));
 		Sys_Rename(input, output);
@@ -418,10 +443,13 @@ redo:
 		Free(output);
 	}
 	
+	Terminal_ClearLines(2);
+	
 	Log("Clean Temporal Extraction");
 	if (Sys_Delete_Recursive(extract)) printf_error("Could not delete [%s]", extract);
 	
 	ItemList_Free(&itemList);
+	printf_info("Installed successfully!\n");
 }
 
 void Tools_CheckUpdates() {

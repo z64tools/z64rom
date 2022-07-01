@@ -927,8 +927,9 @@ static void Dump_EntranceTable(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		ItemList_Free(&list);
 	}
 	
-	MemFile_SaveFile_String(memData, "rom/system/entrance_table.cfg");
-	MemFile_SaveFile_String(memData, "rom/system/backup.entrance_table.cfg");
+	if (!Sys_Stat("rom/system/entrance_table.cfg"))
+		MemFile_SaveFile_String(memData, "rom/system/entrance_table.cfg");
+	MemFile_SaveFile_String(memData, "rom/system/vanilla.entrance_table.cfg");
 }
 
 // # # # # # # # # # # # # # # # # # # # #

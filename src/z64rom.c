@@ -32,63 +32,6 @@ const char* gProjectConfig = "z64project.cfg";
 const char* gBaserom = NULL;
 
 const char* sRomType[] = { "-release.z64", "-dev.z64" };
-const char* sHelp[][2] = {
-	{ "!" PRNT_BLUE "MANAGING", },
-	{ "update",                        "update z64hdr" },
-	{ "reinstall",                     "reinstall z64hdr & mips64-binutils" },
-	{ "clear-project",                 NULL },
-	{ "clear-cache",                   NULL },
-	{ "clean",                         "clean build files" },
-	{ "clean-samples",                 "clean unreferenced samples" },
-	{ NULL,                            NULL },
-	
-	{ "!" PRNT_BLUE "NO PROMPT", },
-	{ "!" PRNT_DGRY "Do not prompt questions when doing these operations.", },
-	{ "dump-rom     [bool]",           "" },
-	{ "dump-audio   [bool]",           "" },
-	{ "auto-install [bool]",           "" },
-	{ "!" PRNT_DGRY "If auto-install is \'false\', provide file-x arguments", },
-	{ "file-z64hdr  [file]",           "" },
-	{ "file-mips64  [file]",           "" },
-	{ NULL,                            NULL },
-	
-	{ "!" PRNT_BLUE "STRING OPTION", },
-	{ "vanilla [str]",                 "vanilla folder name. default: .vanilla" },
-	{ "target  [str]",                 "make target: \"audio\" / \"code\"" },
-	{ NULL,                            NULL },
-	
-	{ "!" PRNT_BLUE "VARIOUS", },
-	{ "info",                          "print slots" },
-	{ "yaz",                           "compress" },
-	{ "release",                       "build release" },
-	{ "log",                           "print logs on close" },
-	{ "force",                         "force builds" },
-	{ "make-only",                     "no build, only make" },
-	{ "threads [num]",                 "max threads amount, default 128" },
-	{ NULL,                            NULL },
-	
-	{ "!" PRNT_BLUE "NO", },
-	{ "no-wait",                       NULL },
-	{ "no-make",                       NULL },
-	{ "no-beta",                       NULL },
-	{ NULL,                            NULL },
-	
-	{ "!" PRNT_BLUE "RENAME", },
-	{ "zmap",                          "rename all rooms to .zmap" },
-	{ "zroom",                         "rename all rooms to .zroom" },
-	{ NULL,                            NULL },
-	
-	{ "!" PRNT_BLUE "AUDIO ONLY", },
-	{ "audio-only",                    NULL },
-	{ "dump",                          NULL },
-	{ "build",                         NULL },
-	
-	{ "!" PRNT_BLUE "INFO", },
-	{ "actor [id]",                    "" },
-	{ "dma   [id]",                    "" },
-	{ "scene [id]",                    "" },
-	{ NULL,                            NULL },
-};
 
 static void Main_Clean(void) {
 	ItemList list = ItemList_Initialize();
@@ -116,19 +59,8 @@ static void Main_Clean(void) {
 
 static void Main_PrintHelp(void) {
 	printf_toolinfo(gToolName, "Help");
-	foreach(i, sHelp) {
-		if (sHelp[i][0]) {
-			if (sHelp[i][0][0] == '!')
-				printf("" PRNT_RSET "%s", sHelp[i][0] + 1);
-			
-			else {
-				printf("" PRNT_RSET " --%-15s ", sHelp[i][0]);
-				if (sHelp[i][1])
-					printf("" PRNT_DGRY "%s", sHelp[i][1]);
-			}
-		}
-		printf("\n");
-	}
+	
+	printf("z64rom dev is lazy...\n" PRNT_BLUE "https://github.com/z64tools/z64rom/wiki/z64project\n\n");
 	
 	exit(0);
 }
@@ -234,37 +166,6 @@ static void Main_WiiVC() {
 	SysExe(buffer);
 	Free(target);
 	Free(rom);
-}
-
-static void Main_RenameRooms(const char* from, const char* to) {
-	ItemList list = ItemList_Initialize();
-	u32 times = 0;
-	
-	printf_toolinfo(gToolName, "Room Extension Rename");
-	
-	if (!Sys_Stat("z64project.cfg"))
-		printf_warning("No project found " PRNT_DGRY "[z64project.cfg]");
-	
-	ItemList_List(&list, "rom/scene/", -1, LIST_FILES);
-	
-	for (s32 i = 0; i < list.num; i++) {
-		char* tmp;
-		
-		if (!StrEndCase(list.item[i], from))
-			continue;
-		
-		tmp = xStrDup(list.item[i]);
-		StrRep(tmp, from, to);
-		
-		if (Sys_Rename(list.item[i], tmp)) {
-			printf_warning("Could not rename [%s] to \"%s\" format", list.item[i], to);
-		}
-		times++;
-	}
-	
-	ItemList_Free(&list);
-	
-	printf_info("%d rooms renamed to *%s.", times, to);
 }
 
 void Main_ReadProject(Rom* rom, char** input) {
@@ -542,7 +443,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		MemFile_Free(&mem);
 	}
 	
-	if (Arg("clear-dump") || Arg("clear-cache") || Arg("clear-all")) {
+	if (Arg("clear-dump") || Arg("clear-cache") || Arg("clear-project") || Arg("clear-all")) {
 		if (Arg("clear-dump") || Arg("clear-all"))
 			Main_ClearDump();
 		if (Arg("clear-project") || Arg("clear-all")) {
@@ -559,10 +460,6 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		Audio_DeleteUnreferencedSamples();
 	if (Arg("no-beta"))
 		Rom_DeleteUnusedContent();
-	if (Arg("zmap"))
-		Main_RenameRooms(".zroom", ".zmap");
-	if (Arg("zroom"))
-		Main_RenameRooms(".zmap", ".zroom");
 	
 	if (Arg("dump-rom")) gDumpRom = Value_Bool(argv[parArg]);
 	if (Arg("dump-audio")) gDumpAudio = Value_Bool(argv[parArg]);
@@ -583,7 +480,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	}
 	
 	if (Arg("vanilla")) {
-		gVanilla = argv[parArg];
+		gVanilla = qFree(StrDup(StrUnq(argv[parArg])));
 		
 		if (isalnum(*gVanilla))
 			printf_error("Vanilla folder name should not have alpha-numeric value as the first character!");
@@ -924,7 +821,7 @@ s32 Main(s32 argc, char* argv[]) {
 	}
 	
 #ifdef _WIN32
-	if (!Arg("no-wait")) {
+	if (argc == 1) {
 		printf_getchar("Press enter to exit.");
 	}
 #endif

@@ -166,7 +166,7 @@ static s32 Tools_BinutilsSHA256(const char* zip, const char* shaFile) {
 }
 
 static s32 Tools_ZipExtractCallback(const char* name, f32 prcnt) {
-	printf_progressFst("Extracting", (u32)prcnt, 100);
+	printf_progress("Extracting", (u32)prcnt, 100);
 	
 	return 0;
 }

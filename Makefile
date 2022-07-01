@@ -52,8 +52,9 @@ PROJECT_FILES_W     += $(TOOLS_WIN32)
 PROJECT_FILES_LINUX := $(foreach f,$(PROJECT_FILES_L:project/%=%),app_linux/$f)
 PROJECT_FILES_WIN32 := $(foreach f,$(PROJECT_FILES_W:project/%=%),app_win32/$f)
 
-update-z64audio:
+update:
 	@cd tools/z64audio/ && git pull https://github.com/z64tools/z64audio main && cd ../..
+	@cd tools/z64playas/ && git pull https://github.com/z64tools/z64playas main && cd ../..
 
 linux: project-files-linux $(RELEASE_EXECUTABLE_LINUX)
 win32: project-files-win32 $(RELEASE_EXECUTABLE_WIN32)

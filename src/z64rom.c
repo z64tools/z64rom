@@ -428,7 +428,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		gThreadNum = Value_Int(argv[parArg]);
 		
 		if (gThreadNum == 0 || gThreadNum > 512) {
-			printf_warning("Dangerous threadNum [%d], using default [128] instead.", gThreadNum);
+			printf_warning("Dangerous threadNum %d, using default 128 instead.", gThreadNum);
 			gThreadNum = 128;
 		}
 	}

@@ -13,6 +13,20 @@ typedef struct {
 	u32 __ctxInitValue;
 } LibContext;
 
+typedef union {
+	struct {
+		u32 flag        : 1; // O*** **** ─ **** **** ─ **** **** ─ **** ****
+		u32 musicOn     : 1; // *O** **** ─ **** **** ─ **** **** ─ **** ****
+		u32 titleCard   : 1; // **O* **** ─ **** **** ─ **** **** ─ **** ****
+		u32 fadeIn      : 6; // ***O OOOO ─ O*** **** ─ **** **** ─ **** ****
+		u32 fadeOut     : 6; // **** **** ─ *OOO OOO* ─ **** **** ─ **** ****
+		u32 spawnIndex  : 5; // **** **** ─ **** ***O ─ OOOO **** ─ **** ****
+		u32 headerIndex : 4; // **** **** ─ **** **** ─ **** OOOO ─ **** ****
+		u32 sceneIndex  : 8; // **** **** ─ **** **** ─ **** **** ─ OOOO OOOO
+	};
+	u32 value;
+} ExitParam;
+
 typedef struct {
 	// HIGH
 	struct {

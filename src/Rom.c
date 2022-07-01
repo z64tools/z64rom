@@ -617,10 +617,10 @@ const char* sTransName[] = {
 };
 
 const char* Transition_GetName(s32 type) {
-	if (type >= TRANS_TYPE_MAX)
-		printf_error("WOT?! %d", type);
+	if (type > TRANS_TYPE_CIRCLE)
+		type = TRANS_TYPE_WARP;
 	
-	if (type >= TRANS_TYPE_CIRCLE)
+	if (type > 19)
 		type = TRANS_TYPE_CIRCLE;
 	
 	if (strlen(sTransName[type]) == 0)
@@ -1116,6 +1116,8 @@ void* Scene_GetCmd(u32* ptr, u32 cmd) {
 void* Scene_GetHeader(s32 setupIndex) {
 	u32* ptr = Scene_SegmentedToVirtual(0);
 	
+	setupIndex--;
+	
 	if (setupIndex == -1)
 		return ptr;
 	
@@ -1153,7 +1155,7 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	u32** segmentEnd;
 	
 	SetSegment(0x2, memData->data);
-	if ((seg = Scene_GetRoomList(-1)) == NULL)
+	if ((seg = Scene_GetRoomList(0)) == NULL)
 		printf_error("Could not find SceneHeader! [%s]", PathSlot(memData->info.name, -1));
 	
 	// 0x04XX0000
@@ -1272,9 +1274,8 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	for (s32 header = 0; header < hdrNum; header++) {
 		Log("Header %d", header);
 		u32 nextSegment;
-		s32 xHdr = hdrNum == 1 ? -1 : header;
 		
-		seg = Scene_GetRoomList(xHdr);
+		seg = Scene_GetRoomList(header);
 		seg = Scene_SegmentedToVirtual(ReadBE(seg[1]));
 		Log("Segment %08X", VirtualToSegmented(0x2, seg));
 		
@@ -1749,7 +1750,7 @@ void Rom_New(Rom* rom, char* romName) {
 	rom->table.num.state = 6;
 	rom->table.num.scene = 110;
 	rom->table.num.kaleido = 2;
-	rom->table.num.entrance = 1556;
+	rom->table.num.entrance = 1672;
 	
 	rom->offset.table.player.init = (HiLo) {
 		0x00B288F8, 0x00B28900

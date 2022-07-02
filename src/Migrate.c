@@ -361,4 +361,6 @@ void Migrate(const char* type, const char* path) {
 		Migrate_RomTool(path);
 	else if (!strcmp(type, "zzrtl"))
 		Migrate_RomToolLite(path);
+	else
+		printf_error("Provided type [%s] not recognized. Use " PRNT_BLUE "zzromtool " PRNT_RSET "or " PRNT_BLUE "zzrtl" PRNT_RSET ".", type);
 }

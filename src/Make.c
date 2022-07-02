@@ -15,34 +15,6 @@ static const char* sLinkerULibFlags;
 static volatile bool sMake = false;
 static ItemList sDepList_uLibHeader;
 
-static char* Make_Wildcard(const char* path, const char* fmt, ...) {
-	ItemList list = ItemList_Initialize();
-	char* file = NULL;
-	Time stat = 0;
-	char* buf;
-	va_list va;
-	
-	va_start(va, fmt);
-	vasprintf(&buf, fmt, va);
-	va_end(va);
-	
-	ItemList_List(&list, path, 0, LIST_FILES | LIST_NO_DOT);
-	for (s32 i = 0; i < list.num; i++) {
-		if (StrEndCase(list.item[i], buf) && Sys_Stat(list.item[i]) > stat) {
-			file = list.item[i];
-			stat = Sys_Stat(file);
-		}
-	}
-	
-	Free(buf);
-	if (file)
-		file = xStrDup(file);
-	
-	ItemList_Free(&list);
-	
-	return file;
-}
-
 static void Make_Info(const char* tool, const char* target) {
 	printf_lock("[M]: %s\n", target);
 	sMake = 1;
@@ -87,10 +59,12 @@ static ThreadFunc Object_Convert(MakeArg* arg) {
 	char* linker;
 	MemFile mem = MemFile_Initialize();
 	bool isPlayas = false;
+	char* mnf;
 	
 	FileSys_Path(arg->path);
 	
 	in = FileSys_FindFile("*.objex");
+	mnf = FileSys_FindFile("*.mnf");
 	cfg = FileSys_File("config.cfg");
 	
 	if (in == NULL)
@@ -101,7 +75,17 @@ static ThreadFunc Object_Convert(MakeArg* arg) {
 	
 	out = xRep(xRep(in, ".objex", ".zobj"), "src/", "rom/");
 	
-	if (Sys_Stat(out) > Sys_Stat(in) && Sys_Stat(out) > Sys_Stat(in) && Sys_Stat(out) > (Sys_Stat(cfg)))
+	if (
+		(
+			Sys_Stat(out) > Sys_Stat(in) &&
+			Sys_Stat(out) > Sys_Stat(in) &&
+			Sys_Stat(out) > Sys_Stat(cfg)
+		)
+	   &&
+		(
+			!mnf || (Sys_Stat(out) > Sys_Stat(mnf))
+		)
+	)
 		return;
 	
 	header = xFmt("src/lib_user/object/%s.ld", xRep(PathSlot(in, -1), "/", ""));
@@ -272,26 +256,30 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	Calloc(list, sizeof(ItemList));
 	*list = ItemList_Initialize();
 	
-	if ((midi = Make_Wildcard(targ->path, ".mid"))) {
-		cfg = xFmt("%sconfig.cfg", targ->path);
-		seq = xFmt("%ssequence.aseq", targ->path);
+	FileSys_Path(targ->path);
+	
+	if ((midi = FileSys_FindFile(".mid"))) {
+		char* thisCfg = FileSys_File("config.cfg");
 		
-		StrRep(cfg, "src/", "rom/");
-		StrRep(seq, "src/", "rom/");
+		cfg = xRep(FileSys_File("config.cfg"), "src/", "rom/");
+		seq = xRep(FileSys_File("sequence.aseq"), "src/", "rom/");
+		
 		Sys_MakeDir(Path(seq));
 		
 		if (Sys_Stat(seq) > Sys_Stat(midi) && !gMakeForce)
 			goto free;
 		
-		if (!Sys_Stat(cfg)) {
+		if (!Sys_Stat(thisCfg)) {
 			ItemList van = ItemList_Initialize();
 			ItemList_List(&van, xFmt("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
 			
 			if (Sys_Stat(van.item[index]))
-				Sys_Copy(xFmt("%sconfig.cfg", van.item[index]), cfg);
+				Sys_Copy(xFmt("%sconfig.cfg", van.item[index]), thisCfg);
 			
 			ItemList_Free(&van);
 		}
+		
+		Sys_Copy(thisCfg, cfg);
 		
 		Tools_Command(cmd, seq64, "--in=\"%s\" --out=\"%s\" --abi=Zelda --pref=false --flstudio=true", midi, seq);
 		Sys_MakeDir(Path(seq));
@@ -301,26 +289,28 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		goto free;
 	}
 	
-	if ((mus = Make_Wildcard(targ->path, ".mus"))) {
-		cfg = xFmt("%sconfig.cfg", targ->path);
-		seq = xFmt("%ssequence.aseq", targ->path);
+	if ((mus = FileSys_FindFile(".mus"))) {
+		char* thisCfg = FileSys_File("config.cfg");
 		
-		StrRep(cfg, "src/", "rom/");
-		StrRep(seq, "src/", "rom/");
+		cfg = xRep(FileSys_File("config.cfg"), "src/", "rom/");
+		seq = xRep(FileSys_File("sequence.aseq"), "src/", "rom/");
+		
 		Sys_MakeDir(Path(seq));
 		
 		if (Sys_Stat(seq) > Sys_Stat(mus) && !gMakeForce)
 			goto free;
 		
-		if (!Sys_Stat(cfg)) {
+		if (!Sys_Stat(thisCfg)) {
 			ItemList van = ItemList_Initialize();
 			ItemList_List(&van, xFmt("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
 			
 			if (Sys_Stat(van.item[index]))
-				Sys_Copy(xFmt("%sconfig.cfg", van.item[index]), cfg);
+				Sys_Copy(xFmt("%sconfig.cfg", van.item[index]), thisCfg);
 			
 			ItemList_Free(&van);
 		}
+		
+		Sys_Copy(thisCfg, cfg);
 		
 		Tools_Command(cmd, seqas, "\"%s\" \"%s\"", mus, seq);
 		Make_Run(cmd);
@@ -388,11 +378,10 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	char* audio = NULL;
 	char* book = NULL;
 	char* table = NULL;
-	char* modCfgName = NULL;
-	char* vanCfgName = NULL;
-	MemFile ttoml = MemFile_Initialize();
-	bool normalize = false;
-	bool inherit = false;
+	char* sampleCfg = NULL;
+	char* vadCfg = NULL;
+	char* vanillaCfg = NULL;
+	MemFile cfgMem = MemFile_Initialize();
 	
 	FileSys_Path(targ->path);
 	
@@ -416,55 +405,62 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	
 	vadpcm = FileSys_FindFile("*.vadpcm.bin");
 	book = FileSys_FindFile("*.book.bin");
-	modCfgName = FileSys_File("config.cfg");
+	sampleCfg = xRep(FileSys_File("config.cfg"), "rom/", "src/");
+	vanillaCfg = xRep(FileSys_File("config.cfg"), "rom/sound/sample/", xFmt("rom/sound/sample/%s/", gVanilla));
 	
-	Malloc(vanCfgName, 0x1024);
-	strcpy(vanCfgName, FileSys_File("config.cfg"));
-	StrRep(vanCfgName, "rom/sound/sample/", xFmt("rom/sound/sample/%s/", gVanilla));
+	// Generate Sample Config
+	bool normalize = true;
+	bool inherit = false;
+	bool halfPrecision = false;
 	
-	if (!Sys_Stat(modCfgName)) {
-		MemFile mem;
+	if (!Sys_Stat(sampleCfg)) {
+		MemFile_Alloc(&cfgMem, 0x2000);
+write:
+		Config_WriteBool(&cfgMem, "normalize", normalize, "Maximum volume");
+		Config_WriteBool(&cfgMem, "inherit_vanilla", inherit, "If vanilla config exists, inherit pitch from it");
+		Config_WriteBool(&cfgMem, "half_precision", halfPrecision, "Rough compression");
 		
-		MemFile_LoadFile_String(&mem, vanCfgName);
-		MemFile_Seek(&mem, MEMFILE_SEEK_END);
-		Config_WriteFloat(&mem, "tuning", 0.0f, NO_COMMENT);
-		MemFile_SaveFile_String(&mem, modCfgName);
+		MemFile_SaveFile_String(&cfgMem, sampleCfg);
+	} else {
+		u32 rewrite = false;
+		MemFile_LoadFile_String(&cfgMem, sampleCfg);
 		
-		MemFile_Free(&mem);
+		if (StrStr(cfgMem.str, "[z64rom]")) {
+			Config_GotoSection("z64rom");
+			
+			if (Config_Variable(cfgMem.str, "normalize"))
+				normalize = Config_GetBool(&cfgMem, "normalize");
+			
+			if (Config_Variable(cfgMem.str, "inherit_vanilla"))
+				inherit = Config_GetBool(&cfgMem, "inherit_vanilla");
+			
+			if (Config_Variable(cfgMem.str, "half_precision"))
+				halfPrecision = Config_GetBool(&cfgMem, "half_precision");
+			
+			Config_GotoSection(NULL);
+			rewrite = true;
+		} else {
+			if (Config_Variable(cfgMem.str, "normalize"))
+				normalize = Config_GetBool(&cfgMem, "normalize");
+			else rewrite = true;
+			
+			if (Config_Variable(cfgMem.str, "inherit_vanilla"))
+				inherit = Config_GetBool(&cfgMem, "inherit_vanilla");
+			else rewrite = true;
+			
+			if (Config_Variable(cfgMem.str, "half_precision"))
+				halfPrecision = Config_GetBool(&cfgMem, "half_precision");
+			else rewrite = true;
+		}
+		
+		if (rewrite) {
+			MemFile_Reset(&cfgMem);
+			MemFile_Realloc(&cfgMem, cfgMem.memSize * 4);
+			goto write;
+		}
 	}
 	
-	if (MemFile_LoadFile_String(&ttoml, modCfgName))
-		printf_error("Could not locate [%s]", modCfgName);
-	
-	if (!Config_Variable(ttoml.str, "tuning")) {
-		char* p = Config_Variable(ttoml.str, "finetune");
-		
-		p = Line(p, 1);
-		
-		StrIns(p, "tuning          = 0.0\n");
-		ttoml.size = strlen(ttoml.str);
-		MemFile_SaveFile_String(&ttoml, modCfgName);
-	}
-	
-	if (!StrStr(ttoml.str, "[z64rom]")) {
-		char* end = MemFile_Seek(&ttoml, MEMFILE_SEEK_END);
-		
-		MemFile_Realloc(&ttoml, ttoml.memSize * 4);
-		
-		if (end[-2] != '\n')
-			Config_Print(&ttoml, "\n");
-		Config_WriteSection(&ttoml, "z64rom", NO_COMMENT);
-		Config_WriteStr(&ttoml, "normalize", "true", NO_QUOTES, NO_COMMENT);
-		Config_WriteStr(&ttoml, "inherit_vanilla", "false", NO_QUOTES, "Get 'basenote' and 'finetune' from vanilla config");
-		MemFile_SaveFile_String(&ttoml, modCfgName);
-	}
-	
-	Config_GotoSection("z64rom");
-	normalize = Config_GetBool(&ttoml, "normalize");
-	inherit = Config_GetBool(&ttoml, "inherit_vanilla");
-	Config_GotoSection(NULL);
-	
-	if (vadpcm == NULL || (Sys_Stat(modCfgName) > Sys_Stat(vadpcm)) || (Sys_Stat(audio) > Sys_Stat(vadpcm)) || gMakeForce) {
+	if (vadpcm == NULL || (Sys_Stat(sampleCfg) > Sys_Stat(vadpcm)) || (Sys_Stat(audio) > Sys_Stat(vadpcm)) || gMakeForce) {
 		char command[2056];
 		
 		if (vadpcm == NULL)
@@ -481,12 +477,14 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 			catprintf(command, " --book \"%s\"", book);
 		if (normalize)
 			catprintf(command, " --m --n");
+		if (halfPrecision)
+			catprintf(command, " --half-precision");
 		
-		if (inherit && Sys_Stat(vanCfgName)) {
+		if (inherit && Sys_Stat(vanillaCfg)) {
 			MemFile mem = MemFile_Initialize();
 			
-			Log("inherit [%s]", vanCfgName);
-			MemFile_LoadFile_String(&mem, vanCfgName);
+			Log("inherit [%s]", vanillaCfg);
+			MemFile_LoadFile_String(&mem, vanillaCfg);
 			catprintf(
 				command,
 				" --basenote %d --finetune %d",
@@ -501,9 +499,8 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	}
 	
 free:
-	MemFile_Free(&ttoml);
+	MemFile_Free(&cfgMem);
 	Free(vadpcm);
-	Free(vanCfgName);
 }
 
 void Make_Sound(void) {

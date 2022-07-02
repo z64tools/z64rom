@@ -24,15 +24,22 @@ static RestrictionFlag* Restriction_GetFlags(Rom* rom, u32 sceneIndex) {
 }
 
 static void Restriction_WriteFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
+	static s32 firstEntry = false;
 	char* flags = Config_GetVariable(config->str, "restriction_flags");
-	RestrictionFlag* rf = Restriction_GetFlags(rom, sceneIndex);
+	RestrictionFlag* rf = rom->table.restrictionFlags;
 	ItemList rlist = ItemList_Initialize();
 	
-	if (flags == NULL || rf == NULL)
-		return;
+	if (firstEntry != false) {
+		while (rf->sceneIndex != 0xFF)
+			rf++;
+	} else {
+		memset(rf, 0, sizeof(RestrictionFlag) * (256 + 1));
+	}
 	
+	firstEntry = true;
 	memset(rf, 0, sizeof(RestrictionFlag));
-	rf[0].sceneIndex = sceneIndex;
+	rf->sceneIndex = sceneIndex;
+	
 	Config_GetArray(config, "restriction_flags", &rlist);
 	
 	for (s32 i = 0; i < rlist.num; i++) {
@@ -61,6 +68,9 @@ static void Restriction_WriteFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
 		if (!strcmp(rlist.item[i], "SUN_SONG"))
 			rf->sunSong = 3;
 	}
+	
+	memset(&rf[1], 0, sizeof(RestrictionFlag));
+	rf[1].sceneIndex = 0xFF;
 	
 	ItemList_Free(&rlist);
 }
@@ -231,7 +241,7 @@ static void Config_WriteScene(Rom* rom, MemFile* config, u32 id, u32 roomNum, co
 	Config_WriteInt(config, "scene_func_id", ReadBE(sceneEntry->config), NO_COMMENT);
 	
 	ItemList_Alloc(&rooms, roomNum, 0x10000);
-	ItemList_Alloc(&rflags, 64, 0x10000);
+	ItemList_Alloc(&rflags, 24, 0x10000);
 	
 	if (rf) {
 		MemFile_Printf(config, "# [ BOTTLES / A_BUTTON / B_BUTTON / WARP_SONG / OCARINA / HOOKSHOT ]\n");
@@ -1834,6 +1844,9 @@ void Rom_New(Rom* rom, char* romName) {
 			MemFile_LoadFile(targetMem[k], file);
 			SetSegment(targetSegment[k], targetMem[k]->data);
 		}
+		
+		// Relocate restriction table to actor table
+		rom->offset.table.restrictionFlags = rom->offset.table.actorTable;
 		
 		rom->table.state = SegmentedToVirtual(SEG_CODE, rom->offset.table.stateTable - RELOC_CODE);
 		rom->table.kaleido = SegmentedToVirtual(SEG_CODE, rom->offset.table.kaleidoTable - RELOC_CODE);

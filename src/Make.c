@@ -1002,7 +1002,7 @@ static void Binutil_GCC(const char* source, const char* output, const char* flag
 	} else {
 		char* cfg = xFmt("%smake.cfg", Path(source));
 		
-		if (false == Callback_Dependencies_PreGcc(source, output, cfg, &make, NULL))
+		if (false == Callback_Dependencies_PreGcc(source, output, cfg, &make, &sDepList_uLibHeader))
 			goto free;
 	}
 	

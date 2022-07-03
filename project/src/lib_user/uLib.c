@@ -22,6 +22,7 @@ void uLib_Update(GameState* gameState) {
 		osLibPrintf("" PRNT_BLUE "--- [z64rom] ---\n");
 		osLibPrintf("Vanilla Printf [L + D-UP]");
 		osLibPrintf("Dma Info       [L + D-DOWN]");
+		osLibPrintf("Player Print   [L + D-LEFT]");
 		firstMessage++;
 	}
 	
@@ -33,6 +34,11 @@ void uLib_Update(GameState* gameState) {
 	if (CHK_ALL(press, BTN_L | BTN_DDOWN)) {
 		gLibCtx.state.dmaLog ^= 1;
 		osLibPrintf("Dma Info: [%s" PRNT_RSET "]", state[gLibCtx.state.dmaLog]);
+	}
+	
+	if (CHK_ALL(press, BTN_L | BTN_DLEFT)) {
+		gLibCtx.state.playerPrint ^= 1;
+		osLibPrintf("Player Print: [%s" PRNT_RSET "]", state[gLibCtx.state.playerPrint]);
 	}
 	
 	if (CHK_ALL(press, BTN_Z) && CHK_ALL(cur, BTN_L | BTN_R)) {

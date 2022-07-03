@@ -37,7 +37,6 @@ static void Restriction_WriteFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
 	}
 	
 	firstEntry = true;
-	memset(rf, 0, sizeof(RestrictionFlag));
 	rf->sceneIndex = sceneIndex;
 	
 	Config_GetArray(config, "restriction_flags", &rlist);
@@ -69,7 +68,6 @@ static void Restriction_WriteFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
 			rf->sunSong = 3;
 	}
 	
-	memset(&rf[1], 0, sizeof(RestrictionFlag));
 	rf[1].sceneIndex = 0xFF;
 	
 	ItemList_Free(&rlist);
@@ -872,6 +870,8 @@ static void Dump_Static(Rom* rom, MemFile* data, MemFile* config) {
 		rf.data = SegmentedToVirtual(0x0, rf.romStart);
 		
 		switch (id) {
+			case DMA_ID_LINK_ANIMATION:
+				continue;
 			case DMA_ID_DO_ACTION_STATIC:
 				rf.size = 0x2B80;
 				break;
@@ -1080,6 +1080,10 @@ static void Build_Object(Rom* rom, MemFile* memData, MemFile* memCfg) {
 				
 				if (animList.item[j] == NULL)
 					continue;
+				if (j >= 99999) {
+					printf_warning("WOW");
+					break;
+				}
 				
 				MemFile_LoadFile(&mem, animList.item[j]);
 				
@@ -1435,6 +1439,9 @@ static void Build_State(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	Rom_ItemList(&list, "rom/system/state/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	for (s32 i = 0; i < list.num; i++) {
+		char* file;
+		s32 patched;
+		
 		printf_progress("System", i + 1, list.num);
 		
 		if (list.item[i] == NULL)
@@ -1445,15 +1452,23 @@ static void Build_State(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		MemFile_Reset(memCfg);
 		MemFile_Reset(memData);
 		
+		file = FileSys_FindFile(".zovl");
+		
+		if (file == NULL) {
+			printf_warning("No .zovl found in [%s]", list.item[i]);
+			continue;
+		}
+		
 		MemFile_LoadFile_String(memCfg, FileSys_File("config.cfg"));
-		MemFile_LoadFile(memData, FileSys_FindFile(".zovl"));
+		MemFile_LoadFile(memData, file);
+		patched = Patch_File(memData, file);
 		
 		entry[i].init = Config_GetInt(memCfg, "init_func");
 		entry[i].destroy = Config_GetInt(memCfg, "dest_func");
 		
 		entry[i].vramStart = Config_GetInt(memCfg, "vram_addr");
 		entry[i].vramEnd = entry[i].vramStart + memData->size + Overlay_GetBssSize(memData);
-		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, true);
+		entry[i].vromStart = Dma_WriteEntry(rom, DMA_FIND_FREE, memData, patched ? NOCACHE_COMPRESS : COMPRESS);
 		entry[i].vromEnd = Dma_GetVRomEnd();
 		
 		SwapBE(entry[i].init);
@@ -1581,6 +1596,8 @@ static void Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		u32 start, end;
 		u32* data;
 		s32 compress;
+		MemFile mem;
+		char* table;
 		
 		forlist(j, list) {
 			if (StrEndCase(list.item[j], xFmt("%s.bin", gSystem_OoT[i].name))) {
@@ -1592,11 +1609,13 @@ static void Build_Static(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		printf_progress("Static", i + 1, ArrayCount(gSystem_OoT));
 		
 		if (id < 0) {
-			printf_warning("Missing [%s]", gSystem_OoT[i].name);
-			continue;
+			if (gSystem_OoT[i].id == DMA_ID_LINK_ANIMATION) {
+				id = DMA_ID_LINK_ANIMATION;
+			} else {
+				printf_warning("Missing [%s]", gSystem_OoT[i].name);
+				continue;
+			}
 		}
-		MemFile mem;
-		char* table;
 		
 		switch (id) {
 			case DMA_ID_BOOT:
@@ -2298,45 +2317,4 @@ void AudioOnly_Build(Rom* rom) {
 	
 	MemFile_Free(&dataFile);
 	MemFile_Free(&config);
-}
-
-void Rom_Debug_ActorEntry(Rom* rom, u32 id) {
-	ActorEntry* actorTable = rom->table.actor;
-	s32 i = 0;
-	
-	printf_info("" PRNT_REDD "0x%04X-%s " PRNT_RSET "[%d]", id, gActorName_OoT[id], id);
-	printf_info("Actor\t[%08d] [%08X]", id, VirtualToSegmented(0x0, &actorTable[id]));
-	printf_info("vRAM\t" PRNT_PRPL "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(actorTable[id].vramStart), ReadBE(actorTable[id].vramEnd), ReadBE(actorTable[id].vramEnd) - ReadBE(actorTable[id].vramStart));
-	printf_info("vROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(actorTable[id].vromStart), ReadBE(actorTable[id].vromEnd), ReadBE(actorTable[id].vromEnd) - ReadBE(actorTable[id].vromStart));
-	printf_info("InitVars\t"PRNT_GREN "[%08X]"PRNT_RSET, ReadBE(actorTable[id].initInfo));
-	printf_info("BssSize\t[%08X]", (ReadBE(actorTable[id].vramEnd) - ReadBE(actorTable[id].vramStart)) - (ReadBE(actorTable[id].vromEnd) - ReadBE(actorTable[id].vromStart)) );
-	
-	if ((ReadBE(actorTable[id].vramEnd) - ReadBE(actorTable[id].vramStart)) == 0)
-		return;
-	printf("\n");
-	for (;; i++) {
-		if (rom->table.dma[i].vromStart == actorTable[id].vromStart &&
-			rom->table.dma[i].vromEnd == actorTable[id].vromEnd)
-			break;
-		if (i > rom->table.num.dma) {
-			printf_warning("Could not find DMA enrty");
-			
-			return;
-		}
-	}
-	
-	printf_info("Dma Entry\t[%08d] [%08X]", i, VirtualToSegmented(0x0, &rom->table.dma[i]));
-	printf_info("vROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.dma[i].vromStart), ReadBE(rom->table.dma[i].vromEnd), ReadBE(rom->table.dma[i].vromEnd) - ReadBE(rom->table.dma[i].vromStart));
-}
-
-void Rom_Debug_DmaEntry(Rom* rom, u32 id) {
-	printf_info("Dma Entry\t[%08d] [%08X]", id, VirtualToSegmented(0x0, &rom->table.dma[id]));
-	printf_info("vROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.dma[id].vromStart), ReadBE(rom->table.dma[id].vromEnd), ReadBE(rom->table.dma[id].vromEnd) - ReadBE(rom->table.dma[id].vromStart));
-	printf_info("pROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.dma[id].romStart), ReadBE(rom->table.dma[id].romEnd), ClampMin((s32)(ReadBE(rom->table.dma[id].romEnd) - ReadBE(rom->table.dma[id].romStart)), 0));
-}
-
-void Rom_Debug_SceneEntry(Rom* rom, u32 id) {
-	printf_info("Dma Entry\t[%08d] [%08X]", id, VirtualToSegmented(0x0, &rom->table.scene[id]));
-	printf_info("scene ROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.scene[id].vromStart), ReadBE(rom->table.scene[id].vromEnd), ReadBE(rom->table.scene[id].vromEnd) - ReadBE(rom->table.scene[id].vromStart));
-	printf_info("title ROM\t" PRNT_YELW "[%08X]-[%08X]"PRNT_RSET " Size 0x%X", ReadBE(rom->table.scene[id].titleVromStart), ReadBE(rom->table.scene[id].titleVromEnd), ClampMin((s32)(ReadBE(rom->table.scene[id].titleVromEnd) - ReadBE(rom->table.scene[id].titleVromStart)), 0));
 }

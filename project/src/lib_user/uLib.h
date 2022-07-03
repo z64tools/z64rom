@@ -5,7 +5,7 @@
 // # User Library Patches                #
 // # # # # # # # # # # # # # # # # # # # #
 
-#define ChildLink_HylianShieldAdjust false
+#define ChildLink_HylianShieldAdjust true
 
 // # # # # # # # # # # # # # # # # # # # #
 // # UserLibrary                         #
@@ -43,8 +43,10 @@ extern u8 gFontOrdering[];
 extern PlayState gPlayState;
 extern LibContext gLibCtx;
 extern GraphicsContext* __gfxCtx;
-asm ("__gfxCtx = 0x80212020 - 0x38000;");
+extern ExitParam gExitParam;
 asm ("gPlayState = 0x80212020 - 0x38000;");
+asm ("__gfxCtx = gPlayState;");
+asm ("gExitParam = gPlayState + 0x11E1C;");
 
 void uLib_Update(GameState* gameState);
 void* memset(void* m, int v, unsigned int s);

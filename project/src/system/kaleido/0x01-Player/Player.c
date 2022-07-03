@@ -3935,17 +3935,18 @@ s32 func_80839034(PlayState* play, Player* this, CollisionPoly* poly, u32 bgId) 
 				s16* setupList = play->setupExitList;
 				
 				for (s32 i = 0; i < exitIndex - 1; i++) {
-					if ((*setupList & 0xF000) == 0xF000)
+					if ((*setupList & 0x8000) == 0x8000)
 						setupList += 2;
 					
 					else
 						setupList++;
 				}
-				if ((*setupList & 0xF000) == 0xF000)
-					MemCpy(&play->nextEntranceIndex, setupList, sizeof(s32));
-				
-				else
+				if ((*setupList & 0x8000) == 0x8000) {
+					MemCpy(&gExitParam, setupList, sizeof(s32));
+				} else {
 					MemCpy(&play->nextEntranceIndex, setupList, sizeof(s16));
+					memset(&gExitParam, 0, sizeof(ExitParam));
+				}
 				
 				if (play->nextEntranceIndex == ENTR_RETURN_GROTTO) {
 					gSaveContext.respawnFlag = 2;
@@ -4606,7 +4607,6 @@ void func_8083AA10(Player* this, PlayState* play) {
 					
 					return;
 				}
-				osLibPrintf("1");
 				
 				if ((D_80853604 == 9) || (D_80853600 <= this->ageProperties->unk_34) || !func_8083A6AC(this, play)) {
 					func_80832284(play, this, &gPlayerAnim_003040);

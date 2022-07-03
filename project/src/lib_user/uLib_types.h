@@ -6,6 +6,7 @@
 typedef struct {
 	u32 vanillaOsPrintf : 1;
 	u32 dmaLog          : 1;
+	u32 playerPrint     : 1;
 } LibState;
 
 typedef struct {
@@ -13,18 +14,22 @@ typedef struct {
 	u32 __ctxInitValue;
 } LibContext;
 
-typedef union {
-	struct {
-		u32 flag        : 1; // O*** **** ─ **** **** ─ **** **** ─ **** ****
-		u32 musicOn     : 1; // *O** **** ─ **** **** ─ **** **** ─ **** ****
-		u32 titleCard   : 1; // **O* **** ─ **** **** ─ **** **** ─ **** ****
-		u32 fadeIn      : 6; // ***O OOOO ─ O*** **** ─ **** **** ─ **** ****
-		u32 fadeOut     : 6; // **** **** ─ *OOO OOO* ─ **** **** ─ **** ****
-		u32 spawnIndex  : 5; // **** **** ─ **** ***O ─ OOOO **** ─ **** ****
-		u32 headerIndex : 4; // **** **** ─ **** **** ─ **** OOOO ─ **** ****
-		u32 sceneIndex  : 8; // **** **** ─ **** **** ─ **** **** ─ OOOO OOOO
+typedef struct {
+	union {
+		struct {
+			u32 flag        : 1; // O*** **** ─ **** **** ─ **** **** ─ **** ****
+			u32 musicOn     : 1; // *O** **** ─ **** **** ─ **** **** ─ **** ****
+			u32 titleCard   : 1; // **O* **** ─ **** **** ─ **** **** ─ **** ****
+			u32 fadeIn      : 6; // ***O OOOO ─ O*** **** ─ **** **** ─ **** ****
+			u32 fadeOut     : 6; // **** **** ─ *OOO OOO* ─ **** **** ─ **** ****
+			u32 spawnIndex  : 5; // **** **** ─ **** ***O ─ OOOO **** ─ **** ****
+			u32 headerIndex : 4; // **** **** ─ **** **** ─ **** OOOO ─ **** ****
+			u32 sceneIndex  : 8; // **** **** ─ **** **** ─ **** **** ─ OOOO OOOO
+		};
+		struct {
+			u32 value;
+		};
 	};
-	u32 value;
 } ExitParam;
 
 typedef struct {

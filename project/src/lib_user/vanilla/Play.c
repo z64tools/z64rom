@@ -61,6 +61,27 @@ void NewPlay_Init(PlayState* playState) {
 		return;
 	}
 	
+	osLibPrintf("Entrance Index: %04X", playState->nextEntranceIndex);
+	osLibPrintf(
+		"gExitParam:\n"
+		PRNT_RSET "\tflag:       %s\n"
+		PRNT_RSET "\tmusicOn:    %s\n"
+		PRNT_RSET "\ttitleCard:  %s\n"
+		PRNT_RSET "\tfadeIn:     " PRNT_BLUE " 0x%02X\n"
+		PRNT_RSET "\tfadeOut:    " PRNT_BLUE " 0x%02X\n"
+		PRNT_RSET "\tspawnIndex: " PRNT_BLUE " 0x%02X\n"
+		PRNT_RSET "\theaderIndex:" PRNT_BLUE " 0x%02X\n"
+		PRNT_RSET "\tsceneIndex: " PRNT_BLUE " 0x%02X",
+		gExitParam.flag ? PRNT_GREN " true" : PRNT_REDD "false",
+		gExitParam.musicOn ? PRNT_GREN " true" : PRNT_REDD "false",
+		gExitParam.titleCard ? PRNT_GREN " true" : PRNT_REDD "false",
+		gExitParam.fadeIn,
+		gExitParam.fadeOut,
+		gExitParam.spawnIndex,
+		gExitParam.headerIndex,
+		gExitParam.sceneIndex
+	);
+	
 	SystemArena_Display();
 	GameState_Realloc(&playState->state, 0x3D8000 + 0x3A60);
 	KaleidoManager_Init(playState);
@@ -131,24 +152,37 @@ void NewPlay_Init(PlayState* playState) {
 		gSaveContext.sceneSetupIndex = 3;
 	}
 	
-	tempSetupIndex = gSaveContext.sceneSetupIndex;
-	if ((gEntranceTable[((void)0, gSaveContext.entranceIndex)].scene == SCENE_SPOT00) && !LINK_IS_ADULT &&
-		gSaveContext.sceneSetupIndex < 4) {
-		if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD) && CHECK_QUEST_ITEM(QUEST_GORON_RUBY) &&
-			CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE)) {
-			gSaveContext.sceneSetupIndex = 1;
-		} else {
-			gSaveContext.sceneSetupIndex = 0;
+	u32 sceneNum = 0;
+	u32 sceneSpawn = 0;
+	
+	if (gExitParam.flag == false) {
+		tempSetupIndex = gSaveContext.sceneSetupIndex;
+		if ((gEntranceTable[((void)0, gSaveContext.entranceIndex)].scene == SCENE_SPOT00) && !LINK_IS_ADULT &&
+			gSaveContext.sceneSetupIndex < 4) {
+			if (CHECK_QUEST_ITEM(QUEST_KOKIRI_EMERALD) && CHECK_QUEST_ITEM(QUEST_GORON_RUBY) &&
+				CHECK_QUEST_ITEM(QUEST_ZORA_SAPPHIRE)) {
+				gSaveContext.sceneSetupIndex = 1;
+			} else {
+				gSaveContext.sceneSetupIndex = 0;
+			}
+		} else if ((gEntranceTable[((void)0, gSaveContext.entranceIndex)].scene == SCENE_SPOT04) && LINK_IS_ADULT &&
+			gSaveContext.sceneSetupIndex < 4) {
+			gSaveContext.sceneSetupIndex = (gSaveContext.eventChkInf[4] & 0x100) ? 3 : 2;
 		}
-	} else if ((gEntranceTable[((void)0, gSaveContext.entranceIndex)].scene == SCENE_SPOT04) && LINK_IS_ADULT &&
-		gSaveContext.sceneSetupIndex < 4) {
-		gSaveContext.sceneSetupIndex = (gSaveContext.eventChkInf[4] & 0x100) ? 3 : 2;
+		
+		sceneNum = gEntranceTable[((void)0, gSaveContext.entranceIndex) + ((void)0, gSaveContext.sceneSetupIndex)].scene;
+		sceneSpawn = gEntranceTable[((void)0, gSaveContext.sceneSetupIndex) + ((void)0, gSaveContext.entranceIndex)].spawn;
+	} else {
+		sceneNum = gExitParam.sceneIndex;
+		if (gExitParam.headerIndex)
+			gSaveContext.sceneSetupIndex = gExitParam.headerIndex;
+		sceneSpawn = gExitParam.spawnIndex;
 	}
 	
 	NewPlay_SpawnScene(
 		playState,
-		gEntranceTable[((void)0, gSaveContext.entranceIndex) + ((void)0, gSaveContext.sceneSetupIndex)].scene,
-		gEntranceTable[((void)0, gSaveContext.sceneSetupIndex) + ((void)0, gSaveContext.entranceIndex)].spawn
+		sceneNum,
+		sceneSpawn
 	);
 	
 	Cutscene_HandleEntranceTriggers(playState);
@@ -189,8 +223,10 @@ void NewPlay_Init(PlayState* playState) {
 	
 	if (gSaveContext.gameMode != 1) {
 		if (gSaveContext.nextTransitionType == TRANS_NEXT_TYPE_DEFAULT) {
-			playState->transitionType =
-				(gEntranceTable[((void)0, gSaveContext.entranceIndex) + tempSetupIndex].field >> 7) & 0x7F; // Fade In
+			if (gExitParam.flag == false)
+				playState->transitionType = (gEntranceTable[((void)0, gSaveContext.entranceIndex) + tempSetupIndex].field >> 7) & 0x7F;
+			else
+				playState->transitionType = gExitParam.fadeIn;
 		} else {
 			playState->transitionType = gSaveContext.nextTransitionType;
 			gSaveContext.nextTransitionType = TRANS_NEXT_TYPE_DEFAULT;
@@ -538,6 +574,7 @@ void NewPlay_Update(PlayState* playState) {
 				case TRANS_MODE_SETUP:
 					if (playState->transitionTrigger != TRANS_TRIGGER_END) {
 						s16 sceneSetupIndex = 0;
+						s16 fadeOut = false;
 						
 						Interface_ChangeAlpha(1);
 						
@@ -545,8 +582,18 @@ void NewPlay_Update(PlayState* playState) {
 							sceneSetupIndex = (gSaveContext.cutsceneIndex & 0xF) + 4;
 						}
 						
+						// z64rom
+						
+						if (gExitParam.flag == false) {
+							if (!(gEntranceTable[playState->nextEntranceIndex + sceneSetupIndex].field & 0x8000))
+								fadeOut = true;
+						} else {
+							if (gExitParam.musicOn == false)
+								fadeOut = true;
+						}
+						
 						// fade out bgm if "continue bgm" flag is not set
-						if (!(gEntranceTable[playState->nextEntranceIndex + sceneSetupIndex].field & 0x8000)) {
+						if (fadeOut) {
 							if ((playState->transitionType < TRANS_TYPE_MAX) &&
 								!Environment_IsForcedSequenceDisabled()) {
 								func_800F6964(0x14);

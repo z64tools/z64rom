@@ -60,7 +60,7 @@ static void Main_Clean(void) {
 static void Main_PrintHelp(void) {
 	printf_toolinfo(gToolName, "Help");
 	
-	printf("z64rom dev is lazy...\n" PRNT_BLUE "https://github.com/z64tools/z64rom/wiki/z64project\n\n");
+	printf("z64rom dev is lazy...\n" PRNT_BLUE "https://github.com/z64tools/z64rom/wiki\n");
 	
 	exit(0);
 }
@@ -496,31 +496,6 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		return 1;
 	}
 	if (Arg("no-threading")) gThreading = false;
-	
-	if (Arg("actor") && input) {
-		u32 id = Value_Int(argv[parArg]);
-		
-		Rom_New(rom, input);
-		Rom_Debug_ActorEntry(rom, id);
-		
-		return 1;
-	}
-	if (Arg("dma") && input) {
-		u32 id = Value_Int(argv[parArg]);
-		
-		Rom_New(rom, input);
-		Rom_Debug_DmaEntry(rom, id);
-		
-		return 1;
-	}
-	if (Arg("scene") && input) {
-		u32 id = Value_Int(argv[parArg]);
-		
-		Rom_New(rom, input);
-		Rom_Debug_SceneEntry(rom, id);
-		
-		return 1;
-	}
 	
 	if (Arg("audio-only")) {
 		gAudioOnly = true;

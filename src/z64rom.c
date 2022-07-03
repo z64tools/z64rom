@@ -747,22 +747,22 @@ s32 Main(s32 argc, char* argv[]) {
 			Rom_New(rom, input);
 			
 			Rom_Dump(rom);
+			
+			Sys_MakeDir("src/actor/");
+			Sys_MakeDir("src/object/");
+			Sys_MakeDir("src/scene/");
+			Sys_MakeDir("src/effect/");
+			Sys_MakeDir("src/sound/sample/");
+			Sys_MakeDir("src/sound/sequence/");
+			Sys_MakeDir("src/sound/soundfont/");
 		} else {
-			u32 pkgInstalled = 0;
 			for (s32 i = 0; i < argc; i++) {
 				if (StrStrCase(argv[i], ".zip")) {
 					printf_toolinfo(gToolName, "Installing Package(s)");
 					printf_info_align("Package", "" PRNT_BLUE "%s", argv[i]);
 					Package_Load(argv[i]);
-					pkgInstalled = true;
 				}
 			}
-			
-			if (pkgInstalled) {
-				printf_info("All packages have been installed successfully!\n");
-				goto free;
-			}
-			
 			if (Arg("update")) {
 				printf_toolinfo(gToolName, "Updating z64hdr...");
 				Tools_Install_z64hdr(true);

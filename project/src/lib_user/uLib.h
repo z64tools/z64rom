@@ -5,8 +5,21 @@
 // # User Library Patches                #
 // # # # # # # # # # # # # # # # # # # # #
 
-#define ChildLink_HylianShieldAdjust true
-#define Link_SilverGauntletCutscene false
+// Wield Hylian shield like Kokiri shield
+#define Patch_WieldHylianShieldLikeKokiriShield true
+
+// Play cutscene after obtaining Silver Gauntlets
+#define Patch_SilverGauntletObtainCS false
+
+// Flush current textbox by pressing B
+#define Patch_QuickText true
+
+// Extension, these can be adjusted if necessary
+#define EXT_DMA_MAX    3800
+#define EXT_ACTOR_MAX  1000
+#define EXT_OBJECT_MAX 1000
+#define EXT_SCENE_MAX  256
+#define EXT_EFFECT_MAX 64
 
 // # # # # # # # # # # # # # # # # # # # #
 // # UserLibrary                         #
@@ -19,12 +32,6 @@
 
 #include "uLib_macros.h"
 #include "uLib_types.h"
-
-#define EXT_DMA_MAX    3800
-#define EXT_ACTOR_MAX  1000
-#define EXT_OBJECT_MAX 1000
-#define EXT_SCENE_MAX  256
-#define EXT_EFFECT_MAX 64
 
 extern DmaEntry __ext_gDmaDataTable[EXT_DMA_MAX];
 extern ActorOverlay __ext_gActorOverlayTable[EXT_ACTOR_MAX];

@@ -49,6 +49,7 @@ void uLib_Update(GameState* gameState) {
 	
 #endif
 	
+#if Patch_QuickText == true
 	/* Skip current textbox when pressing B */
 	if (gSaveContext.gameMode == 0) {
 		static s32 soundFlag;
@@ -70,6 +71,7 @@ void uLib_Update(GameState* gameState) {
 			soundFlag = 1;
 		}
 	}
+#endif
 }
 
 void* memset(void* m, int v, unsigned int s) {

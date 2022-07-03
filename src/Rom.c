@@ -25,7 +25,6 @@ static RestrictionFlag* Restriction_GetFlags(Rom* rom, u32 sceneIndex) {
 
 static void Restriction_WriteFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
 	static s32 firstEntry = false;
-	char* flags = Config_GetVariable(config->str, "restriction_flags");
 	RestrictionFlag* rf = rom->table.restrictionFlags;
 	ItemList rlist = ItemList_Initialize();
 	
@@ -37,35 +36,40 @@ static void Restriction_WriteFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
 	}
 	
 	firstEntry = true;
-	rf->sceneIndex = sceneIndex;
 	
-	Config_GetArray(config, "restriction_flags", &rlist);
+	*rf = (RestrictionFlag) {
+		.sceneIndex = sceneIndex
+	};
 	
-	for (s32 i = 0; i < rlist.num; i++) {
-		if (!strcmp(rlist.item[i], "BOTTLES"))
-			rf->bottles = 3;
-		if (!strcmp(rlist.item[i], "A_BUTTON"))
-			rf->aButton = 3;
-		if (!strcmp(rlist.item[i], "B_BUTTON"))
-			rf->bButton = 3;
-		if (!strcmp(rlist.item[i], "WARP_SONG"))
-			rf->warpSong = 3;
-		if (!strcmp(rlist.item[i], "OCARINA"))
-			rf->ocarina = 3;
-		if (!strcmp(rlist.item[i], "HOOKSHOT"))
-			rf->hookshot = 3;
-		if (!strcmp(rlist.item[i], "TRADE_ITEM"))
-			rf->tradeItem = 3;
-		if (!strcmp(rlist.item[i], "ALL"))
-			rf->all = 3;
-		if (!strcmp(rlist.item[i], "DINS_FIRE"))
-			rf->din = 1;
-		if (!strcmp(rlist.item[i], "NAYRUS_LOVE"))
-			rf->nayry = 1;
-		if (!strcmp(rlist.item[i], "FARORES_WIND"))
-			rf->farore = 3;
-		if (!strcmp(rlist.item[i], "SUN_SONG"))
-			rf->sunSong = 3;
+	if (Config_Variable(config->str, "restriction_flags")) {
+		Config_GetArray(config, "restriction_flags", &rlist);
+		
+		for (s32 i = 0; i < rlist.num; i++) {
+			if (!strcmp(rlist.item[i], "BOTTLES"))
+				rf->bottles = 3;
+			if (!strcmp(rlist.item[i], "A_BUTTON"))
+				rf->aButton = 3;
+			if (!strcmp(rlist.item[i], "B_BUTTON"))
+				rf->bButton = 3;
+			if (!strcmp(rlist.item[i], "WARP_SONG"))
+				rf->warpSong = 3;
+			if (!strcmp(rlist.item[i], "OCARINA"))
+				rf->ocarina = 3;
+			if (!strcmp(rlist.item[i], "HOOKSHOT"))
+				rf->hookshot = 3;
+			if (!strcmp(rlist.item[i], "TRADE_ITEM"))
+				rf->tradeItem = 3;
+			if (!strcmp(rlist.item[i], "ALL"))
+				rf->all = 3;
+			if (!strcmp(rlist.item[i], "DINS_FIRE"))
+				rf->din = 1;
+			if (!strcmp(rlist.item[i], "NAYRUS_LOVE"))
+				rf->nayry = 1;
+			if (!strcmp(rlist.item[i], "FARORES_WIND"))
+				rf->farore = 3;
+			if (!strcmp(rlist.item[i], "SUN_SONG"))
+				rf->sunSong = 3;
+		}
 	}
 	
 	rf[1].sceneIndex = 0xFF;

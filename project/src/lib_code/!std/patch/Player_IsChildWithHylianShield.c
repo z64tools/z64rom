@@ -7,7 +7,7 @@
 #include <uLib.h>
 
 s32 Player_IsChildWithHylianShield(Player* this) {
-#if ChildLink_HylianShieldAdjust == true
+#if Patch_WieldHylianShieldLikeKokiriShield == true
 	
 	return 0;
 #else

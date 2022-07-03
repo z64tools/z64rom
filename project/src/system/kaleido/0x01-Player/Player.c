@@ -12367,7 +12367,7 @@ s32 func_8084DFF4(PlayState* play, Player* this) {
 		}
 	}
 	
-#if Link_SilverGauntletCutscene == true
+#if Patch_SilverGauntletObtainCS == true
 	else {
 		if (Message_GetState(&play->msgCtx) == TEXT_STATE_CLOSING) {
 			if (this->getItemId == GI_GAUNTLETS_SILVER) {

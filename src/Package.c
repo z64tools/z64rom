@@ -24,10 +24,11 @@ void Package_Load(const char* item) {
 	if (ZipFile_ReadEntry_Name(&zip, "package.cfg", cfg))
 		printf_error("Failed to read entry \"package.cfg\" from \"%s\"", item);
 	
-	if (Config_Variable(cfg->str, "author"))
+	if (Config_Variable(cfg->str, "author")) {
 		printf_info_align("Author:", Config_GetStr(cfg, "author"));
-	if (Config_Variable(cfg->str, "version"))
-		printf_info_align("Version:", Config_GetStr(cfg, "version"));
+		if (Config_Variable(cfg->str, "version"))
+			printf_info_align("Version:", Config_GetStr(cfg, "version"));
+	}
 	
 	Package_ListSections(cfg, &list);
 }

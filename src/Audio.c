@@ -683,8 +683,8 @@ void Audio_DumpSampleTable(Rom* rom, MemFile* dataFile, MemFile* config) {
 		if (gThreading) {
 			for (s32 j = 0; j < target; j++) {
 				ThreadLock_Join(&thread[j]);
-				printf_progress("Sample", i + j + 1, sSortID);
 			}
+			printf_progress("Sample", i + target, sSortID);
 		}
 		
 		i += gThreadNum;

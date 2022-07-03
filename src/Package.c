@@ -9,7 +9,6 @@ static void Package_ListSections(MemFile* cfg, ItemList* list) {
 	s32 ln = LineNum(p);
 	
 	for (s32 i = 0; i < ln; i++) {
-		
 	}
 }
 

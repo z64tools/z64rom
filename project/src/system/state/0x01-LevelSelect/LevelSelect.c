@@ -37,6 +37,8 @@ void Select_LoadTitle(SelectContext* this) {
 }
 
 void Select_LoadGame(SelectContext* this, s32 entranceIndex) {
+	gExitParam.nextEntranceIndex = entranceIndex;
+	
 	if (gSaveContext.fileNum == 0xFF) {
 		Sram_InitDebugSave();
 		// Set the fill target to be the saved magic amount

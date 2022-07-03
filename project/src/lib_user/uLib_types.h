@@ -17,19 +17,38 @@ typedef struct {
 typedef struct {
 	union {
 		struct {
-			u32 flag        : 1; // O*** **** ─ **** **** ─ **** **** ─ **** ****
+			u32 __isExit    : 1; // O*** **** ─ **** **** ─ **** **** ─ **** ****
 			u32 musicOn     : 1; // *O** **** ─ **** **** ─ **** **** ─ **** ****
 			u32 titleCard   : 1; // **O* **** ─ **** **** ─ **** **** ─ **** ****
 			u32 fadeIn      : 6; // ***O OOOO ─ O*** **** ─ **** **** ─ **** ****
 			u32 fadeOut     : 6; // **** **** ─ *OOO OOO* ─ **** **** ─ **** ****
-			u32 spawnIndex  : 5; // **** **** ─ **** ***O ─ OOOO **** ─ **** ****
-			u32 headerIndex : 4; // **** **** ─ **** **** ─ **** OOOO ─ **** ****
+			u32 headerIndex : 4; // **** **** ─ **** ***O ─ OOO* **** ─ **** ****
+			u32 spawnIndex  : 5; // **** **** ─ **** **** ─ ***O OOOO ─ **** ****
 			u32 sceneIndex  : 8; // **** **** ─ **** **** ─ **** **** ─ OOOO OOOO
 		};
 		struct {
-			u32 value;
+			union {
+				struct {
+					u16 upper;
+					u16 lower;
+				};
+				u32 value;
+			};
 		};
 	};
+} NewExit;
+
+typedef struct {
+	u16 __pad1;
+	union {
+		struct {
+			u16 isExit : 1;
+			u16 __pad2 : 15;
+		};
+		u16 nextEntranceIndex;
+	};
+	NewExit exit;
+	NewExit respawn[RESPAWN_MODE_MAX];
 } ExitParam;
 
 typedef struct {

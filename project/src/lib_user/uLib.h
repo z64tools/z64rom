@@ -6,6 +6,7 @@
 // # # # # # # # # # # # # # # # # # # # #
 
 #define ChildLink_HylianShieldAdjust true
+#define Link_SilverGauntletCutscene false
 
 // # # # # # # # # # # # # # # # # # # # #
 // # UserLibrary                         #
@@ -46,7 +47,7 @@ extern GraphicsContext* __gfxCtx;
 extern ExitParam gExitParam;
 asm ("gPlayState = 0x80212020 - 0x38000;");
 asm ("__gfxCtx = gPlayState;");
-asm ("gExitParam = gPlayState + 0x11E1C;");
+asm ("gExitParam = gPlayState + 0x11E18;"); // 801EBE38
 
 void uLib_Update(GameState* gameState);
 void* memset(void* m, int v, unsigned int s);

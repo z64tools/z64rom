@@ -21,5 +21,7 @@ void NewPlay_Init(PlayState* playState);
 void NewPlay_Draw(PlayState* playState);
 void NewPlay_Update(PlayState* playState);
 void NewPlay_Main(PlayState* playState);
+void NewPlay_SetFadeOut(PlayState* play);
+void NewPlay_SetupRespawn(PlayState* this, s32 respawnMode, s32 playerParams);
 
 void NewRoom_Draw(PlayState* globalCtx, Room* room, u32 flags);

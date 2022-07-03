@@ -61,7 +61,7 @@ void NewPlay_Init(PlayState* playState) {
 		return;
 	}
 	
-	osLibPrintf("Entrance Index: %04X", playState->nextEntranceIndex);
+	osLibPrintf("Entrance Index: %04X", gExitParam.nextEntranceIndex);
 	osLibPrintf(
 		"gExitParam:\n"
 		PRNT_RSET "\tflag:       %s\n"
@@ -72,14 +72,14 @@ void NewPlay_Init(PlayState* playState) {
 		PRNT_RSET "\tspawnIndex: " PRNT_BLUE " 0x%02X\n"
 		PRNT_RSET "\theaderIndex:" PRNT_BLUE " 0x%02X\n"
 		PRNT_RSET "\tsceneIndex: " PRNT_BLUE " 0x%02X",
-		gExitParam.flag ? PRNT_GREN " true" : PRNT_REDD "false",
-		gExitParam.musicOn ? PRNT_GREN " true" : PRNT_REDD "false",
-		gExitParam.titleCard ? PRNT_GREN " true" : PRNT_REDD "false",
-		gExitParam.fadeIn,
-		gExitParam.fadeOut,
-		gExitParam.spawnIndex,
-		gExitParam.headerIndex,
-		gExitParam.sceneIndex
+		gExitParam.isExit ? PRNT_GREN " true" : PRNT_REDD "false",
+		gExitParam.exit.musicOn ? PRNT_GREN " true" : PRNT_REDD "false",
+		gExitParam.exit.titleCard ? PRNT_GREN " true" : PRNT_REDD "false",
+		gExitParam.exit.fadeIn,
+		gExitParam.exit.fadeOut,
+		gExitParam.exit.spawnIndex,
+		gExitParam.exit.headerIndex,
+		gExitParam.exit.sceneIndex
 	);
 	
 	SystemArena_Display();
@@ -155,7 +155,7 @@ void NewPlay_Init(PlayState* playState) {
 	u32 sceneNum = 0;
 	u32 sceneSpawn = 0;
 	
-	if (gExitParam.flag == false) {
+	if (gExitParam.isExit == false) {
 		tempSetupIndex = gSaveContext.sceneSetupIndex;
 		if ((gEntranceTable[((void)0, gSaveContext.entranceIndex)].scene == SCENE_SPOT00) && !LINK_IS_ADULT &&
 			gSaveContext.sceneSetupIndex < 4) {
@@ -173,10 +173,10 @@ void NewPlay_Init(PlayState* playState) {
 		sceneNum = gEntranceTable[((void)0, gSaveContext.entranceIndex) + ((void)0, gSaveContext.sceneSetupIndex)].scene;
 		sceneSpawn = gEntranceTable[((void)0, gSaveContext.sceneSetupIndex) + ((void)0, gSaveContext.entranceIndex)].spawn;
 	} else {
-		sceneNum = gExitParam.sceneIndex;
-		if (gExitParam.headerIndex)
-			gSaveContext.sceneSetupIndex = gExitParam.headerIndex;
-		sceneSpawn = gExitParam.spawnIndex;
+		sceneNum = gExitParam.exit.sceneIndex;
+		if (gExitParam.exit.headerIndex)
+			gSaveContext.sceneSetupIndex = gExitParam.exit.headerIndex;
+		sceneSpawn = gExitParam.exit.spawnIndex;
 	}
 	
 	NewPlay_SpawnScene(
@@ -223,10 +223,10 @@ void NewPlay_Init(PlayState* playState) {
 	
 	if (gSaveContext.gameMode != 1) {
 		if (gSaveContext.nextTransitionType == TRANS_NEXT_TYPE_DEFAULT) {
-			if (gExitParam.flag == false)
+			if (gExitParam.isExit == false)
 				playState->transitionType = (gEntranceTable[((void)0, gSaveContext.entranceIndex) + tempSetupIndex].field >> 7) & 0x7F;
 			else
-				playState->transitionType = gExitParam.fadeIn;
+				playState->transitionType = gExitParam.exit.fadeIn;
 		} else {
 			playState->transitionType = gSaveContext.nextTransitionType;
 			gSaveContext.nextTransitionType = TRANS_NEXT_TYPE_DEFAULT;
@@ -541,6 +541,8 @@ void NewPlay_Update(PlayState* playState) {
 	s32 sp80 = 0;
 	Input* input;
 	
+	// u16 neEnIn = playState->nextEntranceIndex;
+	
 	input = playState->state.input;
 	
 	gSegments[4] = VIRTUAL_TO_PHYSICAL(playState->objectCtx.status[playState->objectCtx.mainKeepIndex].segment);
@@ -584,11 +586,11 @@ void NewPlay_Update(PlayState* playState) {
 						
 						// z64rom
 						
-						if (gExitParam.flag == false) {
-							if (!(gEntranceTable[playState->nextEntranceIndex + sceneSetupIndex].field & 0x8000))
+						if (gExitParam.isExit == false) {
+							if (!(gEntranceTable[gExitParam.nextEntranceIndex + sceneSetupIndex].field & 0x8000))
 								fadeOut = true;
 						} else {
-							if (gExitParam.musicOn == false)
+							if (gExitParam.exit.musicOn == false)
 								fadeOut = true;
 						}
 						
@@ -723,7 +725,7 @@ void NewPlay_Update(PlayState* playState) {
 							
 							if (gSaveContext.gameMode != 2) {
 								SET_NEXT_GAMESTATE(&playState->state, Play_Init, PlayState);
-								gSaveContext.entranceIndex = playState->nextEntranceIndex;
+								gSaveContext.entranceIndex = gExitParam.nextEntranceIndex;
 								
 								if (gSaveContext.minigameState == 1) {
 									gSaveContext.minigameState = 3;
@@ -774,7 +776,7 @@ void NewPlay_Update(PlayState* playState) {
 					if (sTransitionFillTimer >= 20) {
 						playState->state.running = false;
 						SET_NEXT_GAMESTATE(&playState->state, Play_Init, PlayState);
-						gSaveContext.entranceIndex = playState->nextEntranceIndex;
+						gSaveContext.entranceIndex = gExitParam.nextEntranceIndex;
 						playState->transitionTrigger = TRANS_TRIGGER_OFF;
 						playState->transitionMode = TRANS_MODE_OFF;
 					} else {
@@ -816,7 +818,7 @@ void NewPlay_Update(PlayState* playState) {
 					if (playState->transitionTrigger != TRANS_TRIGGER_END) {
 						playState->state.running = false;
 						SET_NEXT_GAMESTATE(&playState->state, Play_Init, PlayState);
-						gSaveContext.entranceIndex = playState->nextEntranceIndex;
+						gSaveContext.entranceIndex = gExitParam.nextEntranceIndex;
 						playState->transitionTrigger = TRANS_TRIGGER_OFF;
 						playState->transitionMode = TRANS_MODE_OFF;
 					} else {
@@ -867,7 +869,7 @@ void NewPlay_Update(PlayState* playState) {
 						if (playState->envCtx.sandstormEnvA == 255) {
 							playState->state.running = false;
 							SET_NEXT_GAMESTATE(&playState->state, Play_Init, PlayState);
-							gSaveContext.entranceIndex = playState->nextEntranceIndex;
+							gSaveContext.entranceIndex = gExitParam.nextEntranceIndex;
 							playState->transitionTrigger = TRANS_TRIGGER_OFF;
 							playState->transitionMode = TRANS_MODE_OFF;
 						}
@@ -1040,6 +1042,9 @@ skip:
 		&playState->gameOverCtx,
 		playState->state.gfxCtx
 	);
+	
+	// if (neEnIn != playState->nextEntranceIndex)
+	// 	gExitParam.lower = playState->nextEntranceIndex;
 }
 
 void NewPlay_Main(PlayState* playState) {
@@ -1069,4 +1074,45 @@ void NewPlay_Main(PlayState* playState) {
 #ifdef DEV_BUILD
 	DebugMenu_Update(playState);
 #endif
+}
+
+void NewPlay_SetFadeOut(PlayState* play) {
+	s16 entranceIndex;
+	
+	if (gExitParam.isExit == false) {
+		if (!IS_DAY) {
+			if (!LINK_IS_ADULT) {
+				entranceIndex = play->nextEntranceIndex + 1;
+			} else {
+				entranceIndex = play->nextEntranceIndex + 3;
+			}
+		} else {
+			if (!LINK_IS_ADULT) {
+				entranceIndex = play->nextEntranceIndex;
+			} else {
+				entranceIndex = play->nextEntranceIndex + 2;
+			}
+		}
+		
+		play->transitionType = gEntranceTable[entranceIndex].field & 0x7F;
+	} else {
+		play->transitionType = gExitParam.exit.fadeOut;
+	}
+}
+
+void NewPlay_SetupRespawn(PlayState* this, s32 respawnMode, s32 playerParams) {
+	RespawnData* respawnData = &gSaveContext.respawn[respawnMode];
+	Player* player = GET_PLAYER(this);
+	s32 entranceIndex = gSaveContext.entranceIndex;
+	s8 roomIndex = this->roomCtx.curRoom.num;
+	
+	MemCpy(&gExitParam.respawn[respawnMode], &gExitParam.exit, sizeof(NewExit));
+	
+	respawnData->entranceIndex = entranceIndex;
+	respawnData->roomIndex = roomIndex;
+	respawnData->pos = player->actor.world.pos;
+	respawnData->yaw = player->actor.shape.rot.y;
+	respawnData->playerParams = playerParams;
+	respawnData->tempSwchFlags = this->actorCtx.flags.tempSwch;
+	respawnData->tempCollectFlags = this->actorCtx.flags.tempCollect;
 }

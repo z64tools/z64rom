@@ -3558,7 +3558,7 @@ s32 func_808382DC(Player* this, PlayState* play) {
 			
 			if (sp68) {
 				Play_TriggerRespawn(play);
-				Scene_SetTransitionForNextEntrance(play);
+				NewPlay_SetFadeOut(play);
 			} else {
 				// Special case for getting crushed in Forest Temple's Checkboard Ceiling Hall or Shadow Temple's
 				// Falling Spike Trap Room, to respawn the player in a specific place
@@ -3929,10 +3929,10 @@ s32 func_80839034(PlayState* play, Player* this, CollisionPoly* poly, u32 bgId) 
 			
 			if (exitIndex == 0) {
 				Play_TriggerVoidOut(play);
-				Scene_SetTransitionForNextEntrance(play);
+				NewPlay_SetFadeOut(play);
 			} else {
 				// z64rom
-				s16* setupList = play->setupExitList;
+				u16* setupList = (u16*)play->setupExitList;
 				
 				for (s32 i = 0; i < exitIndex - 1; i++) {
 					if ((*setupList & 0x8000) == 0x8000)
@@ -3941,33 +3941,37 @@ s32 func_80839034(PlayState* play, Player* this, CollisionPoly* poly, u32 bgId) 
 					else
 						setupList++;
 				}
+				
+				gExitParam.nextEntranceIndex = setupList[0];
+				
 				if ((*setupList & 0x8000) == 0x8000) {
-					MemCpy(&gExitParam, setupList, sizeof(s32));
-				} else {
-					MemCpy(&play->nextEntranceIndex, setupList, sizeof(s16));
-					memset(&gExitParam, 0, sizeof(ExitParam));
+					gExitParam.exit.upper = setupList[0];
+					gExitParam.exit.lower = setupList[1];
 				}
 				
-				if (play->nextEntranceIndex == ENTR_RETURN_GROTTO) {
-					gSaveContext.respawnFlag = 2;
-					play->nextEntranceIndex = gSaveContext.respawn[RESPAWN_MODE_RETURN].entranceIndex;
-					play->transitionType = TRANS_TYPE_FADE_WHITE;
-					gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
-				} else if (play->nextEntranceIndex >= ENTR_RETURN_YOUSEI_IZUMI_YOKO) {
-					play->nextEntranceIndex =
-						sReturnEntranceGroupData[sReturnEntranceGroupIndices[play->nextEntranceIndex -
-							ENTR_RETURN_YOUSEI_IZUMI_YOKO] +
-							play->curSpawn];
-					Scene_SetTransitionForNextEntrance(play);
+				if (gExitParam.nextEntranceIndex <= ENTR_RETURN_GROTTO && gExitParam.nextEntranceIndex >= ENTR_RETURN_YOUSEI_IZUMI_YOKO) {
+					if (gExitParam.nextEntranceIndex == ENTR_RETURN_GROTTO) {
+						gSaveContext.respawnFlag = 2;
+						gExitParam.nextEntranceIndex = gSaveContext.respawn[RESPAWN_MODE_RETURN].entranceIndex;
+						play->transitionType = TRANS_TYPE_FADE_WHITE;
+						gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
+					} else if (gExitParam.nextEntranceIndex >= ENTR_RETURN_YOUSEI_IZUMI_YOKO) {
+						gExitParam.nextEntranceIndex =
+							sReturnEntranceGroupData[sReturnEntranceGroupIndices[gExitParam.nextEntranceIndex -
+								ENTR_RETURN_YOUSEI_IZUMI_YOKO] +
+								play->curSpawn];
+						NewPlay_SetFadeOut(play);
+					}
 				} else {
 					if (SurfaceType_GetSlope(&play->colCtx, poly, bgId) == 2) {
-						gSaveContext.respawn[RESPAWN_MODE_DOWN].entranceIndex = play->nextEntranceIndex;
+						gSaveContext.respawn[RESPAWN_MODE_DOWN].entranceIndex = gExitParam.nextEntranceIndex;
+						gExitParam.respawn[RESPAWN_MODE_DOWN] = gExitParam.exit;
 						Play_TriggerVoidOut(play);
 						gSaveContext.respawnFlag = -2;
 					}
 					
 					gSaveContext.retainWeatherMode = true;
-					Scene_SetTransitionForNextEntrance(play);
+					NewPlay_SetFadeOut(play);
 				}
 				
 				play->transitionTrigger = TRANS_TRIGGER_START;
@@ -12361,10 +12365,13 @@ s32 func_8084DFF4(PlayState* play, Player* this) {
 			}
 			Audio_PlayFanfare(temp1);
 		}
-	} else {
+	}
+	
+#if Link_SilverGauntletCutscene == true
+	else {
 		if (Message_GetState(&play->msgCtx) == TEXT_STATE_CLOSING) {
 			if (this->getItemId == GI_GAUNTLETS_SILVER) {
-				play->nextEntranceIndex = ENTR_SPOT11_0;
+				gExitParam.nextEntranceIndex = ENTR_SPOT11_0;
 				play->transitionTrigger = TRANS_TRIGGER_START;
 				gSaveContext.nextCutsceneIndex = 0xFFF1;
 				play->transitionType = TRANS_TYPE_SANDSTORM_END;
@@ -12374,6 +12381,7 @@ s32 func_8084DFF4(PlayState* play, Player* this) {
 			this->getItemId = GI_NONE;
 		}
 	}
+#endif
 	
 	return 0;
 }
@@ -13015,7 +13023,7 @@ void func_8084F88C(Player* this, PlayState* play) {
 		if (this->unk_84F != 0) {
 			if (play->sceneNum == 9) {
 				Play_TriggerRespawn(play);
-				play->nextEntranceIndex = ENTR_ICE_DOUKUTO_0;
+				gExitParam.nextEntranceIndex = ENTR_ICE_DOUKUTO_0;
 			} else if (this->unk_84F < 0) {
 				Play_TriggerRespawn(play);
 			} else {
@@ -13365,7 +13373,13 @@ void func_8085063C(Player* this, PlayState* play) {
 		if (play->msgCtx.choiceIndex == 0) {
 			gSaveContext.respawnFlag = 3;
 			play->transitionTrigger = TRANS_TRIGGER_START;
-			play->nextEntranceIndex = gSaveContext.respawn[RESPAWN_MODE_TOP].entranceIndex;
+			
+			gExitParam.nextEntranceIndex = gSaveContext.respawn[RESPAWN_MODE_TOP].entranceIndex;
+			
+			if (gExitParam.isExit) {
+				gExitParam.exit = gExitParam.respawn[RESPAWN_MODE_TOP];
+			}
+			
 			play->transitionType = TRANS_TYPE_FADE_WHITE_FAST;
 			func_80088AF0(play);
 			
@@ -13487,6 +13501,8 @@ void func_808507F4(Player* this, PlayState* play) {
 				gSaveContext.fw.roomIndex = gSaveContext.respawn[RESPAWN_MODE_DOWN].roomIndex;
 				gSaveContext.fw.tempSwchFlags = gSaveContext.respawn[RESPAWN_MODE_DOWN].tempSwchFlags;
 				gSaveContext.fw.tempCollectFlags = gSaveContext.respawn[RESPAWN_MODE_DOWN].tempCollectFlags;
+				gExitParam.respawn[RESPAWN_MODE_DOWN] = gExitParam.exit;
+				
 				this->unk_850 = 2;
 			}
 		} else if (this->unk_84F >= 0) {

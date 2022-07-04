@@ -17,6 +17,7 @@ extern Gfx gNintendo64LogoDL[];
 extern u64 nintendo_rogo_staticTex_0029C0[];
 
 void View_LookAt(View* view, Vec3f* eye, Vec3f* at, Vec3f* up);
+void* alloca(u32);
 asm ("View_LookAt = 0x800AA358");
 asm ("Opening_Init = 0x80803CAC");
 
@@ -75,12 +76,14 @@ void BootTitle_MoreRamPlease(Gfx** gfxp) {
 	printer = alloca(sizeof(GfxPrint));
 	GfxPrint_Init(printer);
 	GfxPrint_Open(printer, g);
+	
 	GfxPrint_SetColor(printer, 255, 75, 75, 255);
 	GfxPrint_SetPos(printer, 12, 21);
 	GfxPrint_Printf(printer, "Not enough RAM!");
+	
 	GfxPrint_SetColor(printer, 255, 255, 255, 255);
-	GfxPrint_SetPos(printer, 7, 23);
-	GfxPrint_Printf(printer, "Expansion pack is required.", gBuildTeam);
+	GfxPrint_SetPos(printer, 8, 23);
+	GfxPrint_Printf(printer, "Expansion Pak is required.", gBuildTeam);
 	g = GfxPrint_Close(printer);
 	GfxPrint_Destroy(printer);
 	*gfxp = g;

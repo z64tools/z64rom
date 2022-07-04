@@ -76,11 +76,11 @@ void BootTitle_MoreRamPlease(Gfx** gfxp) {
 	GfxPrint_Init(printer);
 	GfxPrint_Open(printer, g);
 	GfxPrint_SetColor(printer, 255, 75, 75, 255);
-	GfxPrint_SetPos(printer, 9, 21);
-	GfxPrint_Printf(printer, "This is not enough RAM!");
+	GfxPrint_SetPos(printer, 12, 21);
+	GfxPrint_Printf(printer, "Not enough RAM!");
 	GfxPrint_SetColor(printer, 255, 255, 255, 255);
-	GfxPrint_SetPos(printer, 13, 23);
-	GfxPrint_Printf(printer, "Get some help.", gBuildTeam);
+	GfxPrint_SetPos(printer, 7, 23);
+	GfxPrint_Printf(printer, "Expansion pack is required.", gBuildTeam);
 	g = GfxPrint_Close(printer);
 	GfxPrint_Destroy(printer);
 	*gfxp = g;

@@ -18,7 +18,7 @@ extern u64 nintendo_rogo_staticTex_0029C0[];
 
 void View_LookAt(View* view, Vec3f* eye, Vec3f* at, Vec3f* up);
 asm ("View_LookAt = 0x800AA358");
-asm("Opening_Init = 0x80803CAC");
+asm ("Opening_Init = 0x80803CAC");
 
 // Note: In other rom versions this function also updates unk_1D4, coverAlpha, addAlpha, visibleDuration to calculate
 // the fade-in/fade-out + the duration of the n64 logo animation
@@ -66,6 +66,26 @@ void BootTitle_SetupView(TitleContext* this, f32 x, f32 y, f32 z) {
 	View_Apply(view, VIEW_ALL);
 }
 
+void BootTitle_MoreRamPlease(Gfx** gfxp) {
+	Gfx* g;
+	GfxPrint* printer;
+	
+	g = *gfxp;
+	g = Gfx_SetupDL_28(g);
+	printer = alloca(sizeof(GfxPrint));
+	GfxPrint_Init(printer);
+	GfxPrint_Open(printer, g);
+	GfxPrint_SetColor(printer, 255, 75, 75, 255);
+	GfxPrint_SetPos(printer, 9, 21);
+	GfxPrint_Printf(printer, "This is not enough RAM!");
+	GfxPrint_SetColor(printer, 255, 255, 255, 255);
+	GfxPrint_SetPos(printer, 13, 23);
+	GfxPrint_Printf(printer, "Get some help.", gBuildTeam);
+	g = GfxPrint_Close(printer);
+	GfxPrint_Destroy(printer);
+	*gfxp = g;
+}
+
 void BootTitle_Draw(TitleContext* this) {
 	static s16 sTitleRotY = 0;
 	static Lights1 sTitleLights = gdSPDefLights1(100, 100, 100, 255, 255, 255, 69, 69, 69);
@@ -97,84 +117,6 @@ void BootTitle_Draw(TitleContext* this) {
 	gSPMatrix(POLY_OPA_DISP++, Matrix_NewMtx(this->state.gfxCtx, "../z_title.c", 424), G_MTX_LOAD);
 	gSPDisplayList(POLY_OPA_DISP++, gNintendo64LogoDL);
 	
-#if 0
-	Gfx_SetupDL_39Opa(this->state.gfxCtx);
-	gDPPipeSync(POLY_OPA_DISP++);
-	gDPSetCycleType(POLY_OPA_DISP++, G_CYC_2CYCLE);
-	gDPSetRenderMode(POLY_OPA_DISP++, G_RM_XLU_SURF2, G_RM_OPA_CI | CVG_DST_WRAP);
-	gDPSetCombineLERP(
-		POLY_OPA_DISP++,
-		TEXEL1,
-		PRIMITIVE,
-		ENV_ALPHA,
-		TEXEL0,
-		0,
-		0,
-		0,
-		TEXEL0,
-		PRIMITIVE,
-		ENVIRONMENT,
-		COMBINED,
-		ENVIRONMENT,
-		COMBINED,
-		0,
-		PRIMITIVE,
-		0
-	);
-	gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 170, 255, 255, 255);
-	gDPSetEnvColor(POLY_OPA_DISP++, 0x79, 0, 0xF5, 128);
-	
-	gDPLoadMultiBlock(
-		POLY_OPA_DISP++,
-		nintendo_rogo_static_Tex_001800,
-		0x100,
-		1,
-		G_IM_FMT_I,
-		G_IM_SIZ_8b,
-		32,
-		32,
-		0,
-		G_TX_NOMIRROR | G_TX_WRAP,
-		G_TX_NOMIRROR | G_TX_WRAP,
-		5,
-		5,
-		2,
-		11
-	);
-	
-	for (idx = 0, y = 94; idx < 16; idx++, y += 2) {
-		gDPLoadTextureBlock(
-			POLY_OPA_DISP++,
-			&((u8*)nintendo_rogo_static_Tex_000000)[0x180 * idx],
-			G_IM_FMT_I,
-			G_IM_SIZ_8b,
-			192,
-			2,
-			0,
-			G_TX_NOMIRROR | G_TX_WRAP,
-			G_TX_NOMIRROR | G_TX_WRAP,
-			G_TX_NOMASK,
-			G_TX_NOMASK,
-			G_TX_NOLOD,
-			G_TX_NOLOD
-		);
-		
-		gDPSetTileSize(POLY_OPA_DISP++, 1, this->uls, (this->ult & 0x7F) - idx * 4, 0, 0);
-		gSPTextureRectangle(
-			POLY_OPA_DISP++,
-			64 << 2,
-				(y) << 2,
-				289 << 2,
-				(y + 2) << 2,
-				G_TX_RENDERTILE,
-				0,
-				0,
-				1 << 10,
-				1 << 10
-		);
-	}
-#endif
-	
 	Environment_FillScreen(this->state.gfxCtx, 0, 0, 0, (s16)this->coverAlpha, FILL_SCREEN_XLU);
 	
 	sTitleRotY += 300;
@@ -190,8 +132,16 @@ void BootTitle_Main(GameState* thisx) {
 	gSPSegment(POLY_OPA_DISP++, 0, NULL);
 	gSPSegment(POLY_OPA_DISP++, 1, this->staticSegment);
 	func_80095248(this->state.gfxCtx, 0, 0, 0);
-	BootTitle_Calc(this);
-	BootTitle_Draw(this);
+	
+	if (osMemSize > 0x400000U) {
+		BootTitle_Calc(this);
+		BootTitle_Draw(this);
+	} else {
+		Gfx* gfx = POLY_OPA_DISP;
+		
+		BootTitle_MoreRamPlease(&gfx);
+		POLY_OPA_DISP = gfx;
+	}
 	
 	if (this->exit) {
 		gSaveContext.seqId = (u8)NA_BGM_DISABLED;
@@ -211,11 +161,14 @@ void BootTitle_Destroy(GameState* thisx) {
 }
 
 void BootTitle_Init(GameState* thisx) {
-	u32 size = gDmaDataTable[938].vromEnd - gDmaDataTable[938].vromStart;
 	TitleContext* this = (TitleContext*)thisx;
 	
-	this->staticSegment = GameState_Alloc(&this->state, size, "../z_title.c", 611);
-	DmaMgr_SendRequest1(this->staticSegment, gDmaDataTable[938].vromStart, size, "../z_title.c", 615);
+	if (osMemSize > 0x400000U) {
+		u32 size = gDmaDataTable[938].vromEnd - gDmaDataTable[938].vromStart;
+		this->staticSegment = GameState_Alloc(&this->state, size, "../z_title.c", 611);
+		DmaMgr_SendRequest1(this->staticSegment, gDmaDataTable[938].vromStart, size, "../z_title.c", 615);
+	}
+	
 	R_UPDATE_RATE = 1;
 	Matrix_Init(&this->state);
 	View_Init(&this->view, this->state.gfxCtx);

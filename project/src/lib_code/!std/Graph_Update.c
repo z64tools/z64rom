@@ -3,12 +3,13 @@
 /*
    z64ram = 0x800C61D8
    z64rom = 0xB3D378
+   z64next = 0x800C6844
  */
 
 extern OSTime sGraphUpdateTime;
 extern FaultClient sGraphUcodeFaultClient;
 
-void _Graph_Update(GraphicsContext* gfxCtx, GameState* gameState) {
+void Graph_Update(GraphicsContext* gfxCtx, GameState* gameState) {
 	u32 problem;
 	
 	gameState->unk_A0 = 0;
@@ -79,7 +80,6 @@ void _Graph_Update(GraphicsContext* gfxCtx, GameState* gameState) {
 		GfxPool* pool = &gGfxPools[gfxCtx->gfxPoolIdx & 1];
 		
 		if (pool->headMagic != 0x1234) {
-			// @bug (?) : devs might've forgotten "problem = true;"
 			problem = true;
 			Fault_AddHungupAndCrash(0, 1070);
 		}
@@ -123,7 +123,7 @@ void _Graph_Update(GraphicsContext* gfxCtx, GameState* gameState) {
 		sGraphUpdateTime = time;
 	}
 	
-	if (gLibCtx.__ctxInitValue == 0xDEADBEEF)
+	if (osMemSize > 0x400000U && gLibCtx.__ctxInitValue == 0xDEADBEEF)
 		uLib_Update(gameState);
 	
 	if (gIsCtrlr2Valid && PreNmiBuff_IsResetting(gAppNmiBufferPtr) && !gameState->unk_A0) {

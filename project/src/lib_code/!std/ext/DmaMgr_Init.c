@@ -12,31 +12,41 @@ void DmaMgr_Init(void) {
 	DmaEntry* iter;
 	OSMesg* sDmaMgrMsgBuf = (void*)0x800139A8; // [32]
 	
-	DmaMgr_DmaRomToRam(
-		0x012F70,
-		(u32)gDmaDataTable,
-		sizeof(DmaEntry) * 4
-	);
-	
-	if (gDmaDataTable[3].romEnd) {
-		u32 romStart = gDmaDataTable[3].romStart;
-		u32 romSize = gDmaDataTable[3].romEnd - gDmaDataTable[3].romStart;
-		
-		osSetThreadPri(NULL, THREAD_PRI_DMAMGR_LOW);
-		Yaz0_Decompress(romStart, (void*)0x80700000, romSize);
-		osSetThreadPri(NULL, THREAD_PRI_DMAMGR);
-	} else
+	if (osMemSize > 0x400000U) {
 		DmaMgr_DmaRomToRam(
-			gDmaDataTable[3].vromStart,
-			0x80700000,
-			gDmaDataTable[3].vromEnd - gDmaDataTable[3].vromStart
+			0x012F70,
+			(u32)gDmaDataTable,
+			sizeof(DmaEntry) * 4
 		);
-	
-	DmaMgr_DmaRomToRam(
-		gDmaDataTable[2].vromStart,
-		(u32)__ext_gDmaDataTable,
-		gDmaDataTable[2].vromEnd - gDmaDataTable[2].vromStart
-	);
+		
+		if (gDmaDataTable[3].romEnd) {
+			u32 romStart = gDmaDataTable[3].romStart;
+			u32 romSize = gDmaDataTable[3].romEnd - gDmaDataTable[3].romStart;
+			
+			osSetThreadPri(NULL, THREAD_PRI_DMAMGR_LOW);
+			Yaz0_Decompress(romStart, (void*)0x80700000, romSize);
+			osSetThreadPri(NULL, THREAD_PRI_DMAMGR);
+		} else {
+			DmaMgr_DmaRomToRam(
+				gDmaDataTable[3].vromStart,
+				0x80700000,
+				gDmaDataTable[3].vromEnd - gDmaDataTable[3].vromStart
+			);
+		}
+		
+		DmaMgr_DmaRomToRam(
+			gDmaDataTable[2].vromStart,
+			(u32)__ext_gDmaDataTable,
+			gDmaDataTable[2].vromEnd - gDmaDataTable[2].vromStart
+		);
+	} else {
+		DmaMgr_DmaRomToRam(
+			0x012F70,
+			(u32)gDmaDataTable,
+			sizeof(DmaEntry) * 0x60C
+		);
+		gDmaDataTable[0x60B].vromEnd = 0;
+	}
 	
 	sDmaMgrIsRomCompressed = false;
 	iter = gDmaDataTable;

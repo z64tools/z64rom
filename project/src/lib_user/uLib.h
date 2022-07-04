@@ -48,6 +48,7 @@ extern u8 gFontOrdering[];
 #define gEffectSsOverlayTable __ext_gEffectSsOverlayTable
 #endif
 
+extern u32 osMemSize;
 extern PlayState gPlayState;
 extern LibContext gLibCtx;
 extern GraphicsContext* __gfxCtx;
@@ -55,6 +56,7 @@ extern ExitParam gExitParam;
 asm ("gPlayState = 0x80212020 - 0x38000;");
 asm ("__gfxCtx = gPlayState;");
 asm ("gExitParam = gPlayState + 0x11E18;"); // 801EBE38
+asm ("osMemSize = 0x80000318");
 
 void uLib_Update(GameState* gameState);
 void* memset(void* m, int v, unsigned int s);

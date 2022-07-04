@@ -4,6 +4,7 @@
 /*
    z64ram = 0x800013FC
    z64rom = 0x001FFC
+   z64next = 0x800015CC
  */
 
 void DmaMgr_ProcessMsg(DmaRequest* req) {
@@ -15,9 +16,13 @@ void DmaMgr_ProcessMsg(DmaRequest* req) {
 	u8 found = false;
 	DmaEntry* iter;
 	
-	iter = gDmaDataTable;
+	if (osMemSize > 0x400000U) {
+		iter = gDmaDataTable;
+		Debug_DmaLog(req);
+	} else {
+		iter = (void*)0x80016DA0;
+	}
 	
-	Debug_DmaLog(req);
 	while (iter->vromEnd) {
 		if (vrom >= iter->vromStart && vrom < iter->vromEnd) {
 			if (iter->romEnd == 0) {
@@ -40,7 +45,7 @@ void DmaMgr_ProcessMsg(DmaRequest* req) {
 	
 	if (!found) {
 		if (sDmaMgrIsRomCompressed) {
-			osLibPrintf("NoData");
+			osSyncPrintf("NoData");
 			
 			return;
 		}

@@ -13,10 +13,16 @@ asm ("_codeSegmentBssStart = 0x80157d90");
 
 void Main_ThreadEntry(void* arg) {
 	OSTime time;
+	DmaEntry* dma;
+	
+	if (osMemSize <= 0x400000U)
+		dma = (void*)0x80016DA0;
+	else
+		dma = gDmaDataTable;
 	
 	DmaMgr_Init();
 	time = osGetTime();
-	DmaMgr_SendRequest1(_codeSegmentStart, gDmaDataTable[28].vromStart, gDmaDataTable[28].vromEnd - gDmaDataTable[28].vromStart, "Main_ThreadEntry", __LINE__);
+	DmaMgr_SendRequest1(_codeSegmentStart, dma[28].vromStart, dma[28].vromEnd - dma[28].vromStart, "Main_ThreadEntry", __LINE__);
 	time -= osGetTime();
 	MemSet(_codeSegmentBssStart, 0, _codeSegmentBssEnd - _codeSegmentBssStart);
 	Main(arg);

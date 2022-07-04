@@ -8,7 +8,7 @@
 
 void osSyncPrintf(const char* fmt, ...) {
 #ifdef DEV_BUILD
-	if (gLibCtx.state.vanillaOsPrintf == 0)
+	if (osMemSize > 0x400000U && gLibCtx.state.vanillaOsPrintf == 0)
 		return;
 	va_list args;
 	

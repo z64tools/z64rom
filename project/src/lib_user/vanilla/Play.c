@@ -174,7 +174,7 @@ void NewPlay_Init(PlayState* playState) {
 		sceneSpawn = gEntranceTable[((void)0, gSaveContext.sceneSetupIndex) + ((void)0, gSaveContext.entranceIndex)].spawn;
 	} else {
 		sceneNum = gExitParam.exit.sceneIndex;
-		if (gExitParam.exit.headerIndex)
+		if (gExitParam.exit.headerIndex != 0xF)
 			gSaveContext.sceneSetupIndex = gExitParam.exit.headerIndex;
 		sceneSpawn = gExitParam.exit.spawnIndex;
 	}

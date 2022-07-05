@@ -501,6 +501,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		gAudioOnly = true;
 		
 		if (Arg("dump")) {
+			gDumpFlag = true;
 			Log("Dump Rom [%s]", argv[parArg]);
 			Rom_New(rom, argv[parArg]);
 			AudioOnly_Dump(rom);

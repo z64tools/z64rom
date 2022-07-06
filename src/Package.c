@@ -58,8 +58,8 @@ static void Package_ListSections(MemFile* cfg, ItemList* list) {
 // # # # # # # # # # # # # # # # # # # # #
 
 static s32 sSkip;
-static u16 sActorID = 0xFFFF;
-static u16 sObjectID = 0xFFFF;
+static u16 sActorID;
+static u16 sObjectID;
 static MemFile sDepLookUp;
 static ItemList sActorList;
 static ItemList sObjectList;
@@ -308,6 +308,9 @@ void Package_Load(const char* item) {
 				
 				ItemList_Free(&var);
 				printf_nl();
+				
+				if (sSkip)
+					break;
 			}
 		}
 		
@@ -321,7 +324,10 @@ void Package_Load(const char* item) {
 	ItemList_Free(&list);
 	ZipFile_Free(&zip);
 	
-	printf_info("All packages have been installed successfully!");
+	if (sSkip == false)
+		printf_info("Package has been installed successfully!");
+	else
+		printf_info("Package installation has been terminated!");
 #ifdef _WIN32
 	printf_getchar("Press enter to exit.");
 #endif

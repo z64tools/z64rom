@@ -15,7 +15,10 @@ sklitte22
 **Testers:** <br>
 Zeldaboy14 <br>
 Nokaubure <br>
-sklitte22
+sklitte22 <br>
+Skawo <br>
+logdebug <br>
+zfg
 
 **Special Thanks:** <br>
 Sauraen <br>

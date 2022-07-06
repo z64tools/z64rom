@@ -12365,11 +12365,9 @@ s32 func_8084DFF4(PlayState* play, Player* this) {
 			}
 			Audio_PlayFanfare(temp1);
 		}
-	}
-	
-#if Patch_SilverGauntletObtainCS == true
-	else {
+	} else {
 		if (Message_GetState(&play->msgCtx) == TEXT_STATE_CLOSING) {
+#if Patch_SilverGauntletObtainCS == true
 			if (this->getItemId == GI_GAUNTLETS_SILVER) {
 				gExitParam.nextEntranceIndex = ENTR_SPOT11_0;
 				play->transitionTrigger = TRANS_TRIGGER_START;
@@ -12378,10 +12376,10 @@ s32 func_8084DFF4(PlayState* play, Player* this) {
 				this->stateFlags1 &= ~PLAYER_STATE1_29;
 				func_80852FFC(play, NULL, 8);
 			}
+#endif
 			this->getItemId = GI_NONE;
 		}
 	}
-#endif
 	
 	return 0;
 }

@@ -13116,16 +13116,14 @@ void func_8084FBF4(Player* this, PlayState* play) {
 
 s32 Player_DebugMode(Player* this, PlayState* play) {
 #ifdef DEV_BUILD
+	static s32 cameraMode;
 	sControlInput = &play->state.input[0];
 	
 	if ((CHECK_BTN_ALL(sControlInput->cur.button, BTN_A | BTN_L | BTN_R) &&
 		CHECK_BTN_ALL(sControlInput->press.button, BTN_B)) ||
 		(CHECK_BTN_ALL(sControlInput->cur.button, BTN_L) && CHECK_BTN_ALL(sControlInput->press.button, BTN_DRIGHT))) {
 		D_808535D0 ^= 1;
-		
-		if (D_808535D0) {
-			Camera_ChangeMode(Play_GetCamera(play, CAM_ID_MAIN), CAM_MODE_TARGET);
-		}
+		cameraMode = 0;
 	}
 	
 	if (D_808535D0) {
@@ -13135,6 +13133,38 @@ s32 Player_DebugMode(Player* this, PlayState* play) {
 			speed = 250.0f;
 		} else {
 			speed = 50.0f;
+		}
+		
+		if (CHK_ALL(press, BTN_Z)) {
+			if (cameraMode == 0)
+				Camera_ChangeMode(Play_GetCamera(play, CAM_ID_MAIN), CAM_MODE_TARGET);
+			
+			else
+				Camera_ChangeMode(Play_GetCamera(play, CAM_ID_MAIN), CAM_MODE_NORMAL);
+			
+			cameraMode ^= 1;
+		}
+		
+		if (cameraMode == 0) {
+			Camera* cam = GET_ACTIVE_CAM(play);
+			s32 mod = 0;
+			
+			if (CHK_ALL(cur, BTN_CRIGHT)) {
+				cam->eye.x += Math_SinS(Camera_GetCamDirYaw(cam) + 0x3FFF) * Math_Vec3f_DistXYZ(&cam->eye, &cam->at) * 0.15f;
+				cam->eye.z += Math_CosS(Camera_GetCamDirYaw(cam) + 0x3FFF) * Math_Vec3f_DistXYZ(&cam->eye, &cam->at) * 0.15f;
+				cam->eyeNext = cam->eye;
+				mod = true;
+			}
+			
+			if (CHK_ALL(cur, BTN_CLEFT)) {
+				cam->eye.x += Math_SinS(Camera_GetCamDirYaw(cam) - 0x3FFF) * Math_Vec3f_DistXYZ(&cam->eye, &cam->at) * 0.15f;
+				cam->eye.z += Math_CosS(Camera_GetCamDirYaw(cam) - 0x3FFF) * Math_Vec3f_DistXYZ(&cam->eye, &cam->at) * 0.15f;
+				cam->eyeNext = cam->eye;
+				mod = true;
+			}
+			
+			if (mod)
+				this->actor.shape.rot.y = Camera_GetCamDirYaw(cam);
 		}
 		
 		func_8006375C(3, 2, "DEBUG MODE");

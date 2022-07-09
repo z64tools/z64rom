@@ -8,14 +8,16 @@
  */
 
 void PadMgr_ProcessInputs(PadMgr* padMgr) {
-	s32 i;
-	Input* input = &padMgr->inputs[0];
-	OSContPad* curPad = &padMgr->pads[0];
+	Input* input;
+	OSContPad* curPad;
 	s32 buttonDiff;
 	
 	PadMgr_LockPadData(padMgr);
 	
-	for (i = 0; i < padMgr->nControllers; i++, input++, curPad++) {
+	input = &padMgr->inputs[0];
+	curPad = &padMgr->pads[0];
+	
+	for (s32 i = 0; i < padMgr->nControllers; i++, input++, curPad++) {
 		input->prev = input->cur;
 		
 		switch (curPad->errno) {
@@ -40,6 +42,7 @@ void PadMgr_ProcessInputs(PadMgr* padMgr) {
 				break;
 			default:
 				Fault_AddHungupAndCrashImpl(__FUNCTION__, "Pad Error");
+				break;
 		}
 		
 		buttonDiff = input->prev.button ^ input->cur.button;
@@ -48,14 +51,13 @@ void PadMgr_ProcessInputs(PadMgr* padMgr) {
 		PadUtils_UpdateRelXY(input);
 		input->press.stick_x += (s8)(input->cur.stick_x - input->prev.stick_x);
 		input->press.stick_y += (s8)(input->cur.stick_y - input->prev.stick_y);
-	}
-	
-    // No additional debug features
-	for (i = 1; 1 < 4; i++) {
-		padMgr->inputs[i].cur.button = 0;
-		padMgr->inputs[i].prev.button = 0;
-		padMgr->inputs[i].press.button = 0;
-		padMgr->inputs[i].rel.button = 0;
+		
+		if (i != 0) {
+			padMgr->inputs[i].cur.button = 0;
+			padMgr->inputs[i].prev.button = 0;
+			padMgr->inputs[i].press.button = 0;
+			padMgr->inputs[i].rel.button = 0;
+		}
 	}
 	
 	PadMgr_UnlockPadData(padMgr);

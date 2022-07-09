@@ -129,16 +129,37 @@ static s32 SceneAnim_Ease_s8(s32 from, s32 to, float factor) {
 }
 
 static u32 SceneAnim_Ease_RGBA(u32 from, u32 to, float factor) {
-	u8 rgba[4];
+	Color_RGBA8 rgba;
 	u8* from8 = (u8*)&from;
 	u8* to8 = (u8*)&to;
+	Color_RGB8 rgbF = {
+		from8[0],
+		from8[1],
+		from8[2]
+	};
+	Color_RGB8 rgbT = {
+		to8[0],
+		to8[1],
+		to8[2]
+	};
+	Color_HSL hslF;
+	Color_HSL hslT;
 	
-	rgba[0] = SceneAnim_Ease_s32(from8[0], to8[0], factor);
-	rgba[1] = SceneAnim_Ease_s32(from8[1], to8[1], factor);
-	rgba[2] = SceneAnim_Ease_s32(from8[2], to8[2], factor);
-	rgba[3] = SceneAnim_Ease_s32(from8[3], to8[3], factor);
+	Color_ToHSL(&hslF, &rgbF);
+	Color_ToHSL(&hslT, &rgbT);
 	
-	return *(u32*)rgba;
+	hslF.h = LERP(hslF.h, hslT.h, factor);
+	hslF.s = LERP(hslF.s, hslT.s, factor);
+	hslF.l = LERP(hslF.l, hslT.l, factor);
+	
+	Color_ToRGB(&rgbF, &hslF);
+	
+	rgba.r = rgbF.r;
+	rgba.g = rgbF.g;
+	rgba.b = rgbF.b;
+	rgba.a = LERP(from8[3], to8[3], factor);
+	
+	return *(u32*)&rgba;
 }
 
 static void SceneAnim_PutColorKey(u8 which, Gfx** work, ColorKey* key) {
@@ -179,13 +200,7 @@ static void SceneAnim_PutColorKey(u8 which, Gfx** work, ColorKey* key) {
 	}
 }
 
-static void SceneAnim_BlendColorKey(
-	enum8(ColorKeyTypes) which,
-	float factor,
-	ColorKey* from,
-	ColorKey* to,
-	ColorKey* result
-) {
+static void SceneAnim_BlendColorKey(enum8(ColorKeyTypes) which, float factor, ColorKey* from, ColorKey* to, ColorKey* result) {
 	if (from == to) {
 		*result = *from;
 		
@@ -215,10 +230,7 @@ static float SceneAnim_Interpolate(u32 frame, u32 next, enum8(ease) ease) {
 	if (!next)
 		return 0;
 	
-	factor = frame;
-	
-	/* normalize factor */
-	factor /= next;
+	factor = (f32)frame / next;
 	
 	// TODO transform factor with easing transformations
 	if (ease != EASE_LINEAR) {
@@ -548,19 +560,21 @@ static void* SceneAnim_GetSceneHeader(PlayState* playState) {
 }
 
 static AnimInfo* SceneAnim_GetSceneAnimCommand(void* _scene) {
-	u8* scene = _scene;
-	u8* header = scene;
+	u32* scene = _scene;
+	u32* header = scene;
 	
 	if (!scene)
 		return 0;
 	
 	/* while current header command is not end command */
-	while (*header != 0x14) {
-		if (*header == 0x1A) {
-			return SEGMENTED_TO_VIRTUAL(*((u32*)(header + 4)));
+	while ((*header & 0xFF000000) != 0x14000000) {
+		/* animated texture list */
+		if ((*header & 0xFF000000) == 0x1A000000) {
+			return SEGMENTED_TO_VIRTUAL(header[1]);
 		}
 		
-		header += 8;
+		/* advance to next header command */
+		header += 2;
 	}
 	
 	/* failed to locate 0x1A command */
@@ -605,6 +619,8 @@ void SceneAnim_Init(PlayState* playState) {
 	}
 }
 
+#include <code/z_scene_table.h>
+
 void SceneAnim_Update(PlayState* playState) {
 	AnimInfo* item;
 	TwoHeadGfxArena* buf;
@@ -618,6 +634,12 @@ void SceneAnim_Update(PlayState* playState) {
 	
 	SceneAnim_Init(playState);
 	
+	if (!gSceneAnimCtx.animInfoList) {
+		Scene_DrawConfigSpot04(playState);
+		
+		return;
+	}
+	
 	buf = &(gfxCtx->polyOpa);
 	gDPPipeSync(buf->p++);
 	gDPSetEnvColor(buf->p++, 128, 128, 128, 128);
@@ -626,14 +648,14 @@ void SceneAnim_Update(PlayState* playState) {
 	gDPPipeSync(buf->p++);
 	gDPSetEnvColor(buf->p++, 128, 128, 128, 128);
 	
-	if (!gSceneAnimCtx.animInfoList) {
-		/* propagate ram segments with defaults so scene *
-		* headers lacking a 0x1A command do not crash   */
-		for (s32 i = 0x08; i <= 0x0F; ++i)
-			SceneAnim_UnusedSegment(playState, i);
-		
-		return;
-	}
+	// if (!gSceneAnimCtx.animInfoList) {
+	// 	/* propagate ram segments with defaults so scene *
+	// 	* headers lacking a 0x1A command do not crash   */
+	// 	for (s32 i = 0x08; i <= 0x0F; ++i)
+	// 		SceneAnim_UnusedSegment(playState, i);
+	//
+	// 	return;
+	// }
 	
 	for (item = gSceneAnimCtx.animInfoList; ; ++item) {
 		s32 seg = item->seg & 0x7F;

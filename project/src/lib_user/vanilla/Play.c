@@ -1,5 +1,6 @@
 #include <uLib.h>
 #include "code/z_play.h"
+#include <code/z_scene_table.h>
 
 asm ("Opening_Init = 0x80803CAC");
 asm ("FileChoose_Init = 0x80811A20");
@@ -20,6 +21,7 @@ void NewPlay_SpawnScene(PlayState* playState, s32 sceneNum, s32 spawn) {
 	
 	Play_InitScene(playState, spawn);
 	roomSize = func_80096FE8(playState, &playState->roomCtx);
+	sSceneDrawConfigs[4] = SceneAnim_Update;
 	
 	osLibPrintf(
 		"Scene "

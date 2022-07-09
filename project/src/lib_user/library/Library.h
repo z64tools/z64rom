@@ -17,6 +17,9 @@ void Audio_PlaySys(u16 flag);
 void Color_ToHSL(Color_HSL* dest, Color_RGB8* src);
 void Color_ToRGB(Color_RGB8* dest, Color_HSL* src);
 
+void Cutscene_ProcessCmds(PlayState* play, CutsceneContext* csCtx, u8* cutscenePtr);
+void* CutsceneCmd_ExitParam(PlayState* play, void* ptr);
+
 #ifdef DEV_BUILD
 void Debug_Text(u8 r, u8 g, u8 b, s32 x, s32 y, char* fmt, ...);
 void Debug_DmaLog(DmaRequest* req);
@@ -42,6 +45,12 @@ s16 MaxS(s16 a, s16 b);
 s16 MinS(s16 a, s16 b);
 f32 Math_Spline1(f32 k, f32 xm1, f32 x0, f32 x1, f32 x2);
 f32 Math_Spline2(f32 k, f32 xm1, f32 x0, f32 x1, f32 x2);
+Vec3f Math_Vec3f_Spline1(f32 k, Vec3f xm1, Vec3f x0, Vec3f x1, Vec3f x2);
+Vec3f Math_Vec3f_Spline2(f32 k, Vec3f xm1, Vec3f x0, Vec3f x1, Vec3f x2);
+Vec3f Math_Vec3f_YawDist(f32 dist, s16 yaw);
+Vec3f Math_Vec3f_YawPitchDist(f32 dist, s16 yaw, s16 pitch);
+Vec3f Math_Vec3f_PosRelativeTo(Vec3f* target, Vec3f* origin, s16 originYaw);
+f32 PowF(f32 a, f32 b);
 
 void* Segment_Scene_GetHeader(void* segment, s32 setupIndex);
 void* Segment_Scene_GetCutscene(void* segment, s32 setupIndex);

@@ -4,59 +4,6 @@
 MemFile __actor_object_list;
 MemFile* sDepList = &__actor_object_list;
 
-static void Package_ListSections(MemFile* cfg, ItemList* list) {
-	char* p = cfg->str;
-	s32 ln = LineNum(p);
-	s32 sctCount = 0;
-	s32 sctSize = 0;
-	
-	for (s32 i = 0; i < ln; i++, p = Line(p, 1)) {
-		s32 sz = 0;
-		
-		while (!isgraph(*p)) p++;
-		if (*p != '[')
-			continue;
-		sctCount++;
-		
-		while (p[sz] != ']') {
-			sz++;
-			sctSize++;
-			
-			if (p[sz] == '\0')
-				printf_error("Missing ']' from section name at line %d for [%s]", i, cfg->info.name);
-		}
-	}
-	
-	ItemList_Alloc(list, sctCount, sctSize + sctCount);
-	
-	p = cfg->str;
-	for (s32 i = 0; i < ln; i++, p = Line(p, 1)) {
-		char* word;
-		s32 sz = 0;
-		
-		while (!isgraph(*p)) p++;
-		if (*p != '[')
-			continue;
-		sctCount++;
-		
-		word = StrDup(p + 1);
-		
-		for (s32 j = 0; ; j++) {
-			if (word[j] == ']') {
-				word[j] = '\0';
-				break;
-			}
-		}
-		
-		ItemList_AddItem(list, word);
-		Free(word);
-	}
-}
-
-// # # # # # # # # # # # # # # # # # # # #
-// #                                     #
-// # # # # # # # # # # # # # # # # # # # #
-
 static s32 sSkip;
 static u16 sActorID;
 static u16 sObjectID;
@@ -182,6 +129,13 @@ static void Package_ObjectID(const char* name) {
 // #                                     #
 // # # # # # # # # # # # # # # # # # # # #
 
+typedef struct ListNode {
+	struct ListNode* prev;
+	struct ListNode* next;
+	const char* name;
+	ItemList    list;
+} ListNode;
+
 static void Package_ActorSrc(ZipFile* zip, ItemList* list, const char* name) {
 	Package_GetActorID(name);
 	
@@ -242,7 +196,7 @@ void Package_Load(const char* item) {
 	ZipFile zip;
 	MemFile config = MemFile_Initialize();
 	MemFile* cfg = &config;
-	ItemList list = ItemList_Initialize();
+	ItemList sectionList = ItemList_Initialize();
 	
 	if (!Sys_Stat(item)) return;
 	
@@ -261,9 +215,9 @@ void Package_Load(const char* item) {
 	Rom_ItemList(&sActorList, "rom/actor/", SORT_NUMERICAL, LIST_FOLDERS);
 	Rom_ItemList(&sObjectList, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
 	
-	Package_ListSections(cfg, &list);
+	Config_ListSections(cfg, &sectionList);
 	
-	forlist(i, list) {
+	forlist(i, sectionList) {
 		ItemList var = ItemList_Initialize();
 		
 		struct {
@@ -291,7 +245,7 @@ void Package_Load(const char* item) {
 		sActorID = 0xFFFF;
 		sObjectID = 0xFFFF;
 		
-		Config_GotoSection(list.item[i]);
+		Config_GotoSection(sectionList.item[i]);
 		
 		if (Config_Variable(cfg->str, "actor_id"))
 			sActorID = Config_GetInt(cfg, "actor_id");
@@ -303,8 +257,8 @@ void Package_Load(const char* item) {
 				Config_GetArray(cfg, f[j].variable, &var);
 				
 				Config_GotoSection(NULL);
-				f[j].func(&zip, &var, list.item[i]);
-				Config_GotoSection(list.item[i]);
+				f[j].func(&zip, &var, sectionList.item[i]);
+				Config_GotoSection(sectionList.item[i]);
 				
 				ItemList_Free(&var);
 				printf_nl();
@@ -321,7 +275,7 @@ void Package_Load(const char* item) {
 	ItemList_Free(&sActorList);
 	ItemList_Free(&sObjectList);
 	MemFile_Free(&config);
-	ItemList_Free(&list);
+	ItemList_Free(&sectionList);
 	ZipFile_Free(&zip);
 	
 	if (sSkip == false)
@@ -332,4 +286,76 @@ void Package_Load(const char* item) {
 	printf_getchar("Press enter to exit.");
 #endif
 	exit(0);
+}
+
+void Package_Pack() {
+	u32 writtenItems = 0;
+	ListNode* listHead = NULL;
+	ListNode* node;
+	ZipFile zip;
+	
+	if (Sys_Stat("package.zip"))
+		Sys_Delete("package.zip");
+	ZipFile_Load(&zip, "package.zip", ZIP_WRITE);
+	
+	while (true) {
+		printf_info("Item Name: " PRNT_GRAY "or \"done\" to save the package");
+		const char* str = Terminal_GetStr();
+		
+		printf_nl();
+		
+		if (!stricmp(str, "done") || !stricmp(str, "\"done\""))
+			break;
+		
+		Calloc(node, sizeof(*node));
+		node->name = StrDup(str);
+		Node_Add(listHead, node);
+		ItemList_Alloc(&node->list, 32, 64 * 32);
+		
+		printf_info("Provide file or path for files to be packed:");
+		str = Terminal_GetStr();
+		
+		Terminal_ClearLines(2);
+		printf_nl();
+		
+		if (Sys_Stat(str)) {
+			MemFile mem = MemFile_Initialize();
+			ItemList list = ItemList_Initialize();
+			char* entryName;
+			
+			if (Sys_IsDir(str)) {
+				FileSys_Path(str);
+				ItemList_List(&list, str, -1, LIST_FILES | LIST_RELATIVE);
+				
+				forlist(i, list) {
+					entryName = xFmt("%s/%s", node->name, list.item[i]);
+					
+					MemFile_LoadFile(&mem, FileSys_File(list.item[i]));
+					ZipFile_WriteEntry(&zip, &mem, entryName);
+					
+					ItemList_AddItem(&node->list, entryName);
+					MemFile_Free(&mem);
+					writtenItems++;
+				}
+			} else {
+				entryName = xFmt("%s/%s", node->name, str);
+				
+				MemFile_LoadFile(&mem, str);
+				ZipFile_WriteEntry(&zip, &mem, entryName);
+				
+				ItemList_AddItem(&node->list, entryName);
+				MemFile_Free(&mem);
+			}
+		} else {
+			Terminal_ClearLines(3);
+			printf_warning("No file or path... Try again!\a");
+			Sys_Sleep(2.0);
+			Terminal_ClearLines(2);
+		}
+	}
+	
+	ZipFile_Free(&zip);
+	
+	if (writtenItems == 0)
+		Sys_Delete("package.zip");
 }

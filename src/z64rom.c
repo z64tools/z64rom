@@ -433,6 +433,11 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		}
 	}
 	
+	if (Arg("pack")) {
+		Package_Pack();
+		exit(0);
+	}
+	
 	if (Arg("reconfig")) Main_ReconfigProject(rom);
 	
 	if (Arg("reinstall")) {

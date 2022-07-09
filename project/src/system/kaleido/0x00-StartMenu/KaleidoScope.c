@@ -398,10 +398,12 @@ void KaleidoScope_SwitchPage(PauseContext* pauseCtx, u8 pt) {
 }
 
 void KaleidoScope_HandlePageToggles(PauseContext* pauseCtx, Input* input) {
+    #ifdef DEV_BUILD
     if ((pauseCtx->debugState == 0) && CHECK_BTN_ALL(input->press.button, BTN_L)) {
         pauseCtx->debugState = 1;
         return;
     }
+    #endif
 
     if (CHECK_BTN_ALL(input->press.button, BTN_R)) {
         KaleidoScope_SwitchPage(pauseCtx, 2);

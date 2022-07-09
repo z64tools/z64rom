@@ -69,11 +69,13 @@ void Cutscene_ProcessCmds(PlayState* play,CutsceneContext* csCtx,u8* cutscenePtr
 		return;
 	}
 	
+#ifdef DEV_BUILD
 	if (CHECK_BTN_ALL(play->state.input[0].press.button,BTN_DRIGHT)) {
 		csCtx->state = CS_STATE_UNSKIPPABLE_INIT;
 		
 		return;
 	}
+#endif
 	
 	for (i = 0; i < totalEntries; i++) {
 		MemCpy(&cmdType,cutscenePtr,4);

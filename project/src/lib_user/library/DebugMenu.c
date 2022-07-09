@@ -957,11 +957,9 @@ static void DebugMenu_MenuUpdate(PlayState* playState) {
 	DebugState* debugSysCtx = &sDebugMenuCtx;
 	u8 holdR = CHK_ALL(cur, BTN_R);
 	u32 infoMax = ARRAY_COUNT(sDebugPageInfo);
+	s32 set = 0;
 	
 	sInterfaceForceHide = false;
-	
-	if (playState->pauseCtx.state != 0)
-		return;
 	
 	if (debugSysCtx->cineModeEnabled) {
 		ShrinkWindow_SetVal(0x20);
@@ -971,7 +969,7 @@ static void DebugMenu_MenuUpdate(PlayState* playState) {
 	}
 	
 	/* Flip ON flag */
-	if (CHK_ALL(press, BTN_R | BTN_L | BTN_B)) {
+	if (CHK_ALL(cur, BTN_R | BTN_L) && CHK_ALL(press, BTN_B)) {
 		debugSysCtx->state.on ^= 1;
 		if (p->stateFlags1 & (1 << 29)) {
 			p->stateFlags1 &= ~(1 << 29);
@@ -985,12 +983,13 @@ static void DebugMenu_MenuUpdate(PlayState* playState) {
 			DebugMenu_Interface_Show(&playState->interfaceCtx);
 		}
 		
+		set = true;
+		
 		return;
 	}
 	
-	if (debugSysCtx->state.on == 0) {
+	if (debugSysCtx->state.on == 0)
 		return;
-	}
 	
 	if (holdR && CHK_ALL(press, BTN_B)) {
 		DebugMenu_Interface_Show(&playState->interfaceCtx);
@@ -1005,13 +1004,19 @@ static void DebugMenu_MenuUpdate(PlayState* playState) {
 		Audio_PlaySys(NA_SE_SY_FSEL_CLOSE);
 	}
 	
+	if ((holdR && CHK_ALL(press, BTN_DUP)) ||
+		(holdR && CHK_ALL(press, BTN_DDOWN)))
+		set = true;
+	
 	/* Freeze player based on PAGE info */
 	if (sDebugPageInfo[debugSysCtx->page].playerFreeze == 1) {
 		ShrinkWindow_SetVal(0x20);
-		p->stateFlags1 |= (1 << 29);
+		if (set)
+			p->stateFlags1 |= (1 << 29);
 		DebugMenu_Interface_Hide(&playState->interfaceCtx);
 	} else {
-		p->stateFlags1 &= ~(1 << 29);
+		if (set)
+			p->stateFlags1 &= ~(1 << 29);
 		DebugMenu_Interface_Show(&playState->interfaceCtx);
 	}
 	
@@ -1062,10 +1067,11 @@ static void DebugMenu_MenuUpdate(PlayState* playState) {
 }
 
 void DebugMenu_Update(PlayState* playState) {
-	if (gSaveContext.gameMode == 0 && playState->pauseCtx.mode == 0) {
-		DebugMenu_CollisionViewUpdate(playState);
-		DebugMenu_HitboxViewUpdate(playState);
-	}
+	if (gSaveContext.gameMode != 0 || playState->pauseCtx.state != 0)
+		return;
+	
+	DebugMenu_CollisionViewUpdate(playState);
+	DebugMenu_HitboxViewUpdate(playState);
 	DebugMenu_MenuUpdate(playState);
 }
 

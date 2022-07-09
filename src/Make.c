@@ -500,7 +500,6 @@ write:
 	
 free:
 	MemFile_Free(&cfgMem);
-	Free(vadpcm);
 }
 
 void Make_Sound(void) {
@@ -1541,7 +1540,7 @@ void Make(Rom* rom, s32 message) {
 		exit(1);
 	}
 	
-	if (gBuildTarget)
+	if (gBuildTarget == ROM_DEV)
 		sGccBaseFlags = xFmt("%s -DDEV_BUILD", sGccBaseFlags);
 	
 	setvbuf(stdout, NULL, _IONBF, 0);

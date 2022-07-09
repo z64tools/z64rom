@@ -287,6 +287,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	FileSys_Path(targ->path);
 	
 	if ((midi = FileSys_FindFile(".mid"))) {
+		MemFile midCfg = MemFile_Initialize();
 		char* thisCfg = FileSys_File("config.cfg");
 		
 		cfg = xRep(FileSys_File("config.cfg"), "src/", "rom/");
@@ -294,22 +295,73 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		
 		Sys_MakeDir(Path(seq));
 		
-		if (Sys_Stat(seq) > Sys_Stat(midi) && !gMakeForce)
+		if (Sys_Stat(seq) > Sys_Stat(midi) && (!thisCfg || Sys_Stat(seq) > Sys_Stat(thisCfg)) && !gMakeForce)
 			goto free;
 		
 		if (!Sys_Stat(thisCfg)) {
-			ItemList van = ItemList_Initialize();
-			ItemList_List(&van, xFmt("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
+			ItemList ar = ItemList_Initialize();
+			MemFile newCfg = MemFile_Initialize();
 			
-			if (Sys_Stat(van.item[index]))
-				Sys_Copy(xFmt("%sconfig.cfg", van.item[index]), thisCfg);
+			MemFile_Alloc(&newCfg, 0xDEAD);
 			
-			ItemList_Free(&van);
+			ItemList_Alloc(&ar, 1, 10);
+			ItemList_AddItem(&ar, "0x01");
+			
+			Config_WriteArray(&newCfg, "bank_id", &ar, NO_QUOTES, NO_COMMENT);
+			Config_WriteComment(&newCfg, "Sample Medium types [ram/unk/cart/ddrive]");
+			Config_WriteStr(&newCfg, "medium_type", "cart", QUOTES, NO_COMMENT);
+			Config_WriteComment(&newCfg, "Sequence Player types [sfx/fanfare/bgm/demo]");
+			Config_WriteStr(&newCfg, "sequence_player", "sfx", QUOTES, NO_COMMENT);
+			Config_Print(&newCfg, "\n");
+			
+			Config_WriteSection(&newCfg, "seq64", NO_COMMENT);
+			
+			Config_Print(&newCfg, "\t");
+			Config_WriteBool(&newCfg, "loop", true, NO_COMMENT);
+			Config_Print(&newCfg, "\t");
+			Config_WriteBool(&newCfg, "flstudio", false, NO_COMMENT);
+			Config_Print(&newCfg, "\t");
+			Config_WriteInt(&newCfg, "master_volume", 0x58, "Max 255");
+			
+			MemFile_SaveFile_String(&newCfg, thisCfg);
+			
+			ItemList_Free(&ar);
+			MemFile_Free(&newCfg);
 		}
 		
+		MemFile_LoadFile_String(&midCfg, thisCfg);
 		Sys_Copy(thisCfg, cfg);
 		
-		Tools_Command(cmd, seq64, "--in=\"%s\" --out=\"%s\" --abi=Zelda --pref=false --flstudio=true", midi, seq);
+		u8 masterVolume = 88;
+		bool flStudio = false;
+		bool loop = true;
+		
+		if (StrStr(midCfg.str, "[seq64]")) {
+			Config_GotoSection("seq64");
+			if (Config_Variable(midCfg.str, "master_volume"))
+				masterVolume = Config_GetInt(&midCfg, "master_volume");
+			
+			if (Config_Variable(midCfg.str, "flstudio"))
+				flStudio = Config_GetBool(&midCfg, "flstudio");
+			
+			if (Config_Variable(midCfg.str, "loop"))
+				loop = Config_GetBool(&midCfg, "loop");
+			Config_GotoSection("NULL");
+		}
+		
+		MemFile_Free(&midCfg);
+		
+		if (Config_GetErrorState())
+			printf_error("Missing values in config... Delete the current config to generate generic config in the next build!");
+		
+		Tools_Command(cmd, seq64, "--in=\"%s\" --out=\"%s\" --abi=Zelda --pref=false", midi, seq);
+		
+		strcat(cmd, xFmt(" --mastervol=0x%X", masterVolume));
+		if (flStudio)
+			strcat(cmd, " --flstudio=true");
+		if (!loop)
+			strcat(cmd, " --smartloop=false");
+		
 		Sys_MakeDir(Path(seq));
 		Make_Run(cmd);
 		Make_Info("seq64", seq);

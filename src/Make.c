@@ -70,16 +70,29 @@ static ThreadFunc Object_Convert(MakeArg* arg) {
 	if (in == NULL)
 		return;
 	
-	if (!Sys_Stat(cfg))
-		printf_error("No 'config.cfg' in '%s'", arg->path);
+	if (!Sys_Stat(cfg)) {
+		MemFile m = MemFile_Initialize();
+		
+		MemFile_Alloc(&m, 0x256);
+		
+		Config_WriteInt(&m, "segment", 6, NO_COMMENT);
+		Config_WriteFloat(&m, "scale", 100.0f, NO_COMMENT);
+		
+		MemFile_SaveFile_String(&m, cfg);
+		MemFile_Free(&m);
+	}
 	
 	out = xRep(xRep(in, ".objex", ".zobj"), "src/", "rom/");
+	header = xFmt("src/lib_user/object/%s.h", xRep(PathSlot(in, -1), "/", ""));
+	linker = xRep(xRep(header, "src/lib_user/", "include/"), ".h", ".ld");
 	
 	if (
 		(
 			Sys_Stat(out) > Sys_Stat(in) &&
 			Sys_Stat(out) > Sys_Stat(in) &&
-			Sys_Stat(out) > Sys_Stat(cfg)
+			Sys_Stat(out) > Sys_Stat(cfg) &&
+			Sys_Stat(out) >= Sys_Stat(header) &&
+			Sys_Stat(out) >= Sys_Stat(linker)
 		)
 	   &&
 		(
@@ -87,9 +100,6 @@ static ThreadFunc Object_Convert(MakeArg* arg) {
 		)
 	)
 		return;
-	
-	header = xFmt("src/lib_user/object/%s.ld", xRep(PathSlot(in, -1), "/", ""));
-	linker = xRep(xRep(header, "src/lib_user/", "include/"), ".ld", ".h");
 	
 	Sys_MakeDir(Path(header));
 	Sys_MakeDir(Path(linker));
@@ -212,12 +222,23 @@ void Make_Object(void) {
 		MemFile mem = MemFile_Initialize();
 		MemFile mout = MemFile_Initialize();
 		ItemList ldFiles = ItemList_Initialize();
+		s32 crc = false;
+		u8* digestA;
+		u8* digestB;
 		
 		MemFile_Alloc(&mem, MbToBin(2));
 		MemFile_Alloc(&mout, MbToBin(2));
 		MemFile_Params(&mem, MEM_REALLOC, true, MEM_END);
 		MemFile_Params(&mout, MEM_REALLOC, true, MEM_END);
 		
+		if (Sys_Stat("include/z_object_user.ld")) {
+			MemFile_LoadFile_String(&mout, "include/z_object_user.ld");
+			crc = true;
+			digestA = Sys_Sha256(mout.data, mout.size);
+			MemFile_Reset(&mout);
+		}
+		
+		ItemList_SetFilter(&ldFiles, CONTAIN_END, ".ld");
 		ItemList_List(&ldFiles, "include/object/", 0, LIST_FILES | LIST_NO_DOT);
 		
 		for (s32 j = 0; j < ldFiles.num; j++) {
@@ -226,7 +247,14 @@ void Make_Object(void) {
 			MemFile_Printf(&mout, "\n");
 		}
 		
-		MemFile_SaveFile_String(&mout, "include/z_object_user.ld");
+		if (crc) {
+			digestB = Sys_Sha256(mout.data, mout.size);
+			if (memcmp(digestA, digestB, 32))
+				MemFile_SaveFile_String(&mout, "include/z_object_user.ld");
+			Free(digestA);
+			Free(digestB);
+		} else
+			MemFile_SaveFile_String(&mout, "include/z_object_user.ld");
 		
 		ItemList_Free(&ldFiles);
 		MemFile_Free(&mout);
@@ -1467,7 +1495,7 @@ void Make_Code(void) {
 	Thread thread[ArrayCount(param)];
 	MakeArg args[ArrayCount(param)] = { 0 };
 	
-	ItemList_SetFilter(&sDepList_uLibHeader, CONTAIN_END, ".h");
+	ItemList_SetFilter(&sDepList_uLibHeader, CONTAIN_END, ".h", FILTER_WORD, "object");
 	ItemList_List(&sDepList_uLibHeader, "src/lib_user/", -1, LIST_FILES | LIST_NO_DOT);
 	
 	if (gThreading)

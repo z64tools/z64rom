@@ -6,10 +6,10 @@ void EnActor_Update(EnActor* this, PlayState* play);
 void EnActor_Draw(EnActor* this, PlayState* play);
 
 const ActorInit sEnActor_InitVars = {
-	.id = 0x0001,
+	[[ACTOR_ID_PLACEHOLDER]]
 	.category = ACTORCAT_BG,
 	.flags = 0x00000000,
-	.objectId = 0x0001,
+	[[OBJECT_ID_PLACEHOLDER]]
 	.instanceSize = sizeof(EnActor),
 	.init = (ActorFunc)EnActor_Init,
 	.destroy = (ActorFunc)EnActor_Destroy,

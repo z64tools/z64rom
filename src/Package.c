@@ -15,11 +15,14 @@ static s32 Package_ZipCallback(const char* name, MemFile* mem) {
 	return 0;
 }
 
-static void Package_GetActorID(const char* name) {
+static void Package_GetActorID(const char* name, bool getFree) {
 	const char* input;
 	
 	if (sActorID != 0xFFFF)
 		return;
+	
+	if (getFree)
+		goto assign_free;
 	
 	printf_info("" PRNT_BLUE "%s" PRNT_RSET " Actor ID: " PRNT_GRAY "[ hex / \"free\" / \"skip\" ]", name);
 	
@@ -33,9 +36,10 @@ static void Package_GetActorID(const char* name) {
 		}
 		
 		if (!stricmp(input, "free") || !stricmp(input, "\"free\"")) {
-			for (s32 i = 0;; i++) {
+assign_free:
+			for (s32 i = 1;; i++) {
 				if (i < sActorList.num) {
-					if (sActorList.item[i] == NULL && i != 0) {
+					if (sActorList.item[i] == NULL) {
 						sActorList.item[i] = (void*)0xDEAD;
 						sActorID = i;
 						break;
@@ -45,6 +49,9 @@ static void Package_GetActorID(const char* name) {
 					break;
 				}
 			}
+			if (getFree)
+				return;
+			
 			Terminal_ClearLines(2);
 			
 			printf_info("Using ID %04X", sActorID);
@@ -62,11 +69,14 @@ static void Package_GetActorID(const char* name) {
 	}
 }
 
-static void Package_ObjectID(const char* name) {
+static void Package_GetObjectID(const char* name, bool getFree) {
 	const char* input;
 	
 	if (sObjectID != 0xFFFF)
 		return;
+	
+	if (getFree)
+		goto assign_free;
 	
 	if (sActorID != 0xFFFF) {
 		if (Config_Variable(sDepLookUp.str, xFmt("0x%04X", sActorID))) {
@@ -96,9 +106,10 @@ static void Package_ObjectID(const char* name) {
 		}
 		
 		if (!stricmp(input, "free") || !stricmp(input, "\"free\"")) {
-			for (s32 i = 0;; i++) {
+assign_free:
+			for (s32 i = 1;; i++) {
 				if (i < sObjectList.num) {
-					if (sObjectList.item[i] == NULL && i != 0) {
+					if (sObjectList.item[i] == NULL) {
 						sObjectList.item[i] = (void*)0xDEAD;
 						sObjectID = i;
 						break;
@@ -108,6 +119,9 @@ static void Package_ObjectID(const char* name) {
 					break;
 				}
 			}
+			if (getFree)
+				return;
+			
 			Terminal_ClearLines(2);
 			
 			printf_info("Using ID %04X", sObjectID);
@@ -137,7 +151,7 @@ typedef struct ListNode {
 } ListNode;
 
 static void Package_ActorSrc(ZipFile* zip, ItemList* list, const char* name) {
-	Package_GetActorID(name);
+	Package_GetActorID(name, false);
 	
 	if (sSkip)
 		return;
@@ -150,7 +164,7 @@ static void Package_ActorSrc(ZipFile* zip, ItemList* list, const char* name) {
 }
 
 static void Package_ActorBin(ZipFile* zip, ItemList* list, const char* name) {
-	Package_GetActorID(name);
+	Package_GetActorID(name, false);
 	
 	if (sSkip)
 		return;
@@ -163,7 +177,7 @@ static void Package_ActorBin(ZipFile* zip, ItemList* list, const char* name) {
 }
 
 static void Package_ObjectSrc(ZipFile* zip, ItemList* list, const char* name) {
-	Package_ObjectID(name);
+	Package_GetObjectID(name, false);
 	
 	if (sSkip)
 		return;
@@ -176,7 +190,7 @@ static void Package_ObjectSrc(ZipFile* zip, ItemList* list, const char* name) {
 }
 
 static void Package_ObjectBin(ZipFile* zip, ItemList* list, const char* name) {
-	Package_ObjectID(name);
+	Package_GetObjectID(name, false);
 	
 	if (sSkip)
 		return;
@@ -192,6 +206,49 @@ static void Package_ObjectBin(ZipFile* zip, ItemList* list, const char* name) {
 // #                                     #
 // # # # # # # # # # # # # # # # # # # # #
 
+static void Package_InitCtx() {
+	ItemList srcActor = ItemList_Initialize();
+	ItemList srcObject = ItemList_Initialize();
+	
+	sActorID = 0xFFFF;
+	sObjectID = 0xFFFF;
+	
+	MemFile_LoadFile_String(&sDepLookUp, "tools/actor-object-deb.cfg");
+	
+	Log("Listing ROM");
+	Rom_ItemList(&sActorList, "rom/actor/", SORT_NUMERICAL, LIST_FOLDERS);
+	Rom_ItemList(&sObjectList, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
+	
+	Log("Listing SRC");
+	ItemList_List(&srcActor, "src/actor/", SORT_NUMERICAL, LIST_FOLDERS);
+	ItemList_List(&srcObject, "src/object/", SORT_NUMERICAL, LIST_FOLDERS);
+	ItemList_NumericalSlotSort(&srcActor);
+	ItemList_NumericalSlotSort(&srcObject);
+	
+	forlist(i, srcActor) {
+		if (i < sActorList.num) {
+			if (sActorList.item[i] == NULL && srcActor.item[i])
+				sActorList.item[i] = (void*)0xDEAD;
+		}
+	}
+	
+	forlist(i, srcObject) {
+		if (i < sObjectList.num) {
+			if (sObjectList.item[i] == NULL && srcObject.item[i])
+				sObjectList.item[i] = (void*)0xDEAD;
+		}
+	}
+	
+	ItemList_Free(&srcActor);
+	ItemList_Free(&srcObject);
+}
+
+static void Package_FreeCtx() {
+	MemFile_Free(&sDepLookUp);
+	ItemList_Free(&sActorList);
+	ItemList_Free(&sObjectList);
+}
+
 void Package_Load(const char* item) {
 	ZipFile zip;
 	MemFile config = MemFile_Initialize();
@@ -199,6 +256,8 @@ void Package_Load(const char* item) {
 	ItemList sectionList = ItemList_Initialize();
 	
 	if (!Sys_Stat(item)) return;
+	
+	Package_InitCtx();
 	
 	ZipFile_Load(&zip, item, ZIP_READ);
 	if (ZipFile_ReadEntry_Name(&zip, "package.cfg", cfg))
@@ -210,10 +269,6 @@ void Package_Load(const char* item) {
 			printf_info_align("Version:", xFmt("" PRNT_YELW "%s", Config_GetStr(cfg, "version")));
 		printf_nl();
 	}
-	
-	MemFile_LoadFile_String(&sDepLookUp, "tools/actor-object-deb.cfg");
-	Rom_ItemList(&sActorList, "rom/actor/", SORT_NUMERICAL, LIST_FOLDERS);
-	Rom_ItemList(&sObjectList, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
 	
 	Config_ListSections(cfg, &sectionList);
 	
@@ -271,9 +326,7 @@ void Package_Load(const char* item) {
 		ItemList_Free(&var);
 	}
 	
-	MemFile_Free(&sDepLookUp);
-	ItemList_Free(&sActorList);
-	ItemList_Free(&sObjectList);
+	Package_FreeCtx();
 	MemFile_Free(&config);
 	ItemList_Free(&sectionList);
 	ZipFile_Free(&zip);
@@ -286,6 +339,156 @@ void Package_Load(const char* item) {
 	printf_getchar("Press enter to exit.");
 #endif
 	exit(0);
+}
+
+static char* MacroName(char* name) {
+	char* n = xAlloc(strlen(name) * 2);
+	s32 w = 0;
+	
+	for (s32 i = 0; i < strlen(name); i++) {
+		if (i == 0) {
+			n[w++] = '_';
+			n[w++] = '_';
+			n[w++] = toupper(name[i]);
+		} else {
+			if (isupper(name[i]) && name[i - 1] != '_') {
+				n[w++] = '_';
+				n[w++] = name[i];
+			} else
+				n[w++] = toupper(name[i]);
+		}
+	}
+	
+	strcat(n, "_ACTOR_H__");
+	
+	return n;
+}
+
+static s32 ValidateName(char* name) {
+	u32 fail = false;
+	
+	if (strlen(name) < 3)
+		return -1;
+	
+	for (s32 i = 0; i < strlen(name); i++) {
+		if (!isgraph(name[i]) || (ispunct(name[i]) && name[i] != '_') || (i == 0 && !isalpha(name[i]))) {
+			fail = true;
+			
+			if (!isgraph(name[i]))
+				name[i] = '_';
+			
+			StrIns(&name[i + 1], PRNT_RSET);
+			StrIns(&name[i], PRNT_REDD);
+			
+			i += strlen(PRNT_YELW);
+			i += strlen(PRNT_RSET);
+		}
+	}
+	
+	return fail;
+}
+
+void Package_NewActor(const char* argName, const char* aId, const char* oId) {
+	char* name = xAlloc(512);
+	const char* examples[] = {
+		"EnDiamond",
+		"EnOctorock",
+		"EnZelda",
+		"EnGanondorf",
+		"EnBridge",
+	};
+	u32 rnd = (u32)(RandF() * 15.0f) % ArrayCount(examples);
+	
+	Package_InitCtx();
+	
+	if (argName && aId && oId) {
+		strcpy(name, argName);
+		
+		if (ValidateName(name))
+			printf_error("%s - Actor name can't have spaces or special characters, nor can it start with a number!\a", name);
+		
+		if (!strcmp(aId, "free"))
+			Package_GetActorID(name, true);
+		else
+			sActorID = Value_Hex(aId);
+		
+		if (!strcmp(oId, "free"))
+			Package_GetObjectID(name, true);
+		else
+			sObjectID = Value_Hex(oId);
+	} else {
+		printf_info("New Actor Name: " PRNT_GRAY "Example: \"%s\"", examples[rnd]);
+		while (true) {
+			strcpy(name, StrUnq(xStrDup(Terminal_GetStr())));
+			
+			switch (ValidateName(name)) {
+				case 1:
+					Terminal_ClearLines(2);
+					
+					printf_warning("%s - Actor name can't have spaces or special characters, nor can it start with a number!\a", name);
+					printf_warning("Press enter to try again!");
+					
+					Terminal_GetChar();
+					Terminal_ClearLines(4);
+					continue;
+					break;
+				case -1:
+					Terminal_ClearLines(2);
+					continue;
+					break;
+			}
+			
+			break;
+		}
+		
+		Terminal_ClearLines(3);
+		
+		Package_GetActorID(name, false);
+		printf_nl();
+		Package_GetObjectID(name, false);
+	}
+	
+	MemFile c = MemFile_Initialize();
+	MemFile h = MemFile_Initialize();
+	ItemList d = ItemList_Initialize();
+	
+	if (!Sys_Stat("tools/ActorTemplate.c"))
+		printf_error("Could not locate [%s]", "tools/ActorTemplate.c");
+	if (!Sys_Stat("tools/ActorTemplate.h"))
+		printf_error("Could not locate [%s]", "tools/ActorTemplate.h");
+	
+	MemFile_LoadFile_String(&c, "tools/ActorTemplate.c");
+	MemFile_LoadFile_String(&h, "tools/ActorTemplate.h");
+	
+	StrRep(c.str, "EnActor", name);
+	StrRep(c.str, "ActorTemplate", name);
+	StrRep(c.str, "[[ACTOR_ID_PLACEHOLDER]]", xFmt(".id = 0x%04X,", sActorID));
+	StrRep(c.str, "[[OBJECT_ID_PLACEHOLDER]]", xFmt(".objectId = 0x%04X,", sObjectID));
+	StrRep(h.str, "EnActor", name);
+	StrRep(h.str, "__EN_ACTOR_H__", MacroName(name));
+	
+	c.size = strlen(c.str);
+	h.size = strlen(h.str);
+	
+	FileSys_Path("src/actor/0x%04X-%s/", sActorID, name);
+	Sys_MakeDir(FileSys_File(""));
+	MemFile_SaveFile_String(&c, FileSys_File("%s.c", name));
+	MemFile_SaveFile_String(&h, FileSys_File("%s.h", name));
+	
+	MemFile_Reset(&c);
+	ItemList_Alloc(&d, 1, 128);
+	ItemList_AddItem(&d, xFmt("%s.h", name));
+	Config_WriteArray(&c, "dependencies", &d, QUOTES, NO_COMMENT);
+	
+	MemFile_SaveFile_String(&c, FileSys_File("make.cfg"));
+	
+	ItemList_Free(&d);
+	MemFile_Free(&c);
+	MemFile_Free(&h);
+	
+	Package_FreeCtx();
+	
+	printf_info("New Actor: 0x%04X-%s", sActorID, name);
 }
 
 void Package_Pack() {

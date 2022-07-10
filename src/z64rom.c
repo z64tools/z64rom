@@ -33,7 +33,7 @@ const char* gBaserom = NULL;
 
 const char* sRomType[] = { "-release.z64", "-dev.z64" };
 
-static void Main_Clean(void) {
+static void MakeClean(void) {
 	ItemList list = ItemList_Initialize();
 	
 	ItemList_List(&list, "rom/", -1, LIST_FILES);
@@ -57,7 +57,7 @@ static void Main_Clean(void) {
 	ItemList_Free(&list);
 }
 
-static void Main_PrintHelp(void) {
+static void PrintHelp(void) {
 	printf_toolinfo(gToolName, "Help");
 	
 	printf("z64rom dev is lazy...\n" PRNT_BLUE "https://github.com/z64tools/z64rom/wiki\n");
@@ -72,7 +72,7 @@ static void RemoveFolder(const char* item) {
 	Sys_Delete_Recursive(item);
 }
 
-static void Main_ClearDump(void) {
+static void ClearDump(void) {
 	MemFile mem;
 	
 	if (Sys_Stat(gProjectConfig)) {
@@ -103,13 +103,13 @@ static void Main_ClearDump(void) {
 	qFree(gVanilla);
 }
 
-static void Main_ClearCache(void) {
+static void ClearCache(void) {
 	printf_toolinfo(gToolName, "Clearing Cache\n");
 	
 	RemoveFolder("rom/yaz-cache/");
 }
 
-static void Main_WiiVC() {
+static void GZInject() {
 	char buffer[512];
 	MemFile conf;
 	char* path;
@@ -168,7 +168,7 @@ static void Main_WiiVC() {
 	Free(rom);
 }
 
-void Main_ReadProject(Rom* rom, char** input) {
+static void ReadProject(Rom* rom, char** input) {
 	MemFile* config = &rom->config;
 	char* buildRom;
 	
@@ -240,7 +240,7 @@ void Main_ReadProject(Rom* rom, char** input) {
 	}
 }
 
-static void Main_WriteCfg(MemFile* config, const char* romName, const char* build, const char* vanilla, const char* vcBase, const char* vcPath) {
+static void WriteProjectConfig(MemFile* config, const char* romName, const char* build, const char* vanilla, const char* vcBase, const char* vcPath) {
 	Log("Writing [%s]", gProjectConfig);
 	MemFile_Reset(config);
 	MemFile_Alloc(config, MbToBin(2.5));
@@ -346,7 +346,7 @@ static void Main_WriteCfg(MemFile* config, const char* romName, const char* buil
 	);
 }
 
-void Main_WriteProject(Rom* rom, char** input) {
+static void WriteProject(Rom* rom, char** input) {
 	MemFile* config = &rom->config;
 	const char* romName;
 	
@@ -360,15 +360,15 @@ void Main_WriteProject(Rom* rom, char** input) {
 	else
 		romName = "__ROM_NAME__";
 	
-	Main_WriteCfg(&rom->config, romName, "build", gVanilla, "NULL", "NULL");
+	WriteProjectConfig(&rom->config, romName, "build", gVanilla, "NULL", "NULL");
 }
 
-void Main_ReconfigProject(Rom* rom) {
+static void ReconfigProject(Rom* rom) {
 	MemFile mainConfig;
 	
 	MemFile_LoadFile_String(&mainConfig, "z64project.cfg");
 	
-	Main_WriteCfg(
+	WriteProjectConfig(
 		&rom->config,
 		Config_GetStr(&mainConfig, "z_baserom"),
 		Config_GetStr(&mainConfig, "z_buildrom"),
@@ -382,13 +382,13 @@ void Main_ReconfigProject(Rom* rom) {
 	exit(0);
 }
 
-void Main_Config(char** input, Rom* rom) {
+static void ProcessConfig(char** input, Rom* rom) {
 	MemFile* config = &rom->config;
 	
 	rom->config = MemFile_Initialize();
 	
 	if (!Sys_Stat(gProjectConfig))
-		Main_WriteProject(rom, input);
+		WriteProject(rom, input);
 	
 	else {
 		Log("Reading [%s]", gProjectConfig);
@@ -396,21 +396,21 @@ void Main_Config(char** input, Rom* rom) {
 		MemFile_Realloc(config, config->size * 8);
 	}
 	
-	Main_ReadProject(rom, input);
+	ReadProject(rom, input);
 	
 	if (gDumpFlag == true) {
 		*input = StrDup(Filename(*input)); qFree(*input);
 	} else {
 		if (gBuildTarget == ROM_RELEASE) {
 			if (Sys_Stat(gBuildrom[ROM_DEV]) > Sys_Stat(gBuildrom[ROM_RELEASE])) {
-				Main_Clean();
+				MakeClean();
 				gMakeForce = true;
 				
 				return;
 			}
 		} else {
 			if (Sys_Stat(gBuildrom[ROM_RELEASE]) > Sys_Stat(gBuildrom[ROM_DEV])) {
-				Main_Clean();
+				MakeClean();
 				gMakeForce = true;
 				
 				return;
@@ -419,7 +419,7 @@ void Main_Config(char** input, Rom* rom) {
 	}
 }
 
-static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
+static s32 ProcessArguments(Rom* rom, char* input, char* argv[]) {
 	u32 parArg = 0;
 	
 	if (Arg("log")) Log_NoOutput();
@@ -433,12 +433,33 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		}
 	}
 	
+	if (Arg("new-actor")) {
+		Package_NewActor(argv[parArg], argv[parArg + 1], argv[parArg + 2]);
+		
+		return 1;
+	}
+	
+	if (Arg("sym")) {
+		Sym(argv[parArg]);
+		
+		return 1;
+	}
+	
+	if (Arg("migrate")) {
+		char* mode = argv[parArg];
+		Migrate(mode, argv[parArg + 1]);
+		
+		return 1;
+	}
+	
+	if (Arg("help")) PrintHelp();
+	
 	if (Arg("pack")) {
 		Package_Pack();
 		exit(0);
 	}
 	
-	if (Arg("reconfig")) Main_ReconfigProject(rom);
+	if (Arg("reconfig")) ReconfigProject(rom);
 	
 	if (Arg("reinstall")) {
 		MemFile mem = MemFile_Initialize();
@@ -450,13 +471,13 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	
 	if (Arg("clear-dump") || Arg("clear-cache") || Arg("clear-project") || Arg("clear-all")) {
 		if (Arg("clear-dump") || Arg("clear-all"))
-			Main_ClearDump();
+			ClearDump();
 		if (Arg("clear-project") || Arg("clear-all")) {
 			RemoveFolder("rom/");
 			RemoveFolder("include/object/");
 		}
 		if (Arg("clear-cache") || Arg("clear-all"))
-			Main_ClearCache();
+			ClearCache();
 		
 		Terminal_ClearLines(2);
 	}
@@ -496,7 +517,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	if (Arg("release")) gBuildTarget = ROM_RELEASE;
 	if (Arg("force")) gMakeForce = true;
 	if (Arg("clean")) {
-		Main_Clean();
+		MakeClean();
 		
 		return 1;
 	}
@@ -535,7 +556,7 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 	}
 	
 	if (Arg("inject-vc")) {
-		Main_WiiVC();
+		GZInject();
 		
 		return 1;
 	}
@@ -544,30 +565,6 @@ static s32 Main_PreArgs(Rom* rom, char* input, char* argv[]) {
 		gCompressFlag = true;
 	
 	return 0;
-}
-
-static void Temporary_TomlToCfg() {
-	if (!Sys_Stat("z64project.toml"))
-		return;
-	
-	printf_toolinfo(gToolName, "Rename .toml to .cfg");
-	
-	ItemList list;
-	
-	ItemList_SetFilter(&list, CONTAIN_END, ".toml");
-	ItemList_List(&list, "", -1, LIST_FILES);
-	
-	forlist(i, list) {
-		char* rename = StrDup(list.item[i]);
-		
-		StrRep(rename, ".toml", ".cfg");
-		
-		if (Sys_Stat(rename))
-			Sys_Delete(list.item[i]);
-		
-		printf_info("Rename '%s'", rename);
-		Sys_Rename(list.item[i], rename);
-	}
 }
 
 s32 Main(s32 argc, char* argv[]) {
@@ -581,26 +578,6 @@ s32 Main(s32 argc, char* argv[]) {
 	printf_SetPrefix("");
 	gWorkDir = StrDup(Sys_WorkDir()); qFree(gWorkDir);
 	Sys_SetWorkDir(Sys_AppDir());
-	
-	Temporary_TomlToCfg();
-	
-	if (Arg("sym")) {
-		Sym(argv[parArg]);
-		
-		return 0;
-	}
-	
-	if (Arg("migrate")) {
-		char* mode = argv[parArg];
-		if (argc > parArg + 1)
-			Migrate(mode, argv[parArg + 1]);
-		else
-			printf_error("Usage: --migrate project-format path");
-		
-		return 0;
-	}
-	
-	if (Arg("help")) Main_PrintHelp();
 	
 	Calloc(rom, sizeof(struct Rom));
 	
@@ -619,8 +596,8 @@ s32 Main(s32 argc, char* argv[]) {
 		}
 	}
 	
-	if (Main_PreArgs(rom, input, argv)) goto free;
-	Main_Config(&input, rom);
+	if (ProcessArguments(rom, input, argv)) goto free;
+	ProcessConfig(&input, rom);
 	
 	switch (Tools_Init()) {
 		case -1: {
@@ -796,7 +773,7 @@ s32 Main(s32 argc, char* argv[]) {
 	
 	if (Arg("build-vc")) {
 		if (rom->file.size <= 0x2015000)
-			Main_WiiVC();
+			GZInject();
 		else
 			printf_warning("Compressed rom is too big to be injected to a wad. Consider running z64rom with --no-beta to remove unused beta content.");
 	}

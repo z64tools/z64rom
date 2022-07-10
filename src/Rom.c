@@ -61,10 +61,8 @@ static void Restriction_WriteFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
 				rf->tradeItem = 3;
 			if (!strcmp(rlist.item[i], "ALL"))
 				rf->all = 3;
-			if (!strcmp(rlist.item[i], "DINS_FIRE"))
-				rf->din = 1;
-			if (!strcmp(rlist.item[i], "NAYRUS_LOVE"))
-				rf->nayry = 1;
+			if (!strcmp(rlist.item[i], "DIN_NAYRU"))
+				rf->din = rf->nayry = 1;
 			if (!strcmp(rlist.item[i], "FARORES_WIND"))
 				rf->farore = 3;
 			if (!strcmp(rlist.item[i], "SUN_SONG"))
@@ -247,7 +245,7 @@ static void Config_WriteScene(Rom* rom, MemFile* config, u32 id, u32 roomNum, co
 	
 	if (rf) {
 		MemFile_Printf(config, "# [ BOTTLES / A_BUTTON / B_BUTTON / WARP_SONG / OCARINA / HOOKSHOT ]\n");
-		MemFile_Printf(config, "# [ TRADE_ITEM / ALL / DINS_FIRE / NAYRUS_LOVE / FARORES_WIND / SUN_SONG ]\n");
+		MemFile_Printf(config, "# [ TRADE_ITEM / ALL / DIN_NAYRU / FARORES_WIND / SUN_SONG ]\n");
 		
 		if (rf->bottles)
 			ItemList_AddItem(&rflags, "BOTTLES");
@@ -267,10 +265,8 @@ static void Config_WriteScene(Rom* rom, MemFile* config, u32 id, u32 roomNum, co
 		
 		if (rf->all)
 			ItemList_AddItem(&rflags, "ALL");
-		if (rf->din)
-			ItemList_AddItem(&rflags, "DINS_FIRE");
-		if (rf->nayry)
-			ItemList_AddItem(&rflags, "NAYRUS_LOVE");
+		if (rf->din || rf->nayry)
+			ItemList_AddItem(&rflags, "DIN_NAYRU");
 		if (rf->farore)
 			ItemList_AddItem(&rflags, "FARORES_WIND");
 		if (rf->sunSong)
@@ -1231,10 +1227,9 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		MemFile_Seek(memCfg, MEMFILE_SEEK_END);
 		MemFile_Printf(memCfg, "\n");
-		Config_WriteArray(memCfg, "rooms", &flist, QUOTES, NO_COMMENT);
 		
 		//crustify
-		forlist(t, nlist) {
+		forlist(t, flist) {
 			ItemList_AddItem(
 				&nlist,
 				xFmt(
@@ -1244,6 +1239,8 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 			);
 		}
 		//uncrustify
+		
+		Config_WriteArray(memCfg, "rooms", &nlist, QUOTES, NO_COMMENT);
 		
 		MemFile_SaveFile(memCfg, memCfg->info.name);
 		
@@ -2060,29 +2057,28 @@ void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlag flags) 
 	ItemList_List(&modified, path, 0, flags | LIST_NO_DOT | LIST_RELATIVE);
 	
 	if (isNum) {
-		ItemList_NumericalSort(&vanilla);
-		ItemList_NumericalSort(&modified);
+		ItemList_NumericalSlotSort(&vanilla);
+		ItemList_NumericalSlotSort(&modified);
 	}
 	
 	ItemList_Validate(list);
-	list->item = xAlloc(sizeof(u8*) * (modified.num + vanilla.num));
+	list->item = xAlloc(sizeof(u8*) * (modified.num + vanilla.num) * 2);
 	
 	if (isNum) {
 		u32 maxNum = 0;
 		
-		for (s32 i = 0; i < modified.num; i++) {
+		forlist (i, modified) {
 			if (modified.item[i] == NULL)
 				continue;
-			if (Value_Int(modified.item[i]) > maxNum) {
-				maxNum = Value_Int(modified.item[i]);
-			}
+			
+			maxNum = Max(Value_Int(modified.item[i]), maxNum);
 		}
 		
-		for (s32 i = 0; i < vanilla.num; i++) {
+		forlist (i, vanilla) {
 			if (vanilla.item[i] == NULL)
 				continue;
-			if (Value_Int(vanilla.item[i]) > maxNum)
-				maxNum = Value_Int(vanilla.item[i]);
+			
+			maxNum = Max(Value_Int(vanilla.item[i]), maxNum);
 		}
 		
 		for (s32 i = 0; i < maxNum + 1; i++) {

@@ -1,7 +1,7 @@
 {
     "configurations": [
         {
-            "name": "Mips64",
+            "name": "mips64-gcc",
             "includePath": [
                 "${workspaceFolder}/src/lib_user/**",
                 "${workspaceFolder}/include/z64hdr/**",

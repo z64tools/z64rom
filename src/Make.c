@@ -87,6 +87,9 @@ static ThreadFunc Object_Convert(MakeArg* arg) {
 	linker = xRep(xRep(header, "src/lib_user/", "include/"), ".h", ".ld");
 	
 	if (
+		
+		!gMakeForce
+	   &&
 		(
 			Sys_Stat(out) > Sys_Stat(in) &&
 			Sys_Stat(out) > Sys_Stat(in) &&

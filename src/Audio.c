@@ -1676,12 +1676,13 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 					break;
 			}
 			
-			seqFlag[i] = 0;
-			
-			forlist(k, flagList) {
-				foreach(j, sSeqFlagName) {
-					if (!stricmp(flagList.item[k], sSeqFlagName[j]))
-						seqFlag[i] |= (1) << j;
+			if (!gAudioOnly) {
+				seqFlag[i] = 0;
+				forlist(k, flagList) {
+					foreach(j, sSeqFlagName) {
+						if (!stricmp(flagList.item[k], sSeqFlagName[j]))
+							seqFlag[i] |= (1) << j;
+					}
 				}
 			}
 			

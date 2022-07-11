@@ -384,7 +384,7 @@ void Select_PrintLoadingMessage(SelectContext* this, GfxPrint* printer) {
 void Select_PrintAgeSetting(SelectContext* this, GfxPrint* printer, s32 age) {
 	Select_SetupColor(printer, SETTER);
 	GfxPrint_SetPos(printer, 4, 26);
-	GfxPrint_Printf(printer, "Age (B):     ");
+	GfxPrint_Printf(printer, "Age (B):      ");
 	
 	if (age == 0) {
 		GfxPrint_SetColor(printer, 255, 75, 75, 255);
@@ -396,7 +396,7 @@ void Select_PrintAgeSetting(SelectContext* this, GfxPrint* printer, s32 age) {
 	
 	Select_SetupColor(printer, SETTER);
 	GfxPrint_SetPos(printer, 4, 27);
-	GfxPrint_Printf(printer, "Spawn (B):   ");
+	GfxPrint_Printf(printer, "Spawn (D-LR): ");
 	
 	GfxPrint_SetColor(printer, 125, 52, 235, 255);
 	GfxPrint_Printf(printer, "%d", gSpawn);
@@ -414,7 +414,7 @@ void Select_PrintCutsceneSetting(SelectContext* this, GfxPrint* printer, u16 csI
 	
 	GfxPrint_SetPos(printer, 4, 25);
 	Select_SetupColor(printer, SETTER);
-	GfxPrint_Printf(printer, "Setup (Z/R): ");
+	GfxPrint_Printf(printer, "Setup (Z/R):  ");
 	
 	GfxPrint_SetColor(printer, 255, 165, 75, 255);
 	

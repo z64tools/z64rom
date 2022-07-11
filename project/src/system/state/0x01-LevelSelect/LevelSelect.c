@@ -287,6 +287,8 @@ void Select_UpdateMenu(SelectContext* this) {
 	
 	this->currentScene = (this->currentScene + this->count) % this->count;
 	this->topDisplayedScene = (this->topDisplayedScene + this->count) % this->count;
+	if (this->count <= 20)
+		this->topDisplayedScene = 0;
 	
 	dREG(80) = this->currentScene;
 	dREG(81) = this->topDisplayedScene;
@@ -321,7 +323,7 @@ void Select_PrintMenu(SelectContext* this, GfxPrint* printer) {
 	GfxPrint_SetPos(printer, 10, 2);
 	GfxPrint_Printf(printer, "Z64ROM Level Select");
 	
-	for (i = 0; i < 20; i++) {
+	for (i = 0; i < CLAMP_MAX(this->count, 20); i++) {
 		Color_HSL color;
 		Color_RGB8 rgb;
 		

@@ -5,6 +5,12 @@
 // # User Library Patches                #
 // # # # # # # # # # # # # # # # # # # # #
 
+// New save patches
+#define Patch_SaveStartEntrance 0xBB
+#define Patch_SaveStartAge      LINK_AGE_CHILD
+#define Patch_SaveStartTime     0x6AAB
+#define Patch_SaveStartCsIndex  0xFFF1
+
 // Wield Hylian shield like Kokiri shield
 #define Patch_WieldHylianShieldLikeKokiriShield true
 
@@ -60,6 +66,7 @@ asm ("osMemSize = 0x80000318");
 
 void uLib_Update(GameState* gameState);
 void* memset(void* m, int v, unsigned int s);
+f32 fmodf(f32, f32);
 
 #define U32_RGB(x) (u8)(x >> 24), (u8)(x >> 16), (u8)(x >> 8)
 

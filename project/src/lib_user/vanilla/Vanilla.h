@@ -1,5 +1,7 @@
 #include <oot_mq_debug/z64hdr.h>
 
+struct Time;
+
 void uLib_DebugMessages(u32 msgID);
 
 void uObject_LoadObjects(ObjectContext* objectCtx);
@@ -23,5 +25,6 @@ void NewPlay_Update(PlayState* playState);
 void NewPlay_Main(PlayState* playState);
 void NewPlay_SetFadeOut(PlayState* play);
 void NewPlay_SetupRespawn(PlayState* this, s32 respawnMode, s32 playerParams);
+struct Time Play_GetTime(void);
 
 void NewRoom_Draw(PlayState* globalCtx, Room* room, u32 flags);

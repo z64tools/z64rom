@@ -18,7 +18,17 @@ asm ("Title_Init = 0x80800878");
 #define COMMENT 0
 #define SETTER  1
 
-f32 fmodf(f32, f32);
+typedef struct {
+	u8    id;
+	char* name;
+} Level;
+
+Level* gLevel;
+char* gScene;
+u8 gSpawn;
+
+static Time sTime;
+static s8 sInitTime;
 
 void Select_SetupColor(GfxPrint* printer, u32 id) {
 	switch (id) {
@@ -26,7 +36,7 @@ void Select_SetupColor(GfxPrint* printer, u32 id) {
 			GfxPrint_SetColor(printer, 75, 75, 75, 255);
 			break;
 		case SETTER:
-			GfxPrint_SetColor(printer, 255, 255, 255, 255);
+			GfxPrint_SetColor(printer, 175, 175, 175, 255);
 			break;
 	}
 }
@@ -36,8 +46,15 @@ void Select_LoadTitle(SelectContext* this) {
 	SET_NEXT_GAMESTATE(&this->state, Title_Init, TitleContext);
 }
 
-void Select_LoadGame(SelectContext* this, s32 entranceIndex) {
-	gExitParam.nextEntranceIndex = entranceIndex;
+void Select_LoadGame(SelectContext* this, u8 sceneIndex) {
+	gExitParam.nextEntranceIndex = 0x8000;
+	gExitParam.exit = (NewExit) {
+		.sceneIndex = sceneIndex,
+		.headerIndex = 0xF,
+		.spawnIndex = gSpawn,
+		.fadeIn = 2,
+		.fadeOut = 2,
+	};
 	
 	if (gSaveContext.fileNum == 0xFF) {
 		Sram_InitDebugSave();
@@ -48,11 +65,12 @@ void Select_LoadGame(SelectContext* this, s32 entranceIndex) {
 		gSaveContext.magicCapacity = 0;
 		gSaveContext.magicLevel = gSaveContext.magic = 0;
 	}
+	
 	gSaveContext.buttonStatus[0] = gSaveContext.buttonStatus[1] = gSaveContext.buttonStatus[2] =
 		gSaveContext.buttonStatus[3] = gSaveContext.buttonStatus[4] = BTN_ENABLED;
 	gSaveContext.unk_13E7 = gSaveContext.unk_13E8 = gSaveContext.unk_13EA = gSaveContext.unk_13EC = 0;
 	Audio_QueueSeqCmd(SEQ_PLAYER_BGM_MAIN << 24 | NA_BGM_STOP);
-	gSaveContext.entranceIndex = entranceIndex;
+	gSaveContext.entranceIndex = 0x8000;
 	gSaveContext.respawnFlag = 0;
 	gSaveContext.respawn[RESPAWN_MODE_DOWN].entranceIndex = ENTR_LOAD_OPENING;
 	gSaveContext.seqId = (u8)NA_BGM_DISABLED;
@@ -63,22 +81,12 @@ void Select_LoadGame(SelectContext* this, s32 entranceIndex) {
 	SET_NEXT_GAMESTATE(&this->state, Play_Init, PlayState);
 }
 
-// "Translation" (Actual name)
-static SceneSelectEntry sScenes[] = {
-#include "LevelNames.h"
-	{ "Boot Title", (void*)Select_LoadTitle, 0 },
-};
-
 void Select_UpdateMenu(SelectContext* this) {
 	Input* input = &this->state.input[0];
-	SceneSelectEntry* selectedScene;
 	
 	if (this->verticalInputAccumulator == 0) {
 		if (CHECK_BTN_ALL(input->press.button, BTN_A) || CHECK_BTN_ALL(input->press.button, BTN_START)) {
-			selectedScene = &this->scenes[this->currentScene];
-			if (selectedScene->loadFunc != NULL) {
-				selectedScene->loadFunc(this, selectedScene->entranceIndex);
-			}
+			Select_LoadGame(this, gLevel[this->currentScene].id);
 		}
 		
 		if (CHECK_BTN_ALL(input->press.button, BTN_B)) {
@@ -210,29 +218,31 @@ void Select_UpdateMenu(SelectContext* this) {
 			this->verticalInput = -R_UPDATE_RATE * 3;
 		}
 		
-		if (CHECK_BTN_ALL(input->press.button, BTN_DLEFT) || CHECK_BTN_ALL(input->cur.button, BTN_DLEFT)) {
+		if (CHECK_BTN_ALL(input->press.button, BTN_DLEFT)) {
 			Audio_PlaySoundGeneral(
-				NA_SE_IT_SWORD_IMPACT,
+				NA_SE_SY_CURSOR,
 				&gSfxDefaultPos,
 				4,
 				&gSfxDefaultFreqAndVolScale,
 				&gSfxDefaultFreqAndVolScale,
 				&gSfxDefaultReverb
 			);
-			this->verticalInput = R_UPDATE_RATE;
+			gSpawn--;
 		}
 		
-		if (CHECK_BTN_ALL(input->press.button, BTN_DRIGHT) || CHECK_BTN_ALL(input->cur.button, BTN_DRIGHT)) {
+		if (CHECK_BTN_ALL(input->press.button, BTN_DRIGHT)) {
 			Audio_PlaySoundGeneral(
-				NA_SE_IT_SWORD_IMPACT,
+				NA_SE_SY_CURSOR,
 				&gSfxDefaultPos,
 				4,
 				&gSfxDefaultFreqAndVolScale,
 				&gSfxDefaultFreqAndVolScale,
 				&gSfxDefaultReverb
 			);
-			this->verticalInput = -R_UPDATE_RATE;
+			gSpawn++;
 		}
+		
+		gSpawn = gSpawn & 0x1F;
 	}
 	
 	if (CHECK_BTN_ALL(input->press.button, BTN_L)) {
@@ -303,6 +313,9 @@ void Select_PrintMenu(SelectContext* this, GfxPrint* printer) {
 	s32 scene;
 	s32 i;
 	char* name;
+	static s32 timer;
+	
+	printer->flags |= GFXP_FLAG_SHADOW;
 	
 	GfxPrint_SetColor(printer, 175, 125, 255, 255);
 	GfxPrint_SetPos(printer, 10, 2);
@@ -314,28 +327,32 @@ void Select_PrintMenu(SelectContext* this, GfxPrint* printer) {
 		
 		scene = (this->topDisplayedScene + i + this->count) % this->count;
 		
-		color.h = (f32)sScenes[scene].entranceIndex / __INT8_MAX__;
-		color.s = 0.3f;
-		color.l = 0.5f;
+		color.h = 0.5f;
+		color.s = 0.01f;
+		color.l = 0.7f;
 		
-		color.h = fmodf(color.h, 1.0f);
+		GfxPrint_SetPos(printer, 1, i + 4);
 		
 		if (scene == this->currentScene) {
-			color.s = 0.75f;
-			color.l = 0.9f;
+			color.l = 0.5f + ABS(Math_SinS(timer) * 0.1);
+			color.s = 0.8;
+			color.h = 0.02;
 		}
 		
-		Color_ToRGB(&rgb, &color);
-		GfxPrint_SetPos(printer, 1, i + 4);
-		GfxPrint_SetColor(printer, rgb.r, rgb.g, rgb.b, 255);
-		
-		name = this->scenes[scene].name;
 		if (name == NULL) {
 			name = "**Null**";
 		}
 		
-		GfxPrint_Printf(printer, "%-3d %s", scene, name);
+		GfxPrint_Printf(printer, "", gLevel[scene].id);
+		
+		rgb = Color_HslToRgb(color.h, color.s, color.l);
+		GfxPrint_SetColor(printer, 100, 100, 100, 255);
+		GfxPrint_Printf(printer, "%02X ", gLevel[scene].id);
+		GfxPrint_SetColor(printer, rgb.r, rgb.g, rgb.b, 255);
+		GfxPrint_Printf(printer, "%s", gLevel[scene].name);
 	}
+	
+	timer += DEG_TO_BINANG(1.76);
 }
 
 static const char* sLoadingMessages[] = {
@@ -362,54 +379,65 @@ void Select_PrintLoadingMessage(SelectContext* this, GfxPrint* printer) {
 	GfxPrint_Printf(printer, "%s", sLoadingMessages[randomMsg]);
 }
 
-static const char* sAgeLabels[] = {
-	"Adult",
-	"Child",
-};
-
 void Select_PrintAgeSetting(SelectContext* this, GfxPrint* printer, s32 age) {
-	GfxPrint_SetPos(printer, 2, 26);
 	Select_SetupColor(printer, SETTER);
-	GfxPrint_Printf(printer, "Age (B):     %s", sAgeLabels[age]);
+	GfxPrint_SetPos(printer, 4, 26);
+	GfxPrint_Printf(printer, "Age (B):     ");
+	
+	if (age == 0) {
+		GfxPrint_SetColor(printer, 255, 75, 75, 255);
+		GfxPrint_Printf(printer, "Adult");
+	} else {
+		GfxPrint_SetColor(printer, 52, 155, 235, 255);
+		GfxPrint_Printf(printer, "Child");
+	}
+	
+	Select_SetupColor(printer, SETTER);
+	GfxPrint_SetPos(printer, 4, 27);
+	GfxPrint_Printf(printer, "Spawn (B):   ");
+	
+	GfxPrint_SetColor(printer, 125, 52, 235, 255);
+	GfxPrint_Printf(printer, "%d", gSpawn);
 }
 
 void Select_PrintCutsceneSetting(SelectContext* this, GfxPrint* printer, u16 csIndex) {
-	static s8 timeH = 12;
-	static s8 timeM = 0;
 	char timeBuffer[64];
 	char* label;
+	Color_RGB8 rgb;
 	
-	GfxPrint_SetPos(printer, 2, 25);
+	if (sInitTime == false) {
+		sTime = Play_GetTime();
+		sInitTime = true;
+	}
+	
+	GfxPrint_SetPos(printer, 4, 25);
 	Select_SetupColor(printer, SETTER);
+	GfxPrint_Printf(printer, "Setup (Z/R): ");
+	
+	GfxPrint_SetColor(printer, 255, 165, 75, 255);
 	
 	switch (csIndex) {
 		case 0x0000 ... 0x8000:
 			if (CHK_ANY(press, BTN_CUP))
-				timeH++;
+				sTime.hour = WrapS(sTime.hour + 1, 0, 24);
 			if (CHK_ANY(press, BTN_CDOWN))
-				timeH--;
+				sTime.hour = WrapS(sTime.hour - 1, 0, 24);
 			if (CHK_ANY(press, BTN_CRIGHT))
-				timeM += 10;
+				sTime.minute = WrapS(sTime.minute + 1, 0, 60);
 			if (CHK_ANY(press, BTN_CLEFT))
-				timeM -= 10;
+				sTime.minute = WrapS(sTime.minute - 1, 0, 60);
 			
-			if (timeM < 0) {
-				timeH--;
-				timeM = 50;
-			} else if (timeM >= 60) {
-				timeH++;
-				timeM = 0;
-			}
-			
-			if (timeH < 0) {
-				timeH = 23;
-			} else if (timeH >= 24) {
-				timeH = 0;
-			}
-			
-			gSaveContext.dayTime = CLOCK_TIME(timeH, timeM + 0.5f);
+			gSaveContext.dayTime = CLOCK_TIME(sTime.hour, sTime.minute + 0.5f);
 			label = timeBuffer;
-			sprintf(timeBuffer, "%02d.%02d%s", timeH % 12, timeM, timeH >= 12 ? "pm" : "am");
+			sprintf(timeBuffer, "%02d.%02d%s", sTime.hour % 12, sTime.minute, sTime.hour >= 12 ? "pm" : "am");
+			
+			rgb = Color_HslToRgb(
+				(u16)(gSaveContext.dayTime + 0x8000) / (f32)__UINT16_MAX__,
+				0.45f,
+				0.5f
+			);
+			GfxPrint_SetColor(printer, rgb.r, rgb.g, rgb.b, 255);
+			
 			break;
 		case 0xFFF0:
 			gSaveContext.dayTime = CLOCK_TIME(12, 0);
@@ -448,13 +476,36 @@ void Select_PrintCutsceneSetting(SelectContext* this, GfxPrint* printer, u16 csI
 	}
 	
 	gSaveContext.skyboxTime = gSaveContext.dayTime;
-	GfxPrint_Printf(printer, "Setup (Z/R): %s", label);
+	GfxPrint_Printf(printer, "%s", label);
+}
+
+static void Select_Rectangle(f32 x, f32 y, f32 w, f32 h, Color_RGB8 rgb) {
+	x *= 16.0f;
+	y *= 16.0f;
+	w *= 16.0f;
+	h *= 16.0f;
+	gDPPipeSync(POLY_OPA_DISP++);
+	gDPSetOtherMode(
+		POLY_OPA_DISP++,
+		G_AD_DISABLE | G_CD_DISABLE | G_CK_NONE | G_TC_FILT | G_TL_TILE |
+		G_TD_CLAMP | G_TP_NONE | G_CYC_1CYCLE | G_PM_NPRIMITIVE,
+		G_AC_NONE | G_ZS_PRIM | G_RM_OPA_SURF | G_RM_OPA_SURF2
+	);
+	gDPSetCombineMode(POLY_OPA_DISP++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
+	gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, rgb.r, rgb.g, rgb.b, 0xFF);
 	
-	if (csIndex == 0x8000) {
-		GfxPrint_SetPos(printer, 22, 25);
-		Select_SetupColor(printer, COMMENT);
-		GfxPrint_Printf(printer, "(C, hour/minute)", label);
-	}
+	//crustify
+	gSPTextureRectangle(
+		POLY_OPA_DISP++,
+		((s32)(x) << 1),
+		((s32)(y) << 1),
+		((s32)(x + w) << 1),
+		((s32)(y + h) << 1),
+		G_TX_RENDERTILE,
+		0, 0, 0, 0
+	);
+	//uncrustify
+	gDPPipeSync(POLY_OPA_DISP++);
 }
 
 void Select_DrawMenu(SelectContext* this) {
@@ -468,6 +519,15 @@ void Select_DrawMenu(SelectContext* this) {
 	SET_FULLSCREEN_VIEWPORT(&this->view);
 	View_Apply(&this->view, VIEW_ALL);
 	Gfx_SetupDL_28Opa(gfxCtx);
+	
+	Select_Rectangle(3.35f, 0, 0.25f, 28, Color_HslToRgb(0.0, 0.0, 0.7));
+	
+	Select_Rectangle(0, 24.25f, 48, 4, Color_HslToRgb(0.0, 0.0, 0.08));
+	Select_Rectangle(0, 24.25f, 48, 0.25, Color_HslToRgb(0.0, 0.0, 0.7));
+	Select_Rectangle(0, 24.25f + 4.0f, 48, 0.25, Color_HslToRgb(0.0, 0.0, 0.7));
+	
+	Select_Rectangle(0, 0, 48, 3.5f, Color_HslToRgb(0.0, 0.0, 0.08));
+	Select_Rectangle(0, 3.5f, 48, 0.25, Color_HslToRgb(0.0, 0.0, 0.7));
 	
 	printer = alloca(sizeof(GfxPrint));
 	GfxPrint_Init(printer);
@@ -530,15 +590,51 @@ void Select_Main(GameState* thisx) {
 }
 
 void Select_Destroy(GameState* thisx) {
+	SelectContext* this = (SelectContext*)thisx;
+	
+	GameAlloc_Free(&this->state.alloc, gLevel);
+	GameAlloc_Free(&this->state.alloc, gScene);
 }
 
 void Select_Init(GameState* thisx) {
 	SelectContext* this = (SelectContext*)thisx;
-	u32 size;
+	u32 size = gDmaDataTable[4].vromEnd - gDmaDataTable[4].vromStart;
+	char* scenTbl;
+	
+	// gSpawn = 0;
+	this->count = 0;
+	gScene = GameAlloc_Malloc(&this->state.alloc, size);
+	Assert(gScene != NULL);
+	DmaMgr_SendRequest0((u32)gScene, gDmaDataTable[4].vromStart, size);
+	
+	scenTbl = gScene;
+	for (s32 i = 0; scenTbl[0] != -1; i++) {
+		this->count++;
+		
+		osLibPrintf("%3d: ID %02X [%s]", i, *scenTbl, scenTbl + 1);
+		scenTbl++;
+		scenTbl += strlen((char*)scenTbl) + 1;
+		
+		Assert(i < 0xFF);
+	}
+	osLibPrintf("gLevel Count: %d", this->count);
+	
+	gLevel = GameAlloc_Malloc(&this->state.alloc, sizeof(Level) * this->count);
+	Assert(gLevel != NULL);
+	
+	scenTbl = gScene;
+	for (s32 i = 0; scenTbl[0] != -1; i++) {
+		gLevel[i].id = scenTbl[0];
+		gLevel[i].name = (char*)scenTbl + 1;
+		
+		scenTbl++;
+		scenTbl += strlen((char*)scenTbl) + 1;
+	}
+	
+	osLibPrintf("Done!");
 	
 	this->state.main = Select_Main;
 	this->state.destroy = Select_Destroy;
-	this->scenes = sScenes;
 	this->topDisplayedScene = 0;
 	this->currentScene = 0;
 	this->pageDownStops[0] = 0; // Hyrule Field
@@ -550,7 +646,6 @@ void Select_Init(GameState* thisx) {
 	this->pageDownStops[6] = 91; // Escaping Ganon's Tower 3
 	this->pageDownIndex = 0;
 	this->opt = 0;
-	this->count = ARRAY_COUNT(sScenes);
 	View_Init(&this->view, this->state.gfxCtx);
 	this->view.flags = (VIEW_PROJECTION_ORTHO | VIEW_VIEWPORT);
 	this->verticalInputAccumulator = 0;

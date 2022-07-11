@@ -15,14 +15,10 @@ void Sram_InitSave(FileChooseContext* fileChooseCtx, SramContext* sramCtx) {
 	
 	Sram_InitNewSave();
 	
-	gSaveContext.entranceIndex = 0xBB;
-	gSaveContext.linkAge = LINK_AGE_CHILD;
-	gSaveContext.dayTime = 0x6AAB;
-	gSaveContext.cutsceneIndex = 0xFFF1;
-	
-	if (fileChooseCtx->buttonIndex == 0) {
-		gSaveContext.cutsceneIndex = 0;
-	}
+	gSaveContext.entranceIndex = Patch_SaveStartEntrance;
+	gSaveContext.linkAge = Patch_SaveStartAge;
+	gSaveContext.dayTime = Patch_SaveStartTime;
+	gSaveContext.cutsceneIndex = Patch_SaveStartCsIndex;
 	
 	for (offset = 0; offset < 8; offset++) {
 		gSaveContext.playerName[offset] = fileChooseCtx->fileNames[fileChooseCtx->buttonIndex][offset];

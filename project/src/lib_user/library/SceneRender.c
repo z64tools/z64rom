@@ -142,17 +142,14 @@ static u32 SceneAnim_Ease_RGBA(u32 from, u32 to, float factor) {
 		to8[1],
 		to8[2]
 	};
-	Color_HSL hslF;
-	Color_HSL hslT;
-	
-	Color_ToHSL(&hslF, &rgbF);
-	Color_ToHSL(&hslT, &rgbT);
+	Color_HSL hslF = Color_RgbToHsl(rgbF.r, rgbF.g, rgbF.b);
+	Color_HSL hslT = Color_RgbToHsl(rgbT.r, rgbT.g, rgbT.b);
 	
 	hslF.h = LERP(hslF.h, hslT.h, factor);
 	hslF.s = LERP(hslF.s, hslT.s, factor);
 	hslF.l = LERP(hslF.l, hslT.l, factor);
 	
-	Color_ToRGB(&rgbF, &hslF);
+	rgbF = Color_HslToRgb(hslF.h, hslF.s, hslF.l);
 	
 	rgba.r = rgbF.r;
 	rgba.g = rgbF.g;

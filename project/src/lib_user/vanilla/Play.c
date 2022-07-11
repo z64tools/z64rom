@@ -1142,3 +1142,29 @@ void NewPlay_SetupRespawn(PlayState* this, s32 respawnMode, s32 playerParams) {
 	respawnData->tempSwchFlags = this->actorCtx.flags.tempSwch;
 	respawnData->tempCollectFlags = this->actorCtx.flags.tempCollect;
 }
+
+Time Play_GetTime(void) {
+	s16 clockCount[4];
+	
+	clockCount[0] = 0;
+	f32 temp_f0_2 = gSaveContext.dayTime * (24.0f * 60.0f / 0x10000);
+	
+	clockCount[1] = temp_f0_2 / 60.0f;
+	while (clockCount[1] >= 10) {
+		clockCount[0]++;
+		clockCount[1] -= 10;
+	}
+	clockCount[2] = 0;
+	clockCount[3] = (s16)temp_f0_2 % 60;
+	while (clockCount[3] >= 10) {
+		clockCount[2]++;
+		clockCount[3] -= 10;
+	}
+	
+	//crustify
+	return (Time) {
+		.hour = clockCount[0] * 10 + clockCount[1],
+		.minute = clockCount[2] * 10 + clockCount[3],
+	};
+	//uncrustify
+}

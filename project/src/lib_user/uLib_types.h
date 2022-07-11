@@ -38,7 +38,7 @@ typedef struct {
 	};
 } NewExit;
 
-typedef struct {
+typedef struct  {
 	u16 __pad1;
 	union {
 		struct {
@@ -50,6 +50,11 @@ typedef struct {
 	NewExit exit;
 	NewExit respawn[RESPAWN_MODE_MAX];
 } ExitParam;
+
+typedef struct Time {
+	u8 hour;
+	u8 minute;
+} Time;
 
 typedef struct {
 	// HIGH

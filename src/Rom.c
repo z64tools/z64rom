@@ -1289,7 +1289,6 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	Log("Update Room DmaSegments");
 	for (s32 header = 0; header < hdrNum; header++) {
 		Log("Header %d %d", header, hdrNum);
-		u32 nextSegment;
 		
 		if (memData->size < VirtualToSegmented(0x2, Scene_GetHeader(header))) {
 			Log("Invalid Segment, breaking!");
@@ -1324,6 +1323,26 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 	Free(segmentStart);
 	Free(segmentEnd);
 	Free(list);
+}
+
+static void Build_LevelSelectTable(Rom* rom, MemFile* memData, ItemList* list) {
+	MemFile_Reset(memData);
+	
+	forlist(i, *list) {
+		if (list->item[i] == NULL)
+			continue;
+		
+		char* str = xRep(StrStr(list->item[i] + strlen("rom/scene/"), "-") + 1, "/", "");
+		u8 id = i;
+		
+		MemFile_Write(memData, &id, 1);
+		MemFile_Write(memData, xRep(str, "_", " "), strlen(str) + 1);
+	}
+	
+	MemFile_Write(memData, "\xFF", 1);
+	MemFile_Align(memData, 16);
+	
+	Dma_WriteEntry(rom, DMA_ID_UNUSED_4, memData, true);
 }
 
 static void Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {
@@ -1427,6 +1446,8 @@ empty:
 			entry[titleID[i]].titleVromEnd = ReadBE(Dma_GetVRomEnd());
 		}
 	}
+	
+	Build_LevelSelectTable(rom, memData, &list);
 	
 	ItemList_Free(&list);
 	ItemList_Free(&titleList);
@@ -2057,8 +2078,13 @@ void Rom_ItemList(ItemList* list, const char* path, bool isNum, ListFlag flags) 
 	ItemList_List(&modified, path, 0, flags | LIST_NO_DOT | LIST_RELATIVE);
 	
 	if (isNum) {
-		ItemList_NumericalSlotSort(&vanilla);
-		ItemList_NumericalSlotSort(&modified);
+		ItemList_NumericalSlotSort(&vanilla, false);
+		if (ItemList_NumericalSlotSort(&modified, true)) {
+			printf_warning("Sorting Overlap in " PRNT_YELW "%s", path);
+			forlist(i, gList_SortError) {
+				printf_warning("\t" PRNT_YELW "%s", gList_SortError.item[i]);
+			}
+		}
 	}
 	
 	ItemList_Validate(list);

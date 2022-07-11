@@ -82,8 +82,8 @@ typedef struct {
 } PhysicsStrand;
 
 void Audio_PlaySys(u16 flag);
-void Color_ToHSL(Color_HSL* dest, Color_RGB8* src);
-void Color_ToRGB(Color_RGB8* dest, Color_HSL* src);
+Color_HSL Color_RgbToHsl(f32 r, f32 g, f32 b);
+Color_RGB8 Color_HslToRgb(f32 h, f32 s, f32 l);
 
 void Cutscene_ProcessCmds(PlayState* play, CutsceneContext* csCtx, u8* cutscenePtr);
 void* CutsceneCmd_ExitParam(PlayState* play, void* ptr);
@@ -119,8 +119,10 @@ void Matrix_MultZ(f32 z, Vec3f* dst);
 
 f32 MaxF(f32 a, f32 b);
 f32 MinF(f32 a, f32 b);
-s16 MaxS(s16 a, s16 b);
-s16 MinS(s16 a, s16 b);
+s32 MaxS(s32 a, s32 b);
+s32 MinS(s32 a, s32 b);
+s32 WrapS(s32 x, s32 min, s32 max);
+f32 WrapF(f32 x, f32 min, f32 max);
 f32 Math_Spline1(f32 k, f32 xm1, f32 x0, f32 x1, f32 x2);
 f32 Math_Spline2(f32 k, f32 xm1, f32 x0, f32 x1, f32 x2);
 Vec3f Math_Vec3f_Spline1(f32 k, Vec3f xm1, Vec3f x0, Vec3f x1, Vec3f x2);

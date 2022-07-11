@@ -222,8 +222,8 @@ static void Package_InitCtx() {
 	Log("Listing SRC");
 	ItemList_List(&srcActor, "src/actor/", SORT_NUMERICAL, LIST_FOLDERS);
 	ItemList_List(&srcObject, "src/object/", SORT_NUMERICAL, LIST_FOLDERS);
-	ItemList_NumericalSlotSort(&srcActor);
-	ItemList_NumericalSlotSort(&srcObject);
+	ItemList_NumericalSlotSort(&srcActor, true);
+	ItemList_NumericalSlotSort(&srcObject, true);
 	
 	forlist(i, srcActor) {
 		if (i < sActorList.num) {

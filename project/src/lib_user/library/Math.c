@@ -9,12 +9,30 @@ f32 MinF(f32 a, f32 b) {
 	return a < b ? a : b;
 }
 
-s16 MaxS(s16 a, s16 b) {
+s32 MaxS(s32 a, s32 b) {
 	return a >= b ? a : b;
 }
 
-s16 MinS(s16 a, s16 b) {
+s32 MinS(s32 a, s32 b) {
 	return a < b ? a : b;
+}
+
+s32 WrapS(s32 x, s32 min, s32 max) {
+	s32 range = max - min;
+	
+	if (x < min)
+		x += range * ((min - x) / range + 1);
+	
+	return min + (x - min) % range;
+}
+
+f32 WrapF(f32 x, f32 min, f32 max) {
+	f64 range = max - min;
+	
+	if (x < min)
+		x += range * roundf((min - x) / range + 1);
+	
+	return min + fmodf((x - min), range);
 }
 
 f32 Math_Spline1(f32 k, f32 xm1, f32 x0, f32 x1, f32 x2) {

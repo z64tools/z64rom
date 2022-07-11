@@ -172,6 +172,8 @@ void BootTitle_Init(GameState* thisx) {
 		DmaMgr_SendRequest1(this->staticSegment, gDmaDataTable[938].vromStart, size, "../z_title.c", 615);
 	}
 	
+	gSaveContext.dayTime = CLOCK_TIME(12, 00);
+	
 	R_UPDATE_RATE = 1;
 	Matrix_Init(&this->state);
 	View_Init(&this->view, this->state.gfxCtx);

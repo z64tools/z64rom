@@ -10,43 +10,45 @@ static f32 hue2rgb(f32 p, f32 q, f32 t) {
 	return p;
 }
 
-void Color_ToHSL(Color_HSL* dest, Color_RGB8* src) {
-	f32 r, g, b;
+Color_HSL Color_RgbToHsl(f32 r, f32 g, f32 b) {
+	Color_HSL dest;
 	f32 cmax, cmin, d;
-	
-	r = (f32)src->r / 255;
-	g = (f32)src->g / 255;
-	b = (f32)src->b / 255;
 	
 	cmax = MaxF(r, (MaxF(g, b)));
 	cmin = MinF(r, (MinF(g, b)));
-	dest->l = (cmax + cmin) / 2;
+	dest.l = (cmax + cmin) / 2;
 	d = cmax - cmin;
 	
 	if (cmax == cmin)
-		dest->h = dest->s = 0;
+		dest.h = dest.s = 0;
 	else {
-		dest->s = dest->l > 0.5 ? d / (2 - cmax - cmin) : d / (cmax + cmin);
+		dest.s = dest.l > 0.5 ? d / (2 - cmax - cmin) : d / (cmax + cmin);
 		
 		if (cmax == r) {
-			dest->h = (g - b) / d + (g < b ? 6 : 0);
+			dest.h = (g - b) / d + (g < b ? 6 : 0);
 		} else if (cmax == g) {
-			dest->h = (b - r) / d + 2;
+			dest.h = (b - r) / d + 2;
 		} else if (cmax == b) {
-			dest->h = (r - g) / d + 4;
+			dest.h = (r - g) / d + 4;
 		}
-		dest->h /= 6.0;
+		dest.h /= 6.0;
 	}
+	
+	return dest;
 }
 
-void Color_ToRGB(Color_RGB8* dest, Color_HSL* src) {
-	if (src->s == 0) {
-		dest->r = dest->g = dest->b = src->l;
+Color_RGB8 Color_HslToRgb(f32 h, f32 s, f32 l) {
+	Color_RGB8 dest;
+	
+	if (s == 0) {
+		dest.r = dest.g = dest.b = l * 255;
 	} else {
-		f32 q = src->l < 0.5 ? src->l * (1 + src->s) : src->l + src->s - src->l * src->s;
-		f32 p = 2.0 * src->l - q;
-		dest->r = hue2rgb(p, q, src->h + 1.0 / 3.0) * 255;
-		dest->g = hue2rgb(p, q, src->h) * 255;
-		dest->b = hue2rgb(p, q, src->h - 1.0 / 3.0) * 255;
+		f32 q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+		f32 p = 2.0 * l - q;
+		dest.r = hue2rgb(p, q, h + 1.0 / 3.0) * 255;
+		dest.g = hue2rgb(p, q, h) * 255;
+		dest.b = hue2rgb(p, q, h - 1.0 / 3.0) * 255;
 	}
+	
+	return dest;
 }

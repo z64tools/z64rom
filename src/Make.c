@@ -298,38 +298,20 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		
 		Sys_MakeDir(Path(seq));
 		
-		if (Sys_Stat(seq) > Sys_Stat(midi) && (!thisCfg || Sys_Stat(seq) > Sys_Stat(thisCfg)) && !gMakeForce)
+		if (Sys_Stat(seq) > Sys_Stat(midi) &&
+			Sys_Stat(cfg) > Sys_Stat(midi) &&
+			(!thisCfg || Sys_Stat(seq) > Sys_Stat(thisCfg)) &&
+			!gMakeForce)
 			goto free;
 		
 		if (!Sys_Stat(thisCfg)) {
-			ItemList ar = ItemList_Initialize();
-			MemFile newCfg = MemFile_Initialize();
+			ItemList van = ItemList_Initialize();
+			ItemList_List(&van, xFmt("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
 			
-			MemFile_Alloc(&newCfg, 0xDEAD);
+			if (Sys_Stat(van.item[index]))
+				Sys_Copy(xFmt("%sconfig.cfg", van.item[index]), thisCfg);
 			
-			ItemList_Alloc(&ar, 1, 10);
-			ItemList_AddItem(&ar, "0x01");
-			
-			Config_WriteArray(&newCfg, "bank_id", &ar, NO_QUOTES, NO_COMMENT);
-			Config_WriteComment(&newCfg, "Sample Medium types [ram/unk/cart/ddrive]");
-			Config_WriteStr(&newCfg, "medium_type", "cart", QUOTES, NO_COMMENT);
-			Config_WriteComment(&newCfg, "Sequence Player types [sfx/fanfare/bgm/demo]");
-			Config_WriteStr(&newCfg, "sequence_player", "sfx", QUOTES, NO_COMMENT);
-			Config_Print(&newCfg, "\n");
-			
-			Config_WriteSection(&newCfg, "seq64", NO_COMMENT);
-			
-			Config_Print(&newCfg, "\t");
-			Config_WriteBool(&newCfg, "loop", true, NO_COMMENT);
-			Config_Print(&newCfg, "\t");
-			Config_WriteBool(&newCfg, "flstudio", false, NO_COMMENT);
-			Config_Print(&newCfg, "\t");
-			Config_WriteInt(&newCfg, "master_volume", 0x58, "Max 255");
-			
-			MemFile_SaveFile_String(&newCfg, thisCfg);
-			
-			ItemList_Free(&ar);
-			MemFile_Free(&newCfg);
+			ItemList_Free(&van);
 		}
 		
 		MemFile_LoadFile_String(&midCfg, thisCfg);
@@ -380,7 +362,7 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		
 		Sys_MakeDir(Path(seq));
 		
-		if (Sys_Stat(seq) > Sys_Stat(mus) && !gMakeForce)
+		if (Sys_Stat(seq) > Sys_Stat(mus) && Sys_Stat(cfg) && !gMakeForce)
 			goto free;
 		
 		if (!Sys_Stat(thisCfg)) {

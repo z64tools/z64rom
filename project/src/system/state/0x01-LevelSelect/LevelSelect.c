@@ -522,14 +522,14 @@ void Select_DrawMenu(SelectContext* this) {
 	View_Apply(&this->view, VIEW_ALL);
 	Gfx_SetupDL_28Opa(gfxCtx);
 	
-	Select_Rectangle(3.35f, 0, 0.25f, 28, Color_HslToRgb(0.0, 0.0, 0.7));
+	Select_Rectangle(3.35f, 0, 0.12f, 28, Color_HslToRgb(0.0, 0.0, 0.7));
 	
-	Select_Rectangle(0, 24.25f, 48, 4, Color_HslToRgb(0.0, 0.0, 0.08));
-	Select_Rectangle(0, 24.25f, 48, 0.25, Color_HslToRgb(0.0, 0.0, 0.7));
-	Select_Rectangle(0, 24.25f + 4.0f, 48, 0.25, Color_HslToRgb(0.0, 0.0, 0.7));
+	Select_Rectangle(0, 24.5f, 48, 4, Color_HslToRgb(0.0, 0.0, 0.08));
+	Select_Rectangle(0, 24.5f, 48, 0.08f, Color_HslToRgb(0.0, 0.0, 0.7));
+	Select_Rectangle(0, 24.5f + 4.0f, 48, 0.08f, Color_HslToRgb(0.0, 0.0, 0.7));
 	
 	Select_Rectangle(0, 0, 48, 3.5f, Color_HslToRgb(0.0, 0.0, 0.08));
-	Select_Rectangle(0, 3.5f, 48, 0.25, Color_HslToRgb(0.0, 0.0, 0.7));
+	Select_Rectangle(0, 3.5f, 48, 0.08f, Color_HslToRgb(0.0, 0.0, 0.7));
 	
 	printer = alloca(sizeof(GfxPrint));
 	GfxPrint_Init(printer);

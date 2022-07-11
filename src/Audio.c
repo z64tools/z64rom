@@ -285,6 +285,29 @@ static void Rom_Config_Sample(Rom* rom, MemFile* config, Sample* sample, char* n
 // # DUMP                                #
 // # # # # # # # # # # # # # # # # # # # #
 
+typedef enum {
+	SEQFLAG_ENEMY            = (1) << 0,
+	SEQFLAG_FANFARE          = (1) << 1,
+	SEQFLAG_FANFARE_GANON    = (1) << 2,
+	SEQFLAG_RESTORE          = (1) << 3,
+	SEQFLAG_SECTION_STORE    = (1) << 4,
+	SEQFLAG_SECTION_PRESERVE = (1) << 5,
+	SEQFLAG_IO7_1            = (1) << 6,
+	SEQFLAG_NO_AMBIENCE      = (1) << 7,
+	SEQFLAG_MAX              = (1) << 8,
+} SeqFlag;
+
+const char* sSeqFlagName[] = {
+	"allow_enemy_bgm",
+	"fanfare",
+	"fanfare_ganon",
+	"restore",
+	"section_store",
+	"section_preserve",
+	"io7_1",
+	"no_ambience",
+};
+
 static void Audio_PatchWavFiles(MemFile* dataFile, MemFile* config) {
 	#define NOTE(note, octave) (note + (12 * (octave)))
 	u8* instInfo;
@@ -434,6 +457,7 @@ void Audio_DumpSoundFont(Rom* rom, MemFile* dataFile, MemFile* config) {
 
 void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	AudioEntryHead* head = SegmentedToVirtual(0x0, rom->offset.table.seqTable);
+	u8* seqFlag = SegmentedToVirtual(0x0, 0xBA77F8);
 	u8* seqFontTable;
 	u16* segFontOffTable;
 	AudioEntry* entry;
@@ -446,6 +470,7 @@ void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	for (s32 i = 0; i < num; i++) {
 		char* path = xFmt("rom/sound/sequence/%s/0x%02X-%s/", gVanilla, i, gSequenceName_OoT[i]);
 		ItemList bankList = ItemList_Initialize();
+		ItemList flagList = ItemList_Initialize();
 		u32 bankNum;
 		u32 bankId;
 		
@@ -495,9 +520,28 @@ void Audio_DumpSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 		MemFile_Printf(config, "]\n");
 		Config_WriteStr(config, "sequence_player", sSeqPlayerType[entry->seqPlayer], true, 0);
 		
+		ItemList_Alloc(&flagList, 10, 1024);
+		
+		for (s32 b = (1) << 0, n = 0; b < SEQFLAG_MAX; b = (b) << 1, n++) {
+			if (seqFlag[i] & b)
+				ItemList_AddItem(&flagList, sSeqFlagName[n]);
+		}
+		
+		Config_Print(config, "# [ ");
+		for (s32 e = 0; e < ArrayCount(sSeqFlagName); e++) {
+			Config_Print(config, "%s", sSeqFlagName[e]);
+			
+			if (e + 1 < ArrayCount(sSeqFlagName))
+				Config_Print(config, "/", sSeqFlagName[e]);
+		}
+		Config_Print(config, "]\n");
+		
+		Config_WriteArray(config, "sequence_flags", &flagList, QUOTES, NO_COMMENT);
+		
 		MemFile_SaveFile_String(config, xFmt("%sconfig.cfg", path));
 		
 		ItemList_Free(&bankList);
+		ItemList_Free(&flagList);
 	}
 	
 	SetSegment(0x1, NULL);
@@ -1568,6 +1612,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 	MemFile sequenceMem = MemFile_Initialize();
 	AudioEntryHead sqHead = { 0 };
 	AudioEntry sqEntry = { 0 };
+	u8* seqFlag = SegmentedToVirtual(SEG_CODE, 0xBA77F8 - RELOC_CODE);
 	
 	MemFile_Alloc(&memIndexTable, 0x800);
 	MemFile_Alloc(&memLookUpTable, 0x800);
@@ -1604,6 +1649,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			char* confMed;
 			char* confSeq;
 			char* fseq;
+			ItemList flagList = ItemList_Initialize();
 			ItemList bankList = ItemList_Initialize();
 			
 			MemFile_Reset(dataFile);
@@ -1611,6 +1657,11 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			MemFile_LoadFile_String(config, FileSys_File("config.cfg"));
 			confMed = Config_GetStr(config, "medium_type");
 			confSeq = Config_GetStr(config, "sequence_player");
+			Config_GetArray(config, "sequence_flags", &flagList);
+			
+			if (Config_GetErrorState()) {
+				printf_error("File: [%s]", config->info.name);
+			}
 			
 			for (;; med++) {
 				if (med >= ArrayCount(sMediumType))
@@ -1623,6 +1674,15 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 					printf_error("sequence_player not recognized for Sequence [0x%02X]", i);
 				if (!strcmp(sSeqPlayerType[seq], confSeq))
 					break;
+			}
+			
+			seqFlag[i] = 0;
+			
+			forlist(k, flagList) {
+				foreach(j, sSeqFlagName) {
+					if (!stricmp(flagList.item[k], sSeqFlagName[j]))
+						seqFlag[i] |= (1) << j;
+				}
 			}
 			
 			sqEntry.medium = med;
@@ -1662,6 +1722,7 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 				MemFile_Write(&memIndexTable, &bankId, 1);
 			}
 			
+			ItemList_Free(&flagList);
 			ItemList_Free(&bankList);
 		}
 	}

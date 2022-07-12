@@ -26,7 +26,9 @@ typedef struct {
 typedef struct {
 	PageFunc func;
 	char*    name;
-	u8 playerFreeze;
+	u8 playerFreeze : 2;
+	u8 toggle       : 2;
+	u8 state        : 2;
 } DebugPageInfo;
 
 extern Arena sZeldaArena;
@@ -868,6 +870,35 @@ static void DebugMenu_CineMode(PlayState* playState) {
 	debugSysCtx->page = DEBUGSYS_PAGE_MAIN;
 }
 
+static void DebugMenu_Profiler(PlayState* playState) {
+	DebugProfiler* prf = gLibCtx.profiler.newMath3D;
+	char type[] = {
+		'X', 'Y', 'Z'
+	};
+	
+	gLibCtx.profiler.enabled = true;
+	
+	if (CHK_ALL(press, BTN_DLEFT))
+		gLibCtx.state.newMath3D ^= 1;
+	
+	Debug_Text(255, 255, 255, 1, 8, "NewMath3D [D-L]: %s", gLibCtx.state.newMath3D ? "true" : "false");
+	
+	for (s32 i = 0; i < 3; i++) {
+		f64 avg = 0;
+		for (s32 j = 0; j < ARRAY_COUNT(prf[i].buffer); j++) {
+			avg += (f32)prf[i].buffer[j];
+		}
+		
+		avg /= ARRAY_COUNT(prf[i].buffer);
+		Debug_Text(225, 225, 225, 1, 23 + i, "Math3D: %c %8.0f", type[i], (f32)avg);
+		
+		prf[i].ringId++;
+		prf[i].ringId %= ARRAY_COUNT(prf[i].buffer);
+		
+		prf[i].buffer[prf[i].ringId] = 0;
+	}
+}
+
 // # # # # # # # # # # # # # # # # # # # #
 // #                                     #
 // # # # # # # # # # # # # # # # # # # # #
@@ -881,28 +912,30 @@ static DebugPageInfo sDebugPageInfo[] = {
 	{
 		.func = DebugMenu_ObjectMemView,
 		.name = "Object Memory View",
-		.playerFreeze = false,
 	},
 	{
 		.func = DebugMenu_ZeldaArenaMemView,
 		.name = "Zelda Arena Memory View",
-		.playerFreeze = false,
 	},
 	{
 		.func = DebugMenu_CollisionView,
-		.name = "Toggle Collision Viewer [Emulator]",
-		.playerFreeze = false,
+		.name = "Toggle Collision Viewer",
+		.toggle = true,
 	},
 	{
 		.func = DebugMenu_HitboxView,
 		.name = "Toggle Hitbox Viewer",
-		.playerFreeze = false,
+		.toggle = true,
 	},
 	{
 		.func = DebugMenu_CineMode,
 		.name = "Toggle Cine Mode",
-		.playerFreeze = false,
+		.toggle = true,
 	},
+	{
+		.func = DebugMenu_Profiler,
+		.name = "Profiler",
+	}
 };
 
 static s16 sInterfacePrevAlpha[16];
@@ -1021,10 +1054,13 @@ static void DebugMenu_MenuUpdate(PlayState* playState) {
 	}
 	
 	if (sDebugPageInfo[debugSysCtx->page].func) {
+		if (sDebugPageInfo[debugSysCtx->page].toggle)
+			sDebugPageInfo[debugSysCtx->page].state ^= 1;
 		sDebugPageInfo[debugSysCtx->page].func(playState);
 		
 		return;
 	}
+	gLibCtx.profiler.enabled = false;
 	
 	/* MAIN MENU */
 	
@@ -1063,6 +1099,14 @@ static void DebugMenu_MenuUpdate(PlayState* playState) {
 			"%s",
 			sDebugPageInfo[i].name
 		);
+		if (sDebugPageInfo[i].toggle)
+			Debug_Text(
+				U32_RGB(color),
+				1 + 26,
+				5 + i,
+				"%s",
+				sDebugPageInfo[i].state == 0 ? "false" : "true"
+			);
 	}
 }
 

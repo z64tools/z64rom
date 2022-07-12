@@ -55,15 +55,8 @@ void NewPlay_Init(PlayState* play) {
 	s32 i;
 	u8 tempSetupIndex;
 	
-	if (gSaveContext.entranceIndex == -1) {
-		gSaveContext.entranceIndex = 0;
-		play->state.running = false;
-		SET_NEXT_GAMESTATE(&play->state, Opening_Init, OpeningContext);
-		
-		return;
-	}
-	
 	osLibPrintf("Entrance Index: %04X", gExitParam.nextEntranceIndex);
+	osLibPrintf("Cutscene Index: %04X", gSaveContext.cutsceneIndex);
 	osLibPrintf(
 		"gExitParam:\n"
 		PRNT_RSET "\tflag:       %s\n"

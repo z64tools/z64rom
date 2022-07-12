@@ -27,4 +27,8 @@ void NewPlay_SetFadeOut(PlayState* play);
 void NewPlay_SetupRespawn(PlayState* this, s32 respawnMode, s32 playerParams);
 struct Time Play_GetTime(void);
 
+s32 NewMath3D_TriChkPointParaYImpl(Vec3f* restrict v0, Vec3f* restrict v1, Vec3f* restrict v2, f32 z, f32 x, f32 detMax, f32 chkDist, f32 ny);
+s32 NewMath3D_TriChkPointParaXImpl(Vec3f* restrict v0, Vec3f* restrict v1, Vec3f* restrict v2, f32 y, f32 z, f32 detMax, f32 chkDist, f32 nx);
+s32 NewMath3D_TriChkPointParaZImpl(Vec3f* restrict v0, Vec3f* restrict v1, Vec3f* restrict v2, f32 x, f32 y, f32 detMax, f32 chkDist, f32 nz);
+
 void NewRoom_Draw(PlayState* globalCtx, Room* room, u32 flags);

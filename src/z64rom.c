@@ -3,7 +3,7 @@
 #include "Package.h"
 #include <xm.h>
 
-const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "1.0.1";
+const char* gToolName = PRNT_BLUE "z64rom " PRNT_GRAY "1.0.2";
 
 s32 gDumpRom = -1;
 s32 gDumpAudio = -1;
@@ -434,7 +434,7 @@ static s32 ProcessArguments(Rom* rom, char* input, char* argv[]) {
 	}
 	
 	if (Arg("new-actor")) {
-		Package_NewActor(argv[parArg], argv[parArg + 1], argv[parArg + 2]);
+		Template_NewActor(argv[parArg], argv[parArg + 1], argv[parArg + 2]);
 		
 		return 1;
 	}
@@ -594,6 +594,16 @@ s32 Main(s32 argc, char* argv[]) {
 			printf_toolinfo(gToolName, "Release Build");
 			gBuildTarget = ROM_RELEASE;
 		}
+		
+		if (StrEndCase(StrUnq(argv[i]), ".mid"))
+			Template_NewSequence(argv[i]);
+		
+		if (StrEndCase(StrUnq(argv[i]), ".wav"))
+			Template_NewSample(argv[i]);
+		if (StrEndCase(StrUnq(argv[i]), ".aiff"))
+			Template_NewSample(argv[i]);
+		if (StrEndCase(StrUnq(argv[i]), ".mp3"))
+			Template_NewSample(argv[i]);
 	}
 	
 	if (ProcessArguments(rom, input, argv)) goto free;

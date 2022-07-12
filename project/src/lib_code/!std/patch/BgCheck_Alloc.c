@@ -17,6 +17,7 @@ void BgCheck_Allocate(CollisionContext* colCtx, PlayState* play, CollisionHeader
 	colCtx->dyna.polyNodesMax = 1000 * 8;
 	colCtx->dyna.polyListMax = 512 * 8;
 	colCtx->dyna.vtxListMax = 512 * 8;
+	
 	colCtx->subdivAmount.x = 16;
 	colCtx->subdivAmount.y = 4;
 	colCtx->subdivAmount.z = 16;

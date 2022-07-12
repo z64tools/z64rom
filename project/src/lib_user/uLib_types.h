@@ -7,10 +7,22 @@ typedef struct {
 	u32 vanillaOsPrintf : 1;
 	u32 dmaLog          : 1;
 	u32 playerPrint     : 1;
+	u32 newMath3D       : 1;
 } LibState;
 
 typedef struct {
+	OSTime buffer[20];
+	u8 ringId;
+} DebugProfiler;
+
+typedef struct {
 	LibState state;
+	struct {
+		DebugProfiler newMath3D[3];
+		struct {
+			u32 enabled : 1;
+		};
+	} profiler;
 	u32 __ctxInitValue;
 } LibContext;
 

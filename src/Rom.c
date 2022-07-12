@@ -343,9 +343,10 @@ static void Patch_Init() {
 			if (MemFile_LoadFile_String(&cfg, tname)) printf_error("Could not open [%s]", tname);
 			*offset = Config_GetInt(&cfg, "rom");
 			
-			if (Config_Variable(cfg.str, "next") &&
-				Config_GetInt(&cfg, "next") - Config_GetInt(&cfg, "ram") < mem->size)
-				printf_error("Can't fit [%s] between z64ram - z64next!", list.item[i]);
+			if (Config_Variable(cfg.str, "next") && Config_GetInt(&cfg, "next") - Config_GetInt(&cfg, "ram") < mem->size) {
+				printf_warning("Can't fit [%s]", list.item[i]);
+				printf_error("%X / %X", mem->size,  Config_GetInt(&cfg, "next") - Config_GetInt(&cfg, "ram"));
+			}
 			
 			MemFile_Free(&cfg);
 		}
@@ -1230,13 +1231,11 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		
 		//crustify
 		forlist(t, flist) {
-			ItemList_AddItem(
-				&nlist,
-				xFmt(
-					"room_%d.%s", t,
-					StrEnd(flist.item[0], ".zroom") ? "zroom" : "zmap"
-				)
-			);
+			char* roomName = xFmt("room_%d.%s", t,StrEnd(flist.item[0], ".zroom") ? "zroom" : "zmap");
+		
+			if (Sys_Stat(FileSys_File(roomName)))
+				ItemList_AddItem(&nlist, roomName);
+		
 		}
 		//uncrustify
 		
@@ -1262,7 +1261,7 @@ static void Build_Rooms(Rom* rom, MemFile* memData, MemFile* memCfg) {
 		for (s32 room = 0; room < roomNum; room++) {
 			char* file;
 			
-			if (!strcmp(this->item[room], "*")) {
+			if (!StrEndCase(this->item[room], ".zroom") && !StrEndCase(this->item[room], ".zmap")) {
 				segmentStart[header][room] = segmentStart[HEADER_MAIN][room];
 				segmentEnd[header][room] = segmentEnd[HEADER_MAIN][room];
 				
@@ -1342,7 +1341,7 @@ static void Build_LevelSelectTable(Rom* rom, MemFile* memData, ItemList* list) {
 	MemFile_Write(memData, "\xFF", 1);
 	MemFile_Align(memData, 16);
 	
-	Dma_WriteEntry(rom, DMA_ID_UNUSED_4, memData, true);
+	Dma_WriteEntry(rom, DMA_ID_UNUSED_4, memData, NOCACHE_COMPRESS);
 }
 
 static void Build_Scene(Rom* rom, MemFile* memData, MemFile* memCfg) {

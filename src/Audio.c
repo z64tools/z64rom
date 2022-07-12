@@ -1659,9 +1659,8 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			confSeq = Config_GetStr(config, "sequence_player");
 			Config_GetArray(config, "sequence_flags", &flagList);
 			
-			if (Config_GetErrorState()) {
+			if (Config_GetErrorState())
 				printf_error("File: [%s]", config->info.name);
-			}
 			
 			for (;; med++) {
 				if (med >= ArrayCount(sMediumType))

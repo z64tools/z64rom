@@ -221,50 +221,52 @@ void Make_Object(void) {
 	if (gThreading)
 		ThreadLock_Free();
 	
-	if (sObjectCompile) {
-		MemFile mem = MemFile_Initialize();
-		MemFile mout = MemFile_Initialize();
-		ItemList ldFiles = ItemList_Initialize();
-		s32 crc = false;
-		u8* digestA;
-		u8* digestB;
-		
-		MemFile_Alloc(&mem, MbToBin(2));
-		MemFile_Alloc(&mout, MbToBin(2));
-		MemFile_Params(&mem, MEM_REALLOC, true, MEM_END);
-		MemFile_Params(&mout, MEM_REALLOC, true, MEM_END);
-		
-		if (Sys_Stat("include/z_object_user.ld")) {
-			MemFile_LoadFile_String(&mout, "include/z_object_user.ld");
-			crc = true;
-			digestA = Sys_Sha256(mout.data, mout.size);
-			MemFile_Reset(&mout);
-		}
-		
-		ItemList_SetFilter(&ldFiles, CONTAIN_END, ".ld");
-		ItemList_List(&ldFiles, "include/object/", 0, LIST_FILES | LIST_NO_DOT);
-		
-		for (s32 j = 0; j < ldFiles.num; j++) {
-			MemFile_LoadFile_String(&mem, ldFiles.item[j]);
-			MemFile_Append(&mout, &mem);
-			MemFile_Printf(&mout, "\n");
-		}
-		
-		if (crc) {
-			digestB = Sys_Sha256(mout.data, mout.size);
-			if (memcmp(digestA, digestB, 32))
-				MemFile_SaveFile_String(&mout, "include/z_object_user.ld");
-			Free(digestA);
-			Free(digestB);
-		} else
-			MemFile_SaveFile_String(&mout, "include/z_object_user.ld");
-		
-		ItemList_Free(&ldFiles);
-		MemFile_Free(&mout);
-		MemFile_Free(&mem);
+	MemFile mem = MemFile_Initialize();
+	MemFile mout = MemFile_Initialize();
+	ItemList ldFiles = ItemList_Initialize();
+	s32 crc = false;
+	u8* digestA;
+	u8* digestB;
+	
+	MemFile_Alloc(&mem, MbToBin(2));
+	MemFile_Alloc(&mout, MbToBin(2));
+	MemFile_Params(&mem, MEM_REALLOC, true, MEM_END);
+	MemFile_Params(&mout, MEM_REALLOC, true, MEM_END);
+	
+	if (Sys_Stat("include/z_object_user.ld")) {
+		MemFile_LoadFile_String(&mout, "include/z_object_user.ld");
+		crc = true;
+		digestA = Sys_Sha256(mout.data, mout.size);
+		MemFile_Reset(&mout);
 	}
 	
+	ItemList_SetFilter(&ldFiles, CONTAIN_END, ".ld");
+	ItemList_List(&ldFiles, "include/object/", 0, LIST_FILES | LIST_NO_DOT);
+	
+	for (s32 j = 0; j < ldFiles.num; j++) {
+		MemFile_LoadFile_String(&mem, ldFiles.item[j]);
+		MemFile_Append(&mout, &mem);
+		MemFile_Printf(&mout, "\n");
+	}
+	
+	if (crc) {
+		digestB = Sys_Sha256(mout.data, mout.size);
+		if (memcmp(digestA, digestB, 32))
+			MemFile_SaveFile_String(&mout, "include/z_object_user.ld");
+		Free(digestA);
+		Free(digestB);
+	} else
+		MemFile_SaveFile_String(&mout, "include/z_object_user.ld");
+	
+	ItemList_Free(&ldFiles);
+	MemFile_Free(&mout);
+	MemFile_Free(&mem);
+	
 free:
+	if (!Sys_Stat("include/z_object_user.ld")) {
+		MemFile empty = MemFile_Initialize();
+		MemFile_SaveFile(&empty, "include/z_object_user.ld");
+	}
 	
 	Free(targ);
 	Free(thread);
@@ -278,68 +280,79 @@ free:
 static ThreadFunc Sequence_Convert(MakeArg* targ) {
 	ItemList* list;
 	char cmd[512];
-	char* cfg;
-	char* seq = NULL;
-	char* midi = NULL;
-	char* mus = NULL;
+	char* outCfg;
+	char* inCfg;
+	char* output = NULL;
+	char* srcFile = NULL;
 	u32 index = Value_Hex(PathSlot(targ->path, -1));
+	u8 masterVolume = 88;
+	bool flStudio = false;
+	bool loop = true;
+	MemFile memCfg = MemFile_Initialize();
 	
 	Calloc(list, sizeof(ItemList));
 	*list = ItemList_Initialize();
-	
 	FileSys_Path(targ->path);
 	
-	if ((midi = FileSys_FindFile(".mid"))) {
-		MemFile midCfg = MemFile_Initialize();
-		char* thisCfg = FileSys_File("config.cfg");
+	srcFile = FileSys_FindFile(".mid");
+	if (!srcFile) srcFile = FileSys_FindFile(".mus");
+	if (!srcFile) goto free;
+	
+	inCfg = FileSys_File("config.cfg");
+	outCfg = xRep(FileSys_File("config.cfg"), "src/", "rom/");
+	output = xRep(FileSys_File("sequence.aseq"), "src/", "rom/");
+	
+	if (!gMakeForce &&
+		Sys_Stat(inCfg) &&
+		Sys_Stat(output) > Sys_Stat(srcFile) &&
+		Sys_Stat(outCfg) > Sys_Stat(inCfg))
+		goto free;
+	
+	Sys_MakeDir(Path(output));
+	
+	// Copy config from vanilla directory if it doesn't exist!
+	if (!Sys_Stat(inCfg)) {
+		ItemList van = ItemList_Initialize();
+		ItemList_List(&van, xFmt("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
 		
-		cfg = xRep(FileSys_File("config.cfg"), "src/", "rom/");
-		seq = xRep(FileSys_File("sequence.aseq"), "src/", "rom/");
+		if (Sys_Stat(van.item[index]))
+			Sys_Copy(xFmt("%sconfig.cfg", van.item[index]), inCfg);
 		
-		Sys_MakeDir(Path(seq));
-		
-		if (Sys_Stat(seq) > Sys_Stat(midi) &&
-			Sys_Stat(cfg) > Sys_Stat(midi) &&
-			(!thisCfg || Sys_Stat(seq) > Sys_Stat(thisCfg)) &&
-			!gMakeForce)
-			goto free;
-		
-		if (!Sys_Stat(thisCfg)) {
-			ItemList van = ItemList_Initialize();
-			ItemList_List(&van, xFmt("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
-			
-			if (Sys_Stat(van.item[index]))
-				Sys_Copy(xFmt("%sconfig.cfg", van.item[index]), thisCfg);
-			
-			ItemList_Free(&van);
-		}
-		
-		MemFile_LoadFile_String(&midCfg, thisCfg);
-		Sys_Copy(thisCfg, cfg);
-		
-		u8 masterVolume = 88;
-		bool flStudio = false;
-		bool loop = true;
-		
-		if (StrStr(midCfg.str, "[seq64]")) {
+		ItemList_Free(&van);
+	}
+	
+	MemFile_LoadFile_String(&memCfg, inCfg);
+	
+	if (StrEnd(srcFile, ".mid")) {
+		if (StrStr(memCfg.str, "[seq64]")) {
 			Config_GotoSection("seq64");
-			if (Config_Variable(midCfg.str, "master_volume"))
-				masterVolume = Config_GetInt(&midCfg, "master_volume");
+			if (Config_Variable(memCfg.str, "master_volume"))
+				masterVolume = Config_GetInt(&memCfg, "master_volume");
 			
-			if (Config_Variable(midCfg.str, "flstudio"))
-				flStudio = Config_GetBool(&midCfg, "flstudio");
+			if (Config_Variable(memCfg.str, "flstudio"))
+				flStudio = Config_GetBool(&memCfg, "flstudio");
 			
-			if (Config_Variable(midCfg.str, "loop"))
-				loop = Config_GetBool(&midCfg, "loop");
+			if (Config_Variable(memCfg.str, "loop"))
+				loop = Config_GetBool(&memCfg, "loop");
 			Config_GotoSection("NULL");
+		} else {
+			MemFile_Seek(&memCfg, MEMFILE_SEEK_END);
+			
+			Config_WriteSection(&memCfg, "seq64", NO_COMMENT);
+			Config_Print(&memCfg, "\t"); Config_WriteInt(&memCfg, "master_volume", masterVolume, NO_COMMENT);
+			Config_Print(&memCfg, "\t"); Config_WriteBool(&memCfg, "flstudio", flStudio, NO_COMMENT);
+			Config_Print(&memCfg, "\t"); Config_WriteBool(&memCfg, "loop", loop, NO_COMMENT);
+			
+			MemFile_SaveFile_String(&memCfg, inCfg);
 		}
 		
-		MemFile_Free(&midCfg);
+		Sys_Copy(inCfg, outCfg);
+		MemFile_Free(&memCfg);
 		
 		if (Config_GetErrorState())
 			printf_error("Missing values in config... Delete the current config to generate generic config in the next build!");
 		
-		Tools_Command(cmd, seq64, "--in=\"%s\" --out=\"%s\" --abi=Zelda --pref=false", midi, seq);
+		Tools_Command(cmd, seq64, "--in=\"%s\" --out=\"%s\" --abi=Zelda --pref=false", srcFile, output);
 		
 		strcat(cmd, xFmt(" --mastervol=0x%X", masterVolume));
 		if (flStudio)
@@ -347,41 +360,14 @@ static ThreadFunc Sequence_Convert(MakeArg* targ) {
 		if (!loop)
 			strcat(cmd, " --smartloop=false");
 		
-		Sys_MakeDir(Path(seq));
+		Sys_MakeDir(Path(output));
 		Make_Run(cmd);
-		Make_Info("seq64", seq);
-		
-		goto free;
-	}
-	
-	if ((mus = FileSys_FindFile(".mus"))) {
-		char* thisCfg = FileSys_File("config.cfg");
-		
-		cfg = xRep(FileSys_File("config.cfg"), "src/", "rom/");
-		seq = xRep(FileSys_File("sequence.aseq"), "src/", "rom/");
-		
-		Sys_MakeDir(Path(seq));
-		
-		if (Sys_Stat(seq) > Sys_Stat(mus) && Sys_Stat(cfg) && !gMakeForce)
-			goto free;
-		
-		if (!Sys_Stat(thisCfg)) {
-			ItemList van = ItemList_Initialize();
-			ItemList_List(&van, xFmt("rom/sound/sequence/%s/", gVanilla), 0, LIST_FOLDERS);
-			
-			if (Sys_Stat(van.item[index]))
-				Sys_Copy(xFmt("%sconfig.cfg", van.item[index]), thisCfg);
-			
-			ItemList_Free(&van);
-		}
-		
-		Sys_Copy(thisCfg, cfg);
-		
-		Tools_Command(cmd, seqas, "\"%s\" \"%s\"", mus, seq);
+		Make_Info("seq64", output);
+	} else if (StrEnd(srcFile, ".mus")) {
+		Sys_Copy(inCfg, outCfg);
+		Tools_Command(cmd, seqas, "\"%s\" \"%s\"", srcFile, output);
 		Make_Run(cmd);
-		Make_Info("seq-assembler", seq);
-		
-		goto free;
+		Make_Info("seq-assembler", output);
 	}
 	
 free:
@@ -444,7 +430,6 @@ static ThreadFunc Sound_Convert(MakeArg* targ) {
 	char* book = NULL;
 	char* table = NULL;
 	char* sampleCfg = NULL;
-	char* vadCfg = NULL;
 	char* vanillaCfg = NULL;
 	MemFile cfgMem = MemFile_Initialize();
 	
@@ -490,33 +475,17 @@ write:
 		u32 rewrite = false;
 		MemFile_LoadFile_String(&cfgMem, sampleCfg);
 		
-		if (StrStr(cfgMem.str, "[z64rom]")) {
-			Config_GotoSection("z64rom");
-			
-			if (Config_Variable(cfgMem.str, "normalize"))
-				normalize = Config_GetBool(&cfgMem, "normalize");
-			
-			if (Config_Variable(cfgMem.str, "inherit_vanilla"))
-				inherit = Config_GetBool(&cfgMem, "inherit_vanilla");
-			
-			if (Config_Variable(cfgMem.str, "half_precision"))
-				halfPrecision = Config_GetBool(&cfgMem, "half_precision");
-			
-			Config_GotoSection(NULL);
-			rewrite = true;
-		} else {
-			if (Config_Variable(cfgMem.str, "normalize"))
-				normalize = Config_GetBool(&cfgMem, "normalize");
-			else rewrite = true;
-			
-			if (Config_Variable(cfgMem.str, "inherit_vanilla"))
-				inherit = Config_GetBool(&cfgMem, "inherit_vanilla");
-			else rewrite = true;
-			
-			if (Config_Variable(cfgMem.str, "half_precision"))
-				halfPrecision = Config_GetBool(&cfgMem, "half_precision");
-			else rewrite = true;
-		}
+		if (Config_Variable(cfgMem.str, "normalize"))
+			normalize = Config_GetBool(&cfgMem, "normalize");
+		else rewrite = true;
+		
+		if (Config_Variable(cfgMem.str, "inherit_vanilla"))
+			inherit = Config_GetBool(&cfgMem, "inherit_vanilla");
+		else rewrite = true;
+		
+		if (Config_Variable(cfgMem.str, "half_precision"))
+			halfPrecision = Config_GetBool(&cfgMem, "half_precision");
+		else rewrite = true;
 		
 		if (rewrite) {
 			MemFile_Reset(&cfgMem);

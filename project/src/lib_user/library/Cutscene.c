@@ -58,6 +58,12 @@ void Cutscene_ProcessCmds(PlayState* play,CutsceneContext* csCtx,u8* cutscenePtr
 	s32 cutsceneEndFrame;
 	s16 j;
 	
+	if (cutscenePtr == NULL) {
+		osLibPrintf("MemCpy(%08X, %08X, 4)",&totalEntries,cutscenePtr,4);
+		csCtx->state = CS_STATE_UNSKIPPABLE_INIT;
+		
+		return;
+	}
 	MemCpy(&totalEntries,cutscenePtr,4);
 	cutscenePtr += 4;
 	MemCpy(&cutsceneEndFrame,cutscenePtr,4);

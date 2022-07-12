@@ -11,6 +11,49 @@ static MemFile sDepLookUp;
 static ItemList sActorList;
 static ItemList sObjectList;
 
+static void Package_InitCtx() {
+	ItemList srcActor = ItemList_Initialize();
+	ItemList srcObject = ItemList_Initialize();
+	
+	sActorID = 0xFFFF;
+	sObjectID = 0xFFFF;
+	
+	MemFile_LoadFile_String(&sDepLookUp, "tools/actor-object-deb.cfg");
+	
+	Log("Listing ROM");
+	Rom_ItemList(&sActorList, "rom/actor/", SORT_NUMERICAL, LIST_FOLDERS);
+	Rom_ItemList(&sObjectList, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
+	
+	Log("Listing SRC");
+	ItemList_List(&srcActor, "src/actor/", SORT_NUMERICAL, LIST_FOLDERS);
+	ItemList_List(&srcObject, "src/object/", SORT_NUMERICAL, LIST_FOLDERS);
+	ItemList_NumericalSlotSort(&srcActor, true);
+	ItemList_NumericalSlotSort(&srcObject, true);
+	
+	forlist(i, srcActor) {
+		if (i < sActorList.num) {
+			if (sActorList.item[i] == NULL && srcActor.item[i])
+				sActorList.item[i] = (void*)0xDEAD;
+		}
+	}
+	
+	forlist(i, srcObject) {
+		if (i < sObjectList.num) {
+			if (sObjectList.item[i] == NULL && srcObject.item[i])
+				sObjectList.item[i] = (void*)0xDEAD;
+		}
+	}
+	
+	ItemList_Free(&srcActor);
+	ItemList_Free(&srcObject);
+}
+
+static void Package_FreeCtx() {
+	MemFile_Free(&sDepLookUp);
+	ItemList_Free(&sActorList);
+	ItemList_Free(&sObjectList);
+}
+
 static s32 Package_ZipCallback(const char* name, MemFile* mem) {
 	return 0;
 }
@@ -206,141 +249,6 @@ static void Package_ObjectBin(ZipFile* zip, ItemList* list, const char* name) {
 // #                                     #
 // # # # # # # # # # # # # # # # # # # # #
 
-static void Package_InitCtx() {
-	ItemList srcActor = ItemList_Initialize();
-	ItemList srcObject = ItemList_Initialize();
-	
-	sActorID = 0xFFFF;
-	sObjectID = 0xFFFF;
-	
-	MemFile_LoadFile_String(&sDepLookUp, "tools/actor-object-deb.cfg");
-	
-	Log("Listing ROM");
-	Rom_ItemList(&sActorList, "rom/actor/", SORT_NUMERICAL, LIST_FOLDERS);
-	Rom_ItemList(&sObjectList, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
-	
-	Log("Listing SRC");
-	ItemList_List(&srcActor, "src/actor/", SORT_NUMERICAL, LIST_FOLDERS);
-	ItemList_List(&srcObject, "src/object/", SORT_NUMERICAL, LIST_FOLDERS);
-	ItemList_NumericalSlotSort(&srcActor, true);
-	ItemList_NumericalSlotSort(&srcObject, true);
-	
-	forlist(i, srcActor) {
-		if (i < sActorList.num) {
-			if (sActorList.item[i] == NULL && srcActor.item[i])
-				sActorList.item[i] = (void*)0xDEAD;
-		}
-	}
-	
-	forlist(i, srcObject) {
-		if (i < sObjectList.num) {
-			if (sObjectList.item[i] == NULL && srcObject.item[i])
-				sObjectList.item[i] = (void*)0xDEAD;
-		}
-	}
-	
-	ItemList_Free(&srcActor);
-	ItemList_Free(&srcObject);
-}
-
-static void Package_FreeCtx() {
-	MemFile_Free(&sDepLookUp);
-	ItemList_Free(&sActorList);
-	ItemList_Free(&sObjectList);
-}
-
-void Package_Load(const char* item) {
-	ZipFile zip;
-	MemFile config = MemFile_Initialize();
-	MemFile* cfg = &config;
-	ItemList sectionList = ItemList_Initialize();
-	
-	if (!Sys_Stat(item)) return;
-	
-	Package_InitCtx();
-	
-	ZipFile_Load(&zip, item, ZIP_READ);
-	if (ZipFile_ReadEntry_Name(&zip, "package.cfg", cfg))
-		printf_error("Failed to read entry \"package.cfg\" from \"%s\"", item);
-	
-	if (Config_Variable(cfg->str, "author")) {
-		printf_info_align("Author:", xFmt("" PRNT_GREN "%s", Config_GetStr(cfg, "author")));
-		if (Config_Variable(cfg->str, "version"))
-			printf_info_align("Version:", xFmt("" PRNT_YELW "%s", Config_GetStr(cfg, "version")));
-		printf_nl();
-	}
-	
-	Config_ListSections(cfg, &sectionList);
-	
-	forlist(i, sectionList) {
-		ItemList var = ItemList_Initialize();
-		
-		struct {
-			const char* variable;
-			void (*func)(ZipFile*, ItemList*, const char*);
-		} f[] = {
-			{
-				"actor_src",
-				Package_ActorSrc
-			},
-			{
-				"actor_bin",
-				Package_ActorBin
-			},
-			{
-				"object_src",
-				Package_ObjectSrc
-			},
-			{
-				"object_bin",
-				Package_ObjectBin
-			},
-		};
-		
-		sActorID = 0xFFFF;
-		sObjectID = 0xFFFF;
-		
-		Config_GotoSection(sectionList.item[i]);
-		
-		if (Config_Variable(cfg->str, "actor_id"))
-			sActorID = Config_GetInt(cfg, "actor_id");
-		if (Config_Variable(cfg->str, "object_id"))
-			sObjectID = Config_GetInt(cfg, "object_id");
-		
-		foreach(j, f) {
-			if (Config_Variable(cfg->str, f[j].variable)) {
-				Config_GetArray(cfg, f[j].variable, &var);
-				
-				Config_GotoSection(NULL);
-				f[j].func(&zip, &var, sectionList.item[i]);
-				Config_GotoSection(sectionList.item[i]);
-				
-				ItemList_Free(&var);
-				printf_nl();
-				
-				if (sSkip)
-					break;
-			}
-		}
-		
-		ItemList_Free(&var);
-	}
-	
-	Package_FreeCtx();
-	MemFile_Free(&config);
-	ItemList_Free(&sectionList);
-	ZipFile_Free(&zip);
-	
-	if (sSkip == false)
-		printf_info("Package has been installed successfully!");
-	else
-		printf_info("Package installation has been terminated!");
-#ifdef _WIN32
-	printf_getchar("Press enter to exit.");
-#endif
-	exit(0);
-}
-
 static char* MacroName(char* name) {
 	char* n = xAlloc(strlen(name) * 2);
 	s32 w = 0;
@@ -388,7 +296,7 @@ static s32 ValidateName(char* name) {
 	return fail;
 }
 
-void Package_NewActor(const char* argName, const char* aId, const char* oId) {
+void Template_NewActor(const char* argName, const char* aId, const char* oId) {
 	char* name = xAlloc(512);
 	const char* examples[] = {
 		"EnDiamond",
@@ -489,6 +397,200 @@ void Package_NewActor(const char* argName, const char* aId, const char* oId) {
 	Package_FreeCtx();
 	
 	printf_info("New Actor: 0x%04X-%s", sActorID, name);
+}
+
+void Template_NewSequence(char* file) {
+	u32 id;
+	MemFile mem = MemFile_Initialize();
+	ItemList list = ItemList_Initialize();
+	
+	MemFile_Alloc(&mem, 4096);
+	ItemList_Alloc(&list, 1, 32);
+	
+	printf_info("New Sequence ID: " PRNT_GRAY "hexadecimal");
+	
+	while (true) {
+		const char* str = Terminal_GetStr();
+		
+		if (!Value_ValidateHex(str))
+			Terminal_ClearLines(2);
+		
+		else {
+			id = Value_Int(str);
+			break;
+		}
+	}
+	
+	printf_info("Bank ID: " PRNT_GRAY "hexadecimal");
+	while (true) {
+		const char* str = Terminal_GetStr();
+		
+		if (!Value_ValidateHex(str))
+			Terminal_ClearLines(2);
+		
+		else {
+			ItemList_AddItem(&list, xFmt("0x%02X", Value_Hex(str)));
+			Config_WriteArray(&mem, "bank_id", &list, NO_QUOTES, NO_COMMENT);
+			break;
+		}
+	}
+	ItemList_Free(&list); ItemList_Alloc(&list, 1, 32); ItemList_AddItem(&list, "allow_enemy_bgm");
+	
+	Config_WriteStr(&mem, "medium_type", "cart", QUOTES, NO_COMMENT);
+	Config_WriteStr(&mem, "sequence_player", "bgm", QUOTES, NO_COMMENT);
+	Config_WriteArray(&mem, "sequence_flags", &list, QUOTES, NO_COMMENT);
+	
+	Config_WriteSection(&mem, "seq64", NO_COMMENT);
+	Config_Print(&mem, "\t"); Config_WriteInt(&mem, "master_volume", 88, NO_COMMENT);
+	Config_Print(&mem, "\t"); Config_WriteBool(&mem, "flstudio", false, NO_COMMENT);
+	Config_Print(&mem, "\t"); Config_WriteBool(&mem, "loop", true, NO_COMMENT);
+	
+	Sys_MakeDir("src/sound/sequence/0x%02X-%s/%s", id, Basename(file));
+	Sys_Copy(file, xFmt("src/sound/sequence/0x%02X-%s/%s", id, Basename(file), Filename(file)));
+	MemFile_SaveFile_String(&mem, xFmt("src/sound/sequence/0x%02X-%s/config.cfg", id, Basename(file)));
+	
+	ItemList_Free(&list);
+	MemFile_Free(&mem);
+	
+	printf_info("New Sequence: 0x%02X-%s", id, Basename(file));
+	printf_getchar("Press enter to exit!");
+	
+	exit(0);
+}
+
+void Template_NewSample(char* file) {
+	MemFile mem = MemFile_Initialize();
+	const char* name;
+	bool normalize = false;
+	bool inherit = false;
+	bool halfPrecision = false;
+	
+	MemFile_Alloc(&mem, 4096);
+	
+	printf_info("New Sample Name: ");
+	name = Terminal_GetStr();
+	
+	printf_info("Enable Normalizer? " PRNT_GRAY "[y/n] default: y");
+	if (Terminal_YesOrNo())
+		normalize = true;
+	
+	printf_info("Enable Vanilla Pitch Inherit? " PRNT_GRAY "[y/n] default: n");
+	if (Terminal_YesOrNo())
+		inherit = true;
+	
+	printf_info("Enable Half Precision Compression? " PRNT_GRAY "[y/n] default: n");
+	if (Terminal_YesOrNo())
+		halfPrecision = true;
+	
+	Config_WriteBool(&mem, "normalize", normalize, "Maximum volume");
+	Config_WriteBool(&mem, "inherit_vanilla", inherit, "If vanilla config exists, inherit pitch from it");
+	Config_WriteBool(&mem, "half_precision", halfPrecision, "Rough compression");
+	
+	Sys_MakeDir("src/sound/sample/%s/", name);
+	Sys_Copy(file, xFmt("src/sound/sample/%s/%s", name, Filename(file)));
+	MemFile_SaveFile_String(&mem, xFmt("src/sound/sample/%s/config.cfg", name));
+	
+	MemFile_Free(&mem);
+	
+	printf_getchar("Press enter to exit!");
+	
+	exit(0);
+}
+
+// # # # # # # # # # # # # # # # # # # # #
+// #                                     #
+// # # # # # # # # # # # # # # # # # # # #
+
+void Package_Load(const char* item) {
+	ZipFile zip;
+	MemFile config = MemFile_Initialize();
+	MemFile* cfg = &config;
+	ItemList sectionList = ItemList_Initialize();
+	
+	if (!Sys_Stat(item)) return;
+	
+	Package_InitCtx();
+	
+	ZipFile_Load(&zip, item, ZIP_READ);
+	if (ZipFile_ReadEntry_Name(&zip, "package.cfg", cfg))
+		printf_error("Failed to read entry \"package.cfg\" from \"%s\"", item);
+	
+	if (Config_Variable(cfg->str, "author")) {
+		printf_info_align("Author:", xFmt("" PRNT_GREN "%s", Config_GetStr(cfg, "author")));
+		if (Config_Variable(cfg->str, "version"))
+			printf_info_align("Version:", xFmt("" PRNT_YELW "%s", Config_GetStr(cfg, "version")));
+		printf_nl();
+	}
+	
+	Config_ListSections(cfg, &sectionList);
+	
+	forlist(i, sectionList) {
+		ItemList var = ItemList_Initialize();
+		
+		struct {
+			const char* variable;
+			void (*func)(ZipFile*, ItemList*, const char*);
+		} f[] = {
+			{
+				"actor_src",
+				Package_ActorSrc
+			},
+			{
+				"actor_bin",
+				Package_ActorBin
+			},
+			{
+				"object_src",
+				Package_ObjectSrc
+			},
+			{
+				"object_bin",
+				Package_ObjectBin
+			},
+		};
+		
+		sActorID = 0xFFFF;
+		sObjectID = 0xFFFF;
+		
+		Config_GotoSection(sectionList.item[i]);
+		
+		if (Config_Variable(cfg->str, "actor_id"))
+			sActorID = Config_GetInt(cfg, "actor_id");
+		if (Config_Variable(cfg->str, "object_id"))
+			sObjectID = Config_GetInt(cfg, "object_id");
+		
+		foreach(j, f) {
+			if (Config_Variable(cfg->str, f[j].variable)) {
+				Config_GetArray(cfg, f[j].variable, &var);
+				
+				Config_GotoSection(NULL);
+				f[j].func(&zip, &var, sectionList.item[i]);
+				Config_GotoSection(sectionList.item[i]);
+				
+				ItemList_Free(&var);
+				printf_nl();
+				
+				if (sSkip)
+					break;
+			}
+		}
+		
+		ItemList_Free(&var);
+	}
+	
+	Package_FreeCtx();
+	MemFile_Free(&config);
+	ItemList_Free(&sectionList);
+	ZipFile_Free(&zip);
+	
+	if (sSkip == false)
+		printf_info("Package has been installed successfully!");
+	else
+		printf_info("Package installation has been terminated!");
+#ifdef _WIN32
+	printf_getchar("Press enter to exit.");
+#endif
+	exit(0);
 }
 
 void Package_Pack() {

@@ -4,6 +4,7 @@
 LibContext gLibCtx = {
 	.state = {
 		.vanillaOsPrintf = false,
+		.newMath3D = true,
 	},
 	.__ctxInitValue = 0xDEADBEEF,
 };

@@ -1,0 +1,46 @@
+/*
+ * File: z_opening.c
+ * Overlay: ovl_opening
+ * Description: Initializes the game into the title screen
+ */
+
+#include <uLib.h>
+#include <asm_macros.h>
+
+Asm_SymbolAlias("__z64_init", Opening_Init);
+Asm_SymbolAlias("__z64_dest", Opening_Destroy);
+
+void Opening_SetupTitleScreen(OpeningContext* this) {
+	gExitParam.nextEntranceIndex = 0x0209;
+	gSaveContext.gameMode = 1;
+	this->state.running = false;
+	gSaveContext.linkAge = LINK_AGE_ADULT;
+	Sram_InitDebugSave();
+	gSaveContext.cutsceneIndex = 0xFFF3;
+	gSaveContext.sceneSetupIndex = 7;
+	SET_NEXT_GAMESTATE(&this->state, Play_Init, PlayState);
+}
+
+void func_80803C5C(OpeningContext* this) {
+}
+
+void Opening_Main(GameState* thisx) {
+	OpeningContext* this = (OpeningContext*)thisx;
+	
+	func_80095248(this->state.gfxCtx, 0, 0, 0);
+	Opening_SetupTitleScreen(this);
+	func_80803C5C(this);
+}
+
+void Opening_Destroy(GameState* thisx) {
+}
+
+void Opening_Init(GameState* thisx) {
+	OpeningContext* this = (OpeningContext*)thisx;
+	
+	R_UPDATE_RATE = 1;
+	Matrix_Init(&this->state);
+	View_Init(&this->view, this->state.gfxCtx);
+	this->state.main = Opening_Main;
+	this->state.destroy = Opening_Destroy;
+}

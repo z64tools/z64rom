@@ -285,6 +285,8 @@ void NewPlay_Draw(PlayState* play) {
 	GraphicsContext* gfxCtx = play->state.gfxCtx;
 	Vec3f sp21C;
 	
+	Profiler_Start(&gLibCtx.profiler.playDraw);
+	
 	POLY_OPA_DISP = Play_SetFog(play, POLY_OPA_DISP);
 	POLY_XLU_DISP = Play_SetFog(play, POLY_XLU_DISP);
 	
@@ -530,6 +532,8 @@ Gameplay_Draw_DrawOverlayElements:
 			}
 		}
 	}
+	
+	Profiler_End(&gLibCtx.profiler.playDraw);
 }
 
 static s32 NewPlay_FrameAdvance(PlayState* play) {
@@ -564,6 +568,8 @@ static s32 NewPlay_FrameAdvance(PlayState* play) {
 void NewPlay_Update(PlayState* play) {
 	s32 sp80 = 0;
 	Input* input;
+	
+	Profiler_Start(&gLibCtx.profiler.playUpdate);
 	
 	input = play->state.input;
 	
@@ -1064,6 +1070,8 @@ skip:
 		&play->gameOverCtx,
 		play->state.gfxCtx
 	);
+	
+	Profiler_End(&gLibCtx.profiler.playUpdate);
 }
 
 void NewPlay_Main(PlayState* play) {

@@ -8,5 +8,6 @@
  */
 
 void BgCheck_ResetPolyCheckTbl(SSNodeList* nodeList, s32 numPolys) {
+	
 	bzero(nodeList->polyCheckTbl, numPolys);
 }

@@ -68,6 +68,22 @@ void uLib_Update(GameState* gameState);
 void* memset(void* m, int v, unsigned int s);
 f32 fmodf(f32, f32);
 
+#ifdef DEV_BUILD
+void Debug_Text(u8 r, u8 g, u8 b, s32 x, s32 y, char* fmt, ...);
+void Debug_DmaLog(DmaRequest* req);
+void DebugMenu_Update(PlayState* playState);
+s32 DebugMenu_CineCamera(Camera* camera, Normal1* norm1, Player* player);
+void Profiler_Start(DebugProfiler* profiler);
+void Profiler_End(DebugProfiler* profiler);
+#else
+#define Debug_Text(...)           ((void)0)
+#define Debug_DmaLog(...)         ((void)0)
+#define DebugMenu_Update(...)     ((void)0)
+#define DebugMenu_CineCamera(...) ((void)0)
+#define Profiler_Start(...)       ((void)0)
+#define Profiler_End(...)         ((void)0)
+#endif
+
 #define U32_RGB(x) (u8)(x >> 24), (u8)(x >> 16), (u8)(x >> 8)
 
 #ifndef osLibPrintf

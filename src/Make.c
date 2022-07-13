@@ -1182,8 +1182,16 @@ static void Binutil_ObjDump(char* cmd, const char* output) {
 	MemFile linker = MemFile_Initialize();
 	u32 lineNum = LineNum(cmd);
 	char* txt = cmd;
+	u8* crcA = NULL;
+	u8* crcB = NULL;
 	
 	MemFile_Alloc(&linker, MbToBin(1));
+	
+	if (Sys_Stat("include/z_lib_user.ld")) {
+		MemFile_LoadFile_String(&linker, "include/z_lib_user.ld");
+		crcA = Sys_Sha256(linker.data, linker.size);
+		MemFile_Reset(&linker);
+	}
 	
 	for (s32 i = 0; i < lineNum; i++) {
 		char* line = CopyLine(txt, 0);
@@ -1207,9 +1215,19 @@ skip:
 		txt = Line(txt, 1);
 	}
 	sTimeObjDump += Time_Get(1);
-	MemFile_SaveFile(&linker, "include/z_lib_user.ld");
+	
+	if (crcA) {
+		crcB = Sys_Sha256(linker.data, linker.size);
+		
+		if (memcmp(crcA, crcB, 32))
+			MemFile_SaveFile(&linker, "include/z_lib_user.ld");
+	} else
+		MemFile_SaveFile(&linker, "include/z_lib_user.ld");
+	
 	MemFile_Free(&linker);
 	Free(cmd);
+	Free(crcA);
+	Free(crcB);
 }
 
 // # # # # # # # # # # # # # # # # # # # #

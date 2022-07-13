@@ -871,31 +871,99 @@ static void DebugMenu_CineMode(PlayState* playState) {
 }
 
 static void DebugMenu_Profiler(PlayState* playState) {
-	DebugProfiler* prf = gLibCtx.profiler.newMath3D;
-	char type[] = {
-		'X', 'Y', 'Z'
+	DebugProfiler* prf[] = {
+		&gLibCtx.profiler.playUpdate,
+		&gLibCtx.profiler.playDraw,
+	};
+	char* item[] = {
+		"Play_Update",
+		"Play_Draw",
 	};
 	
 	gLibCtx.profiler.enabled = true;
 	
-	if (CHK_ALL(press, BTN_DLEFT))
-		gLibCtx.state.newMath3D ^= 1;
-	
-	Debug_Text(255, 255, 255, 1, 8, "NewMath3D [D-L]: %s", gLibCtx.state.newMath3D ? "true" : "false");
-	
-	for (s32 i = 0; i < 3; i++) {
-		f64 avg = 0;
-		for (s32 j = 0; j < ARRAY_COUNT(prf[i].buffer); j++) {
-			avg += (f32)prf[i].buffer[j];
+	for (s32 i = 0; i < ARRAY_COUNT(prf); i++) {
+		f32 avg = 0;
+		OSTime time;
+		Color_RGB8 rgb;
+		
+		for (s32 j = 0; j < ARRAY_COUNT(prf[i]->buffer); j++) {
+			avg += (f32)prf[i]->buffer[j];
 		}
 		
-		avg /= ARRAY_COUNT(prf[i].buffer);
-		Debug_Text(225, 225, 225, 1, 23 + i, "Math3D: %c %8.0f", type[i], (f32)avg);
+		avg /= ARRAY_COUNT(prf[i]->buffer);
+		time = avg;
+		time = OS_CYCLES_TO_NSEC(time);
+		avg = (f32)time * 0.000001f;
 		
-		prf[i].ringId++;
-		prf[i].ringId %= ARRAY_COUNT(prf[i].buffer);
+		rgb = Color_HslToRgb(0.5f - avg * 0.02, 0.5, 0.5);
 		
-		prf[i].buffer[prf[i].ringId] = 0;
+		Debug_Text(
+			225,
+			225,
+			225,
+			1,
+			7 + i,
+			"%s",
+			item[i]
+		);
+		Debug_Text(
+			rgb.r,
+			rgb.g,
+			rgb.b,
+			1 + 22,
+			7 + i,
+			"%14.2fms",
+			avg
+		);
+		
+		prf[i]->ringId++;
+		prf[i]->ringId %= ARRAY_COUNT(prf[i]->buffer);
+		
+		prf[i]->buffer[prf[i]->ringId] = 0;
+	}
+	
+	if (CHK_ALL(press, BTN_DLEFT)) {
+		gLibCtx.state.newMath3D ^= 1;
+		if (gLibCtx.state.newMath3D)
+			Audio_PlaySys(NA_SE_SY_DECIDE);
+		else
+			Audio_PlaySys(NA_SE_SY_LOCK_OFF);
+	}
+	
+	Debug_Text(255, 255, 255, 1, 28, "NewMath3D [D-L]: ");
+	Debug_Text(
+		255 * (gLibCtx.state.newMath3D ? 0.0f : 1.0f),
+		125,
+		255 * (gLibCtx.state.newMath3D ? 1.0f : 0.0f),
+		1 + strlen("NewMath3D [D-L]: "),
+		28,
+		"%s",
+		gLibCtx.state.newMath3D ? "true" : "false"
+	);
+	
+	/* FPS */ {
+		f32 avg = 0;
+		OSTime time;
+		f32 fps;
+		
+		Profiler_End(&gLibCtx.profiler.fps);
+		Profiler_Start(&gLibCtx.profiler.fps);
+		
+		for (s32 j = 0; j < ARRAY_COUNT(gLibCtx.profiler.fps.buffer); j++) {
+			avg += (f32)gLibCtx.profiler.fps.buffer[j];
+		}
+		
+		avg /= ARRAY_COUNT(gLibCtx.profiler.fps.buffer);
+		time = avg;
+		time = OS_CYCLES_TO_NSEC(time);
+		fps = (f32)time * .001f  * 0.000001f;
+		
+		gLibCtx.profiler.fps.ringId++;
+		gLibCtx.profiler.fps.ringId %= ARRAY_COUNT(gLibCtx.profiler.fps.buffer);
+		gLibCtx.profiler.fps.buffer[gLibCtx.profiler.fps.ringId] = 0;
+		
+		Debug_Text(255, 255, 255, 1, 1, "FPS: %2.2f", 1.0f / fps);
 	}
 }
 

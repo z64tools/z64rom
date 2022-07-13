@@ -11,18 +11,24 @@ typedef struct {
 } LibState;
 
 typedef struct {
+	OSTime start;
 	OSTime buffer[20];
 	u8 ringId;
 } DebugProfiler;
 
 typedef struct {
 	LibState state;
+#ifdef DEV_BUILD
 	struct {
-		DebugProfiler newMath3D[3];
+		DebugProfiler fps;
+		// DebugProfiler newMath3D[3];
+		DebugProfiler playUpdate;
+		DebugProfiler playDraw;
 		struct {
 			u32 enabled : 1;
 		};
 	} profiler;
+#endif
 	u32 __ctxInitValue;
 } LibContext;
 

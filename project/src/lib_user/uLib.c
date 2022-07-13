@@ -83,6 +83,16 @@ void* memset(void* m, int v, unsigned int s) {
 
 #ifdef DEV_BUILD
 
+void Profiler_Start(DebugProfiler* profiler) {
+	if (gLibCtx.profiler.enabled)
+		profiler->start = osGetTime();
+}
+
+void Profiler_End(DebugProfiler* profiler) {
+	if (gLibCtx.profiler.enabled)
+		profiler->buffer[profiler->ringId] = osGetTime() - profiler->start;
+}
+
 static void __p_osLibPrintf(const char* fmt, ...) {
 	va_list args;
 	

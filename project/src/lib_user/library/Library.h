@@ -67,6 +67,8 @@ f32 PowF(f32 a, f32 b);
 Particle Particle_New(Vec3f pos, f32 mass);
 void Particle_Update(Particle* particle, f32 gravity, f32 wind, s16 windYaw, f32 delta);
 Chain Chain_New(Particle* p1, Particle* p2, f32 length);
+void Chain_UpdateStep(Chain* chain, f32 step, f32 max, f32 min);
+void Chain_UpdateEq(Chain* chain);
 void Chain_Update(Chain* chain);
 
 void* Segment_Scene_GetHeader(void* segment, s32 setupIndex);

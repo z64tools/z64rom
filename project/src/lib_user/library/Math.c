@@ -238,6 +238,43 @@ Chain Chain_New(Particle* p1, Particle* p2, f32 length) {
 	};
 }
 
+void Chain_UpdateStep(Chain* chain, f32 step, f32 max, f32 min) {
+	Vec3f diff;
+	f32 factor;
+	f32 diffLength;
+	
+	Math_Vec3f_Diff(&chain->p1->pos, &chain->p2->pos, &diff);
+	diffLength = Math_Vec3f_DistXYZ(&chain->p1->pos, &chain->p2->pos);
+	
+	factor = (chain->length - diffLength) / diffLength * 0.5;
+	
+	Math_SmoothStepToF(&chain->p1->pos.x, chain->p1->pos.x + diff.x * factor, step, max, min);
+	Math_SmoothStepToF(&chain->p1->pos.y, chain->p1->pos.y + diff.y * factor, step, max, min);
+	Math_SmoothStepToF(&chain->p1->pos.z, chain->p1->pos.z + diff.z * factor, step, max, min);
+	Math_SmoothStepToF(&chain->p2->pos.x, chain->p2->pos.x - diff.x * factor, step, max, min);
+	Math_SmoothStepToF(&chain->p2->pos.y, chain->p2->pos.y - diff.y * factor, step, max, min);
+	Math_SmoothStepToF(&chain->p2->pos.z, chain->p2->pos.z - diff.z * factor, step, max, min);
+}
+
+void Chain_UpdateEq(Chain* chain) {
+	Vec3f diff;
+	f32 factor;
+	f32 diffLength;
+	
+	Math_Vec3f_Diff(&chain->p1->pos, &chain->p2->pos, &diff);
+	diffLength = Math_Vec3f_DistXYZ(&chain->p1->pos, &chain->p2->pos);
+	
+	factor = (chain->length - diffLength) / diffLength * 0.5;
+	
+	chain->p1->pos.x += diff.x * factor;
+	chain->p1->pos.y += diff.y * factor;
+	chain->p1->pos.z += diff.z * factor;
+	
+	chain->p2->pos.x -= diff.x * factor;
+	chain->p2->pos.y -= diff.y * factor;
+	chain->p2->pos.z -= diff.z * factor;
+}
+
 void Chain_Update(Chain* chain) {
 	Vec3f diff;
 	f32 factor;

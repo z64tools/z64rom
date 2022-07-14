@@ -76,9 +76,8 @@ Vec3f Math_Vec3f_Spline2(f32 k, Vec3f xm1, Vec3f x0, Vec3f x1, Vec3f x2) {
 
 Vec3f Math_Vec3f_YawDist(f32 dist, s16 yaw) {
 	Vec3f ret = {
-		Math_SinS(yaw) * dist,
-		0,
-		Math_CosS(yaw) * dist,
+		.x = Math_SinS(yaw) * dist,
+		.z = Math_CosS(yaw) * dist,
 	};
 	
 	return ret;
@@ -86,9 +85,9 @@ Vec3f Math_Vec3f_YawDist(f32 dist, s16 yaw) {
 
 Vec3f Math_Vec3f_YawPitchDist(f32 dist, s16 yaw, s16 pitch) {
 	Vec3f ret = {
-		Math_SinS(yaw) * dist,
-		Math_SinS(-pitch) * dist,
-		Math_CosS(yaw) * dist,
+		.x = Math_SinS(yaw) * dist,
+		.y = Math_SinS(-pitch) * dist,
+		.z = Math_CosS(yaw) * dist,
 	};
 	
 	return ret;
@@ -216,19 +215,20 @@ Particle Particle_New(Vec3f pos, f32 mass) {
 	};
 }
 
-void Particle_Update(Particle* particle, f32 gravity, f32 wind, s16 windYaw, f32 delta) {
-	Vec3f force = { 0, gravity, 0 };
+void Particle_Update(Particle* particle, f32 gravity, Vec3f addForce) {
 	Vec3f accel;
 	Vec3f prevPos;
-	
-	force.x += Math_SinS(windYaw) * wind;
-	force.z += Math_CosS(windYaw) * wind;
+	Vec3f force = {
+		addForce.x + 0,
+		addForce.y + gravity,
+		addForce.z + 0
+	};
 	
 	accel = (Vec3f) { force.x / particle->mass, force.y / particle->mass, force.z / particle->mass, };
 	prevPos = particle->pos;
 	
-	particle->pos.x = particle->pos.x * 2 - particle->prevPos.x + accel.x * delta;
-	particle->pos.y = particle->pos.y * 2 - particle->prevPos.y + accel.y * delta;
+	particle->pos.x = particle->pos.x * 2 - particle->prevPos.x + accel.x;
+	particle->pos.y = particle->pos.y * 2 - particle->prevPos.y + accel.y;
 	particle->prevPos = prevPos;
 }
 

@@ -14,7 +14,7 @@ typedef struct {
 } Color_HSLA;
 
 typedef struct {
-	Vec3f pos, prevPos;
+	Vec3f pos, prevPos, vel;
 	f32   mass;
 } Particle;
 
@@ -38,16 +38,6 @@ void Lights_SetPointlight(PlayState* play, Lights* lights, LightParams* params, 
 void Lights_RebindActor(PlayState* play, Actor* actor, Vec3f* bindPos);
 void Lights_RebindPointlightsActor(PlayState* play, Actor* actor, bool isWiiVC);
 
-void Matrix_RotateX_s(s16 binang, MatrixMode mtxMode);
-void Matrix_RotateY_s(s16 binang, MatrixMode mtxMode);
-void Matrix_RotateZ_s(s16 binang, MatrixMode mtxMode);
-void Matrix_RotateX_f(f32 binang, MatrixMode mtxMode);
-void Matrix_RotateY_f(f32 binang, MatrixMode mtxMode);
-void Matrix_RotateZ_f(f32 binang, MatrixMode mtxMode);
-void Matrix_MultX(f32 x, Vec3f* dst);
-void Matrix_MultY(f32 y, Vec3f* dst);
-void Matrix_MultZ(f32 z, Vec3f* dst);
-
 f32 MaxF(f32 a, f32 b);
 f32 MinF(f32 a, f32 b);
 s32 MaxS(s32 a, s32 b);
@@ -64,11 +54,23 @@ Vec3f Math_Vec3f_PosRelativeTo(Vec3f* target, Vec3f* origin, s16 originYaw);
 f32 Math_Vec3f_Length(Vec3f* a);
 f32 PowF(f32 a, f32 b);
 
+void Matrix_RotateX_s(s16 binang, MatrixMode mtxMode);
+void Matrix_RotateY_s(s16 binang, MatrixMode mtxMode);
+void Matrix_RotateZ_s(s16 binang, MatrixMode mtxMode);
+void Matrix_RotateX_f(f32 deg, MatrixMode mtxMode);
+void Matrix_RotateY_f(f32 deg, MatrixMode mtxMode);
+void Matrix_RotateZ_f(f32 deg, MatrixMode mtxMode);
+void Matrix_MultX(f32 x, Vec3f* dst);
+void Matrix_MultY(f32 y, Vec3f* dst);
+void Matrix_MultZ(f32 z, Vec3f* dst);
+
+s32 Actor_FocusPlayer(PlayState* play, Actor* this, Vec3s* headVector, f32 dist);
+
 Particle Particle_New(Vec3f pos, f32 mass);
-void Particle_Update(Particle* particle, f32 gravity, Vec3f addForce);
+void Particle_Update(Particle* particle, f32 gravity, Vec3f addForce, f32 c);
 Chain Chain_New(Particle* p1, Particle* p2, f32 length);
 void Chain_UpdateStep(Chain* chain, f32 step, f32 max, f32 min);
-void Chain_UpdateEq(Chain* chain);
+void Chain_UpdateAverage(Chain* chain);
 void Chain_Update(Chain* chain);
 
 void* Segment_Scene_GetHeader(void* segment, s32 setupIndex);

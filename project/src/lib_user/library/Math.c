@@ -169,16 +169,16 @@ void Matrix_RotateZ_s(s16 binang, MatrixMode mtxMode) {
 	Matrix_RotateZ(BINANG_TO_RAD(binang), mtxMode);
 }
 
-void Matrix_RotateX_f(f32 binang, MatrixMode mtxMode) {
-	Matrix_RotateX(DEG_TO_RAD(binang), mtxMode);
+void Matrix_RotateX_f(f32 deg, MatrixMode mtxMode) {
+	Matrix_RotateX(DEG_TO_RAD(deg), mtxMode);
 }
 
-void Matrix_RotateY_f(f32 binang, MatrixMode mtxMode) {
-	Matrix_RotateY(DEG_TO_RAD(binang), mtxMode);
+void Matrix_RotateY_f(f32 deg, MatrixMode mtxMode) {
+	Matrix_RotateY(DEG_TO_RAD(deg), mtxMode);
 }
 
-void Matrix_RotateZ_f(f32 binang, MatrixMode mtxMode) {
-	Matrix_RotateZ(DEG_TO_RAD(binang), mtxMode);
+void Matrix_RotateZ_f(f32 deg, MatrixMode mtxMode) {
+	Matrix_RotateZ(DEG_TO_RAD(deg), mtxMode);
 }
 
 void Matrix_MultX(f32 x, Vec3f* dst) {
@@ -205,31 +205,59 @@ void Matrix_MultZ(f32 z, Vec3f* dst) {
 	dst->z = cmf->wz + cmf->zz * z;
 }
 
+s32 Actor_FocusPlayer(PlayState* play, Actor* this, Vec3s* headVector, f32 dist) {
+	Player* p = GET_PLAYER(play);
+	s16 y = Math_Vec3f_Yaw(&this->focus.pos, &p->actor.focus.pos);
+	s16 x = Math_Vec3f_Pitch(&this->focus.pos, &p->actor.focus.pos);
+	
+	if (this->xzDistToPlayer < dist && ABS((s16)(this->shape.rot.y - this->yawTowardsPlayer)) < DEG_TO_BINANG(90)) {
+		y = CLAMP((s16)(y - this->shape.rot.y), DEG_TO_BINANG(-60), DEG_TO_BINANG(60));
+		x = CLAMP(x, DEG_TO_BINANG(-30), DEG_TO_BINANG(30));
+		Math_ApproachS(&headVector->x, x, 7, 2000);
+		Math_ApproachS(&headVector->y, y, 7, 2000);
+		
+		return 1;
+	} else {
+		Math_ApproachS(&headVector->x, 0, 7, 2000);
+		Math_ApproachS(&headVector->y, 0, 7, 2000);
+		
+		return 0;
+	}
+	
+	return 0;
+}
+
 // # # # # # # # # # # # # # # # # # # # #
 // # Verlet                              #
 // # # # # # # # # # # # # # # # # # # # #
 
 Particle Particle_New(Vec3f pos, f32 mass) {
 	return (Particle) {
-		       pos, pos, mass
+		       pos, pos, {}, mass
 	};
 }
 
-void Particle_Update(Particle* particle, f32 gravity, Vec3f addForce) {
-	Vec3f accel;
+void Particle_Update(Particle* particle, f32 gravity, Vec3f addForce, f32 c) {
 	Vec3f prevPos;
 	Vec3f force = {
-		addForce.x + 0,
-		addForce.y + gravity,
-		addForce.z + 0
+		c * particle->vel.x + addForce.x + 0,
+		c * particle->vel.y + addForce.y + gravity,
+		c * particle->vel.z + addForce.z + 0
+	};
+	Vec3f accel = {
+		force.x / particle->mass,
+		force.y / particle->mass,
+		force.z / particle->mass,
 	};
 	
-	accel = (Vec3f) { force.x / particle->mass, force.y / particle->mass, force.z / particle->mass, };
 	prevPos = particle->pos;
 	
 	particle->pos.x = particle->pos.x * 2 - particle->prevPos.x + accel.x;
 	particle->pos.y = particle->pos.y * 2 - particle->prevPos.y + accel.y;
+	particle->pos.z = particle->pos.z * 2 - particle->prevPos.z + accel.z;
 	particle->prevPos = prevPos;
+	
+	Math_Vec3f_Diff(&particle->pos, &particle->prevPos, &particle->vel);
 }
 
 Chain Chain_New(Particle* p1, Particle* p2, f32 length) {
@@ -238,6 +266,9 @@ Chain Chain_New(Particle* p1, Particle* p2, f32 length) {
 	};
 }
 
+/*
+   Updates both particles (p1, p2) through stepping to the solution
+ */
 void Chain_UpdateStep(Chain* chain, f32 step, f32 max, f32 min) {
 	Vec3f diff;
 	f32 factor;
@@ -256,7 +287,10 @@ void Chain_UpdateStep(Chain* chain, f32 step, f32 max, f32 min) {
 	Math_SmoothStepToF(&chain->p2->pos.z, chain->p2->pos.z - diff.z * factor, step, max, min);
 }
 
-void Chain_UpdateEq(Chain* chain) {
+/*
+   Updates both particles (p1, p2), gets the average best position for them
+ */
+void Chain_UpdateAverage(Chain* chain) {
 	Vec3f diff;
 	f32 factor;
 	f32 diffLength;
@@ -275,6 +309,9 @@ void Chain_UpdateEq(Chain* chain) {
 	chain->p2->pos.z -= diff.z * factor;
 }
 
+/*
+   Updates only particle2 (p2), keeping the shape relative to the p1 absolute
+ */
 void Chain_Update(Chain* chain) {
 	Vec3f diff;
 	f32 factor;
@@ -284,10 +321,6 @@ void Chain_Update(Chain* chain) {
 	diffLength = Math_Vec3f_DistXYZ(&chain->p1->pos, &chain->p2->pos);
 	
 	factor = (chain->length - diffLength) / diffLength;
-	
-	// chain->p1->pos.x += diff.x * factor;
-	// chain->p1->pos.y += diff.y * factor;
-	// chain->p1->pos.z += diff.z * factor;
 	
 	chain->p2->pos.x -= diff.x * factor;
 	chain->p2->pos.y -= diff.y * factor;

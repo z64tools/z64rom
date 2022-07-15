@@ -285,8 +285,6 @@ void NewPlay_Draw(PlayState* play) {
 	GraphicsContext* gfxCtx = play->state.gfxCtx;
 	Vec3f sp21C;
 	
-	Profiler_Start(&gLibCtx.profiler.playDraw);
-	
 	POLY_OPA_DISP = Play_SetFog(play, POLY_OPA_DISP);
 	POLY_XLU_DISP = Play_SetFog(play, POLY_XLU_DISP);
 	
@@ -428,9 +426,11 @@ void NewPlay_Draw(PlayState* play) {
 					} else {
 						sp80 = HREG(84);
 					}
+					Profiler_Start(&gLibCtx.profiler.sceneDraw);
 					Scene_Draw(play);
 					NewRoom_Draw(play, &play->roomCtx.curRoom, sp80 & 3);
 					NewRoom_Draw(play, &play->roomCtx.prevRoom, sp80 & 3);
+					Profiler_End(&gLibCtx.profiler.sceneDraw);
 				}
 			}
 			
@@ -461,7 +461,9 @@ void NewPlay_Draw(PlayState* play) {
 			}
 			
 			if ((HREG(80) != 10) || (HREG(85) != 0)) {
+				Profiler_Start(&gLibCtx.profiler.ovlDraw);
 				func_800315AC(play, &play->actorCtx);
+				Profiler_End(&gLibCtx.profiler.ovlDraw);
 			}
 			
 			if ((HREG(80) != 10) || (HREG(86) != 0)) {
@@ -532,8 +534,6 @@ Gameplay_Draw_DrawOverlayElements:
 			}
 		}
 	}
-	
-	Profiler_End(&gLibCtx.profiler.playDraw);
 }
 
 static s32 NewPlay_FrameAdvance(PlayState* play) {
@@ -568,8 +568,6 @@ static s32 NewPlay_FrameAdvance(PlayState* play) {
 void NewPlay_Update(PlayState* play) {
 	s32 sp80 = 0;
 	Input* input;
-	
-	Profiler_Start(&gLibCtx.profiler.playUpdate);
 	
 	input = play->state.input;
 	
@@ -985,13 +983,18 @@ void NewPlay_Update(PlayState* play) {
 					}
 				} else {
 					func_800973FC(play, &play->roomCtx);
+					
+					Profiler_Start(&gLibCtx.profiler.collisionCheck);
 					CollisionCheck_AT(play, &play->colChkCtx);
 					CollisionCheck_OC(play, &play->colChkCtx);
 					CollisionCheck_Damage(play, &play->colChkCtx);
 					CollisionCheck_ClearContext(play, &play->colChkCtx);
+					Profiler_End(&gLibCtx.profiler.collisionCheck);
 					
 					if (!play->unk_11DE9) {
+						Profiler_Start(&gLibCtx.profiler.actorUpdate);
 						Actor_UpdateAll(play, &play->actorCtx);
+						Profiler_End(&gLibCtx.profiler.actorUpdate);
 					}
 					
 					func_80064558(play, &play->csCtx);
@@ -1052,6 +1055,7 @@ skip:
 		
 		play->nextCamId = play->activeCamId;
 		
+		Profiler_Start(&gLibCtx.profiler.cameraUpdate);
 		for (i = 0; i < NUM_CAMS; i++) {
 			if ((i != play->nextCamId) && (play->cameraPtrs[i] != NULL)) {
 				Camera_Update(play->cameraPtrs[i]);
@@ -1059,6 +1063,7 @@ skip:
 		}
 		
 		Camera_Update(play->cameraPtrs[play->nextCamId]);
+		Profiler_End(&gLibCtx.profiler.cameraUpdate);
 	}
 	
 	Environment_Update(
@@ -1070,8 +1075,6 @@ skip:
 		&play->gameOverCtx,
 		play->state.gfxCtx
 	);
-	
-	Profiler_End(&gLibCtx.profiler.playUpdate);
 }
 
 void NewPlay_Main(PlayState* play) {

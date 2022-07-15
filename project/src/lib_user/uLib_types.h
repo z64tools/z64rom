@@ -21,9 +21,16 @@ typedef struct {
 #ifdef DEV_BUILD
 	struct {
 		DebugProfiler fps;
-		// DebugProfiler newMath3D[3];
-		DebugProfiler playUpdate;
-		DebugProfiler playDraw;
+		
+		DebugProfiler actorUpdate;
+		DebugProfiler ovlDraw;
+		
+		DebugProfiler collisionCheck;
+		DebugProfiler math3D;
+		
+		DebugProfiler cameraUpdate;
+		
+		DebugProfiler sceneDraw;
 		struct {
 			u32 enabled : 1;
 		};

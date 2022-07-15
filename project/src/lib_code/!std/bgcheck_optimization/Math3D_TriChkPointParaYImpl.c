@@ -12,10 +12,7 @@ s32 OldMath3D_TriChkPointParaYImpl(Vec3f* v0, Vec3f* v1, Vec3f* v2, f32 z, f32 x
 s32 Math3D_TriChkPointParaYImpl(Vec3f* v0, Vec3f* v1, Vec3f* v2, f32 z, f32 x, f32 detMax, f32 chkDist, f32 ny) {
 	s32 ret;
 	
-	// OSTime start;
-	//
-	// if (gLibCtx.profiler.enabled)
-	// 	start = osGetTime();
+	Profiler_Start(&gLibCtx.profiler.math3D);
 	
 	if (gLibCtx.state.newMath3D)
 		ret = NewMath3D_TriChkPointParaYImpl(v0, v1, v2, z, x, detMax, chkDist, ny);
@@ -23,8 +20,7 @@ s32 Math3D_TriChkPointParaYImpl(Vec3f* v0, Vec3f* v1, Vec3f* v2, f32 z, f32 x, f
 	else
 		ret = OldMath3D_TriChkPointParaYImpl(v0, v1, v2, z, x, detMax, chkDist, ny);
 	
-	// if (gLibCtx.profiler.enabled)
-	// 	gLibCtx.profiler.newMath3D[1].buffer[gLibCtx.profiler.newMath3D[1].ringId % 20] += osGetTime() - start;
+	Profiler_End(&gLibCtx.profiler.math3D);
 	
 	return ret;
 }

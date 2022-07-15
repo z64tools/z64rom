@@ -872,12 +872,22 @@ static void DebugMenu_CineMode(PlayState* playState) {
 
 static void DebugMenu_Profiler(PlayState* playState) {
 	DebugProfiler* prf[] = {
-		&gLibCtx.profiler.playUpdate,
-		&gLibCtx.profiler.playDraw,
+		&gLibCtx.profiler.actorUpdate,
+		&gLibCtx.profiler.ovlDraw,
+		&gLibCtx.profiler.sceneDraw,
+		&gLibCtx.profiler.cameraUpdate,
+		&gLibCtx.profiler.collisionCheck,
+		NULL,
+		&gLibCtx.profiler.math3D,
 	};
 	char* item[] = {
-		"Play_Update",
-		"Play_Draw",
+		"Actor_Update",
+		"Overlay_Draw",
+		"Scene_Draw",
+		"Camera_Update",
+		"CollisionCheck",
+		NULL,
+		"Math3D",
 	};
 	
 	gLibCtx.profiler.enabled = true;
@@ -886,6 +896,9 @@ static void DebugMenu_Profiler(PlayState* playState) {
 		f32 avg = 0;
 		OSTime time;
 		Color_RGB8 rgb;
+		
+		if (item[i] == NULL)
+			continue;
 		
 		for (s32 j = 0; j < ARRAY_COUNT(prf[i]->buffer); j++) {
 			avg += (f32)prf[i]->buffer[j];

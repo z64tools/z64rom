@@ -1675,6 +1675,8 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 					break;
 			}
 			
+			fseq = FileSys_FindFile(".aseq");
+			
 			if (!gAudioOnly) {
 				seqFlag[i] = 0;
 				forlist(k, flagList) {
@@ -1692,8 +1694,6 @@ void Audio_BuildSequence(Rom* rom, MemFile* dataFile, MemFile* config) {
 			sqEntry.numInst = 0;
 			sqEntry.numDrum = 0;
 			sqEntry.numSfx = 0;
-			
-			fseq = FileSys_FindFile(".aseq");
 			
 			if (fseq) {
 				MemFile_LoadFile(dataFile, fseq);

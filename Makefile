@@ -1,4 +1,4 @@
-CFLAGS          = -Wall -Wno-switch -DEXTLIB=159 -DNDEBUG
+CFLAGS          = -Wall -Wno-switch -DEXTLIB=160 -DNDEBUG
 CFLAGS_MAIN     = -Wall -Wno-switch -DNDEBUG
 OPT_WIN32      := -Ofast
 OPT_LINUX      := -Ofast

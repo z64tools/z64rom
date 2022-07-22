@@ -542,40 +542,36 @@ static s32 SceneAnim_DrawCondition(PlayState* playState, Gfx** work, DrawConditi
 }
 
 static void* SceneAnim_GetSceneHeader(PlayState* playState) {
-	u32* header = (u32*)playState->sceneSegment;
-	u32 setup = gSaveContext.sceneSetupIndex;
+	u32 setup = gSaveContext.sceneSetupIndex - 1;
+	SceneCmd* cmd = (void*)playState->sceneSegment;
+	void* header = cmd;
 	
-	if (setup && *header == 0x18000000) {
-		u32* list = SEGMENTED_TO_VIRTUAL(header[1]);
-		
-		for (s32 i = setup - 1; i >= 0; --i)
-			if (list[i])
-				return SEGMENTED_TO_VIRTUAL(list[i]);
+	for (; cmd->base.code != SCENE_CMD_ID_END && setup >= 0; cmd++) {
+		if (cmd->base.code == SCENE_CMD_ID_ALTERNATE_HEADER_LIST) {
+			u32* segmentList = SEGMENTED_TO_VIRTUAL(cmd->altHeaders.segment);
+			
+			if (segmentList[setup - 1])
+				header = SEGMENTED_TO_VIRTUAL(segmentList[setup - 1]);
+			break;
+		}
 	}
 	
 	return header;
 }
 
 static AnimInfo* SceneAnim_GetSceneAnimCommand(void* _scene) {
-	u32* scene = _scene;
-	u32* header = scene;
+	SceneCmd* cmd = _scene;
 	
-	if (!scene)
-		return 0;
-	
-	/* while current header command is not end command */
-	while ((*header & 0xFF000000) != 0x14000000) {
-		/* animated texture list */
-		if ((*header & 0xFF000000) == 0x1A000000) {
-			return SEGMENTED_TO_VIRTUAL(header[1]);
+	for (; cmd->base.code != SCENE_CMD_ID_END; cmd++) {
+		if (cmd->base.code == 0x1A) {
+			Assert(cmd->base.data2 != 0);
+			
+			return SEGMENTED_TO_VIRTUAL(cmd->base.data2);
 		}
-		
-		/* advance to next header command */
-		header += 2;
 	}
 	
 	/* failed to locate 0x1A command */
-	return 0;
+	return NULL;
 }
 
 static void SceneAnim_UnusedDL(Gfx** work) {

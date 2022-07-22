@@ -416,7 +416,7 @@ void Template_NewSequence(char* file) {
 			Terminal_ClearLines(2);
 		
 		else {
-			id = Value_Int(str);
+			id = Value_Hex(str);
 			break;
 		}
 	}

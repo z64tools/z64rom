@@ -41,7 +41,7 @@ static void Restriction_WriteFlags(Rom* rom, MemFile* config, u32 sceneIndex) {
 		.sceneIndex = sceneIndex
 	};
 	
-	if (Config_Variable(config->str, "restriction_flags")) {
+	if (Config_GetVariable(config->str, "restriction_flags")) {
 		Config_GetArray(config, "restriction_flags", &rlist);
 		
 		for (s32 i = 0; i < rlist.num; i++) {

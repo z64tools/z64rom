@@ -27,21 +27,7 @@
 #define MbToBin(x) (u32)(0x100000 * (x))
 #define KbToBin(x) (u32)(0x400 * (x))
 
-#ifndef DEV_BUILD
-
-#define Assert(cond)  ((void)0)
-#define osInfo(title) ((void)0)
-
-#ifndef __ULIB_C__
-#define osLibPrintf(...) ((void)0)
-#endif
-
-#else
-
-#define Assert(cond)  if (!(cond)) { char buffer[82]; sprintf(buffer, "%s\nline: %d", __FILE__, __LINE__); Fault_AddHungupAndCrashImpl("Assert("#cond ");", buffer); }
-#define osInfo(title) "" PRNT_GRAY "[" PRNT_REDD "%s" PRNT_GRAY "::" PRNT_YELW "%d" PRNT_GRAY "]" PRNT_RSET ": " PRNT_REDD title, __FUNCTION__, __LINE__
-
-#endif
+#define U32_RGB(x) (u8)(x >> 24), (u8)(x >> 16), (u8)(x >> 8)
 
 #define gDPSetTileCustom(pkt, fmt, siz, width, height, pal, cms, cmt, masks, maskt, shifts, shiftt) \
 	do { \

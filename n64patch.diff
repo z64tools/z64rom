@@ -1,0 +1,2 @@
+97d96
+< 			this.socket.write(this.encodeRaw(this.stringToBytes("Welcome to IS64 Viewer\n")), function (data) { });

@@ -1,0 +1,25 @@
+# Wii VC analog substick patch by Tharo
+#  This patch deposits the analog data of the second analog stick (i.e. C-stick on a
+#  Gamecube Controller) into Controller 2's analog stick, making it available to be
+#  read by the N64 game.
+# This patch should be applied using gzinject with the -p option:
+#  https://github.com/krimtonz/gzinject
+# This patch is for the Japanese version of emulator only!
+#
+# select emulator as patch target
+0000 00000000 00000001
+# additional code in exception vector skip @ 80004500
+0304 00000600 2c1e0001 # cmpwi   r30, 1        # controller number, starting at zero, i.e. controller 1 = 0
+0304 00000604 40820010 # bne     NOT_CTRLR_2
+0304 00000608 801d00a0 # lwz     r0, 0xa0(r29) # select controller 1 sub stick analog values
+0304 0000060C 807d009c # lwz     r3, 0x9c(r29)
+0304 00000610 4800000c # b       DONE
+# NOT_CTRLR_2:
+0304 00000614 80010010 # lwz     r0, 0x10(r1)  # select cur controller main stick analog values
+0304 00000618 80610014 # lwz     r3, 0x14(r1)
+# DONE:
+0304 0000061C 4e800020 # blr
+#
+# hook @ 80062E9C
+0304 0005E45C 60000000 # nop                   # replaces    lwz     r0,0x10(r1)
+0304 0005E460 4BFA1661 # bl      0x80004500    # replaces    lwz     r3,0x14(r1)

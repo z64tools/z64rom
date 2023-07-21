@@ -1,0 +1,256 @@
+# Spawn Cutscene Table
+#
+# Every entry has to be separated with [[spawn_cutscene_entry]]
+#
+# # scene_id = Decimal or hex index of scene where the cutscene takes place
+# # spawn_id = Spawn point where the cutscene takes place
+# # age = "child" / "adult" / "both"
+# # flag_type = "switch" / "chest" / "event_chk_inf" / "collectible"
+# # flag_id = Decimal or hex index of the flag value
+#
+# Next two variables are meant for accessing the cutscene.
+# Choose either one, not both.
+#
+# # segment = Hardcoded segment for the cutscene
+# # header = Scene header which holds the cutscene. Only gets the cutscene
+#            data.
+
+[[spawn_cutscene_entry]] # HyruleFieldIntro
+	scene_id  = 0x51
+	spawn_id  = 3
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xA0
+	segment   = 0x02013AA0
+[[spawn_cutscene_entry]] # DMTIntro
+	scene_id  = 0x60
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xA1
+	segment   = 0x02007EA0
+[[spawn_cutscene_entry]] # KakarikoVillageIntro
+	scene_id  = 0x52
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xA3
+	segment   = 0x0200A540
+[[spawn_cutscene_entry]] # ZorasDomainIntro
+	scene_id  = 0x58
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xA4
+	segment   = 0x02003D70
+[[spawn_cutscene_entry]] # HyruleCastleIntro
+	scene_id  = 0x5F
+	spawn_id  = 0
+	age       = "child"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xA5
+	segment   = 0x02003F40
+[[spawn_cutscene_entry]] # GoronCityIntro
+	scene_id  = 0x62
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xA6
+	segment   = 0x02008400
+[[spawn_cutscene_entry]] # TempleOfTimeIntro
+	scene_id  = 0x43
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xA7
+	segment   = 0x0200CE00
+[[spawn_cutscene_entry]] # DekuTreeIntro
+	scene_id  = 0x00
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xA8
+	segment   = 0x0200B650
+[[spawn_cutscene_entry]] # HyruleFieldSouthEponaJump
+	scene_id  = 0x51
+	spawn_id  = 11
+	age       = "adult"
+	flag_type = "event_chk_inf"
+	flag_id   = 0x18
+	segment   = 0x0200F9E0
+[[spawn_cutscene_entry]] # HyruleFieldEastEponaJump
+	scene_id  = 0x51
+	spawn_id  = 13
+	age       = "adult"
+	flag_type = "event_chk_inf"
+	flag_id   = 0x18
+	segment   = 0x0200FF00
+[[spawn_cutscene_entry]] # HyruleFieldWestEponaJump
+	scene_id  = 0x51
+	spawn_id  = 12
+	age       = "adult"
+	flag_type = "event_chk_inf"
+	flag_id   = 0x18
+	segment   = 0x02010550
+[[spawn_cutscene_entry]] # HyruleFieldGateEponaJump
+	scene_id  = 0x51
+	spawn_id  = 15
+	age       = "adult"
+	flag_type = "event_chk_inf"
+	flag_id   = 0x18
+	segment   = 0x02010B30
+[[spawn_cutscene_entry]] # HyruleFieldGetOoT
+	scene_id  = 0x51
+	spawn_id  = 16
+	age       = "child"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xA9
+	header    = 0x8
+[[spawn_cutscene_entry]] # LakeHyliaIntro
+	scene_id  = 0x57
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xB1
+	segment   = 0x02007A30
+[[spawn_cutscene_entry]] # GerudoValleyIntro
+	scene_id  = 0x5A
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xB2
+	segment   = 0x020031E0
+[[spawn_cutscene_entry]] # GerudoFortressIntro
+	scene_id  = 0x5D
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xB3
+	segment   = 0x02006490
+[[spawn_cutscene_entry]] # LonLonRanchIntro
+	scene_id  = 0x63
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xB4
+	segment   = 0x02005BD0
+[[spawn_cutscene_entry]] # JabuJabuIntro
+	scene_id  = 0x02
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xB5
+	segment   = 0x02015600
+[[spawn_cutscene_entry]] # GraveyardIntro
+	scene_id  = 0x53
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xB6
+	segment   = 0x020070C0
+[[spawn_cutscene_entry]] # ZorasFountainIntro
+	scene_id  = 0x59
+	spawn_id  = 2
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xB7
+	segment   = 0x02004A80
+[[spawn_cutscene_entry]] # DesertColossusIntro
+	scene_id  = 0x5C
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xB8
+	segment   = 0x02007990
+[[spawn_cutscene_entry]] # DeathMountainCraterIntro
+	scene_id  = 0x61
+	spawn_id  = 0
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xB9
+	segment   = 0x020076D0
+[[spawn_cutscene_entry]] # GanonsCastleIntro
+	scene_id  = 0x64
+	spawn_id  = 0
+	age       = "adult"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xBA
+	segment   = 0x02004280
+[[spawn_cutscene_entry]] # SunSongGraveSunSongTeachPart2
+	scene_id  = 0x41
+	spawn_id  = 1
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0x5A
+	header    = 0x5
+[[spawn_cutscene_entry]] # ForestBarrier
+	scene_id  = 0x0D
+	spawn_id  = 2
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xBB
+	segment   = 0x0201E790
+[[spawn_cutscene_entry]] # WaterBarrier
+	scene_id  = 0x0D
+	spawn_id  = 3
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xBC
+	segment   = 0x0201EF70
+[[spawn_cutscene_entry]] # ShadowBarrier
+	scene_id  = 0x0D
+	spawn_id  = 4
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xBD
+	segment   = 0x02021380
+[[spawn_cutscene_entry]] # FireBarrier
+	scene_id  = 0x0D
+	spawn_id  = 5
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xBE
+	segment   = 0x0201E3E0
+[[spawn_cutscene_entry]] # LightBarrier
+	scene_id  = 0x0D
+	spawn_id  = 6
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xBF
+	segment   = 0x0201DF90
+[[spawn_cutscene_entry]] # SpiritBarrier
+	scene_id  = 0x0D
+	spawn_id  = 7
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xAD
+	segment   = 0x0201EB40
+[[spawn_cutscene_entry]] # SpiritBossNabooruKnuckleIntro
+	scene_id  = 0x17
+	spawn_id  = 0
+	age       = "adult"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xC0
+	header    = 0x4
+[[spawn_cutscene_entry]] # GerudoFortressFirstCapture
+	scene_id  = 0x5D
+	spawn_id  = 17
+	age       = "adult"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xC7
+	header    = 0x6
+[[spawn_cutscene_entry]] # DeathMountainCraterIntro
+	scene_id  = 0x61
+	spawn_id  = 1
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xB9
+	segment   = 0x020076D0
+[[spawn_cutscene_entry]] # KokiriForestDekuSprout
+	scene_id  = 0x55
+	spawn_id  = 12
+	age       = "both"
+	flag_type = "event_chk_inf"
+	flag_id   = 0xC6
+	header    = 0xC
+	

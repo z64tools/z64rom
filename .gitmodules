@@ -1,0 +1,15 @@
+[submodule "tools/nOVL"]
+	path = tools/nOVL
+	url = https://github.com/z64tools/nOVL.git
+[submodule "tools/z64audio"]
+	path = tools/z64audio
+	url = https://github.com/z64tools/z64audio.git
+[submodule "tools/z64playas"]
+	path = tools/z64playas
+	url = https://github.com/z64tools/z64playas.git
+[submodule "tools/n64log"]
+	path = tools/n64log
+	url = https://github.com/Dragorn421/IS64-logging.git
+[submodule "tools/z64convert"]
+	path = tools/z64convert
+	url = https://github.com/z64tools/z64convert.git

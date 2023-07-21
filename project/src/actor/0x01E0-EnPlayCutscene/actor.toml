@@ -1,0 +1,60 @@
+Name = "Cutscene Trigger"
+Category = "SWITCH"
+
+[[Property]]
+	Mask          = 0xFF00
+	Name          = "Set Flag"
+	Target        = "XRot"
+	Dropdown = [ [ 0xFF, "NULL"] ]
+[[Property]]
+	Mask           = 0x00FF
+	Name           = "Get Flag"
+	Target         = "XRot"
+	Dropdown = [ [ 0xFF, "NULL"] ]
+[[Property]]
+	Mask          = 0xC000
+	Name          = "Set Flag Type"
+	Target        = "Var"
+	Dropdown = [
+		[ 0, "Switch"      ],
+		[ 1, "Chest"       ],
+		[ 2, "Collectible" ],
+		[ 3, "Global"      ],
+	]
+[[Property]]
+	Mask          = 0x3000
+	Name          = "Get Flag Type"
+	Target        = "Var"
+	Dropdown = [
+		[ 0, "Switch"      ],
+		[ 1, "Chest"       ],
+		[ 2, "Collectible" ],
+		[ 3, "Global"      ],
+	]
+[[Property]]
+	Mask          = 0xFF00
+	Name          = "Flip Get"
+	Target        = "YRot"
+	Dropdown = [ [ 0, "false"], [ 1, "true" ] ]
+[[Property]]
+	Mask          = 0x0C00
+	Name          = "Force"
+	Target        = "Var"
+	Dropdown = [ [ 0, "false"], [ 1, "true" ] ]
+[[Property]]
+	Mask          = 0x03FF
+	Name          = "Distance (x10)"
+	Target        = "Var"
+[[Property]]
+	Mask          = 0xF0
+	Name          = "Distance Type"
+	Target        = "YRot"
+	Dropdown = [
+		[ 0, "XZ" ],
+		[ 1, "XZY" ],
+	]
+[[Property]]
+	Mask          = 0xF
+	Name          = "Header Index"
+	Target        = "YRot"
+	

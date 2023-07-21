@@ -1,0 +1,301 @@
+success     = "\u001B[96mSuccess\n"
+rm          = "Remove:"
+err_fail    = "Error:"
+err_load    = "Failed to load:"
+err_create  = "Failed to create:"
+err_mv      = "Failed to move:"
+err_cp      = "Failed to copy:"
+err_rm      = "Failed to remove:"
+err_missing = "Missing:"
+press_enter = "Press \u001B[96menter\u001B[m to exit"
+help = [
+	"patch and dma info on build", # ARG_INFO
+	"compress rom", # ARG_YAZ
+	"compress without caching", # ARG_YAZ_NO_CACHE
+	"non-debug build", # ARG_RELEASE
+	"get symbol information\u001B[90m --sym 0x80702408", # ARG_SYM
+	"create packaget\u001B[90m TODO", # ARG_PACK
+	"add new actor from template", # ARG_NEW_ACTOR
+	"add new effect from template", # ARG_NEW_EFFECT
+	"migrate zzrtl/zzromtool project", # ARG_MIGRATE
+	"", # ARG_CHILL
+	"", # ARG_RECONFIG
+	"update rcl.diff", # ARG_ROM_CONTENT_LIST
+	"update z64hdr", # ARG_UPDATE
+	"update z64rom", # ARG_UPGRADE
+	"reinstall external tools", # ARG_REINSTALL
+	"instant load\u001B[90m --instant SceneID SpawnID HeaderID Age", # ARG_INSTANT_SCENE
+	"skip prompt", # ARG_NO_WAIT
+	"skip pj64 launch", # ARG_NO_PLAY
+	"inject last build to wad", # ARG_INJECT_VC
+	"inject this build to wad", # ARG_BUILD_VC
+	"cc defines separated with spaces, ex: \"MY_DEFINE MAGIC_VALUE=1\"", # ARG_CCDEFINE
+	"", # ARG_NO_MAKE
+	"", # ARG_MAKE_ONLY
+	"force make all", # ARG_FORCE
+	"force make code", # ARG_FORCE_CODE
+	"clean make products", # ARG_CLEAN
+	"make target\u001B[90m code/object/audio", # ARG_TARGET
+	"num of threads\u001B[90m --threads 16", # ARG_THREADS
+	"", # ARG_NO_THREADING
+	"clean unreferenced samples", # ARG_CLEAN_SAMPLES
+	"clean unused beta content", # ARG_CLEAN_BETA
+	"", # ARG_CLEAR_PROJECT
+	"clear compression cache", # ARG_CLEAR_CACHE
+	"\u001B[90m--auto-install true/false", # ARG_AUTO_INSTALL
+	"", # ARG_FILE_Z64HDR
+	"", # ARG_FILE_MIPS64
+	"vanilla folder name", # ARG_VANILLA
+	"non-documented audio names", # ARG_UNK_AUDIO
+	"", # ARG_AUDIO_ONLY
+	"\u001B[90maudio-only", # ARG_AO_SEQFNT_TBL
+	"\u001B[90maudio-only", # ARG_AO_SEQ_TBL
+	"\u001B[90maudio-only", # ARG_AO_FONT_TBL
+	"\u001B[90maudio-only", # ARG_AO_SAMPLE_TBL
+	"\u001B[90maudio-only", # ARG_AO_SEQ_DATA
+	"\u001B[90maudio-only", # ARG_AO_FONT_DATA
+	"\u001B[90maudio-only", # ARG_AO_SAMPLE_DATA
+	"", # ARG_MM_IMPORT
+	"set language\u001B[90m --lang lang_en", # ARG_LANG_SET
+	"", # ARG_HELP
+	"\u001B[90mdev-only", # ARG_POST_UPDATE
+	"\u001B[90mdev-only", # ARG_DEV_PACK_RELEASE
+	"\u001B[90mdev-only", # ARG_DEV_ELF_SYM
+]
+
+err_lang_set = "Could not set language '%s'"
+info_lang_set = "Language changed to '%s'"
+
+[main]
+	reconfig_force    = "Reconfig forced"
+	reconfig_ok       = "Reconfig OK"
+	
+	rcl_title         = "Rom Content List"
+	
+	search_found      = "Rom(s) found in same directory:"
+	search_index      = "Dump rom index:"
+	
+	manifest_fix      = "Fixing manifest:"
+	
+	unk_arg           = "Unknown argument(s):"
+	unk_fmt           = "Unknown file format(s):"
+	
+	err_too_many_roms = "Too many roms provided as an argument"
+	err_custom_vanilla = "Custom vanilla name has to start with a dot!\u001B[90m example: '.vanilla'"
+	
+	warn_update_retry = "Couldn't update z64upgrade.exe, retrying..."
+
+[rom]
+	baserom         = "Baserom:"
+	buildrom        = "Buildrom:"
+	err_target_full = "Entry list maximum exceeded: %s\n0x%0*X / 0x%0*X"
+	target          = [
+		"Actor:",
+		"Effect:",
+		"Object:",
+		"Scene:",
+		"State:",
+		"Kaleido:",
+		"Skybox:",
+		"Static:",
+		"Dma:",
+		
+		"Soundfont:",
+		"Sequence:",
+		"Sample:",
+		"Sfx:",
+		
+		"Fix soundfont:",
+		"Fix sample:",
+		
+		"Compress:",
+		"Inject:"
+	]
+	
+	info_patch_file = "Patching:"
+	info_dma_free = "Pre-build DMA slots:"
+	info_dma_left = "Post-build DMA slots:"
+	info_dma_entries = "Entries: %d"
+	info_dma_slot_kb = "Slot %d:\nstart: %08X\nend:   %08X\nsize:   %.2f kB"
+	info_dma_slot_mb = "Slot %d:\nstart: %08X\nend:   %08X\nsize:   %.2f MB"
+	
+	info_compress_rate = "Compression:"
+	
+	warn_orphan_folders = """\
+		Orphan folders or badly named items are located\n\
+		in rom item folders.\n\n\
+		Please check the files reported above\n\
+		"""
+	warn_not_oot_mq_debug = "Provided baserom is not OoT MQ Debug!"
+	
+	err_hook_unk_symbol      = "Unknown hook symbol name:\n%s"
+	err_hook_fail_offset     = "Could not get offset for symbol:\n%s"
+	err_hook_not_code_offset = "Symbol address not located in code:\n%s"
+	
+	err_custom_dma_table_index = "Custom DMA entry is not valid hex ID:\n%s"
+	err_custom_dma_reserved    = "Custom DMA entry ID is not within legal range\nlegal range:0x20 ... 0x48\ndma entry: %s"
+	
+	err_ext_tbl = "Extension error: %s\nCould not find define for '%s'"
+	err_ext_alloc = """\
+		Failed to allocate extended table!\n\
+		actor_tbl:  0x%X\n\
+		effect_tbl: 0x%X\n\
+		scene_tbl:  0x%X\n\
+		object_tbl: 0x%X\n\
+		dma_tbl:    0x%X\
+	"""
+	
+	err_trans_id = "Invalid transition ID: %d"
+	err_trans_nm = "Invalid transition type: %s"
+	
+	err_ulib_size = "z_lib_user.bin exceeds size limitation!\n%.2fkB / %.2fkB"
+	err_room_type_mismatch = "Folder has both '.zmap' and '.zroom' file types"
+
+[audio]
+	err_tbl_write_oos    = "Ran out of space for writing audio tables!\n%.2fkB / %.2fkB"
+	err_env_mismatch     = "Different num of envelope rates and levels:\n%s"
+	err_empty_sample     = "Dumped sample is empty:\n%s"
+	
+	err_missing_name     = "tbl_audio missing name\nindex: %d"
+	err_missing_samprt   = "tbl_audio missing samplerate\nsample: %s\nindex: %d"
+	
+	err_bad_sample_reference = "Bad sample reference: '%s'\ndumped 'audio_log' with list of\nall found sample names"
+	
+	err_unk_medium = "Unknown medium_type:\n%s\n%s"
+	err_unk_seqplr = "Unknown sequence_player:\n%s\n%s"
+	
+	warn_missing_loopbook = "Sample was expected to have loopbook:\n%s"
+	warn_max_16_env       = "Ran out of envelopes:\n%s"
+	warn_inst_bad_splits  = "Bad splits for instrument %d:\n%s\nsplit_hi: %s\nsplit_lo: %s"
+	warn_inst_fix_splits  = "Split fixed for instrument %d:\n%s\nsplit_hi: %s"
+
+[patch]
+	err_bin_space_limit   = "Binary file exceeded size limitation: %s\nsize: %.2fkB / %.2fkB"
+	err_patch_space_limit = "Patch exceededs target size limitation: %s\naddr:   0x%08X\ntarget: %s"
+		
+	err_missing_bin_file  = "Patch error: %s\ncould not find file: %s"
+	err_ci_not_supported  = "Patch error: %s\nCI# textures are not supported"
+	err_unk_texture_frmt  = "Patch error: %s\nunknown format '%s'"
+	
+	err_arg_fail          = "Patch error: %s\nbad usage of function '%s'\nexample: %s"
+	
+	warn_texture_res_mismatch = "texture resolution mismatch!\n%s\nimage: %dx%d\nexpected: %dx%d"
+	warn_patch_mod_file   = "Patch warning: %s\npatching non-vanilla file"
+	warn_bin_overwrite    = "Patch warning: %s\npatch %s0x08X has been overwritten by binary file\nbinary file: %s"
+
+[make]
+	info_make_ok        = "Make OK\nz_lib_user.bin: %.2fkB / %.2fkB\n"
+	
+	err_sct_missing_var = "spawn_cutscene_table:\nentry %d\nmissing variable: '%s'"
+	err_sct_missing_sh  = "spawn_cutscene_table:\nentry %d\nmissing 'header' / 'segment'"
+	err_sct_variable    = "spawn_cutscene_table:\nentry %d\n%s = %s\nunknown value"
+	err_missing_item   = "Missing '%s':\n%s"
+	err_whitespace      = "Whitespace characters are not supported:\n'%s'"
+
+	err_hidden_symbol   = """\
+		Hidden symbol error:\n\
+		The following functions are missing from the z_lib_user symbol list.\n\
+		Either you used vanilla function name by accident or you forgot\n\
+		to declare the required macro, Asm_VanillaHook(function_name)\n\
+		add following macro functions at the top of the following files or\n\
+		rename your functions!\
+	"""
+
+[setup]
+	closedialog_download_mode = [ "automatic", "manual" ]
+	closedialog_switch        = "Installation failed!\nRetry in %s mode? \u001B[90m[y/n]"
+	closedialog_try_again = [
+		"%s is required tool!\nTry again? \u001B[90m[y/n]",
+		"Try again? \u001B[90m[y/n]",
+		"Please, try again!"
+	]
+	
+	filedialog_invalid   = "Invalid file: '%s'"
+	filedialog_copy_fail = "Could not copy: %s\nTry again? \u001B[90m[y/n]"
+	filedialog_copy      = "Copy:"
+	
+	info_chill    = "Play some chill music? \u001B[90m[y/n]"
+	info_prompt_auto = "Install automatically? \u001B[90m[y/n]"
+	info_get_file = "\u001B[90m%s\u001B[m\nOpen file:"
+	info_all_ok   = "All tools installed successfully"
+	
+	warn_hash_mismatch = "Hash mismatch:\n%s"
+	warn_download_failed = "Download failed! %d / %d"
+	
+	err_missing_components = """\
+		Some of the tools are missing.\n\
+		Get them from the release:\n\
+		%s\
+	"""
+	err_zip = "Zip error: %s\n%s"
+	
+	validating = "Validating:"
+	extracting = "Extracting:"
+	moving     = "Moving:"
+	downloading = "Downloading:"
+	
+	update_available = "Update available: \u001B[96m%d.%d.%d"
+	update_prompt    = "Install it now? \u001B[90m[y/n]"
+	update_api_limit = "\u001B[90mFailed to retrieve update information...\n"
+
+[package]
+	err_new_obj_characters = """\
+		Error: %s\ncan't have special characters in the name!\n\
+		Press enter to try again\
+	"""
+	
+	recommended_id = """\
+		\u001B[90m\
+		Recommended: %s\
+	"""
+	prompt_object = """\
+		\u001B[94m\
+		%s\u001B[m \
+		Object ID: \
+		\u001B[90m\
+		hex / 'free' / 'skip'\
+	"""
+	prompt_actor_name = """\
+		Actor name: \
+		\u001B[90m\
+		example: %s\
+	"""
+	prompt_actor_index = """\
+		\u001B[94m\
+		%s\u001B[m \
+		Actor ID: \
+		\u001B[90m\
+		hex / 'free' / 'skip'\
+	"""
+	prompt_effect_name = """\
+		Effect name: \
+		\u001B[90m\
+		example: %s\
+	"""
+	prompt_effect_index = """\
+		\u001B[94m\
+		%s\u001B[m \
+		Effect ID: \
+		\u001B[90m\
+		hex / 'free' / 'skip'\
+	"""
+	prompt_seq = """\
+		Sequence ID: \
+		\u001B[90m\
+		hex\
+	"""
+	prompt_font = """\
+		SoundFont ID: \
+		\u001B[90m\
+		hex\
+	"""
+	prompt_sample_name = "New sample name: "
+	prompt_sample_sfx  = "Import as sfx? \u001B[90m[y/n]"
+	prompt_sample_nrm  = "Enable normalizer? \u001B[90m[y/n] recommended: y"
+	prompt_sample_inh  = "Vanilla pitch inherit?  \u001B[90m[y/n] recommended: n"
+	prompt_sample_prc  = "Half precision?  \u001B[90m[y/n] recommended: n"
+	
+	selected_id = "Selected ID: %04X"
+	new_seq     = "New sequence: 0x%02X-%s"
+	new_actor   = "New actor: 0x%04X-%s"
+	new_effect  = "New effect: 0x%02X-%s"

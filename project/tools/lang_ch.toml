@@ -1,0 +1,301 @@
+success     = "\u001B[96m完成!\n"
+rm          = "移除:"
+err_fail    = "錯誤:"
+err_load    = "加載失敗:"
+err_create  = "創建失敗:"
+err_mv      = "移動失敗:"
+err_cp      = "複製失敗:"
+err_rm      = "移除失敗:"
+err_missing = "缺少:"
+press_enter = "按下\u001B[96mEnter\u001B[m鍵退出..."
+help = [
+	"獲取構建的補丁和DMA信息", # ARG_INFO
+	"壓縮rom", # ARG_YAZ
+	"無緩衝壓縮", # ARG_YAZ_NO_CACHE
+	"構建時去除調試功能", # ARG_RELEASE
+	"獲取Symbol信息\u001B[90m --sym 0x80702408", # ARG_SYM
+	"創建包\u001B[90m TODO", # ARG_PACK
+	"由模板創建新的行爲者", # ARG_NEW_ACTOR
+	"從模板中添加新特效", # ARG_NEW_EFFECT
+	"遷移zzrtl/zzrom工具項目", # ARG_MIGRATE
+	"", # ARG_CHILL
+	"", # ARG_RECONFIG
+	"更新rcl.diff", # ARG_ROM_CONTENT_LIST
+	"更新z64hdr", # ARG_UPDATE
+	"更新z64rom", # ARG_UPGRADE
+	"重裝工具包", # ARG_REINSTALL
+	"instant load\u001B[90m --instant SceneID SpawnID HeaderID Age", # ARG_INSTANT_SCENE
+	"跳過提示符", # ARG_NO_WAIT
+	"不要啓動Project 64", # ARG_NO_PLAY
+	"將最後一次構建注入至wad", # ARG_INJECT_VC
+	"將此構建注入至wad", # ARG_BUILD_VC
+	"cc defines separated with spaces, ex: \"MY_DEFINE MAGIC_VALUE=1\"", # ARG_CCDEFINE
+	"", # ARG_NO_MAKE
+	"", # ARG_MAKE_ONLY
+	"强制構建一切", # ARG_FORCE
+	"强制執行make指令", # ARG_FORCE_CODE
+	"清除構建", # ARG_CLEAN
+	"構建指定目標\u001B[90m --target code/object/audio", # ARG_TARGET
+	"指定構建綫程數\u001B[90m --threads 16", # ARG_THREADS
+	"", # ARG_NO_THREADING
+	"清除未引用的聲音樣本", # ARG_CLEAN_SAMPLES
+	"清除未使用的beta内容", # ARG_CLEAN_BETA
+	"", # ARG_CLEAR_PROJECT
+	"清除壓縮緩存", # ARG_CLEAR_CACHE
+	"啓用或禁止自動安裝 \u001B[90m--auto-install true/false\u001B[m", # ARG_AUTO_INSTALL
+	"", # ARG_FILE_Z64HDR
+	"", # ARG_FILE_MIPS64
+	"vanilla文件夾名稱", # ARG_VANILLA
+	"未作文檔的音頻名稱", # ARG_UNK_AUDIO
+	"", # ARG_AUDIO_ONLY
+	"\u001B[90maudio-only", # ARG_AO_SEQFNT_TBL
+	"\u001B[90maudio-only", # ARG_AO_SEQ_TBL
+	"\u001B[90maudio-only", # ARG_AO_FONT_TBL
+	"\u001B[90maudio-only", # ARG_AO_SAMPLE_TBL
+	"\u001B[90maudio-only", # ARG_AO_SEQ_DATA
+	"\u001B[90maudio-only", # ARG_AO_FONT_DATA
+	"\u001B[90maudio-only", # ARG_AO_SAMPLE_DATA
+	"非常特別", # ARG_MM_IMPORT
+	"設置語言\u001B[90m --lang lang_en", # ARG_LANG_SET
+	"", # ARG_HELP
+	"\u001B[90mdev-only", # ARG_POST_UPDATE
+	"\u001B[90mdev-only", # ARG_DEV_PACK_RELEASE
+	"\u001B[90mdev-only", # ARG_DEV_ELF_SYM
+]
+
+err_lang_set = "無法切換語言 '%s'"
+info_lang_set = "語言切換至 '%s'"
+
+[main]
+	reconfig_force    = "强制重配置"
+	reconfig_ok       = "重配置 OK "
+	
+	rcl_title         = " rom 内容列表"
+	
+	search_found      = "在當前文件夾找到以下 rom :"
+	search_index      = "轉儲 rom 序號:"
+	
+	manifest_fix      = "修復 manifest :"
+	
+	unk_arg           = "未知參數:"
+	unk_fmt           = "未知文件格式:"
+	
+	err_too_many_roms = "作爲參數的rom太多了"
+	err_custom_vanilla = "自定義 vanilla 名稱必須從間隔號起始!\u001B[90m 例子: '.vanilla'"
+	
+	warn_update_retry = "無法更新z64upgrade.exe, 重試中..."
+
+[rom]
+	baserom         = "\u001B[90m基礎版本 \u001B[mbaserom:  "
+	buildrom        = "\u001B[90m構建版本 \u001B[mbuildrom: "
+	err_target_full = "\u001B[90m條目列表: \u001B[m%s\n0x%0*X / 0x%0*X"
+	target          = [
+		"\u001B[90m行爲者\u001B[m Actor:",
+		"\u001B[90m特效\u001B[m   Effect:",
+		"\u001B[90m物件\u001B[m   Object:",
+		"\u001B[90m場景\u001B[m   Scene:",
+		"\u001B[90m狀態\u001B[m   State:",
+		"\u001B[90m界面\u001B[m   Kaleido:",
+		"\u001B[90m天空盒\u001B[m Skybox:",
+		"\u001B[90m靜態\u001B[m   Static:",
+		"Dma:\u001B[91m",
+		
+		"\u001B[90m聲音字體\u001B[m Soundfont:",
+		"\u001B[90m樂曲\u001B[m   Sequence:",
+		"\u001B[90m聲音樣本\u001B[m Sample:   ",
+		"\u001B[90m音效\u001B[m   Sfx:",
+		
+		"修復聲音字體:",
+		"修復聲音樣本:",
+		
+		"壓縮:",
+		"Inject:"
+	]
+	
+	info_patch_file = "修補中:"
+	info_dma_free = "預構建DMA位置:"
+	info_dma_left = "構建后DMA位置:"
+	info_dma_entries = "條目: %d"
+	info_dma_slot_kb = "位置 %d:\n起始: %08X\n結束:   %08X\n大小:   %.2f kB"
+	info_dma_slot_mb = "位置 %d:\n起始: %08X\n結束:   %08X\n大小:   %.2f MB"
+	
+	info_compress_rate = "壓縮率:"
+	
+	warn_orphan_folders = """\
+		孤立文件夾或命名錯誤的項目位於\n\
+		rom項目文件夾中\n\n\
+		請檢查上面所述的文件夾\n\
+		"""
+	warn_not_oot_mq_debug = "基礎rom不是裏時之笛調試版rom (Master Quest Debug rom)!"
+	
+	err_hook_unk_symbol      = "未知的Hook Symbol名稱:\n%s"
+	err_hook_fail_offset     = "無法從被列出的Symbol得到偏移量:\n%s"
+	err_hook_not_code_offset = "被列出的Symbol地址不位於代碼中:\n%s"
+	
+	err_custom_dma_table_index = "自定義DMA條目不是有效的十六進制索引:\n%s"
+	err_custom_dma_reserved    = "自定義DMA條目的ID不在合法範圍内\n合法範圍為:0x20 ... 0x48\n當前DMA條目: %s"
+	
+	err_ext_tbl = "拓展錯誤: %s\n無法找到定義 '%s'"
+	err_ext_alloc = """\
+		分配拓展表失败!\n\
+		actor_tbl:  0x%X\n\
+		effect_tbl: 0x%X\n\
+		scene_tbl:  0x%X\n\
+		object_tbl: 0x%X\n\
+		dma_tbl:    0x%X\
+	"""
+	
+	err_trans_id = "無效的轉換ID: %d"
+	err_trans_nm = "無效的過渡類型: %s"
+	
+	err_ulib_size = "z_lib_user.bin 超出了其大小限制!\n%.2fkB / %.2fkB"
+	err_room_type_mismatch = "場景文件夾中有兩種互斥的\".zmap\"和\"zrom\"場景文件類型"
+
+[audio]
+	err_tbl_write_oos    = "音頻表的寫入超出空間!\n%.2fkB / %.2fkB"
+	err_env_mismatch     = "包絡率和包絡層的數目不一致:\n%s"
+	err_empty_sample     = "沒有被轉儲的聲音樣本:\n%s"
+	
+	err_missing_name     = "tbl_audio 丟失名稱\n索引: %d"
+	err_missing_samprt   = "tbl_audio 丟失采樣率\n聲音樣本: %s\n索引: %d"
+	
+	err_bad_sample_reference = "錯誤的聲音樣本引用: '%s'\ndumped 'audio_log' with list of\nall found sample names"
+	
+	err_unk_medium = "未知的medium_type:\n%s\n%s"
+	err_unk_seqplr = "未知的sequence_player:\n%s\n%s"
+	
+	warn_missing_loopbook = "聲音樣本應有loopbook:\n%s"
+	warn_max_16_env       = "包絡用盡:\n%s"
+	warn_inst_bad_splits  = "樂器使用了錯誤的splits %d:\n%s\nsplit_hi: %s\nsplit_lo: %s"
+	warn_inst_fix_splits  = "已修復的Split %d:\n%s\nsplit_hi: %s"
+
+[patch]
+	err_bin_space_limit   = "二進制文件超出大小限制: %s\n大小: %.2fkB / %.2fkB"
+	err_patch_space_limit = "補丁超出目標大小限制: %s\n地址:   0x%08X\n目標: %s"
+		
+	err_missing_bin_file  = "修補錯誤: %s\n無法找到文件: %s"
+	err_ci_not_supported  = "修補錯誤: %s\nCI# 格式貼圖不受支持"
+	err_unk_texture_frmt  = "修補錯誤: %s\n未知格式 '%s'"
+	
+	err_arg_fail          = "修補錯誤: %s\n錯誤的函數用法 '%s'\n例子: %s"
+	
+	warn_texture_res_mismatch = "貼圖分辨率不匹配!\n%s\n當前貼圖: %dx%d\n預期: %dx%d"
+	warn_patch_mod_file   = "修補警告: %s\n修補非vanilla文件"
+	warn_bin_overwrite    = "修補警告: %s\n補丁 %s0x08X 已經被二進制文件覆蓋了\n二進制文件: %s"
+
+[make]
+	info_make_ok        = "構建 OK\nz_lib_user.bin大小: %.2fkB / %.2fkB\n"
+	
+	err_sct_missing_var = "spawn_cutscene_table:\n條目 %d\n缺少變量: '%s'"
+	err_sct_missing_sh  = "spawn_cutscene_table:\n條目 %d\n缺少 'header' / 'segment'"
+	err_sct_variable    = "spawn_cutscene_table:\n條目 %d\n%s = %s\n未知值"
+	err_missing_item   = "丟失 '%s':\n%s"
+	err_whitespace      = "不支持空格字符\n'%s'"
+
+	err_hidden_symbol   = """\
+		Hidden symbol error:\n\
+		以下函數不在z_lib_user的symbol列表中,\n\
+		你要麽不小心使用了原始函數名稱\n\
+		要麽忘記聲明所需的宏, 即Asm_VanillaHook(函數名)\n\
+		在下列文件的起始位置添加下列宏函数\n\
+		或者重命名你的函數!\
+	"""
+
+[setup]
+	closedialog_download_mode = [ "自動", "手動" ]
+	closedialog_switch        = "安裝失敗!\n以%s模式重試? \u001B[90m[y/n]"
+	closedialog_try_again = [
+		"%s是所需要的工具!\n要重試嗎? \u001B[90m[y/n]",
+		"要重試嗎? \u001B[90m[y/n]",
+		"請重試!"
+	]
+	
+	filedialog_invalid   = "無效的文件: '%s'"
+	filedialog_copy_fail = "無法複製: %s\n想重試嗎? \u001B[90m[y/n]"
+	filedialog_copy      = "複製:"
+	
+	info_chill    = "想聼勁爆的音樂嗎? \u001B[90m[y/n]"
+	info_prompt_auto = "想自動安裝嗎? \u001B[90m[y/n]"
+	info_get_file = "\u001B[90m%s\u001B[m\n打開文件:"
+	info_all_ok   = "所有工具都已成功安裝"
+	
+	warn_hash_mismatch = "哈希值不匹配:\n%s"
+	warn_download_failed = "下載失敗! %d / %d"
+	
+	err_missing_components = """\
+		某些工具不見了.\n\
+		從以下地址找回來:\n\
+		%s\
+	"""
+	err_zip = "壓縮包錯誤: %s\n%s"
+	
+	validating = "驗證中:"
+	extracting = "提取中:"
+	moving     = "移動中:"
+	downloading = "下載中:"
+	
+	update_available = "可以更新了: \u001B[96m%d.%d.%d"
+	update_prompt    = "要現在就更新嗎? \u001B[90m[y/n]"
+	update_api_limit = "\u001B[90m無法獲取更新信息...\n"
+
+[package]
+	err_new_obj_characters = """\
+		錯誤: %s\n 其名稱不能有特殊字符!\n\
+        按下Enter鍵以重試\
+	"""
+	
+	recommended_id = """\
+		\u001B[90m\
+		推薦使用: %s\
+	"""
+	prompt_object = """\
+		\u001B[94m\
+		%s\u001B[m \
+		物件ID: \
+		\u001B[90m\
+		hex / 'free' / 'skip'\
+	"""
+	prompt_actor_name = """\
+		行爲者名稱: \
+		\u001B[90m\
+		例子: %s\
+	"""
+	prompt_actor_index = """\
+		\u001B[94m\
+		%s\u001B[m \
+		行爲者ID: \
+		\u001B[90m\
+		hex / 'free' / 'skip'\
+	"""
+	prompt_effect_name = """\
+		特效名稱: \
+		\u001B[90m\
+		例子: %s\
+	"""
+	prompt_effect_index = """\
+		\u001B[94m\
+		%s\u001B[m \
+		特效 ID: \
+		\u001B[90m\
+		hex / 'free' / 'skip'\
+	"""
+	prompt_seq = """\
+		樂曲ID: \
+		\u001B[90m\
+		hex\
+	"""
+	prompt_font = """\
+		聲音字體ID: \
+		\u001B[90m\
+		hex\
+	"""
+	prompt_sample_name = "新聲音樣本名稱: "
+	prompt_sample_sfx  = "將其導入為音效? \u001B[90m[y/n]"
+	prompt_sample_nrm  = "音量歸一化? \u001B[90m[y/n] 推薦選項: y"
+	prompt_sample_inh  = "沿用原始游戲音高?  \u001B[90m[y/n] 推薦選項: n"
+	prompt_sample_prc  = "使用半精度浮點數類型?  \u001B[90m[y/n] 推薦選項: n"
+	
+	selected_id = "ID: %04X"
+	new_seq     = "新樂曲: 0x%02X-%s"
+	new_actor   = "新行爲者: 0x%04X-%s"
+	new_effect  = "新特效: 0x%02X-%s"

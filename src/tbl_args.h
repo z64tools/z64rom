@@ -1,0 +1,63 @@
+#ifndef ARG_TABLE
+#define PLEASE_THE_IDE
+#define ARG_TABLE(enum, count, arg) 0
+int wow[] = {
+#endif
+
+ARG_TABLE(ARG_INFO,             0, "info"),
+ARG_TABLE(ARG_YAZ,              0, "yaz"),
+ARG_TABLE(ARG_YAZ_NO_CACHE,     0, "no-cache"),
+ARG_TABLE(ARG_RELEASE,          0, "release"),
+ARG_TABLE(ARG_SYM,              1, "sym"),
+ARG_TABLE(ARG_PACK,             0, "pack"),
+ARG_TABLE(ARG_NEW_ACTOR,        0, "new-actor"),
+ARG_TABLE(ARG_NEW_EFFECT,       0, "new-effect"),
+ARG_TABLE(ARG_MIGRATE,          0, "migrate"),
+ARG_TABLE(ARG_CHILL,            0, "chill"),
+ARG_TABLE(ARG_RECONFIG,         0, "reconfig"),
+ARG_TABLE(ARG_ROM_CONTENT_LIST, 0, "re-rcl"),
+ARG_TABLE(ARG_UPDATE,           0, "update"),
+ARG_TABLE(ARG_UPGRADE,          0, "upgrade"),
+ARG_TABLE(ARG_REINSTALL,        0, "reinstall"),
+ARG_TABLE(ARG_INSTANT_SCENE,    4, "instant"),
+ARG_TABLE(ARG_NO_WAIT,          0, "no-wait"),
+ARG_TABLE(ARG_NO_PLAY,          0, "no-play"),
+ARG_TABLE(ARG_INJECT_VC,        0, "inject-vc"),
+ARG_TABLE(ARG_BUILD_VC,         0, "build-vc"),
+ARG_TABLE(ARG_CCDEFINE,         1, "define"),
+ARG_TABLE(ARG_NO_MAKE,          0, "no-make"),
+ARG_TABLE(ARG_MAKE_ONLY,        0, "make-only"),
+ARG_TABLE(ARG_FORCE,            0, "force"),
+ARG_TABLE(ARG_FORCE_CODE,       0, "force-code"),
+ARG_TABLE(ARG_CLEAN,            0, "clean"),
+ARG_TABLE(ARG_TARGET,           1, "target"),
+ARG_TABLE(ARG_THREADS,          1, "threads"),
+ARG_TABLE(ARG_NO_THREADING,     0, "no-threading"),
+ARG_TABLE(ARG_CLEAN_SAMPLES,    0, "clean-samples"),
+ARG_TABLE(ARG_CLEAN_BETA,       0, "clean-beta"),
+ARG_TABLE(ARG_CLEAR_PROJECT,    0, "clear-project"),
+ARG_TABLE(ARG_CLEAR_CACHE,      0, "clear-cache"),
+ARG_TABLE(ARG_AUTO_INSTALL,     1, "auto-install"),
+ARG_TABLE(ARG_FILE_Z64HDR,      1, "file-z64hdr"),
+ARG_TABLE(ARG_FILE_MIPS64,      1, "file-mips64"),
+ARG_TABLE(ARG_VANILLA,          0, "vanilla"),
+ARG_TABLE(ARG_UNK_AUDIO,        0, "unk-audio"),
+ARG_TABLE(ARG_AUDIO_ONLY,       2, "audio-only"),
+ARG_TABLE(ARG_AO_SEQFNT_TBL,    1, "seqfont-tbl"),
+ARG_TABLE(ARG_AO_SEQ_TBL,       1, "seq-tbl"),
+ARG_TABLE(ARG_AO_FONT_TBL,      1, "font-tbl"),
+ARG_TABLE(ARG_AO_SAMPLE_TBL,    1, "sample-tbl"),
+ARG_TABLE(ARG_AO_SEQ_DATA,      1, "seq-data"),
+ARG_TABLE(ARG_AO_FONT_DATA,     1, "font-data"),
+ARG_TABLE(ARG_AO_SAMPLE_DATA,   1, "sample-data"),
+ARG_TABLE(ARG_MM_IMPORT,        0, "mm-import"),
+ARG_TABLE(ARG_LANG_SET,         1, "lang"),
+ARG_TABLE(ARG_HELP,             0, "help"),
+ARG_TABLE(ARG_POST_UPDATE,      0, "post-update"),
+ARG_TABLE(ARG_DEV_PACK_RELEASE, 0, "pack-release"),
+ARG_TABLE(ARG_DEV_ELF_SYM,      2, "elf"),
+
+#ifdef PLEASE_THE_IDE
+};
+#endif
+#undef ARG_TABLE

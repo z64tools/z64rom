@@ -154,10 +154,10 @@ static void Tools_CheckUpdateImpl() {
 
 #ifdef _WIN32
 const char* ZIP_BINUTIL = "tools/mips64-binutils-win32.zip";
-const char* URL_BINUTIL_DOWNLOAD = "https://github.com/z64tools/z64rom/releases/download/z64rom_binutils/mips64-binutils-win32.zip";
+const char* URL_BINUTIL_DOWNLOAD = "https://github.com/z64tools/z64rom/releases/download/binutils/mips64-binutils-win32.zip";
 #else
 const char* ZIP_BINUTIL = "tools/mips64-binutils-linux.zip";
-const char* URL_BINUTIL_DOWNLOAD = "https://github.com/z64tools/z64rom/releases/download/z64rom_binutils/mips64-binutils-linux.zip";
+const char* URL_BINUTIL_DOWNLOAD = "https://github.com/z64tools/z64rom/releases/download/binutils/mips64-binutils-linux.zip";
 #endif
 const char* ZIP_Z64HDR = "include/z64hdr.zip";
 const char* URL_Z64HDR_DOWNLOAD = "https://github.com/z64tools/z64hdr/archive/refs/heads/main.zip";

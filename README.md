@@ -4,7 +4,7 @@
 
 ### [Download z64rom here!](https://github.com/z64tools/z64rom/releases)
 
-### Read the documentation [here](https://github.com/z64tools/z64rom/wiki)!
+### Read the documentation [here](https://github.com/z64tools/z64rom-deprecated/wiki)!
 
 # Credits
 

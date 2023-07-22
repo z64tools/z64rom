@@ -76,7 +76,7 @@ void Extra_WadInject(bool successMsg) {
 	Proc* p =  Proc_New(
 		"gzinject"
 #ifdef _WIN32
-		".exe"
+			".exe"
 #endif
 	);
 	char* buildrom = x_dirabs_f(sys_appdir(), g64.build[g64.buildID]);
@@ -1643,80 +1643,9 @@ f64 getval(void* udata, int id) {
 
 int Scene_GetHeaderNum(void* segment);
 
-#define MAGIC_PATCHER 0
-
-#if MAGIC_PATCHER
-void MagicPatcher(void) {
-	List list = List_New();
-	
-	List_Walk(&list, "scene/", 0, LIST_FOLDERS);
-	
-	for (int i = 0; i < list.num; i++) {
-		fs_set(list.item[i]);
-		
-		const char* file = fs_item("scene.zscene");
-		
-		if (!sys_stat(file))
-			continue;
-		
-		Memfile mem = Memfile_New();
-		u32 data;
-		
-		Memfile_LoadBin(&mem, file);
-		Memfile_Read(&mem, &data, 4);
-		SwapBE(data);
-		
-		if ((data & 0xFF000000) != 0x18000000)
-			goto free;
-		
-		Memfile_Read(&mem, &data, 4);
-		SwapBE(data);
-		
-		osAssert((data & 0xFF000000) == 0x02000000);
-		u32* headList = Memfile_Seek(&mem, data & 0xFFFFFF);
-		
-		int headNum = Scene_GetHeaderNum(mem.data);
-		int hasBadPtr = false;
-		
-		for (int j = 0; j < headNum - 1; j++) {
-			if (ReadBE(headList[j]) == 0x02000008) {
-				hasBadPtr = true;
-				break;
-			}
-		}
-		
-		if (!hasBadPtr)
-			goto free;
-		
-		info("%d/%d: " PRNT_YELW "%s", i + 1, list.num, file);
-		
-		for (int j = 0; j < headNum - 1; j++) {
-			if (ReadBE(headList[j]) == 0x02000008) {
-				warn("%08X", ReadBE(headList[j]));
-				WriteBE(headList[j], 0);
-			} else
-				info("%08X", ReadBE(headList[j]));
-		}
-		
-		info("Patch? [y/n]");
-		if (!cli_yesno())
-			goto free;
-		
-		Memfile_SaveBin(&mem, file);
-		free:
-		Memfile_Free(&mem);
-	}
-}
-#endif
-
 s32 main(int narg, const char** arg) {
 	Rom* rom = new(Rom);
 	Toml* t = &rom->toml;
-	
-#if MAGIC_PATCHER
-	MagicPatcher();
-	return 0;
-#endif
 	
 	g64.threadNum = clamp(sys_getcorenum() * 1.5f, 1, 128);
 	g64.workDir = strdup(sys_workdir());
@@ -1809,8 +1738,8 @@ s32 main(int narg, const char** arg) {
 	
 	prompt:
 #ifdef _WIN32
-	if (!g64.noWait)
-		info_getc(gLang.press_enter);
+		if (!g64.noWait)
+			info_getc(gLang.press_enter);
 #endif
 	exit:
 	

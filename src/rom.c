@@ -230,13 +230,13 @@ static void ExtensionTable_Init(Rom* rom) {
 
 static void ExtensionTable_Alloc(Rom* rom) {
 	#define Rom_MoveTable(OFFSET, O_TABLE, NUM, NEW_NUM) \
-			OFFSET = rom->offset.table.dmaTable + size; \
-			table = SegmentToVirtual(0, OFFSET); \
-			memcpy(table, O_TABLE, sizeof(*O_TABLE) * NUM); \
-			O_TABLE = table; \
-			NUM = NEW_NUM; \
-			size += sizeof(*O_TABLE) * NEW_NUM; \
-			size = alignvar(size, 16);
+		OFFSET = rom->offset.table.dmaTable + size; \
+		table = SegmentToVirtual(0, OFFSET); \
+		memcpy(table, O_TABLE, sizeof(*O_TABLE) * NUM); \
+		O_TABLE = table; \
+		NUM = NEW_NUM; \
+		size += sizeof(*O_TABLE) * NEW_NUM; \
+		size = alignvar(size, 16);
 	
 	u32 size = 0;
 	void* table;
@@ -1481,6 +1481,8 @@ static void Build_Object(Rom* rom, Memfile* memData, Memfile* memCfg) {
 	List list = List_New();
 	ObjectEntry* entry = rom->table.object;
 	
+	memset(entry, 0, sizeof(ObjectEntry[rom->table.num.obj]));
+	
 	Rom_ItemList(&list, "rom/object/", SORT_NUMERICAL, LIST_FOLDERS);
 	ObjectBuildInstance* inst = new(ObjectBuildInstance[list.num]);
 	
@@ -1693,6 +1695,8 @@ static void Build_Scene(Rom* rom, Memfile* mem_data, Memfile* mem_cfg) {
 	List title_list = List_New();
 	SceneEntry* entry_table = rom->table.scene;
 	int* title_card_scene_index;
+	
+	memset(entry_table, 0, sizeof(SceneEntry[rom->table.num.scene]));
 	
 	Rom_ItemList(&list, "rom/scene/", SORT_NUMERICAL, LIST_FOLDERS);
 	
@@ -2344,10 +2348,10 @@ void Rom_Build(Rom* rom) {
 	Memfile config = Memfile_New();
 	
 	#define Dma_RegEntry(...) { \
-				if (NARGS(__VA_ARGS__) == 3) \
-				Dma_RegEntry(VA1(__VA_ARGS__), VA2(__VA_ARGS__), VA3(__VA_ARGS__)); \
-				else \
-				{ Dma_RegEntry(VA1(__VA_ARGS__), VA2(__VA_ARGS__), VA3(__VA_ARGS__)); Dma_WriteFlag(VA2(__VA_ARGS__), false); } } \
+			if (NARGS(__VA_ARGS__) == 3) \
+			Dma_RegEntry(VA1(__VA_ARGS__), VA2(__VA_ARGS__), VA3(__VA_ARGS__)); \
+			else \
+			{ Dma_RegEntry(VA1(__VA_ARGS__), VA2(__VA_ARGS__), VA3(__VA_ARGS__)); Dma_WriteFlag(VA2(__VA_ARGS__), false); } } \
 
 	
 	Patch_Init();
@@ -2444,6 +2448,51 @@ void Rom_Build(Rom* rom) {
 	for (int i = 0; i < ArrCount(buildList); i++)
 		buildList[i].func(rom, &dataFile, &config);
 	mutex_dest(&sDmaMutex);
+	
+	if (g64.info) {
+		{
+			SceneEntry* table = rom->table.scene;
+			SceneEntry* end = table + rom->table.num.scene;
+			Toml __t = {}, * toml = &__t;
+			int i = 0;
+			
+			*toml = Toml_New();
+			
+			for (; table < end; table++, i++) {
+				if (!table->vromEnd || !table->vromStart)
+					continue;
+				
+				Toml_SetVar(toml, x_fmt("scene[%d].index", i), "0x%02X", i);
+				Toml_SetVar(toml, x_fmt("scene[%d].vrom[0]", i), "0x%08X", ReadBE(table->vromStart));
+				Toml_SetVar(toml, x_fmt("scene[%d].vrom[1]", i), "0x%08X", ReadBE(table->vromEnd));
+				Toml_SetVar(toml, x_fmt("scene[%d].title_vrom[0]", i), "0x%08X", ReadBE(table->titleVromStart));
+				Toml_SetVar(toml, x_fmt("scene[%d].title_vrom[1]", i), "0x%08X", ReadBE(table->titleVromEnd));
+			}
+			
+			Toml_Save(toml, "scene_info.toml");
+			Toml_Free(toml);
+		}
+		{
+			ObjectEntry* table = rom->table.object;
+			ObjectEntry* end = table + rom->table.num.obj;
+			Toml __t = {}, * toml = &__t;
+			int i = 0;
+			
+			*toml = Toml_New();
+			
+			for (; table < end; table++, i++) {
+				if (!table->vromEnd || !table->vromStart)
+					continue;
+				
+				Toml_SetVar(toml, x_fmt("object[%d].index", i), "0x%02X", i);
+				Toml_SetVar(toml, x_fmt("object[%d].vrom[0]", i), "0x%08X", ReadBE(table->vromStart));
+				Toml_SetVar(toml, x_fmt("object[%d].vrom[1]", i), "0x%08X", ReadBE(table->vromEnd));
+			}
+			
+			Toml_Save(toml, "object_info.toml");
+			Toml_Free(toml);
+		}
+	}
 	
 	Patch_File(&rom->file, NULL);
 	

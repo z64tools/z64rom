@@ -107,7 +107,7 @@ void osLibHex(const char* txt, const void* data, u32 size, u32 dispOffset);
 #define DebugMenu_CineCamera(...) do {} while (0)
 #define Profiler_Start(...)       do {} while (0)
 #define Profiler_End(...)         do {} while (0)
-#define Assert(cond)              do {} while (0)
+#define Assert(cond)              if (cond) (void)0;
 #define osInfo(title)             do {} while (0)
 #define osLibPrintf(...)          do {} while (0)
 #define osLibHex(...)             do {} while (0)

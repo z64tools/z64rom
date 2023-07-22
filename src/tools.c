@@ -14,7 +14,6 @@ const char* sTools[] = {
 	"tools/seq64_console.exe",
 	"tools/seqas.exe",
 	"tools/novl.exe",
-	"tools/nm.exe",
 #else
 	"tools/mips64-binutils/bin/mips64-gcc",
 	"tools/mips64-binutils/bin/mips64-ld",
@@ -74,7 +73,6 @@ static s32 Tools_ValidateTools_Required(void) {
 		"tools/z64convert.exe",
 		"tools/seq64_console.exe",
 		"tools/seqas.exe",
-		"tools/nm.exe",
 #else
 		"tools/novl",
 		"tools/z64audio",

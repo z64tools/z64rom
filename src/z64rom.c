@@ -1820,6 +1820,7 @@ s32 main(int narg, const char** arg) {
 	
 	FastTracker_Stop();
 	Rom_Free(rom);
+	Toml_Free(&g64.app_data);
 	delete(rom);
 	delete(g64.suffix[0], g64.suffix[1], g64.build[0], g64.build[1]);
 	delete(g64.baseRom, g64.buildName, g64.baseWad, g64.vanilla, g64.input);

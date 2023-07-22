@@ -130,5 +130,5 @@ void Elf64_ReadSyms(Elf64* this, void* arg, void (*call)(void*, const char*, Elf
 }
 
 void Elf64_Free(Elf64* this) {
-	if (this) delete(this->sect, this);
+	if (this) delete(this->sect, this->data, this);
 }

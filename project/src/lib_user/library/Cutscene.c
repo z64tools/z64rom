@@ -548,3 +548,757 @@ void Cutscene_HandleEntranceTriggers(PlayState* play) {
             segment = Segment_Scene_GetCutscene(play->sceneSegment, sSpawnCutsceneTable[i].header);
     }
 }
+
+Asm_VanillaHook(Cutscene_Command_Terminator);
+void Cutscene_Command_Terminator(PlayState* play, CutsceneContext* csCtx, CsCmdBase* cmd) {
+    Player* player = GET_PLAYER(play);
+    s32 temp = 0;
+
+    if ((gSaveContext.gameMode != GAMEMODE_NORMAL) && (gSaveContext.gameMode != GAMEMODE_END_CREDITS) &&
+        (play->sceneId != SCENE_SPOT00) && (csCtx->frames > 20) &&
+        (CHECK_BTN_ALL(play->state.input[0].press.button, BTN_A) ||
+         CHECK_BTN_ALL(play->state.input[0].press.button, BTN_B) ||
+         CHECK_BTN_ALL(play->state.input[0].press.button, BTN_START)) &&
+        (gSaveContext.fileNum != 0xFEDC) && (play->transitionTrigger == TRANS_TRIGGER_OFF)) {
+        Audio_PlaySfxGeneral(NA_SE_SY_PIECE_OF_HEART, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                             &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+        temp = 1;
+    }
+
+#ifdef DEV_BUILD
+    if ((csCtx->frames == cmd->startFrame) || (temp != 0) ||
+        ((csCtx->frames > 20) &&
+        CHECK_BTN_ALL(play->state.input[0].press.button, BTN_START) &&
+         (gSaveContext.fileNum != 0xFEDC))) {
+#else
+    if (temp) {
+#endif
+
+        csCtx->state = CS_STATE_UNSKIPPABLE_EXEC;
+        Audio_SetCutsceneFlag(0);
+        gSaveContext.cutsceneTransitionControl = 1;
+
+        osSyncPrintf("\n分岐先指定！！=[%d]番", cmd->base); // "Future fork designation=No. [%d]"
+
+        if ((gSaveContext.gameMode != GAMEMODE_NORMAL) && (csCtx->frames != cmd->startFrame)) {
+            gSaveContext.unk_13E7 = 1;
+        }
+
+        gSaveContext.cutsceneIndex = 0;
+
+        switch (cmd->base) {
+            case 1:
+                play->nextEntranceIndex = ENTR_HIRAL_DEMO_0;
+                gSaveContext.cutsceneIndex = 0xFFF1;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 2:
+                play->nextEntranceIndex = ENTR_HIRAL_DEMO_0;
+                gSaveContext.cutsceneIndex = 0xFFF0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FILL_WHITE;
+                break;
+            case 3:
+                play->nextEntranceIndex = ENTR_SPOT09_0;
+                gSaveContext.cutsceneIndex = 0xFFF1;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FILL_WHITE;
+                break;
+            case 4:
+                play->nextEntranceIndex = ENTR_SPOT16_0;
+                gSaveContext.cutsceneIndex = 0xFFF0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FILL_WHITE;
+                break;
+            case 5:
+                play->nextEntranceIndex = ENTR_SPOT04_0;
+                gSaveContext.cutsceneIndex = 0xFFF0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FILL_WHITE;
+                break;
+            case 6:
+                play->nextEntranceIndex = ENTR_HIRAL_DEMO_0;
+                gSaveContext.cutsceneIndex = 0xFFF2;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FILL_WHITE;
+                break;
+            case 7:
+                play->nextEntranceIndex = ENTR_SPOT04_0;
+                gSaveContext.cutsceneIndex = 0xFFF2;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_INSTANT;
+                break;
+            case 8:
+                gSaveContext.fw.set = 0;
+                gSaveContext.respawn[RESPAWN_MODE_TOP].data = 0;
+                if (!GET_EVENTCHKINF(EVENTCHKINF_45)) {
+                    SET_EVENTCHKINF(EVENTCHKINF_45);
+                    play->nextEntranceIndex = ENTR_HIRAL_DEMO_0;
+                    play->transitionTrigger = TRANS_TRIGGER_START;
+                    gSaveContext.cutsceneIndex = 0xFFF3;
+                    play->transitionType = TRANS_TYPE_INSTANT;
+                } else {
+                    if (!IS_CUTSCENE_LAYER) {
+                        if (!LINK_IS_ADULT) {
+                            play->linkAgeOnLoad = LINK_AGE_ADULT;
+                        } else {
+                            play->linkAgeOnLoad = LINK_AGE_CHILD;
+                        }
+                    }
+                    play->nextEntranceIndex = ENTR_TOKINOMA_2;
+                    play->transitionTrigger = TRANS_TRIGGER_START;
+                    play->transitionType = TRANS_TYPE_FADE_WHITE;
+                    gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
+                }
+                break;
+            case 9:
+                play->nextEntranceIndex = ENTR_SPOT09_0;
+                gSaveContext.cutsceneIndex = 0xFFF0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FILL_BROWN;
+                break;
+            case 10:
+                play->nextEntranceIndex = ENTR_LINK_HOME_0;
+                gSaveContext.cutsceneIndex = 0xFFF0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 11:
+                play->nextEntranceIndex = ENTR_SPOT04_0;
+                gSaveContext.cutsceneIndex = 0xFFF3;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 12:
+                play->nextEntranceIndex = ENTR_SPOT16_5;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 13:
+                play->nextEntranceIndex = ENTR_SPOT08_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                gSaveContext.nextTransitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 14:
+                play->nextEntranceIndex = ENTR_SPOT04_11;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 15:
+                play->nextEntranceIndex = ENTR_TOKINOMA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF4;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 16:
+                play->nextEntranceIndex = ENTR_TOKINOMA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF5;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 17:
+                play->nextEntranceIndex = ENTR_TOKINOMA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF6;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 18:
+                SET_EVENTCHKINF(EVENTCHKINF_4F);
+                play->nextEntranceIndex = ENTR_TOKINOMA_4;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                gSaveContext.nextTransitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 19:
+                play->nextEntranceIndex = ENTR_SPOT16_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
+                gSaveContext.cutsceneIndex = 0x8000;
+                break;
+            case 21:
+                play->nextEntranceIndex = ENTR_SPOT06_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF0;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 22:
+                Item_Give(play, ITEM_SONG_REQUIEM);
+                play->nextEntranceIndex = ENTR_SPOT11_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF0;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 23:
+                play->nextEntranceIndex = ENTR_HIRAL_DEMO_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF8;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 24:
+                play->nextEntranceIndex = ENTR_BDAN_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 25:
+                play->linkAgeOnLoad = LINK_AGE_ADULT;
+                play->nextEntranceIndex = ENTR_KENJYANOMA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF0;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 26:
+                play->nextEntranceIndex = ENTR_TOKINOMA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF4;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 27:
+                play->nextEntranceIndex = ENTR_TOKINOMA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF5;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 28:
+                play->nextEntranceIndex = ENTR_TOKINOMA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF6;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 29:
+                play->nextEntranceIndex = ENTR_KENJYANOMA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.chamberCutsceneNum = 0;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 30:
+                play->nextEntranceIndex = ENTR_KENJYANOMA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                Item_Give(play, ITEM_MEDALLION_FIRE);
+                gSaveContext.chamberCutsceneNum = 1;
+                break;
+            case 31:
+                play->nextEntranceIndex = ENTR_KENJYANOMA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                gSaveContext.chamberCutsceneNum = 2;
+                break;
+            case 32:
+                play->linkAgeOnLoad = LINK_AGE_CHILD;
+                play->nextEntranceIndex = ENTR_SPOT00_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF2;
+                play->transitionType = TRANS_TYPE_INSTANT;
+                break;
+            case 33:
+                play->nextEntranceIndex = ENTR_SPOT00_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 34:
+                play->nextEntranceIndex = ENTR_HIRAL_DEMO_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF3;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 35:
+                play->nextEntranceIndex = ENTR_SPOT00_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF0;
+                play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
+                break;
+            case 38:
+                play->nextEntranceIndex = ENTR_HIRAL_DEMO_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF4;
+                play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
+                break;
+            case 39:
+                play->nextEntranceIndex = ENTR_TOKINOMA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF9;
+                play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
+                break;
+            case 40:
+                play->linkAgeOnLoad = LINK_AGE_ADULT;
+                play->nextEntranceIndex = ENTR_TOKINOMA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFFA;
+                play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
+                break;
+            case 41:
+                play->nextEntranceIndex = ENTR_SPOT06_5;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 42:
+                play->nextEntranceIndex = ENTR_SPOT01_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF2;
+                play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
+                break;
+            case 43:
+                play->nextEntranceIndex = ENTR_HAKASITARELAY_2;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
+                break;
+            case 44:
+                play->nextEntranceIndex = ENTR_TOKINOMA_3;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_WHITE_INSTANT;
+                break;
+            case 46:
+                SET_EVENTCHKINF(EVENTCHKINF_4F);
+                play->nextEntranceIndex = ENTR_TOKINOMA_4;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
+                break;
+            case 47:
+                Item_Give(play, ITEM_SONG_NOCTURNE);
+                SET_EVENTCHKINF(EVENTCHKINF_54);
+                play->nextEntranceIndex = ENTR_SPOT01_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF1;
+                play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
+                break;
+            case 48:
+                play->nextEntranceIndex = ENTR_SPOT11_4;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_SANDSTORM_END;
+                gSaveContext.nextTransitionType = TRANS_TYPE_SANDSTORM_END;
+                break;
+            case 49:
+                play->nextEntranceIndex = ENTR_TOKINOMA_5;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
+                break;
+            case 50:
+                play->nextEntranceIndex = ENTR_SPOT01_13;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_WHITE_INSTANT;
+                break;
+            case 51:
+                play->nextEntranceIndex = ENTR_SPOT00_0;
+                gSaveContext.cutsceneIndex = 0xFFF8;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_CIRCLE(TCA_NORMAL, TCC_WHITE, TCS_SLOW);
+                break;
+            case 52:
+                play->nextEntranceIndex = ENTR_TOKINOMA_0;
+                gSaveContext.cutsceneIndex = 0xFFF7;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_INSTANT;
+                break;
+            case 53:
+                play->nextEntranceIndex = ENTR_SPOT00_16;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 54:
+                gSaveContext.gameMode = GAMEMODE_END_CREDITS;
+                Audio_SetSfxBanksMute(0x6F);
+                play->linkAgeOnLoad = LINK_AGE_CHILD;
+                play->nextEntranceIndex = ENTR_SPOT09_0;
+                gSaveContext.cutsceneIndex = 0xFFF2;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 55:
+                play->nextEntranceIndex = ENTR_SPOT12_0;
+                gSaveContext.cutsceneIndex = 0xFFF1;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 56:
+                play->nextEntranceIndex = ENTR_SPOT01_0;
+                gSaveContext.cutsceneIndex = 0xFFF4;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 57:
+                play->nextEntranceIndex = ENTR_SPOT16_0;
+                gSaveContext.cutsceneIndex = 0xFFF3;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 58:
+                play->nextEntranceIndex = ENTR_SPOT18_0;
+                gSaveContext.cutsceneIndex = 0xFFF1;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 59:
+                play->nextEntranceIndex = ENTR_SPOT06_0;
+                gSaveContext.cutsceneIndex = 0xFFF1;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 60:
+                play->nextEntranceIndex = ENTR_SPOT08_0;
+                gSaveContext.cutsceneIndex = 0xFFF2;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 61:
+                play->nextEntranceIndex = ENTR_SPOT07_0;
+                gSaveContext.cutsceneIndex = 0xFFF0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 62:
+                play->linkAgeOnLoad = LINK_AGE_ADULT;
+                play->nextEntranceIndex = ENTR_SPOT04_0;
+                gSaveContext.cutsceneIndex = 0xFFF6;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 63:
+                play->nextEntranceIndex = ENTR_SPOT04_0;
+                gSaveContext.cutsceneIndex = 0xFFF7;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 64:
+                play->nextEntranceIndex = ENTR_SPOT00_0;
+                gSaveContext.cutsceneIndex = 0xFFF5;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 65:
+                play->linkAgeOnLoad = LINK_AGE_CHILD;
+                play->nextEntranceIndex = ENTR_SPOT20_0;
+                gSaveContext.cutsceneIndex = 0xFFF2;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 66:
+                play->nextEntranceIndex = ENTR_SPOT01_14;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 67:
+                play->nextEntranceIndex = ENTR_SPOT00_9;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 68:
+                play->nextEntranceIndex = ENTR_HIRAL_DEMO_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF5;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 69:
+                play->nextEntranceIndex = ENTR_SPOT04_12;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 70:
+                play->nextEntranceIndex = ENTR_SPOT16_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF4;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                gSaveContext.nextTransitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 71:
+                gSaveContext.equips.equipment |= EQUIP_VALUE_TUNIC_KOKIRI << (EQUIP_TYPE_TUNIC * 4);
+                Player_SetEquipmentData(play, player);
+                gSaveContext.equips.equipment |= EQUIP_VALUE_BOOTS_KOKIRI << (EQUIP_TYPE_BOOTS * 4);
+                Player_SetEquipmentData(play, player);
+                play->linkAgeOnLoad = LINK_AGE_CHILD;
+                play->nextEntranceIndex = ENTR_TOKINOMA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF1;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 72:
+                play->nextEntranceIndex = ENTR_NAKANIWA_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF0;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                gSaveContext.nextTransitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 73:
+                play->linkAgeOnLoad = LINK_AGE_CHILD;
+                play->nextEntranceIndex = ENTR_SPOT20_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF2;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 74:
+                play->nextEntranceIndex = ENTR_SPOT20_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF3;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 75:
+                play->linkAgeOnLoad = LINK_AGE_CHILD;
+                play->nextEntranceIndex = ENTR_SPOT20_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF4;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 76:
+                play->linkAgeOnLoad = LINK_AGE_ADULT;
+                play->nextEntranceIndex = ENTR_SPOT20_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF5;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 77:
+                play->linkAgeOnLoad = LINK_AGE_CHILD;
+                play->nextEntranceIndex = ENTR_SPOT20_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF6;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 78:
+                play->nextEntranceIndex = ENTR_SPOT20_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF7;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 79:
+            case 80:
+            case 81:
+            case 82:
+            case 83:
+            case 84:
+            case 85:
+            case 86:
+            case 87:
+            case 88:
+            case 89:
+            case 90:
+            case 91:
+            case 92:
+            case 93:
+                play->nextEntranceIndex = ENTR_SPOT20_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 94:
+                play->nextEntranceIndex = ENTR_SPOT20_1;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 95:
+                if (GET_EVENTCHKINF(EVENTCHKINF_48) && GET_EVENTCHKINF(EVENTCHKINF_49) &&
+                    GET_EVENTCHKINF(EVENTCHKINF_4A)) {
+                    play->nextEntranceIndex = ENTR_TOKINOMA_0;
+                    play->transitionTrigger = TRANS_TRIGGER_START;
+                    gSaveContext.cutsceneIndex = 0xFFF3;
+                    play->transitionType = TRANS_TYPE_FADE_BLACK;
+                } else {
+                    switch (gSaveContext.sceneLayer) {
+                        case 8:
+                            play->nextEntranceIndex = ENTR_SPOT05_0;
+                            play->transitionTrigger = TRANS_TRIGGER_START;
+                            play->transitionType = TRANS_TYPE_FADE_BLACK;
+                            break;
+                        case 9:
+                            play->nextEntranceIndex = ENTR_SPOT17_0;
+                            play->transitionTrigger = TRANS_TRIGGER_START;
+                            play->transitionType = TRANS_TYPE_FADE_BLACK;
+                            break;
+                        case 10:
+                            play->nextEntranceIndex = ENTR_SPOT06_0;
+                            play->transitionTrigger = TRANS_TRIGGER_START;
+                            gSaveContext.cutsceneIndex = 0xFFF0;
+                            play->transitionType = TRANS_TYPE_FADE_WHITE;
+                            break;
+                    }
+                }
+                break;
+            case 96:
+                if (CHECK_QUEST_ITEM(QUEST_MEDALLION_SHADOW)) {
+                    play->nextEntranceIndex = ENTR_KENJYANOMA_0;
+                    play->transitionTrigger = TRANS_TRIGGER_START;
+                    gSaveContext.cutsceneIndex = 0xFFF1;
+                    play->transitionType = TRANS_TYPE_FADE_WHITE_FAST;
+                } else {
+                    SET_EVENTCHKINF(EVENTCHKINF_C8);
+                    play->nextEntranceIndex = ENTR_SPOT11_8;
+                    play->transitionTrigger = TRANS_TRIGGER_START;
+                    play->transitionType = TRANS_TYPE_FADE_WHITE;
+                    gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
+                }
+                break;
+            case 97:
+                if (CHECK_QUEST_ITEM(QUEST_MEDALLION_SPIRIT)) {
+                    play->nextEntranceIndex = ENTR_KENJYANOMA_0;
+                    play->transitionTrigger = TRANS_TRIGGER_START;
+                    gSaveContext.cutsceneIndex = 0xFFF1;
+                    play->transitionType = TRANS_TYPE_FADE_WHITE_FAST;
+                } else {
+                    play->nextEntranceIndex = ENTR_SPOT02_8;
+                    play->transitionTrigger = TRANS_TRIGGER_START;
+                    play->transitionType = TRANS_TYPE_FADE_WHITE;
+                    gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
+                }
+                break;
+            case 98:
+                play->nextEntranceIndex = ENTR_SPOT17_5;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 99:
+                play->nextEntranceIndex = ENTR_SPOT05_3;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                gSaveContext.nextTransitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 100:
+                play->nextEntranceIndex = ENTR_SPOT04_0;
+                gSaveContext.cutsceneIndex = 0xFFF8;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 101:
+                play->nextEntranceIndex = ENTR_SPOT11_6;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_SANDSTORM_END;
+                break;
+            case 102:
+                play->nextEntranceIndex = ENTR_TOKINOMA_6;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 103:
+                play->nextEntranceIndex = ENTR_SPOT00_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF3;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 104:
+                switch (sTitleCsState) {
+                    case 0:
+                        play->nextEntranceIndex = ENTR_JYASINBOSS_0;
+                        play->transitionTrigger = TRANS_TRIGGER_START;
+                        gSaveContext.cutsceneIndex = 0xFFF2;
+                        play->transitionType = TRANS_TYPE_FADE_BLACK;
+                        sTitleCsState++;
+                        break;
+                    case 1:
+                        play->nextEntranceIndex = ENTR_SPOT17_0;
+                        play->transitionTrigger = TRANS_TRIGGER_START;
+                        gSaveContext.cutsceneIndex = 0xFFF1;
+                        play->transitionType = TRANS_TYPE_FADE_BLACK;
+                        sTitleCsState++;
+                        break;
+                    case 2:
+                        play->nextEntranceIndex = ENTR_HIRAL_DEMO_0;
+                        play->transitionTrigger = TRANS_TRIGGER_START;
+                        gSaveContext.cutsceneIndex = 0xFFF6;
+                        play->transitionType = TRANS_TYPE_FADE_BLACK;
+                        sTitleCsState = 0;
+                        break;
+                }
+                break;
+            case 105:
+                play->nextEntranceIndex = ENTR_SPOT02_0;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                gSaveContext.cutsceneIndex = 0xFFF1;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 106:
+                play->nextEntranceIndex = ENTR_HAKAANA_OUKE_1;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 107:
+                play->nextEntranceIndex = ENTR_GANONTIKA_2;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 108:
+                play->nextEntranceIndex = ENTR_GANONTIKA_3;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 109:
+                play->nextEntranceIndex = ENTR_GANONTIKA_4;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 110:
+                play->nextEntranceIndex = ENTR_GANONTIKA_5;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 111:
+                play->nextEntranceIndex = ENTR_GANONTIKA_6;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 112:
+                play->nextEntranceIndex = ENTR_GANONTIKA_7;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 113:
+                if (Flags_GetEventChkInf(EVENTCHKINF_BB) && Flags_GetEventChkInf(EVENTCHKINF_BC) &&
+                    Flags_GetEventChkInf(EVENTCHKINF_BD) && Flags_GetEventChkInf(EVENTCHKINF_BE) &&
+                    Flags_GetEventChkInf(EVENTCHKINF_BF) && Flags_GetEventChkInf(EVENTCHKINF_AD)) {
+                    play->csCtx.segment = SEGMENTED_TO_VIRTUAL(gTowerBarrierCs);
+                    play->csCtx.frames = 0;
+                    gSaveContext.cutsceneTrigger = 1;
+                    gSaveContext.cutsceneIndex = 0xFFFF;
+                    csCtx->state = CS_STATE_UNSKIPPABLE_INIT;
+                } else {
+                    gSaveContext.cutsceneIndex = 0xFFFF;
+                    csCtx->state = CS_STATE_UNSKIPPABLE_INIT;
+                }
+                break;
+            case 114:
+                play->nextEntranceIndex = ENTR_SPOT00_3;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 115:
+                play->nextEntranceIndex = ENTR_SPOT00_17;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_BLACK;
+                gSaveContext.nextTransitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 116:
+                if (GET_EVENTCHKINF(EVENTCHKINF_C8)) {
+                    play->nextEntranceIndex = ENTR_SPOT02_8;
+                    play->transitionTrigger = TRANS_TRIGGER_START;
+                    play->transitionType = TRANS_TYPE_FADE_WHITE;
+                } else {
+                    play->nextEntranceIndex = ENTR_SPOT11_8;
+                    play->transitionTrigger = TRANS_TRIGGER_START;
+                    play->transitionType = TRANS_TYPE_FADE_WHITE;
+                }
+                gSaveContext.nextTransitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 117:
+                gSaveContext.gameMode = GAMEMODE_END_CREDITS;
+                Audio_SetSfxBanksMute(0x6F);
+                play->linkAgeOnLoad = LINK_AGE_ADULT;
+                play->nextEntranceIndex = ENTR_SPOT00_0;
+                gSaveContext.cutsceneIndex = 0xFFF7;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+            case 118:
+                gSaveContext.respawn[RESPAWN_MODE_DOWN].entranceIndex = ENTR_GANON_DEMO_0;
+                Play_TriggerVoidOut(play);
+                gSaveContext.respawnFlag = -2;
+                gSaveContext.nextTransitionType = TRANS_TYPE_FADE_BLACK;
+                break;
+            case 119:
+                gSaveContext.dayTime = CLOCK_TIME(12, 0);
+                gSaveContext.skyboxTime = CLOCK_TIME(12, 0);
+                play->nextEntranceIndex = ENTR_NAKANIWA_1;
+                play->transitionTrigger = TRANS_TRIGGER_START;
+                play->transitionType = TRANS_TYPE_FADE_WHITE;
+                break;
+        }
+    }
+}

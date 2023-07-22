@@ -1045,14 +1045,11 @@ static s32 Object_StatDeps(const char* input, const char* output, const char* co
 		
 		if (!ret && gLinkerNum) {
 			for (int i = 0; i < list.num; i++) {
-				Memfile mem = Memfile_New();
-				Memfile_LoadBin(&mem, list.item[i]);
-				Elf64* elf = Elf64_New(mem.data);
+				Elf64* elf = Elf64_Load(list.item[i]);
 				
 				for (int j = 0; j < gLinkerNum; j++) {
 					if (Elf64_FindSym(elf, gLinkerInfo[j].symbol) == 0) {
 						Elf64_Free(elf);
-						Memfile_Free(&mem);
 						List_Free(&list);
 						
 						return true;
@@ -1060,7 +1057,6 @@ static s32 Object_StatDeps(const char* input, const char* output, const char* co
 				}
 				
 				Elf64_Free(elf);
-				Memfile_Free(&mem);
 			}
 		}
 	}
@@ -1110,16 +1106,13 @@ static s32 Callback_Kaleido(const char* input, MakeCallType type, const char* ou
 		Proc_SetState(exe, PROC_THROW_ERROR | PROC_MUTE_STDOUT);
 		Proc_Exec(exe);
 		
-		Memfile mem = Memfile_New();
-		Memfile_LoadBin(&mem, input);
-		Elf64* elf = Elf64_New(mem.data);
+		Elf64* elf = Elf64_Load(input);
 		
 		u32 sym[4];
 		if (( sym[0] = Elf64_FindSym(elf, "__z64_init") ) == NULL_SYM) errr(gLang.make.err_missing_item, "__z64_init", input);
 		if (( sym[1] = Elf64_FindSym(elf, "__z64_dest") ) == NULL_SYM) errr(gLang.make.err_missing_item, "__z64_dest", input);
 		if (( sym[2] = Elf64_FindSym(elf, "__z64_updt") ) == NULL_SYM) errr(gLang.make.err_missing_item, "__z64_updt", input);
 		if (( sym[3] = Elf64_FindSym(elf, "__z64_draw") ) == NULL_SYM) errr(gLang.make.err_missing_item, "__z64_draw", input);
-		Memfile_Free(&mem);
 		Elf64_Free(elf);
 		
 		conf = x_rep(x_fmt("%sconfig.toml", x_path(input)), "src/", "rom/");
@@ -1181,14 +1174,11 @@ static s32 Callback_System(const char* input, MakeCallType type, const char* out
 			strrem(info, strlen("0x0000-"));
 		strrep(info, "/", " ");
 		
-		Memfile mem = Memfile_New();
-		Memfile_LoadBin(&mem, input);
-		Elf64* elf = Elf64_New(mem.data);
+		Elf64* elf = Elf64_Load(input);
 		
 		u32 sym[2];
 		if (( sym[0] = Elf64_FindSym(elf, "__z64_init") ) == NULL_SYM) errr(gLang.make.err_missing_item, "__z64_init", input);
 		if (( sym[1] = Elf64_FindSym(elf, "__z64_dest") ) == NULL_SYM) errr(gLang.make.err_missing_item, "__z64_dest", input);
-		Memfile_Free(&mem);
 		Elf64_Free(elf);
 		
 		fprintf(f, "# %s\n\n", x_basename(input));
@@ -1268,9 +1258,7 @@ static s32 Callback_Overlay(const char* input, MakeCallType type, const char* ou
 		temp += strspn(temp, " ");
 		temp = strndup(temp, strcspn(temp, " ="));
 		
-		Memfile_LoadBin(&mem, output);
-		
-		Elf64* elf = Elf64_New(mem.data);
+		Elf64* elf = Elf64_Load(output);
 		u32 addr = Elf64_FindSym(elf, temp);
 		Elf64_Free(elf);
 		
@@ -1403,7 +1391,8 @@ static void Binutil_Compiler_WriteDepFile(const char* source, const char* flags)
 	strrep(msg, "\x0D\x0A", "\n");
 	strrep(msg, " \\\n", "");
 	strrep(msg, " ", "\n");
-	strcpy(msg, strline(msg, 2));
+	char* msg_line = strline(msg, 2);
+	memmove(msg, msg_line, strlen(msg_line) + 1);
 	
 	sys_mkdir(x_path(dep));
 	if ((f = fopen(dep, "w")) == NULL)
@@ -1702,14 +1691,11 @@ static void Make_Thread_UserLibrary(MakeArg* arg) {
 	
 	if (breaker) {
 		for (int i = 0; i < list.num; i++) {
-			Memfile mem = Memfile_New();
-			Memfile_LoadBin(&mem, list.item[i]);
-			Elf64* elf = Elf64_New(mem.data);
+			Elf64* elf = Elf64_Load(list.item[i]);
 			
 			for (int j = 0; j < gLinkerNum; j++) {
 				if (Elf64_FindSym(elf, gLinkerInfo[j].symbol) == 0) {
 					Elf64_Free(elf);
-					Memfile_Free(&mem);
 					
 					breaker = false;
 					goto bailout;
@@ -1717,7 +1703,6 @@ static void Make_Thread_UserLibrary(MakeArg* arg) {
 			}
 			
 			Elf64_Free(elf);
-			Memfile_Free(&mem);
 		}
 		
 		bailout:
@@ -1910,31 +1895,6 @@ typedef struct FuncNode {
 } FuncNode;
 
 static FuncNode* sFnHead = NULL;
-static mutex_t sULibMutex;
-
-static s32 UserLib_ExeCallback(void* arg, const char* s) {
-	FuncNode* node;
-	
-	if (s[9] != 'T')
-		return 0;
-	
-	s += 11;
-	node = new(FuncNode);
-	node->func = strndup(s, strcspn(s, "\n"));
-	node->src = strdup(arg);
-	
-	pthread_mutex_lock(&sULibMutex);
-	Node_Add(sFnHead, node);
-	pthread_mutex_unlock(&sULibMutex);
-	
-	return 0;
-}
-
-static void UserLib_NmThread(const char* file) {
-	pthread_mutex_init(&sULibMutex, 0);
-	sys_exel(x_fmt("%s -n %s", Tools_Get(nm), file), UserLib_ExeCallback, (char*) file);
-	pthread_mutex_destroy(&sULibMutex);
-}
 
 static void UserLib_Validate(void) {
 	Memfile mem = Memfile_New();
@@ -1948,38 +1908,53 @@ static void UserLib_Validate(void) {
 		if (!strend(list.item[i], ".o"))
 			continue;
 		
-		Parallel_Add(UserLib_NmThread, list.item[i]);
+		nested(void, call, (void* arg, const char* name, ElfSymbol * sym)) {
+			if (sym->visibility != ELF64_VISIBILITY_GLOBAL)
+				return;
+			if (sym->type != ELF64_TYPE_FUNC)
+				return;
+			if (strstart(name, "__vanilla_hook_"))
+				return;
+			FuncNode* node = new(FuncNode);
+			node->func = strdup(name);
+			node->src = strdup(arg);
+			
+			Node_Add(sFnHead, node);
+		};
+		
+		Elf64* elf = Elf64_Load(list.item[i]);
+		
+		Elf64_ReadSyms(elf, list.item[i], (void*)call);
 	}
-	
-	Parallel_Exec(g64.threadNum);
-	
-	List_Free(&list);
 	
 	Memfile_LoadStr(&mem, gLinkerFile_User);
 	
-	while (sFnHead) {
-		if (!strwstr(mem.str, sFnHead->func) && !strwstr(mem.str, x_fmt("__vanilla_hook_%s", sFnHead->func))) {
-			if (!error) {
+	for (FuncNode* node = sFnHead; node; node = node->next) {
+		if (!strwstr(mem.str, node->func) && !strwstr(mem.str, x_fmt("__vanilla_hook_%s", node->func))) {
+			if (!error)
 				warn(gLang.make.err_hidden_symbol);
-			}
 			
 			error = true;
 			
 			if (!same) {
 				info_nl();
-				warn("" PRNT_REDD "%s", x_rep(x_rep(sFnHead->src, "rom/", "src/"), ".o", ".c"));
+				warn("" PRNT_REDD "%s", x_rep(x_rep(node->src, "rom/", "src/"), ".o", ".c"));
 			}
 			
 			same = false;
-			if (sFnHead->next)
-				if (!strcmp(sFnHead->src, sFnHead->next->src))
+			if (node->next)
+				if (!strcmp(node->src, node->next->src))
 					same = true;
-			printf("" PRNT_RSET "Asm_VanillaHook(%s);\n", sFnHead->func);
+			printf("" PRNT_RSET "Asm_VanillaHook(%s);\n", node->func);
 		}
-		
+	}
+	
+	while (sFnHead) {
 		delete(sFnHead->func, sFnHead->src);
 		Node_Kill(sFnHead, sFnHead);
 	}
+	
+	List_Free(&list);
 	
 	if (error)
 		info_nl(),

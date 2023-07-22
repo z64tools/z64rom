@@ -44,8 +44,8 @@ include $(PATH_EXTLIB)/ext_lib.mk
 default: linux
 all: linux win32
 	
-PROJECT_FILES_L      = $(shell find project/* -type f -not -name '*.txt' -not -name '*.exe' -not -name '*.reg')
-PROJECT_FILES_W      = $(shell find project/* -type f -not -name '*.txt' -not -iname 'z64convert' -not -iname 'z64audio' -not -iname 'novl' -not -iname 'seq64_console' -not -iname 'seqas')
+PROJECT_FILES_L      = project/.vscode/c_cpp_properties.json $(shell find project/* -type f -not -name '*.txt' -not -name '*.exe' -not -name '*.reg')
+PROJECT_FILES_W      = project/.vscode/c_cpp_properties.json $(shell find project/* -type f -not -name '*.txt' -not -iname 'z64convert' -not -iname 'z64audio' -not -iname 'novl' -not -iname 'seq64_console' -not -iname 'seqas')
 PROJECT_FILES_L     += $(TOOLS_LINUX)
 PROJECT_FILES_W     += $(TOOLS_WIN32)
 PROJECT_FILES_LINUX := $(foreach f,$(PROJECT_FILES_L:project/%=%),app_linux/$f)

@@ -1,0 +1,10 @@
+-Iinclude/z64hdr/oot_mq_debug
+-Iinclude/z64hdr/include
+-Iinclude
+-Isrc/lib_user
+-m32
+-Wall
+-D_LANGUAGE_C
+-DDEV_BUILD
+-D__GNUC__
+-std=gnu99

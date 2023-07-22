@@ -1,0 +1,26 @@
+{
+    "configurations": [
+        {
+            "name": "mips64-gcc",
+            "includePath": [
+                "${workspaceFolder}/include/z64hdr/oot_mq_debug/**",
+                "${workspaceFolder}/include/z64hdr/include/**",
+                "${workspaceFolder}/include**",
+                "${workspaceFolder}/src/lib_user/**"
+            ],
+            "defines": [
+                "_LANGUAGE_C",
+                "DEV_BUILD",
+                "__GNUC__"
+            ],
+            "compilerPath": "${workspaceFolder}/tools/mips64-binutils/bin/mips64-gcc.exe",
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++14",
+            "intelliSenseMode": "linux-gcc-x64",
+            "compilerArgs": [
+                "-m32", "-Wall"
+            ]
+        }
+    ],
+    "version": 4
+}

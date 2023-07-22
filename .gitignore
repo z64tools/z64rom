@@ -35,3 +35,5 @@ project/tools/n64log.py
 project/tools/z64upgrade
 project/tools/n64log.js
 ._*
+!project/.vscode
+!project/compile_flags.txt

@@ -7,7 +7,7 @@
 
 /*============================================================================*/
 
-const char* gToolName = PRNT_CYAN "z64rom " PRNT_GRAY "1.5.6";
+const char* gToolName = PRNT_CYAN "z64rom " PRNT_GRAY "1.5.7";
 char gProjectConfig[32] = "z64project.toml";
 StateZ g64 = {
 	.buildID   = ROM_DEV,

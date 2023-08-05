@@ -1023,6 +1023,38 @@ static s32 Source_StatDeps(const char* input, const char* output, const char* co
 	}
 	delete(dep);
 	
+	if (!r && sys_stat(config) && strend(config, "make.toml")) {
+		Toml toml = Toml_New();
+		char* basename = strdup(x_basename(output));
+		
+		Toml_Load(&toml, config);
+		
+		if (Toml_Var(&toml, "dep[0]")) {
+			int num = Toml_ArrCount(&toml, "dep");
+			
+			for (int i = 0; i < num && !r; i++) {
+				const char* f = Toml_GetStr(&toml, "dep[%d]", i);
+				
+				if (sys_stat(f) > sys_stat(output))
+					r = true;
+			}
+		}
+		
+		if (Toml_Var(&toml, "%s.dep[0]", basename)) {
+			int num = Toml_ArrCount(&toml, "%s.dep", basename);
+			
+			for (int i = 0; i < num && !r; i++) {
+				const char* f = Toml_GetStr(&toml, "%s.dep[%d]", basename, i);
+				
+				if (sys_stat(f) > sys_stat(output))
+					r = true;
+			}
+		}
+		
+		Toml_Free(&toml);
+		delete(basename);
+	}
+	
 	return r;
 }
 

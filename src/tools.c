@@ -120,7 +120,7 @@ static void Tools_CheckUpdateImpl() {
 	memcpy(buffer, tag, sz);
 	
 	sscanf(buffer, "%d.%d.%d", &vnum[0], &vnum[1], &vnum[2]);
-	sscanf(gToolName, "" PRNT_BLUE "z64rom " PRNT_GRAY "%d.%d.%d", &cnum[0], &cnum[1], &cnum[2]);
+	sscanf(gToolName, "" PRNT_CYAN "z64rom " PRNT_GRAY "%d.%d.%d", &cnum[0], &cnum[1], &cnum[2]);
 	
 	newVer = vnum[0] * 1000 + vnum[1] * 100 + vnum[2];
 	curVer = cnum[0] * 1000 + cnum[1] * 100 + cnum[2];

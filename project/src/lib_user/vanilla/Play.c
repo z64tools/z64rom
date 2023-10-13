@@ -63,8 +63,25 @@ static void Play_Draw2(PlayState* play) {
     Matrix_Transpose(&play->billboardMtxF);
     play->billboardMtx = Matrix_MtxFToMtx(
         Matrix_CheckFloats(&play->billboardMtxF, "../z_play.c", 4005),
-        Graph_Alloc(gfxCtx, sizeof(Mtx))
+        Graph_Alloc(gfxCtx, sizeof(Mtx) * 2)
     );
+    
+    // cylindrical billboarding
+    {
+        u16 *cyl = (void*)(play->billboardMtx + 1);
+        
+        // cylinder = copy of sphere
+        bcopy(play->billboardMtx, cyl, 0x40);
+        
+        // revert up vector to identity
+        cyl[0x08 / 2] = 0; // x
+        cyl[0x0A / 2] = 1; // y
+        cyl[0x0C / 2] = 0; // z
+        
+        cyl[0x28 / 2] = 0; // x
+        cyl[0x2A / 2] = 0; // y
+        cyl[0x2C / 2] = 0; // z
+    }
     
     gSPSegment(POLY_OPA_DISP++, 0x01, play->billboardMtx);
     

@@ -4,7 +4,7 @@
 
 asm ("sSetupDL_80125A60 = 0x80125A60;");
 asm ("D_80125A5C = 0x80125A5C;");
-asm ("sHBAScoreDigits = 0x80125A5C");
+asm ("sHBAScoreDigits = 0x80125A08");
 
 Asm_VanillaHook(Interface_Draw);
 void Interface_Draw(PlayState* play) {

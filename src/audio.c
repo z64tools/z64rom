@@ -240,8 +240,8 @@ const char* sSeqFlagName[] = {
 };
 
 void Audio_InitDump() {
-	osAssert(sDumpBankFileTbl = new(char*[8192]));
-	osAssert(sDumpSampleTbl = new(SampleInfo[8192]));
+	osAssert(sDumpBankFileTbl = new(char*[8192 * 2]));
+	osAssert(sDumpSampleTbl = new(SampleInfo[8192 * 2]));
 }
 
 void Audio_InitBuild() {
@@ -1410,9 +1410,9 @@ void Audio_BuildSequence(Rom* rom, Memfile* dataFile, Memfile* config) {
 	Memfile_Alloc(&sequenceMem, MbToBin(1.0));
 	Rom_ItemList(&itemList, "rom/sound/sequence/", SORT_NUMERICAL, LIST_FOLDERS);
 	
-	if (itemList.num - 1 > 0x7E)
+	if (itemList.num - 1 > 0x7F)
 		errr(gLang.rom.err_target_full,
-			gLang.rom.target[LANG_SEQ], shex(itemList.item[itemList.num - 1]), 0x7E);
+			gLang.rom.target[LANG_SEQ], shex(itemList.item[itemList.num - 1]), 0x7F);
 	
 	sqHead.numEntries = itemList.num;
 	SwapBE(sqHead.numEntries);

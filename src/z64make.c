@@ -695,11 +695,14 @@ static ThreadFunc Sound_Convert(const char* path) {
 	if (audio == NULL)
 		goto free;
 	
+	fs_set(path);
+	book = fs_find("*.book.bin");
+	
 	fs_set(x_rep(path, "src/", "rom/"));
 	sys_mkdir(fs_item(""));
 	
 	vadpcm = fs_find("*.vadpcm.bin");
-	book = fs_find("*.book.bin");
+	if (!book) book = fs_find("*.book.bin");
 	vanillaCfg = x_rep(fs_item("config.toml"), "rom/sound/sample/", x_fmt("rom/sound/sample/%s/", g64.vanilla));
 	
 	// Generate Sample Config

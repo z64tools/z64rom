@@ -1,6 +1,6 @@
-# z64rom
+# This repo is archived. Newer fork: https://github.com/z64utils/z64rom
 
-### For questions and feature requests [join z64tools discord](https://discord.gg/52DgAggYAT)!
+# z64rom
 
 ### [Download z64rom here!](https://github.com/z64tools/z64rom/releases)
 
